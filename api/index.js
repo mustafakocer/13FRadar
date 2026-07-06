@@ -40,9 +40,14 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
-  // Dev server injects req.query.route; on Vercel we parse the original URL
-  // (rewrites preserve it on req.url).
-  let route = [].concat(req.query.route || []).filter(Boolean);
+  // Path arrives one of three ways:
+  //  1. __path query param, injected by the vercel.json rewrite (production)
+  //  2. req.query.route, injected by the dev server
+  //  3. parsed from req.url as a last resort
+  const raw = req.query.__path ?? req.query.route ?? null;
+  let route = Array.isArray(raw)
+    ? raw.filter(Boolean)
+    : decodeURIComponent(String(raw || '')).split('/').filter(Boolean);
   if (!route.length) {
     const path = String(req.url || '').split('?')[0];
     route = path
@@ -52,6 +57,7 @@ export default async function handler(req, res) {
       .map(decodeURIComponent);
   }
   delete req.query.route;
+  delete req.query.__path;
 
   const def = ROUTES[route[0]];
   if (!def || route.length - 1 !== def.length - 1) {

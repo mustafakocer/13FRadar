@@ -1,8 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../lib/api.js';
+import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
+import SparkBar from './Charts/SparkBar.jsx';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -11,27 +14,64 @@ const COLS = [
   { key: 'putCall', tKey: 'table.type' },
   { key: 'value', tKey: 'table.value' },
   { key: 'weight', tKey: 'table.weight' },
+  { key: 'delta', tKey: 'table.delta' },
   { key: 'shares', tKey: 'table.shares' },
   { key: 'ret1y', tKey: 'table.ret1y' },
   { key: 'retYtd', tKey: 'table.retYtd' },
 ];
 
-export default function HoldingsTable({ positions, returns, exportName }) {
+// Expanded row: weight history across recent quarters for one CUSIP.
+function HistoryPanel({ cik, cusip, t }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['poshist', cik, cusip],
+    queryFn: () => api.positionHistory(cik, cusip),
+    staleTime: 6 * 60 * 60 * 1000,
+  });
+  if (isLoading) return <div className="muted small">{t('common.loading')}</div>;
+  const hist = data?.history || [];
+  const held = hist.filter((h) => h.weight > 0);
+  if (!held.length) return <div className="muted small">{t('common.na')}</div>;
+  return (
+    <div className="row" style={{ gap: 24, alignItems: 'center' }}>
+      <div>
+        <b>{held.length}</b> {t('poshist.quarters')}
+        <div className="muted small">
+          {held.map((h) => `${quarterLabel(h.reportDate)}: ${fmtPct(h.weight, { sign: false })}`).join(' · ')}
+        </div>
+      </div>
+      <div style={{ width: 220 }}>
+        <SparkBar values={hist.map((h) => h.weight)} />
+      </div>
+    </div>
+  );
+}
+
+export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName }) {
   const { t } = useI18n();
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState({ key: 'value', dir: -1 });
   const [showAll, setShowAll] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [expanded, setExpanded] = useState(null);
 
   const maxWeight = positions[0]?.weight || 1;
+  const hasPrev = !!prevPositions?.length;
 
   const rows = useMemo(() => {
-    const ranked = positions.map((p, i) => ({
-      ...p,
-      rank: i + 1,
-      ret1y: returns?.[p.ticker]?.ret1y ?? null,
-      retYtd: returns?.[p.ticker]?.retYtd ?? null,
-    }));
+    const prevMap = new Map(
+      (prevPositions || []).map((p) => [`${p.cusip}|${p.putCall}`, p])
+    );
+    const ranked = positions.map((p, i) => {
+      const prev = prevMap.get(`${p.cusip}|${p.putCall}`);
+      return {
+        ...p,
+        rank: i + 1,
+        delta: hasPrev ? p.weight - (prev?.weight || 0) : null,
+        isNew: hasPrev && !prev,
+        ret1y: returns?.[p.ticker]?.ret1y ?? null,
+        retYtd: returns?.[p.ticker]?.retYtd ?? null,
+      };
+    });
     const f = filter.trim().toLowerCase();
     const filtered = f
       ? ranked.filter(
@@ -50,7 +90,7 @@ export default function HoldingsTable({ positions, returns, exportName }) {
       if (typeof av === 'string') return av.localeCompare(bv) * dir;
       return (av - bv) * dir;
     });
-  }, [positions, returns, filter, sort]);
+  }, [positions, prevPositions, hasPrev, returns, filter, sort]);
 
   const visible = showAll ? rows : rows.slice(0, 100);
 
@@ -65,6 +105,8 @@ export default function HoldingsTable({ positions, returns, exportName }) {
       setExporting(false);
     }
   };
+
+  const cols = hasPrev ? COLS : COLS.filter((c) => c.key !== 'delta');
 
   return (
     <div className="card">
@@ -87,7 +129,7 @@ export default function HoldingsTable({ positions, returns, exportName }) {
         <table className="data">
           <thead>
             <tr>
-              {COLS.map((c) => (
+              {cols.map((c) => (
                 <th key={c.key} className={c.left ? 'l' : ''} onClick={() => onSort(c.key)}>
                   {t(c.tKey)}
                   {sort.key === c.key ? (sort.dir === -1 ? ' ↓' : ' ↑') : ''}
@@ -96,40 +138,70 @@ export default function HoldingsTable({ positions, returns, exportName }) {
             </tr>
           </thead>
           <tbody>
-            {visible.map((p) => (
-              <tr key={`${p.cusip}|${p.putCall}`}>
-                <td className="l muted">{p.rank}</td>
-                <td className="l">
-                  {p.ticker ? (
-                    <Link to={`/stock/${p.ticker}`} style={{ fontWeight: 700 }}>
-                      {p.ticker}
-                    </Link>
-                  ) : (
-                    <span className="muted small">{p.cusip}</span>
+            {visible.map((p) => {
+              const rowKey = `${p.cusip}|${p.putCall}`;
+              return [
+                <tr
+                  key={rowKey}
+                  onClick={() => cik && setExpanded(expanded === rowKey ? null : rowKey)}
+                  style={cik ? { cursor: 'pointer' } : undefined}
+                  title={cik ? t('table.history') : undefined}
+                >
+                  <td className="l muted">
+                    {cik ? (expanded === rowKey ? '▾ ' : '▸ ') : ''}
+                    {p.rank}
+                  </td>
+                  <td className="l" onClick={(e) => e.stopPropagation()}>
+                    {p.ticker ? (
+                      <Link
+                        to={`/stock/${p.ticker}?cusip=${p.cusip}`}
+                        style={{ fontWeight: 700 }}
+                      >
+                        {p.ticker}
+                      </Link>
+                    ) : (
+                      <span className="muted small">{p.cusip}</span>
+                    )}
+                  </td>
+                  <td className="l" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {p.issuer}
+                  </td>
+                  <td>
+                    {p.putCall ? (
+                      <span className="badge type">{p.putCall.toUpperCase()}</span>
+                    ) : (
+                      <span className="muted small">SH</span>
+                    )}
+                  </td>
+                  <td className="num">{fmtMoney(p.value)}</td>
+                  <td className="num">
+                    {fmtPct(p.weight, { sign: false, digits: 2 })}
+                    <span className="wbar-track">
+                      <i style={{ width: `${Math.min(100, (p.weight / maxWeight) * 100)}%` }} />
+                    </span>
+                  </td>
+                  {hasPrev && (
+                    <td className={`num ${deltaClass(p.delta)}`}>
+                      {p.isNew ? (
+                        <span className="badge type">{t('manager.newBadge')}</span>
+                      ) : (
+                        fmtPct(p.delta, { digits: 2 })
+                      )}
+                    </td>
                   )}
-                </td>
-                <td className="l" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {p.issuer}
-                </td>
-                <td>
-                  {p.putCall ? (
-                    <span className="badge type">{p.putCall.toUpperCase()}</span>
-                  ) : (
-                    <span className="muted small">SH</span>
-                  )}
-                </td>
-                <td className="num">{fmtMoney(p.value)}</td>
-                <td className="num">
-                  {fmtPct(p.weight, { sign: false, digits: 2 })}
-                  <span className="wbar-track">
-                    <i style={{ width: `${Math.min(100, (p.weight / maxWeight) * 100)}%` }} />
-                  </span>
-                </td>
-                <td className="num">{fmtNum(p.shares)}</td>
-                <td className={`num ${deltaClass(p.ret1y)}`}>{fmtPct(p.ret1y)}</td>
-                <td className={`num ${deltaClass(p.retYtd)}`}>{fmtPct(p.retYtd)}</td>
-              </tr>
-            ))}
+                  <td className="num">{fmtNum(p.shares)}</td>
+                  <td className={`num ${deltaClass(p.ret1y)}`}>{fmtPct(p.ret1y)}</td>
+                  <td className={`num ${deltaClass(p.retYtd)}`}>{fmtPct(p.retYtd)}</td>
+                </tr>,
+                cik && expanded === rowKey ? (
+                  <tr key={`${rowKey}-hist`}>
+                    <td colSpan={cols.length} className="l" style={{ background: 'var(--surface-2)' }}>
+                      <HistoryPanel cik={cik} cusip={p.cusip} t={t} />
+                    </td>
+                  </tr>
+                ) : null,
+              ];
+            })}
           </tbody>
         </table>
       </div>

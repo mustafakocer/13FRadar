@@ -23,7 +23,7 @@ function Row({ p, badge, delta }) {
     </>
   );
   return p.ticker ? (
-    <Link to={`/stock/${p.ticker}`} className="pos-row" style={{ color: 'inherit', textDecoration: 'none' }}>
+    <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} className="pos-row" style={{ color: 'inherit', textDecoration: 'none' }}>
       {body}
     </Link>
   ) : (

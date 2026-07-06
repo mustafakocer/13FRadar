@@ -46,6 +46,11 @@ const dict = {
     'manager.noPrev': 'Önceki çeyrek verisi yok',
     'manager.quarterEnd': 'Dönem sonu',
     'manager.filedOn': 'Dosyalama tarihi',
+    'manager.sectors': 'Sektör Dağılımı',
+    'manager.benchmark': 'Getiri Karşılaştırma',
+    'manager.benchmarkNote':
+      "Mevcut portföy ağırlıklarıyla, ticker'ı çözümlenen ilk 50 pozisyon üzerinden hesaplanır; yöneticinin gerçekleşen getirisi değildir.",
+    'manager.portfolioSeries': 'Portföy',
 
     'table.rank': '#',
     'table.symbol': 'Sembol',
@@ -59,6 +64,9 @@ const dict = {
     'table.filter': 'Sembol veya şirket ara…',
     'table.export': "Excel'e Aktar",
     'table.showing': 'pozisyon gösteriliyor',
+    'table.delta': 'Δ %',
+    'table.history': 'Ağırlık geçmişini göster/gizle',
+    'poshist.quarters': 'çeyrektir portföyde',
 
     'stock.open': 'Açılış',
     'stock.high': 'Yüksek',
@@ -145,6 +153,9 @@ const dict = {
     'reco.hold': 'Tut',
     'reco.underperform': 'Zayıf Performans',
     'reco.sell': 'Sat',
+    'stock.holders': 'Bu Hisseyi Bildiren Fonlar',
+    'stock.holdersNote':
+      'EDGAR 13F tam metin aramasındaki ilk sonuçlar; sayı, eşleşen dosyalama adedidir.',
 
     'compare.title': 'Portföy Karşılaştırma',
     'compare.subtitle': 'İki fon yöneticisinin son çeyrek portföylerini yan yana inceleyin.',
@@ -214,6 +225,11 @@ const dict = {
     'manager.noPrev': 'No prior quarter data',
     'manager.quarterEnd': 'Quarter end',
     'manager.filedOn': 'Filed on',
+    'manager.sectors': 'Sector Allocation',
+    'manager.benchmarkNote':
+      "Computed from current portfolio weights over the top 50 ticker-resolved positions; not the manager's realized return.",
+    'manager.benchmark': 'Return Comparison',
+    'manager.portfolioSeries': 'Portfolio',
 
     'table.rank': '#',
     'table.symbol': 'Symbol',
@@ -227,6 +243,9 @@ const dict = {
     'table.filter': 'Search symbol or company…',
     'table.export': 'Export to Excel',
     'table.showing': 'positions shown',
+    'table.delta': 'Δ %',
+    'table.history': 'Show/hide weight history',
+    'poshist.quarters': 'quarters in portfolio',
 
     'stock.open': 'Open',
     'stock.high': 'High',
@@ -313,6 +332,9 @@ const dict = {
     'reco.hold': 'Hold',
     'reco.underperform': 'Underperform',
     'reco.sell': 'Sell',
+    'stock.holders': 'Funds Reporting This Security',
+    'stock.holdersNote':
+      'Top results from EDGAR 13F full-text search; the count is matching filings.',
 
     'compare.title': 'Portfolio Comparison',
     'compare.subtitle': 'Compare the latest quarterly portfolios of two fund managers side by side.',

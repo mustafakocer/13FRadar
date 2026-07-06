@@ -1,6 +1,7 @@
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 import {
   fmtMoney,
   fmtNum,
@@ -56,11 +57,25 @@ function YearTable({ title, rows, cols, t }) {
 
 export default function Stock() {
   const { ticker } = useParams();
+  const [params] = useSearchParams();
+  const cusip = params.get('cusip');
   const { t, lang } = useI18n();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['stock', ticker],
     queryFn: () => api.stock(ticker),
+  });
+
+  usePageTitle(data?.price?.name ? `${data.price.symbol} · ${data.price.name} — 13F Radar` : null);
+
+  // Who reports this security? CUSIP (exact) when we came from a holdings
+  // table, otherwise the company name via EDGAR full-text search.
+  const holdersQ = cusip || data?.price?.name?.replace(/\.$/, '') || null;
+  const holders = useQuery({
+    queryKey: ['holders', holdersQ],
+    queryFn: () => api.holders(holdersQ),
+    enabled: !!holdersQ,
+    staleTime: 6 * 60 * 60 * 1000,
   });
 
   if (isLoading)
@@ -272,6 +287,21 @@ export default function Stock() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {holders.data?.holders?.length > 0 && (
+        <div className="card mt16">
+          <h3>🏦 {t('stock.holders')}</h3>
+          <div className="row" style={{ gap: 8 }}>
+            {holders.data.holders.map((h) => (
+              <Link key={h.cik} to={`/manager/${h.cik}`} className="chip">
+                {h.name}
+                <span className="muted small"> · {h.filings}</span>
+              </Link>
+            ))}
+          </div>
+          <p className="muted small mt8">{t('stock.holdersNote')}</p>
         </div>
       )}
 

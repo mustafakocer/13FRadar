@@ -10,7 +10,10 @@ import HoldingsTable from '../components/HoldingsTable.jsx';
 import AumLineChart from '../components/Charts/AumLineChart.jsx';
 import FlowBarChart from '../components/Charts/FlowBarChart.jsx';
 import PortfolioPie from '../components/Charts/PortfolioPie.jsx';
+import SectorPie from '../components/Charts/SectorPie.jsx';
+import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
 import SparkBar from '../components/Charts/SparkBar.jsx';
+import { usePageTitle } from '../hooks/usePageTitle.js';
 
 function Loading({ t }) {
   return (
@@ -71,6 +74,22 @@ export default function Manager() {
     staleTime: 30 * 60 * 1000,
   });
 
+  const benchReturns = useQuery({
+    queryKey: ['returns', 'SPY,QQQ,IWM'],
+    queryFn: () => api.returns(['SPY', 'QQQ', 'IWM']),
+    staleTime: 30 * 60 * 1000,
+  });
+
+  const sectorTickers = topTickers.slice(0, 25);
+  const sectors = useQuery({
+    queryKey: ['sectors', sectorTickers.join(',')],
+    queryFn: () => api.sectors(sectorTickers),
+    enabled: tab === 'portfolio' && sectorTickers.length > 0,
+    staleTime: 24 * 60 * 60 * 1000,
+  });
+
+  usePageTitle(mgr.data?.name ? `${mgr.data.name} — 13F Radar` : null);
+
   if (mgr.isLoading) return <Loading t={t} />;
   if (mgr.error) return <div className="error-box">{t('common.error')}: {String(mgr.error.message)}</div>;
 
@@ -94,6 +113,33 @@ export default function Manager() {
   }
 
   const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
+
+  // Current-portfolio weighted 1Y/YTD return over resolved top-50 tickers
+  let port1y = null;
+  let portYtd = null;
+  if (returns.data && positions.length) {
+    let w1 = 0, a1 = 0, w2 = 0, a2 = 0;
+    for (const p of positions.slice(0, 50)) {
+      const r = returns.data[p.ticker];
+      if (r?.ret1y != null) { w1 += p.weight; a1 += p.weight * r.ret1y; }
+      if (r?.retYtd != null) { w2 += p.weight; a2 += p.weight * r.retYtd; }
+    }
+    if (w1 > 10) port1y = a1 / w1;
+    if (w2 > 10) portYtd = a2 / w2;
+  }
+  const benchSeries =
+    port1y != null && benchReturns.data
+      ? [
+          { label: t('manager.portfolioSeries'), ret1y: port1y, retYtd: portYtd },
+          ...['SPY', 'QQQ', 'IWM']
+            .filter((s) => benchReturns.data[s])
+            .map((s) => ({
+              label: s,
+              ret1y: benchReturns.data[s].ret1y,
+              retYtd: benchReturns.data[s].retYtd,
+            })),
+        ]
+      : null;
 
   const badges = [
     day1 != null && { label: t('manager.day1'), v: day1, fmt: (x) => fmtPct(x, { digits: 2 }) },
@@ -197,17 +243,36 @@ export default function Manager() {
             positions={positions}
             prevPositions={prevHoldings.data?.positions || null}
           />
-          <div className="card mt16">
-            <h3>{t('manager.composition')}</h3>
-            <PortfolioPie positions={positions} />
+          <div className="grid grid-2 mt16">
+            <div className="card">
+              <h3>{t('manager.composition')}</h3>
+              <PortfolioPie positions={positions} />
+            </div>
+            <div className="card">
+              <h3>{t('manager.sectors')}</h3>
+              {sectors.isLoading ? (
+                <Loading t={t} />
+              ) : (
+                <SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} />
+              )}
+            </div>
           </div>
+          {benchSeries && (
+            <div className="card mt16">
+              <h3>{t('manager.benchmark')}</h3>
+              <BenchmarkBars series={benchSeries} />
+              <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
+            </div>
+          )}
         </>
       )}
 
       {!holdings.isLoading && !holdings.error && tab === 'holdings' && (
         <HoldingsTable
           positions={positions}
+          prevPositions={prevHoldings.data?.positions || null}
           returns={returns.data}
+          cik={mgr.data.cik}
           exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
         />
       )}

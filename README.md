@@ -11,7 +11,13 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - 💹 Hisse detay sayfası: Yahoo Finance verisiyle fiyat, değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
 - 📈 1Y / YTD / 1G getiriler (Yahoo v8 chart, regular close)
 - 🏷️ CUSIP → ticker çözümleme (OpenFIGI)
-- ⚖️ İki yönetici karşılaştırma, 📋 tarayıcı, ⭐ izleme listesi (localStorage)
+- ⚖️ İki yönetici karşılaştırma + 2-3 hisse rasyo karşılaştırma, 📋 tarayıcı, ⭐ izleme listesi (localStorage)
+- 🧭 **Süper Yatırımcı Konsensüsü** — seçili fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan/satılan, yeni pozisyon radarı
+- 🎯 Opsiyon görünümü (PUT/CALL pozisyonları ayrı tablo + toplam ağırlıklar)
+- 🧪 Kopyalama backtesti (deneysel): "13F'i her çeyrek kopyalasaydım" vs SPY
+- 👤 İçeriden işlemler (Form 4) hisse sayfasında
+- 🔔 İzleme listesinde yeni 13F rozetleri, ⌘K komut paleti, 🖨 PDF/yazdır raporu
+- 🌍 Tam evren tarayıcı: haftalık GitHub Action tüm ~8.000 13F dosyalayıcısını tarayıp `client/public/universe.json` üretir
 - 🌗 Açık/koyu tema, 🇹🇷/🇬🇧 çift dil
 
 ## Mimari
@@ -58,6 +64,18 @@ npm run dev:client
    - `SEC_USER_AGENT` → `13FRadar/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
+
+### Evren Verisi (Tarayıcı için)
+
+`Tarayıcı` sayfası `client/public/universe.json` bulursa tüm 13F evreninde filtreleme yapar; yoksa seçili 20 yönetici ile canlı modda çalışır. Dosyayı üretmek için:
+
+- **GitHub Action:** `Actions → Build 13F universe → Run workflow` (haftalık cron da tanımlı; cron yalnızca varsayılan branch'te çalışır). Tam tarama EDGAR hız limitlerine saygılı şekilde ~1-2 saat sürer ve dosyayı repoya commit'ler; Vercel otomatik yeniden deploy eder.
+- **Yerelde:** `UNIVERSE_LIMIT=500 node scripts/build-universe.mjs` (test için ilk 500 dosyalayıcı).
+
+### İleride (dış servis gerektirir)
+
+- **E-posta bildirimi:** Vercel Cron + KV + Resend hesabı ile izleme listesine yeni 13F bildirimi. Şimdilik uygulama içi "YENİ 13F" rozetleri var.
+- **Hesap + senkron izleme listesi:** Supabase/Clerk entegrasyonu gerekir; bugün localStorage kullanılıyor.
 
 ### Notlar / Bilinen Sınırlar
 - Yahoo Finance resmi olmayan API'dir; nadiren crumb/cookie yenilemesi gerekir (client otomatik dener).

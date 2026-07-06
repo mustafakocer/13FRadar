@@ -1,0 +1,33 @@
+name: Build 13F universe
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Mondays 03:00 UTC — 13F data only changes around quarterly deadlines,
+    # weekly keeps the file fresh without hammering EDGAR.
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Build universe.json
+        run: node scripts/build-universe.mjs
+        env:
+          SEC_USER_AGENT: '13FRadar universe bot (kocergpt@gmail.com)'
+      - name: Commit if changed
+        run: |
+          git config user.name 'universe-bot'
+          git config user.email 'actions@github.com'
+          git add client/public/universe.json
+          git diff --cached --quiet || git commit -m 'chore: refresh 13F universe data'
+          git push

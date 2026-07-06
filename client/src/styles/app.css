@@ -262,6 +262,33 @@ table.data .num { font-weight: 600; }
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ---------- command palette ---------- */
+.palette-overlay {
+  position: fixed; inset: 0; z-index: 100;
+  background: rgba(10, 15, 26, 0.45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 12vh;
+}
+.palette {
+  width: min(560px, 92vw);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 12px;
+}
+.palette-results { max-height: 340px; overflow-y: auto; margin-top: 8px; }
+.kbd-hint { padding: 8px 12px; }
+@media (max-width: 840px) { .kbd-hint { display: none; } }
+
+/* ---------- print / PDF ---------- */
+@media print {
+  .sidebar, .tabs, .table-tools, .select, .fav-btn, .btn, .no-print { display: none !important; }
+  .main { padding: 0; max-width: 100%; }
+  body { background: #fff; }
+  .card { box-shadow: none; break-inside: avoid; }
+}
+
 .muted { color: var(--muted); }
 .small { font-size: 12.5px; }
 .mt8 { margin-top: 8px; } .mt16 { margin-top: 16px; } .mt24 { margin-top: 24px; }

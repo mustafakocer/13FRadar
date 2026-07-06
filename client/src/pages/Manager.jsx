@@ -13,7 +13,10 @@ import PortfolioPie from '../components/Charts/PortfolioPie.jsx';
 import SectorPie from '../components/Charts/SectorPie.jsx';
 import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
 import SparkBar from '../components/Charts/SparkBar.jsx';
+import BacktestChart from '../components/Charts/BacktestChart.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import { markFilingSeen } from '../hooks/useSeenFilings.js';
+import { Link } from 'react-router-dom';
 
 function Loading({ t }) {
   return (
@@ -29,6 +32,7 @@ export default function Manager() {
   const { t } = useI18n();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
+  const [btOn, setBtOn] = useState(false);
 
   const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik) });
 
@@ -89,6 +93,17 @@ export default function Manager() {
   });
 
   usePageTitle(mgr.data?.name ? `${mgr.data.name} — 13F Radar` : null);
+
+  // mark the latest filing as "seen" for watchlist NEW badges
+  if (mgr.data && filings[0]) markFilingSeen(mgr.data.cik, filings[0].filingDate);
+
+  const backtest = useQuery({
+    queryKey: ['backtest', cik],
+    queryFn: () => api.backtest(cik, { quarters: 8, top: 15 }),
+    enabled: btOn,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
 
   if (mgr.isLoading) return <Loading t={t} />;
   if (mgr.error) return <div className="error-box">{t('common.error')}: {String(mgr.error.message)}</div>;
@@ -169,13 +184,18 @@ export default function Manager() {
             </div>
           </div>
         </div>
-        <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)}>
-          {filings.map((f) => (
-            <option key={f.acc} value={f.acc}>
-              {quarterLabel(f.reportDate)} {f.form === '13F-HR/A' ? '(A)' : ''}
-            </option>
-          ))}
-        </select>
+        <div className="row">
+          <button className="btn ghost no-print" onClick={() => window.print()}>
+            🖨 {t('manager.print')}
+          </button>
+          <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)}>
+            {filings.map((f) => (
+              <option key={f.acc} value={f.acc}>
+                {quarterLabel(f.reportDate)} {f.form === '13F-HR/A' ? '(A)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       <div className="tabs">
@@ -234,6 +254,49 @@ export default function Manager() {
               <p className="muted small mt8">{t('manager.flowNote')}</p>
             </div>
           )}
+
+          <div className="card mt16 no-print">
+            <h3>🧪 {t('manager.backtest')}</h3>
+            {!btOn && (
+              <>
+                <p className="muted small" style={{ marginBottom: 12 }}>
+                  {t('manager.backtestNote')}
+                </p>
+                <button className="btn" onClick={() => setBtOn(true)}>
+                  {t('manager.backtestRun')}
+                </button>
+              </>
+            )}
+            {btOn && backtest.isLoading && <Loading t={t} />}
+            {btOn && backtest.error && (
+              <div className="muted small">{t('common.error')}: {String(backtest.error.message)}</div>
+            )}
+            {btOn && backtest.data?.points?.length > 1 && (
+              <>
+                <div className="head-badges" style={{ marginBottom: 12 }}>
+                  <span className={`badge ${backtest.data.totalPort >= 0 ? 'pos' : 'neg'}`}>
+                    {t('manager.portfolioSeries')} {fmtPct(backtest.data.totalPort)}
+                  </span>
+                  <span className={`badge ${backtest.data.totalSpy >= 0 ? 'pos' : 'neg'}`}>
+                    SPY {fmtPct(backtest.data.totalSpy)}
+                  </span>
+                  {backtest.data.coverage != null && (
+                    <span className="badge plain">
+                      {t('manager.backtestCoverage')}: {fmtPct(backtest.data.coverage, { sign: false, digits: 0 })}
+                    </span>
+                  )}
+                </div>
+                <BacktestChart
+                  points={backtest.data.points}
+                  labels={{ port: t('manager.portfolioSeries') }}
+                />
+                <p className="muted small mt8">{t('manager.backtestNote')}</p>
+              </>
+            )}
+            {btOn && backtest.data && !(backtest.data.points?.length > 1) && !backtest.isLoading && (
+              <div className="muted small">{t('common.na')}</div>
+            )}
+          </div>
         </>
       )}
 
@@ -262,6 +325,57 @@ export default function Manager() {
               <h3>{t('manager.benchmark')}</h3>
               <BenchmarkBars series={benchSeries} />
               <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
+            </div>
+          )}
+
+          {positions.some((p) => p.putCall) && (
+            <div className="card mt16">
+              <h3>🎯 {t('manager.options')}</h3>
+              <div className="head-badges" style={{ marginBottom: 12 }}>
+                <span className="badge neg">
+                  PUT {fmtPct(positions.filter((p) => /put/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
+                </span>
+                <span className="badge pos">
+                  CALL {fmtPct(positions.filter((p) => /call/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
+                </span>
+              </div>
+              <div className="table-wrap">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th className="l">{t('table.symbol')}</th>
+                      <th className="l">{t('table.company')}</th>
+                      <th>{t('table.type')}</th>
+                      <th>{t('manager.notional')}</th>
+                      <th>{t('table.weight')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {positions
+                      .filter((p) => p.putCall)
+                      .map((p) => (
+                        <tr key={`${p.cusip}|${p.putCall}`}>
+                          <td className="l">
+                            {p.ticker ? (
+                              <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>
+                                {p.ticker}
+                              </Link>
+                            ) : (
+                              <span className="muted small">{p.cusip}</span>
+                            )}
+                          </td>
+                          <td className="l">{p.issuer}</td>
+                          <td>
+                            <span className="badge type">{p.putCall.toUpperCase()}</span>
+                          </td>
+                          <td className="num">{fmtMoney(p.value)}</td>
+                          <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="muted small mt8">{t('manager.optionsNote')}</p>
             </div>
           )}
         </>

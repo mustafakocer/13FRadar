@@ -3,6 +3,7 @@ import { createContext, useContext, useState, useCallback } from 'react';
 const dict = {
   tr: {
     'nav.search': 'Arama',
+    'nav.consensus': 'Konsensüs',
     'nav.screen': 'Tarayıcı',
     'nav.compare': 'Karşılaştır',
     'nav.watchlist': 'İzleme Listesi',
@@ -179,9 +180,56 @@ const dict = {
     'screen.minTop10': 'Min İlk-10 %',
     'screen.manager': 'Yönetici',
     'screen.quarter': 'Çeyrek',
+    'screen.universeMode': 'Tüm 13F evreni',
+
+    'consensus.title': 'Süper Yatırımcı Konsensüsü',
+    'consensus.subtitle': 'Takip edilen fonlar',
+    'consensus.loading': 'Konsensüs hesaplanıyor… İlk yükleme 30-60 sn sürebilir.',
+    'consensus.mostHeld': 'En Çok Tutulan Hisseler',
+    'consensus.topBought': 'Bu Çeyrek En Çok Alınan',
+    'consensus.topSold': 'Bu Çeyrek En Çok Satılan',
+    'consensus.newRadar': 'Yeni Pozisyon Radarı',
+    'consensus.newRadarNote':
+      'Bu çeyrek portföye ilk kez giren pozisyonlar, ağırlığa göre sıralı.',
+    'consensus.funds': 'Fon',
+    'consensus.totalValue': 'Toplam Değer',
+    'consensus.avgWeight': 'Ort. Ağırlık',
+    'consensus.net': 'Yaklaşık İşlem',
+    'consensus.heldBy': 'Tutanlar',
+
+    'manager.print': 'PDF / Yazdır',
+    'manager.options': 'Opsiyon Pozisyonları',
+    'manager.optionsNote':
+      '13F opsiyonları nominal hisse karşılığı değeriyle bildirir; prim maliyetini veya kullanım fiyatını göstermez.',
+    'manager.notional': 'Nominal Değer',
+    'manager.backtest': 'Kopyalama Backtesti (deneysel)',
+    'manager.backtestRun': 'Hesapla',
+    'manager.backtestNote':
+      'Her çeyrek, dosyalama kamuya açıldığında (dönem sonu + 46 gün) ilk 15 hisse pozisyonu dosyalanan ağırlıklarla alınıp bir sonraki dosyalamaya kadar tutulsaydı senaryosu. Fiyat verisi bulunamayan pozisyonlar atlanır; temettüler dahil değildir. Yatırım tavsiyesi değildir.',
+    'manager.backtestCoverage': 'Kapsam',
+
+    'compare.mode.managers': 'Yöneticiler',
+    'compare.mode.stocks': 'Hisseler',
+    'compare.tickerPlaceholder': 'Ticker ekle (örn. AAPL)',
+
+    'watchlist.newFiling': 'YENİ 13F',
+
+    'stock.insiders': 'İçeriden İşlemler (Form 4)',
+    'stock.insidersNote': 'Şirketin son Form 4 dosyalamalarından; sadece hisse işlemleri (türevler hariç).',
+    'stock.insDate': 'Tarih',
+    'stock.insOwner': 'Kişi',
+    'stock.insTitle': 'Görev',
+    'stock.insSide': 'İşlem',
+    'stock.insPrice': 'Fiyat',
+    'stock.ins.buy': 'Alım',
+    'stock.ins.sell': 'Satım',
+
+    'palette.placeholder': 'Yönetici veya ticker ara…',
+    'palette.goStock': 'Hisseye git:',
   },
   en: {
     'nav.search': 'Search',
+    'nav.consensus': 'Consensus',
     'nav.screen': 'Screener',
     'nav.compare': 'Compare',
     'nav.watchlist': 'Watchlist',
@@ -357,6 +405,51 @@ const dict = {
     'screen.minTop10': 'Min Top-10 %',
     'screen.manager': 'Manager',
     'screen.quarter': 'Quarter',
+    'screen.universeMode': 'Full 13F universe',
+
+    'consensus.title': 'Superinvestor Consensus',
+    'consensus.subtitle': 'Tracked funds',
+    'consensus.loading': 'Computing consensus… first load can take 30-60s.',
+    'consensus.mostHeld': 'Most Held Stocks',
+    'consensus.topBought': 'Most Bought This Quarter',
+    'consensus.topSold': 'Most Sold This Quarter',
+    'consensus.newRadar': 'New Position Radar',
+    'consensus.newRadarNote': 'First-time positions this quarter, sorted by weight.',
+    'consensus.funds': 'Funds',
+    'consensus.totalValue': 'Total Value',
+    'consensus.avgWeight': 'Avg Weight',
+    'consensus.net': 'Approx. Trade',
+    'consensus.heldBy': 'Held By',
+
+    'manager.print': 'PDF / Print',
+    'manager.options': 'Option Positions',
+    'manager.optionsNote':
+      '13F reports options at notional share-equivalent value; premium cost and strikes are not disclosed.',
+    'manager.notional': 'Notional Value',
+    'manager.backtest': 'Copy-the-13F Backtest (experimental)',
+    'manager.backtestRun': 'Run',
+    'manager.backtestNote':
+      'Scenario: each quarter, buy the top 15 equity positions at filed weights once the filing is public (quarter end + 46 days) and hold until the next filing. Positions without price data are skipped; dividends excluded. Not investment advice.',
+    'manager.backtestCoverage': 'Coverage',
+
+    'compare.mode.managers': 'Managers',
+    'compare.mode.stocks': 'Stocks',
+    'compare.tickerPlaceholder': 'Add ticker (e.g. AAPL)',
+
+    'watchlist.newFiling': 'NEW 13F',
+
+    'stock.insiders': 'Insider Transactions (Form 4)',
+    'stock.insidersNote': "From the company's recent Form 4 filings; equity transactions only (derivatives excluded).",
+    'stock.insDate': 'Date',
+    'stock.insOwner': 'Owner',
+    'stock.insTitle': 'Title',
+    'stock.insSide': 'Side',
+    'stock.insPrice': 'Price',
+    'stock.ins.buy': 'Buy',
+    'stock.ins.sell': 'Sell',
+
+    'palette.placeholder': 'Search manager or ticker…',
+    'palette.goStock': 'Go to stock:',
   },
 };
 

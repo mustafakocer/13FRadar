@@ -7,6 +7,8 @@ import Stock from './pages/Stock.jsx';
 import Screen from './pages/Screen.jsx';
 import Compare from './pages/Compare.jsx';
 import Watchlist from './pages/Watchlist.jsx';
+import Consensus from './pages/Consensus.jsx';
+import CommandPalette from './components/CommandPalette.jsx';
 
 export default function App() {
   const { t, lang, toggle } = useI18n();
@@ -21,6 +23,7 @@ export default function App() {
 
   const nav = [
     { to: '/', label: t('nav.search'), icon: '🔍', end: true },
+    { to: '/consensus', label: t('nav.consensus'), icon: '🧭' },
     { to: '/screen', label: t('nav.screen'), icon: '📊' },
     { to: '/compare', label: t('nav.compare'), icon: '⚖️' },
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
@@ -42,6 +45,7 @@ export default function App() {
             <span>{n.icon}</span> {n.label}
           </NavLink>
         ))}
+        <div className="kbd-hint muted small">⌘K / Ctrl+K</div>
         <div className="sidebar-footer">
           <button className="toggle-btn" onClick={toggleTheme} title="Theme">
             {theme === 'dark' ? '☀️' : '🌙'}
@@ -56,11 +60,13 @@ export default function App() {
           <Route path="/" element={<Search />} />
           <Route path="/manager/:cik" element={<Manager />} />
           <Route path="/stock/:ticker" element={<Stock />} />
+          <Route path="/consensus" element={<Consensus />} />
           <Route path="/screen" element={<Screen />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/watchlist" element={<Watchlist />} />
         </Routes>
       </main>
+      <CommandPalette />
     </div>
   );
 }

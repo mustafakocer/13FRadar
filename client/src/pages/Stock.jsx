@@ -78,6 +78,13 @@ export default function Stock() {
     staleTime: 6 * 60 * 60 * 1000,
   });
 
+  const insiders = useQuery({
+    queryKey: ['insiders', ticker],
+    queryFn: () => api.insiders(ticker),
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
+
   if (isLoading)
     return (
       <div className="loading">
@@ -287,6 +294,50 @@ export default function Stock() {
               </tbody>
             </table>
           </div>
+        </div>
+      )}
+
+      {insiders.data?.transactions?.length > 0 && (
+        <div className="card mt16">
+          <h3>👤 {t('stock.insiders')}</h3>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('stock.insDate')}</th>
+                  <th className="l">{t('stock.insOwner')}</th>
+                  <th className="l">{t('stock.insTitle')}</th>
+                  <th>{t('stock.insSide')}</th>
+                  <th>{t('table.shares')}</th>
+                  <th>{t('stock.insPrice')}</th>
+                  <th>{t('table.value')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {insiders.data.transactions.map((tx, i) => (
+                  <tr key={i}>
+                    <td className="l muted">{tx.date}</td>
+                    <td className="l">{tx.owner}</td>
+                    <td className="l muted small">{tx.title || '—'}</td>
+                    <td>
+                      {tx.side ? (
+                        <span className={`badge ${tx.side === 'buy' ? 'pos' : 'neg'}`}>
+                          {t(`stock.ins.${tx.side}`)}
+                          {tx.code ? ` (${tx.code})` : ''}
+                        </span>
+                      ) : (
+                        tx.code || '—'
+                      )}
+                    </td>
+                    <td className="num">{fmtNum(tx.shares)}</td>
+                    <td className="num">{fmtNum(tx.price, 2)}</td>
+                    <td className="num">{fmtMoney(tx.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small mt8">{t('stock.insidersNote')}</p>
         </div>
       )}
 

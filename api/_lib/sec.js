@@ -45,7 +45,7 @@ export function list13F(sub) {
   });
 }
 
-async function fetchInfoTableXml(cik, acc) {
+export async function fetchInfoTableXml(cik, acc) {
   const cikN = numCik(cik);
   const accNo = acc.replace(/-/g, '');
   const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;

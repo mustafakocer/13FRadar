@@ -12,7 +12,7 @@ app.use(async (req, res) => {
     .split('/')
     .filter(Boolean)
     .map(decodeURIComponent);
-  const mod = await import('./api/[[...route]].js');
+  const mod = await import('./api/index.js');
   return mod.default(req, res);
 });
 

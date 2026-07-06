@@ -1,6 +1,6 @@
-// Single catch-all serverless function for the whole API.
-// Vercel's Hobby plan caps deployments at 12 functions; routing everything
-// through one function avoids the limit and shares the in-memory cache
+// Single serverless function for the whole API. vercel.json rewrites
+// /api/* here; the path is parsed from req.url. This keeps the deployment
+// at one function (Hobby plan caps at 12) and shares the in-memory cache
 // across all endpoints on a warm instance.
 import search from './_handlers/search.js';
 import returns from './_handlers/returns.js';
@@ -40,7 +40,17 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
-  const route = [].concat(req.query.route || []).filter(Boolean);
+  // Dev server injects req.query.route; on Vercel we parse the original URL
+  // (rewrites preserve it on req.url).
+  let route = [].concat(req.query.route || []).filter(Boolean);
+  if (!route.length) {
+    const path = String(req.url || '').split('?')[0];
+    route = path
+      .replace(/^\/api\/?/, '')
+      .split('/')
+      .filter(Boolean)
+      .map(decodeURIComponent);
+  }
   delete req.query.route;
 
   const def = ROUTES[route[0]];

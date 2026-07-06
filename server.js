@@ -12,6 +12,7 @@ const routes = [
   [/^\/api\/aum-history\/([^/]+)$/, () => import('./api/aum-history/[cik].js'), ['cik']],
   [/^\/api\/holdings\/([^/]+)\/([^/]+)$/, () => import('./api/holdings/[cik]/[acc].js'), ['cik', 'acc']],
   [/^\/api\/stock\/([^/]+)$/, () => import('./api/stock/[ticker].js'), ['ticker']],
+  [/^\/api\/chart\/([^/]+)$/, () => import('./api/chart/[ticker].js'), ['ticker']],
 ];
 
 app.use(async (req, res) => {

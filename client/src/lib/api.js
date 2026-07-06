@@ -15,4 +15,6 @@ export const api = {
   aumHistory: (cik) => get(`/api/aum-history/${cik}`),
   returns: (symbols) => get(`/api/returns?symbols=${symbols.join(',')}`),
   stock: (ticker) => get(`/api/stock/${encodeURIComponent(ticker)}`),
+  chart: (ticker, range = '1y') =>
+    get(`/api/chart/${encodeURIComponent(ticker)}?range=${range}`),
 };

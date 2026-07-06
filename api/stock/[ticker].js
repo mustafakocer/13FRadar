@@ -1,5 +1,5 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { yahooQuoteSummary, yahooQuote, rv } from '../_lib/yahooClient.js';
+import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClient.js';
 
 const MODULES = [
   'price',
@@ -20,6 +20,8 @@ function shapeFull(r) {
   const fd = r.financialData || {};
   const ap = r.assetProfile || {};
 
+  const changePct = rv(p.regularMarketChangePercent);
+
   return {
     source: 'quoteSummary',
     price: {
@@ -28,7 +30,7 @@ function shapeFull(r) {
       currency: p.currency,
       price: rv(p.regularMarketPrice),
       change: rv(p.regularMarketChange),
-      changePercent: rv(p.regularMarketChangePercent) * 100 || rv(p.regularMarketChangePercent),
+      changePercent: changePct != null ? changePct * 100 : null,
       open: rv(p.regularMarketOpen),
       high: rv(p.regularMarketDayHigh),
       low: rv(p.regularMarketDayLow),
@@ -47,24 +49,50 @@ function shapeFull(r) {
       evToEbitda: rv(ks.enterpriseToEbitda),
       evToRevenue: rv(ks.enterpriseToRevenue),
       enterpriseValue: rv(ks.enterpriseValue),
+      bookValue: rv(ks.bookValue),
     },
     fundamentals: {
       revenue: rv(fd.totalRevenue),
       revenueGrowth: rv(fd.revenueGrowth),
+      earningsGrowth: rv(fd.earningsGrowth),
       grossMargin: rv(fd.grossMargins),
       operatingMargin: rv(fd.operatingMargins),
       profitMargin: rv(fd.profitMargins),
+      ebitda: rv(fd.ebitda),
       roe: rv(fd.returnOnEquity),
       roa: rv(fd.returnOnAssets),
       debtToEquity: rv(fd.debtToEquity),
+      currentRatio: rv(fd.currentRatio),
+      quickRatio: rv(fd.quickRatio),
+      totalCash: rv(fd.totalCash),
+      totalDebt: rv(fd.totalDebt),
       freeCashflow: rv(fd.freeCashflow),
+      operatingCashflow: rv(fd.operatingCashflow),
       dividendYield: rv(sd.dividendYield),
       dividendRate: rv(sd.dividendRate),
       payoutRatio: rv(sd.payoutRatio),
-      beta: rv(sd.beta),
-      shortRatio: rv(ks.shortRatio),
       eps: rv(ks.trailingEps),
       forwardEps: rv(ks.forwardEps),
+    },
+    trading: {
+      beta: rv(sd.beta),
+      avgVolume: rv(sd.averageVolume),
+      fiftyDayAvg: rv(sd.fiftyDayAverage),
+      twoHundredDayAvg: rv(sd.twoHundredDayAverage),
+      week52Change: rv(ks['52WeekChange']),
+      sharesOutstanding: rv(ks.sharesOutstanding),
+      floatShares: rv(ks.floatShares),
+      heldInsiders: rv(ks.heldPercentInsiders),
+      heldInstitutions: rv(ks.heldPercentInstitutions),
+      shortRatio: rv(ks.shortRatio),
+      shortPercentFloat: rv(ks.shortPercentOfFloat),
+    },
+    analyst: {
+      targetMean: rv(fd.targetMeanPrice),
+      targetHigh: rv(fd.targetHighPrice),
+      targetLow: rv(fd.targetLowPrice),
+      recommendation: fd.recommendationKey || null,
+      analysts: rv(fd.numberOfAnalystOpinions),
     },
     income: (r.incomeStatementHistory?.incomeStatementHistory || []).map((y) => ({
       endDate: rv(y.endDate) ? new Date(rv(y.endDate) * 1000).toISOString().slice(0, 10) : null,
@@ -107,8 +135,21 @@ function shapeFull(r) {
   };
 }
 
+const EMPTY = {
+  valuation: {},
+  fundamentals: {},
+  trading: {},
+  analyst: {},
+  income: [],
+  balance: [],
+  cashflow: [],
+  earnings: [],
+  profile: {},
+};
+
 function shapeQuoteFallback(q) {
   return {
+    ...EMPTY,
     source: 'quote',
     price: {
       symbol: q.symbol,
@@ -128,11 +169,34 @@ function shapeQuoteFallback(q) {
     },
     valuation: { trailingPE: q.trailingPE ?? null, forwardPE: q.forwardPE ?? null },
     fundamentals: { eps: q.epsTrailingTwelveMonths ?? null },
-    income: [],
-    balance: [],
-    cashflow: [],
-    earnings: [],
-    profile: {},
+    trading: { avgVolume: q.averageDailyVolume3Month ?? null },
+  };
+}
+
+// Last-resort fallback: the v8 chart endpoint is the least rate-limited and
+// its meta block carries enough for a basic price header.
+function shapeChartFallback(meta) {
+  const price = meta.regularMarketPrice ?? null;
+  const prev = meta.chartPreviousClose ?? meta.previousClose ?? null;
+  return {
+    ...EMPTY,
+    source: 'chart',
+    price: {
+      symbol: meta.symbol,
+      name: meta.longName || meta.shortName || meta.symbol,
+      currency: meta.currency,
+      price,
+      change: price != null && prev != null ? price - prev : null,
+      changePercent: price != null && prev ? ((price - prev) / prev) * 100 : null,
+      open: null,
+      high: meta.regularMarketDayHigh ?? null,
+      low: meta.regularMarketDayLow ?? null,
+      prevClose: prev,
+      volume: meta.regularMarketVolume ?? null,
+      marketCap: null,
+      high52: meta.fiftyTwoWeekHigh ?? null,
+      low52: meta.fiftyTwoWeekLow ?? null,
+    },
   };
 }
 
@@ -141,17 +205,23 @@ export default async function handler(req, res) {
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
 
   try {
-    const data = await cached(`stock:${ticker}`, TTL.MIN_5, async () => {
+    const data = await cached(`stock:${ticker}`, TTL.MIN_5 * 2, async () => {
       try {
         const r = await yahooQuoteSummary(ticker, MODULES);
         return shapeFull(r);
       } catch {
-        const [q] = await yahooQuote([ticker]);
-        if (!q) throw new Error('Symbol not found');
-        return shapeQuoteFallback(q);
+        try {
+          const [q] = await yahooQuote([ticker]);
+          if (q) return shapeQuoteFallback(q);
+        } catch {
+          /* fall through to chart */
+        }
+        const chart = await yahooChart(ticker, { range: '5d' });
+        if (!chart?.meta) throw new Error('Symbol not found');
+        return shapeChartFallback(chart.meta);
       }
     });
-    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=1800');
+    res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600');
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

@@ -3,47 +3,96 @@ import axios from 'axios';
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+const HOSTS = ['https://query2.finance.yahoo.com', 'https://query1.finance.yahoo.com'];
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const http = axios.create({
   timeout: 15000,
-  headers: { 'User-Agent': UA, Accept: 'application/json, text/plain, */*' },
+  headers: {
+    'User-Agent': UA,
+    Accept: 'application/json, text/plain, */*',
+    'Accept-Language': 'en-US,en;q=0.9',
+  },
   validateStatus: () => true,
 });
 
 let auth = { cookie: '', crumb: '', ts: 0 };
 const AUTH_TTL = 30 * 60 * 1000;
 
+const cookieFrom = (r) => (r.headers['set-cookie'] || []).map((c) => c.split(';')[0]).join('; ');
+
 async function getAuth(force = false) {
-  if (!force && auth.crumb && Date.now() - auth.ts < AUTH_TTL) return auth;
-  const r = await http.get('https://fc.yahoo.com/');
-  const setCookie = r.headers['set-cookie'] || [];
-  const cookie = setCookie.map((c) => c.split(';')[0]).join('; ');
-  const c = await http.get('https://query2.finance.yahoo.com/v1/test/getcrumb', {
-    headers: { 'User-Agent': UA, Cookie: cookie },
-  });
-  const crumb =
-    typeof c.data === 'string' && c.data && !c.data.includes('<') ? c.data.trim() : '';
+  if (!force && auth.ts && Date.now() - auth.ts < AUTH_TTL) return auth;
+
+  // Cookie: fc.yahoo.com is the cheap source; fall back to the full site.
+  let cookie = '';
+  try {
+    const r = await http.get('https://fc.yahoo.com/');
+    cookie = cookieFrom(r);
+  } catch {
+    /* ignore */
+  }
+  if (!cookie) {
+    try {
+      const r = await http.get('https://finance.yahoo.com/quote/AAPL', {
+        headers: { 'User-Agent': UA, Accept: 'text/html' },
+        maxRedirects: 3,
+      });
+      cookie = cookieFrom(r);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  let crumb = '';
+  for (const host of HOSTS) {
+    try {
+      const c = await http.get(`${host}/v1/test/getcrumb`, {
+        headers: { 'User-Agent': UA, ...(cookie ? { Cookie: cookie } : {}) },
+      });
+      if (c.status === 200 && typeof c.data === 'string' && c.data && !c.data.includes('<')) {
+        crumb = c.data.trim();
+        break;
+      }
+    } catch {
+      /* try next host */
+    }
+  }
+
   auth = { cookie, crumb, ts: Date.now() };
   return auth;
 }
 
-async function authedGet(url, params = {}) {
+// GET with host rotation + exponential backoff; refreshes cookie/crumb once
+// when Yahoo starts rejecting (401/403/429 are common from datacenter IPs).
+async function yahooGet(path, params = {}, { withCrumb = true } = {}) {
   let a = await getAuth();
-  let r = await http.get(url, {
-    params: { ...params, crumb: a.crumb },
-    headers: { 'User-Agent': UA, Cookie: a.cookie },
-  });
-  if ([401, 403, 429].includes(r.status)) {
-    a = await getAuth(true);
-    r = await http.get(url, {
-      params: { ...params, crumb: a.crumb },
-      headers: { 'User-Agent': UA, Cookie: a.cookie },
-    });
+  let lastErr = null;
+  let refreshed = false;
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const host = HOSTS[attempt % HOSTS.length];
+    try {
+      const r = await http.get(`${host}${path}`, {
+        params: withCrumb && a.crumb ? { ...params, crumb: a.crumb } : params,
+        headers: { 'User-Agent': UA, ...(a.cookie ? { Cookie: a.cookie } : {}) },
+      });
+      if (r.status === 200) return r.data;
+      lastErr = new Error(
+        r.data?.finance?.error?.description ||
+          r.data?.quoteSummary?.error?.description ||
+          `HTTP ${r.status}`
+      );
+      if ([401, 403, 429].includes(r.status) && !refreshed) {
+        refreshed = true;
+        a = await getAuth(true);
+      }
+    } catch (e) {
+      lastErr = e;
+    }
+    await sleep(400 * (attempt + 1) + Math.random() * 300);
   }
-  if (r.status !== 200) {
-    const msg = r.data?.finance?.error?.description || r.data?.error || `HTTP ${r.status}`;
-    throw new Error(`Yahoo request failed: ${msg}`);
-  }
-  return r.data;
+  throw new Error(`Yahoo request failed: ${lastErr?.message || lastErr}`);
 }
 
 // Unwrap Yahoo's {raw, fmt} value objects into plain numbers.
@@ -51,8 +100,8 @@ export const rv = (x) =>
   x == null ? null : typeof x === 'object' ? (x.raw ?? null) : typeof x === 'number' ? x : null;
 
 export async function yahooQuoteSummary(symbol, modules) {
-  const data = await authedGet(
-    `https://query2.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(symbol)}`,
+  const data = await yahooGet(
+    `/v10/finance/quoteSummary/${encodeURIComponent(symbol)}`,
     { modules: modules.join(','), formatted: 'false' }
   );
   const result = data?.quoteSummary?.result?.[0];
@@ -61,24 +110,18 @@ export async function yahooQuoteSummary(symbol, modules) {
 }
 
 export async function yahooQuote(symbols) {
-  const data = await authedGet('https://query1.finance.yahoo.com/v7/finance/quote', {
-    symbols: symbols.join(','),
-  });
+  const data = await yahooGet('/v7/finance/quote', { symbols: symbols.join(',') });
   return data?.quoteResponse?.result || [];
 }
 
 export async function yahooChart(symbol, params = {}) {
-  const a = await getAuth();
-  const r = await http.get(
-    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`,
-    {
-      params: { interval: '1d', ...params },
-      headers: { 'User-Agent': UA, Cookie: a.cookie },
-    }
+  const data = await yahooGet(
+    `/v8/finance/chart/${encodeURIComponent(symbol)}`,
+    { interval: '1d', ...params },
+    { withCrumb: false }
   );
-  if (r.status !== 200) throw new Error(`Yahoo chart failed: HTTP ${r.status}`);
-  const result = r.data?.chart?.result?.[0];
-  if (!result) throw new Error(r.data?.chart?.error?.description || 'No chart data');
+  const result = data?.chart?.result?.[0];
+  if (!result) throw new Error(data?.chart?.error?.description || 'No chart data');
   return result;
 }
 

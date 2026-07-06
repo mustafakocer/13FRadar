@@ -226,6 +226,8 @@ const dict = {
 
     'palette.placeholder': 'Yönetici veya ticker ara…',
     'palette.goStock': 'Hisseye git:',
+    'stock.limitedData':
+      'Detaylı rasyolar şu an veri sağlayıcıdan alınamıyor; temel fiyat verisi yedek kaynaktan gösteriliyor. Birkaç dakika sonra sayfayı yenileyin.',
   },
   en: {
     'nav.search': 'Search',
@@ -450,6 +452,8 @@ const dict = {
 
     'palette.placeholder': 'Search manager or ticker…',
     'palette.goStock': 'Go to stock:',
+    'stock.limitedData':
+      'Detailed ratios are temporarily unavailable from the data provider; basic price data is shown from a fallback source. Refresh in a few minutes.',
   },
 };
 

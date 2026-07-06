@@ -1,5 +1,6 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClient.js';
+import { stooqDaily } from '../_lib/stooq.js';
 
 const MODULES = [
   'price',
@@ -200,6 +201,34 @@ function shapeChartFallback(meta) {
   };
 }
 
+// Absolute last resort: Stooq daily closes. Yahoo can block the entire
+// serverless region; this keeps the page rendering with real price data.
+function shapeStooqFallback(symbol, prices) {
+  const last = prices[prices.length - 1];
+  const prev = prices.length > 1 ? prices[prices.length - 2] : null;
+  const year = prices.slice(-252);
+  return {
+    ...EMPTY,
+    source: 'stooq',
+    price: {
+      symbol,
+      name: symbol,
+      currency: 'USD',
+      price: last.close,
+      change: prev ? last.close - prev.close : null,
+      changePercent: prev ? ((last.close - prev.close) / prev.close) * 100 : null,
+      open: null,
+      high: null,
+      low: null,
+      prevClose: prev?.close ?? null,
+      volume: null,
+      marketCap: null,
+      high52: Math.max(...year.map((p) => p.close)),
+      low52: Math.min(...year.map((p) => p.close)),
+    },
+  };
+}
+
 export default async function handler(req, res) {
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
@@ -216,9 +245,14 @@ export default async function handler(req, res) {
         } catch {
           /* fall through to chart */
         }
-        const chart = await yahooChart(ticker, { range: '5d' });
-        if (!chart?.meta) throw new Error('Symbol not found');
-        return shapeChartFallback(chart.meta);
+        try {
+          const chart = await yahooChart(ticker, { range: '5d' });
+          if (chart?.meta) return shapeChartFallback(chart.meta);
+        } catch {
+          /* fall through to stooq */
+        }
+        const prices = await stooqDaily(ticker);
+        return shapeStooqFallback(ticker, prices);
       }
     });
     res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600');

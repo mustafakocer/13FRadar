@@ -1,5 +1,15 @@
 import { cached, TTL } from './_lib/cache.js';
 import { yahooChartReturns, mapLimit } from './_lib/yahooClient.js';
+import { stooqDaily, returnsFromSeries } from './_lib/stooq.js';
+
+async function symbolReturns(sym) {
+  try {
+    return await yahooChartReturns(sym);
+  } catch {
+    const prices = await stooqDaily(sym);
+    return returnsFromSeries(sym, prices);
+  }
+}
 
 // GET /api/returns?symbols=AAPL,MSFT,...  (max 60)
 // Returns { AAPL: {price, ret1y, retYtd, ret1d}, ... }
@@ -13,7 +23,7 @@ export default async function handler(req, res) {
 
   try {
     const rows = await mapLimit(symbols, 6, (sym) =>
-      cached(`ret:${sym}`, TTL.HOUR_1, () => yahooChartReturns(sym))
+      cached(`ret:${sym}`, TTL.HOUR_1, () => symbolReturns(sym))
     );
     const out = {};
     rows.forEach((r, i) => {

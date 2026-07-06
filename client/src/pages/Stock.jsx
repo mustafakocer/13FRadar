@@ -126,6 +126,15 @@ export default function Stock() {
         </div>
       </div>
 
+      {data.source !== 'quoteSummary' && (
+        <div
+          className="card"
+          style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)', marginBottom: 16 }}
+        >
+          <span className="small">⚠️ {t('stock.limitedData')}</span>
+        </div>
+      )}
+
       <div className="card">
         <div className="kv-grid">
           <KV k={t('stock.open')} v={fmtNum(p.open, 2)} />

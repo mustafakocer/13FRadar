@@ -1,0 +1,23 @@
+// Curated well-known 13F filers (CIK numbers from SEC EDGAR).
+export const POPULAR_MANAGERS = [
+  { cik: '0001067983', name: 'Berkshire Hathaway (Warren Buffett)' },
+  { cik: '0001350694', name: 'Bridgewater Associates (Ray Dalio)' },
+  { cik: '0001336528', name: 'Pershing Square (Bill Ackman)' },
+  { cik: '0001649339', name: 'Scion Asset Management (Michael Burry)' },
+  { cik: '0001037389', name: 'Renaissance Technologies' },
+  { cik: '0001536411', name: 'Duquesne Family Office (Druckenmiller)' },
+  { cik: '0001656456', name: 'Appaloosa (David Tepper)' },
+  { cik: '0001040273', name: 'Third Point (Dan Loeb)' },
+  { cik: '0001079114', name: 'Greenlight Capital (David Einhorn)' },
+  { cik: '0001061768', name: 'Baupost Group (Seth Klarman)' },
+  { cik: '0001167483', name: 'Tiger Global Management' },
+  { cik: '0001135730', name: 'Coatue Management' },
+  { cik: '0001061165', name: 'Lone Pine Capital' },
+  { cik: '0001103804', name: 'Viking Global Investors' },
+  { cik: '0001423053', name: 'Citadel Advisors (Ken Griffin)' },
+  { cik: '0001273087', name: 'Millennium Management' },
+  { cik: '0001009207', name: 'D.E. Shaw & Co' },
+  { cik: '0001179392', name: 'Two Sigma Investments' },
+  { cik: '0001029160', name: 'Soros Fund Management' },
+  { cik: '0001697748', name: 'ARK Investment Management (Cathie Wood)' },
+];

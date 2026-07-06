@@ -1,0 +1,22 @@
+{
+  "name": "13fradar",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "13F Radar — SEC 13F filings intelligence platform",
+  "scripts": {
+    "dev": "node server.js",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "express": "^4.21.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

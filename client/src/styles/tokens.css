@@ -1,0 +1,76 @@
+/* ------------------------------------------------------------------
+   Design tokens — Finimize-inspired palette.
+   Light: warm cream canvas, deep navy ink, warm yellow accent.
+   Chart series colors are CVD-validated (dataviz six-checks).
+   ------------------------------------------------------------------ */
+:root {
+  --bg: #faf6ef;
+  --surface: #ffffff;
+  --surface-2: #f4eee3;
+  --border: #e8e0d2;
+  --grid: #ece5d8;
+
+  --ink: #101a2e;
+  --muted: #5d6675;
+  --faint: #8b93a3;
+
+  --accent: #ffd250;
+  --accent-soft: #fff3d0;
+  --accent-ink: #101a2e;
+  --link: #2557d6;
+
+  --pos: #0a7a52;
+  --pos-soft: #e2f3ec;
+  --neg: #c93a38;
+  --neg-soft: #fbe9e8;
+
+  --shadow: 0 1px 2px rgba(16, 26, 46, 0.05), 0 8px 24px rgba(16, 26, 46, 0.06);
+
+  /* categorical chart series (light) */
+  --s1: #2a78d6;
+  --s2: #1baf7a;
+  --s3: #eda100;
+  --s4: #008300;
+  --s5: #4a3aa7;
+  --s6: #e34948;
+  --s7: #e87ba4;
+  --s8: #eb6834;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+[data-theme='dark'] {
+  --bg: #0b111e;
+  --surface: #121a2b;
+  --surface-2: #1a2438;
+  --border: #24304a;
+  --grid: #1e293e;
+
+  --ink: #f4f1e9;
+  --muted: #97a2b6;
+  --faint: #6b7689;
+
+  --accent: #ffd250;
+  --accent-soft: #33301c;
+  --accent-ink: #101a2e;
+  --link: #7ea0ff;
+
+  --pos: #2fbf8f;
+  --pos-soft: #12362c;
+  --neg: #f2645f;
+  --neg-soft: #3d1f1e;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+
+  /* categorical chart series (dark surface steps) */
+  --s1: #3987e5;
+  --s2: #199e70;
+  --s3: #c98500;
+  --s4: #008300;
+  --s5: #9085e9;
+  --s6: #e66767;
+  --s7: #d55181;
+  --s8: #d95926;
+}

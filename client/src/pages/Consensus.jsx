@@ -39,6 +39,14 @@ export default function Consensus() {
     retry: 2,
   });
 
+  // whole-universe most-held (static file produced by the GitHub Action)
+  const uniStocks = useQuery({
+    queryKey: ['stocksUniverse'],
+    queryFn: api.stocksUniverse,
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: 0,
+  });
+
   if (isLoading)
     return (
       <div className="loading">
@@ -130,6 +138,39 @@ export default function Consensus() {
           </div>
         ))}
       </div>
+
+      {uniStocks.data?.rows?.length > 0 && (
+        <div className="card mt16">
+          <h3>🌍 {t('consensus.universeTop')}</h3>
+          <p className="muted small" style={{ marginBottom: 10 }}>
+            {t('consensus.universeNote')} · {uniStocks.data.updatedAt?.slice(0, 10)}
+          </p>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">#</th>
+                  <th className="l">{t('table.symbol')}</th>
+                  <th className="l">{t('table.company')}</th>
+                  <th>{t('consensus.funds')}</th>
+                  <th>{t('consensus.totalValue')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {uniStocks.data.rows.slice(0, 50).map((r, i) => (
+                  <tr key={r.cusip}>
+                    <td className="l muted">{i + 1}</td>
+                    <td className="l"><Sym r={r} /></td>
+                    <td className="l">{r.issuer}</td>
+                    <td className="num">{r.funds}</td>
+                    <td className="num">{fmtMoney(r.value)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="card mt16">
         <h3>🚨 {t('consensus.newRadar')}</h3>

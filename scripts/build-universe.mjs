@@ -10,6 +10,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
+import { mapCusipsToTickers } from '../api/_lib/figi.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -61,6 +62,7 @@ async function main() {
   console.log(`Filers to process: ${entries.length}`);
 
   const rows = [];
+  const stockAgg = new Map(); // cusip -> {issuer, value, funds}
   let done = 0;
   let failed = 0;
   const CONCURRENCY = 3;
@@ -83,6 +85,14 @@ async function main() {
             positions: positions.length,
             top10: Number(top10.toFixed(1)),
           });
+          // whale-heatmap aggregate across ALL filers (equity positions only)
+          for (const p of positions) {
+            if (p.putCall) continue;
+            const a = stockAgg.get(p.cusip) || { issuer: p.issuer, value: 0, funds: 0 };
+            a.value += p.value;
+            a.funds++;
+            stockAgg.set(p.cusip, a);
+          }
         } catch {
           failed++;
         }
@@ -94,15 +104,34 @@ async function main() {
   );
 
   rows.sort((a, b) => b.aum - a.aum);
-  const out = {
-    updatedAt: new Date().toISOString(),
-    count: rows.length,
-    rows,
-  };
-  const dest = path.join(process.cwd(), 'client', 'public', 'universe.json');
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
-  fs.writeFileSync(dest, JSON.stringify(out));
-  console.log(`Wrote ${rows.length} managers -> ${dest} (failed: ${failed})`);
+  const pub = path.join(process.cwd(), 'client', 'public');
+  fs.mkdirSync(pub, { recursive: true });
+  fs.writeFileSync(
+    path.join(pub, 'universe.json'),
+    JSON.stringify({ updatedAt: new Date().toISOString(), count: rows.length, rows })
+  );
+  console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed})`);
+
+  // Top ~500 most-held securities across the whole universe
+  const topStocks = [...stockAgg.entries()]
+    .map(([cusip, a]) => ({ cusip, ...a, value: Math.round(a.value) }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 500);
+  console.log('Resolving tickers for top stocks via OpenFIGI…');
+  let tickers = {};
+  try {
+    tickers = await mapCusipsToTickers(topStocks.map((s) => s.cusip));
+  } catch (e) {
+    console.warn('FIGI mapping failed:', e.message);
+  }
+  fs.writeFileSync(
+    path.join(pub, 'stocks.json'),
+    JSON.stringify({
+      updatedAt: new Date().toISOString(),
+      rows: topStocks.map((s) => ({ ...s, ticker: tickers[s.cusip] ?? null })),
+    })
+  );
+  console.log(`Wrote ${topStocks.length} stocks -> stocks.json`);
 }
 
 main().catch((e) => {

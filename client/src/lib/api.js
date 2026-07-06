@@ -32,4 +32,12 @@ export const api = {
     if (!r.ok) throw new Error('no-universe');
     return r.json();
   },
+  stocksUniverse: async () => {
+    const r = await fetch('/stocks.json');
+    if (!r.ok) throw new Error('no-stocks-universe');
+    return r.json();
+  },
+  stockOwnership: (cusip) => get(`/api/stock-ownership?cusip=${encodeURIComponent(cusip)}`),
+  managerStats: (cik) => get(`/api/manager-stats/${cik}`),
+  filings13dg: (ticker) => get(`/api/filings13dg/${encodeURIComponent(ticker)}`),
 };

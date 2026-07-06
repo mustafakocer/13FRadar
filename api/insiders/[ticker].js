@@ -2,21 +2,10 @@ import axios from 'axios';
 import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, numCik } from '../_lib/sec.js';
+import { tickerToCik } from '../_lib/tickers.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 const http = axios.create({ timeout: 20000, headers: { 'User-Agent': UA } });
-
-// ticker -> issuer CIK via SEC's official mapping (cached 1 day)
-function tickerMap() {
-  return cached('company_tickers', TTL.DAY_1, async () => {
-    const { data } = await http.get('https://www.sec.gov/files/company_tickers.json');
-    const map = new Map();
-    for (const row of Object.values(data)) {
-      map.set(String(row.ticker).toUpperCase(), String(row.cik_str));
-    }
-    return map;
-  });
-}
 
 const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
 const val = (x) => (x && typeof x === 'object' ? x.value : x) ?? null;
@@ -71,8 +60,7 @@ export default async function handler(req, res) {
 
   try {
     const data = await cached(`insiders:${ticker}`, TTL.HOUR_6, async () => {
-      const map = await tickerMap();
-      const cik = map.get(ticker) || map.get(ticker.replace('-', ''));
+      const cik = await tickerToCik(ticker);
       if (!cik) return { transactions: [] };
 
       const sub = await getSubmissions(cik);

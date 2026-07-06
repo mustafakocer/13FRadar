@@ -85,6 +85,22 @@ export default function Stock() {
     retry: 1,
   });
 
+  // WhaleWisdom-style aggregate ownership (needs exact CUSIP)
+  const ownership = useQuery({
+    queryKey: ['ownership', cusip],
+    queryFn: () => api.stockOwnership(cusip),
+    enabled: !!cusip,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
+
+  const filings13dg = useQuery({
+    queryKey: ['13dg', ticker],
+    queryFn: () => api.filings13dg(ticker),
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
+
   if (isLoading)
     return (
       <div className="loading">
@@ -347,6 +363,99 @@ export default function Stock() {
             </table>
           </div>
           <p className="muted small mt8">{t('stock.insidersNote')}</p>
+        </div>
+      )}
+
+      {cusip && (ownership.isLoading || ownership.data?.holders?.length > 0) && (
+        <div className="card mt16">
+          <h3>🐋 {t('stock.ownership')}</h3>
+          {ownership.isLoading && (
+            <div className="muted small">{t('stock.ownershipLoading')}</div>
+          )}
+          {ownership.data?.holders?.length > 0 && (
+            <>
+              <div className="head-badges" style={{ marginBottom: 12 }}>
+                <span className="badge plain">
+                  {t('stock.ownershipFilings')}: {fmtNum(ownership.data.totalFilings)}
+                </span>
+                <span className="badge plain">
+                  {t('consensus.totalValue')}: {fmtMoney(ownership.data.totalValue)}
+                </span>
+              </div>
+              <div className="table-wrap">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th className="l">{t('screen.manager')}</th>
+                      <th>{t('screen.quarter')}</th>
+                      <th>{t('table.shares')}</th>
+                      <th>{t('table.value')}</th>
+                      <th>{t('table.weight')}</th>
+                      <th>Δ {t('table.shares')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ownership.data.holders.map((h) => (
+                      <tr key={h.cik}>
+                        <td className="l">
+                          <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }}>
+                            {h.name}
+                          </Link>
+                        </td>
+                        <td className="num muted">{h.reportDate}</td>
+                        <td className="num">{fmtNum(h.shares)}</td>
+                        <td className="num">{fmtMoney(h.value)}</td>
+                        <td className="num">{fmtPct(h.weight, { sign: false, digits: 2 })}</td>
+                        <td className={`num ${deltaClass(h.dShares)}`}>
+                          {h.isNew ? (
+                            <span className="badge type">{t('manager.newBadge')}</span>
+                          ) : h.dShares != null ? (
+                            fmtNum(h.dShares)
+                          ) : (
+                            '—'
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="muted small mt8">{t('stock.ownershipNote')}</p>
+            </>
+          )}
+        </div>
+      )}
+
+      {filings13dg.data?.filings?.length > 0 && (
+        <div className="card mt16">
+          <h3>📢 {t('stock.filings13dg')}</h3>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('stock.insDate')}</th>
+                  <th className="l">Form</th>
+                  <th className="l">EDGAR</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filings13dg.data.filings.map((f) => (
+                  <tr key={f.acc}>
+                    <td className="l muted">{f.filingDate}</td>
+                    <td className="l">
+                      <span className={`badge ${/13D/i.test(f.form) ? 'neg' : 'plain'}`}>{f.form}</span>
+                    </td>
+                    <td className="l">
+                      <a href={f.url} target="_blank" rel="noreferrer">
+                        {t('stock.view')} ↗
+                      </a>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small mt8">{t('stock.filings13dgNote')}</p>
         </div>
       )}
 

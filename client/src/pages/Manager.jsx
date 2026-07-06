@@ -105,6 +105,13 @@ export default function Manager() {
     retry: 1,
   });
 
+  const mstats = useQuery({
+    queryKey: ['mstats', cik],
+    queryFn: () => api.managerStats(cik),
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 1,
+  });
+
   if (mgr.isLoading) return <Loading t={t} />;
   if (mgr.error) return <div className="error-box">{t('common.error')}: {String(mgr.error.message)}</div>;
 
@@ -237,6 +244,37 @@ export default function Manager() {
               </span>
             </div>
           </div>
+
+          {mstats.data?.quarters >= 2 && (
+            <div className="grid grid-3 mt16">
+              <div className="card stat-card">
+                <span className="stat-label">{t('manager.turnover')}</span>
+                <span className="stat-value">
+                  {fmtPct(mstats.data.turnoverLatest, { sign: false })}
+                </span>
+                <span className="stat-sub">
+                  {t('manager.turnoverAvg')}: {fmtPct(mstats.data.turnoverAvg, { sign: false })}
+                </span>
+              </div>
+              <div className="card stat-card">
+                <span className="stat-label">{t('manager.avgHold')}</span>
+                <span className="stat-value">
+                  {mstats.data.avgHoldingQuarters != null
+                    ? `${mstats.data.avgHoldingQuarters.toFixed(1)}`
+                    : '—'}
+                </span>
+                <span className="stat-sub">{t('manager.avgHoldUnit')}</span>
+              </div>
+              <div className="card stat-card">
+                <span className="stat-label">{t('manager.newExit')}</span>
+                <span className="stat-value">
+                  <span className="delta-pos">+{mstats.data.newCount ?? 0}</span>{' '}
+                  <span className="delta-neg">−{mstats.data.exitCount ?? 0}</span>
+                </span>
+                <span className="stat-sub">{t('manager.newExitSub')}</span>
+              </div>
+            </div>
+          )}
 
           <div className="card mt16">
             <h3>{t('manager.aumHistory')}</h3>

@@ -196,6 +196,27 @@ const dict = {
     'consensus.avgWeight': 'Ort. Ağırlık',
     'consensus.net': 'Yaklaşık İşlem',
     'consensus.heldBy': 'Tutanlar',
+    'consensus.universeTop': 'Tüm Evrende En Çok Tutulanlar',
+    'consensus.universeNote':
+      'Tüm 13F dosyalayıcılarının (~8.000 fon) birleşik verisi; haftalık güncellenir.',
+
+    'manager.turnover': 'Devir Hızı (Son Ç)',
+    'manager.turnoverAvg': '8Ç ortalama',
+    'manager.avgHold': 'Ort. Tutma Süresi',
+    'manager.avgHoldUnit': 'çeyrek (ilk 50 pozisyon)',
+    'manager.newExit': 'Yeni / Çıkan Pozisyon',
+    'manager.newExitSub': 'son çeyrekte',
+
+    'stock.ownership': 'Kurumsal 13F Sahipliği — En Büyük Fonlar',
+    'stock.ownershipLoading':
+      'Sahiplik verisi hesaplanıyor… İlk yükleme 30-60 sn sürebilir.',
+    'stock.ownershipFilings': 'Eşleşen dosyalama',
+    'stock.ownershipNote':
+      'EDGAR tam metin aramasında bu CUSIP\'i bildiren fonlardan en büyükleri; tüm sahiplerin tam listesi değildir.',
+    'stock.filings13dg': '13D/13G Bildirimleri',
+    'stock.filings13dgNote':
+      '13D = aktivist niyetli %5+ ortaklık, 13G = pasif %5+ ortaklık. Detay için EDGAR bağlantısına tıklayın.',
+    'stock.view': 'Görüntüle',
 
     'manager.print': 'PDF / Yazdır',
     'manager.options': 'Opsiyon Pozisyonları',
@@ -422,6 +443,26 @@ const dict = {
     'consensus.avgWeight': 'Avg Weight',
     'consensus.net': 'Approx. Trade',
     'consensus.heldBy': 'Held By',
+    'consensus.universeTop': 'Most Held Across the Whole Universe',
+    'consensus.universeNote':
+      'Aggregated across ALL 13F filers (~8,000 funds); refreshed weekly.',
+
+    'manager.turnover': 'Turnover (Last Q)',
+    'manager.turnoverAvg': '8Q average',
+    'manager.avgHold': 'Avg Holding Period',
+    'manager.avgHoldUnit': 'quarters (top 50 positions)',
+    'manager.newExit': 'New / Exited Positions',
+    'manager.newExitSub': 'last quarter',
+
+    'stock.ownership': 'Institutional 13F Ownership — Largest Funds',
+    'stock.ownershipLoading': 'Computing ownership… first load can take 30-60s.',
+    'stock.ownershipFilings': 'Matching filings',
+    'stock.ownershipNote':
+      'The largest funds reporting this CUSIP via EDGAR full-text search; not an exhaustive list of all holders.',
+    'stock.filings13dg': '13D/13G Filings',
+    'stock.filings13dgNote':
+      '13D = activist 5%+ stake, 13G = passive 5%+ stake. Click the EDGAR link for details.',
+    'stock.view': 'View',
 
     'manager.print': 'PDF / Print',
     'manager.options': 'Option Positions',

@@ -1,5 +1,5 @@
-import { cached, TTL } from './_lib/cache.js';
-import { ftsSearch, companySearchAtom, getSubmissions, padCik } from './_lib/sec.js';
+import { cached, TTL } from '../_lib/cache.js';
+import { ftsSearch, companySearchAtom, getSubmissions, padCik } from '../_lib/sec.js';
 
 const parseDisplayName = (dn) => {
   const m = /^(.*?)\s*\(CIK\s+(\d+)\)\s*$/.exec(dn);

@@ -1,6 +1,6 @@
-import { cached, TTL } from './_lib/cache.js';
-import { yahooChartReturns, mapLimit } from './_lib/yahooClient.js';
-import { stooqDaily, returnsFromSeries } from './_lib/stooq.js';
+import { cached, TTL } from '../_lib/cache.js';
+import { yahooChartReturns, mapLimit } from '../_lib/yahooClient.js';
+import { stooqDaily, returnsFromSeries } from '../_lib/stooq.js';
 
 async function symbolReturns(sym) {
   try {

@@ -1,5 +1,5 @@
-import { cached, TTL } from './_lib/cache.js';
-import { yahooQuoteSummary, mapLimit } from './_lib/yahooClient.js';
+import { cached, TTL } from '../_lib/cache.js';
+import { yahooQuoteSummary, mapLimit } from '../_lib/yahooClient.js';
 
 // GET /api/sectors?symbols=AAPL,MSFT,...  (max 30)
 // Returns { AAPL: 'Technology', ... } — sectors change rarely, cache 7 days.

@@ -1,8 +1,8 @@
-import { cached, TTL } from './_lib/cache.js';
-import { getSubmissions, list13F, getHoldings } from './_lib/sec.js';
-import { mapLimit } from './_lib/yahooClient.js';
-import { mapCusipsToTickers } from './_lib/figi.js';
-import { CONSENSUS_MANAGERS } from './_lib/consensusList.js';
+import { cached, TTL } from '../_lib/cache.js';
+import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
+import { mapLimit } from '../_lib/yahooClient.js';
+import { mapCusipsToTickers } from '../_lib/figi.js';
+import { CONSENSUS_MANAGERS } from '../_lib/consensusList.js';
 
 // Superinvestor consensus: merge the latest quarter of each curated manager.
 // - mostHeld:  how many funds hold each security

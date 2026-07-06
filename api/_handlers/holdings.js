@@ -1,5 +1,5 @@
-import { getHoldings, getSubmissions, list13F } from '../../_lib/sec.js';
-import { mapCusipsToTickers } from '../../_lib/figi.js';
+import { getHoldings, getSubmissions, list13F } from '../_lib/sec.js';
+import { mapCusipsToTickers } from '../_lib/figi.js';
 
 // GET /api/holdings/:cik/:acc?fd=YYYY-MM-DD&light=1
 // light=1 skips CUSIP->ticker resolution (used for comparisons/screener).

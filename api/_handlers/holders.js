@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { cached, TTL } from './_lib/cache.js';
-import { padCik } from './_lib/sec.js';
+import { cached, TTL } from '../_lib/cache.js';
+import { padCik } from '../_lib/sec.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 

@@ -1,7 +1,7 @@
 import axios from 'axios';
-import { cached, TTL } from './_lib/cache.js';
-import { getSubmissions, list13F, getHoldings, padCik } from './_lib/sec.js';
-import { mapLimit } from './_lib/yahooClient.js';
+import { cached, TTL } from '../_lib/cache.js';
+import { getSubmissions, list13F, getHoldings, padCik } from '../_lib/sec.js';
+import { mapLimit } from '../_lib/yahooClient.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 

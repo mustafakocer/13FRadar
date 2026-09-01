@@ -8,19 +8,31 @@ import { stooqDaily } from './stooq.js';
 //   TWELVEDATA_API_KEY  twelvedata.com             (free: 800 req/day)
 const http = axios.create({ timeout: 15000, validateStatus: () => true });
 
-const FMP = 'https://financialmodelingprep.com/api/v3';
+const FMP_V3 = 'https://financialmodelingprep.com/api/v3';
+const FMP_STABLE = 'https://financialmodelingprep.com/stable';
 const TD = 'https://api.twelvedata.com';
 
 export const hasFmp = () => !!process.env.FMP_API_KEY;
 export const hasTd = () => !!process.env.TWELVEDATA_API_KEY;
 
-export async function fmpGet(path, params = {}) {
+async function fmpRaw(url, params) {
   const key = process.env.FMP_API_KEY;
   if (!key) throw new Error('FMP_API_KEY not set');
-  const r = await http.get(`${FMP}${path}`, { params: { ...params, apikey: key } });
+  const r = await http.get(url, { params: { ...params, apikey: key } });
   if (r.status !== 200) throw new Error(`FMP HTTP ${r.status}`);
   if (r.data?.['Error Message']) throw new Error(r.data['Error Message']);
+  if (Array.isArray(r.data) && r.data.length === 0) throw new Error('FMP empty result');
   return r.data;
+}
+
+// New FMP accounts only get the "stable" API; legacy keys still use v3.
+// Try stable (?symbol=) first, then the legacy v3 path-style endpoint.
+export async function fmpGet(stablePath, symbol, v3Path, extra = {}) {
+  try {
+    return await fmpRaw(`${FMP_STABLE}${stablePath}`, { symbol, ...extra });
+  } catch {
+    return fmpRaw(`${FMP_V3}${v3Path}/${encodeURIComponent(symbol)}`, extra);
+  }
 }
 
 export async function tdGet(path, params = {}) {
@@ -38,14 +50,16 @@ export function dailyCloses(symbol) {
   return cached(`closes:${symbol}`, TTL.HOUR_6 * 2, async () => {
     if (hasFmp()) {
       try {
-        const d = await fmpGet(`/historical-price-full/${encodeURIComponent(symbol)}`, {
+        const d = await fmpGet('/historical-price-eod/light', symbol, '/historical-price-full', {
           serietype: 'line',
           timeseries: 1400,
         });
-        const hist = d?.historical || [];
+        // stable: [{date, price}] newest-first · v3: {historical: [{date, close}]}
+        const hist = Array.isArray(d) ? d : d?.historical || [];
         if (hist.length) {
           return hist
-            .map((h) => ({ date: h.date, close: h.close }))
+            .map((h) => ({ date: h.date, close: h.close ?? h.price }))
+            .filter((h) => Number.isFinite(h.close))
             .reverse();
         }
       } catch {
@@ -82,9 +96,9 @@ const num = (x) => {
 // Full stock snapshot from FMP: quote + profile + TTM ratios (3 calls, cached upstream).
 export async function fmpStock(symbol) {
   const [quoteArr, profileArr, ratiosArr] = await Promise.all([
-    fmpGet(`/quote/${encodeURIComponent(symbol)}`),
-    fmpGet(`/profile/${encodeURIComponent(symbol)}`).catch(() => []),
-    fmpGet(`/ratios-ttm/${encodeURIComponent(symbol)}`).catch(() => []),
+    fmpGet('/quote', symbol, '/quote'),
+    fmpGet('/profile', symbol, '/profile').catch(() => []),
+    fmpGet('/ratios-ttm', symbol, '/ratios-ttm').catch(() => []),
   ]);
   const q = quoteArr?.[0];
   if (!q) throw new Error('FMP: symbol not found');
@@ -99,7 +113,7 @@ export async function fmpStock(symbol) {
       currency: p.currency || 'USD',
       price: num(q.price),
       change: num(q.change),
-      changePercent: num(q.changesPercentage),
+      changePercent: num(q.changesPercentage) ?? num(q.changePercentage),
       open: num(q.open),
       high: num(q.dayHigh),
       low: num(q.dayLow),

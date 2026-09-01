@@ -1,0 +1,26 @@
+name: Probe live API
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Probe stock endpoint
+        run: |
+          echo "=== /api/stock/AAPL ==="
+          curl -sS -m 60 "https://13-f-radar-omega.vercel.app/api/stock/AAPL" | head -c 1500 || true
+          echo
+          echo "=== /api/chart/AAPL?range=1mo ==="
+          curl -sS -m 60 "https://13-f-radar-omega.vercel.app/api/chart/AAPL?range=1mo" | head -c 400 || true
+          echo
+          echo "=== /api/returns?symbols=AAPL,MSFT ==="
+          curl -sS -m 60 "https://13-f-radar-omega.vercel.app/api/returns?symbols=AAPL,MSFT" | head -c 400 || true
+          echo
+          echo "=== /universe.json (first bytes) ==="
+          curl -sS -m 30 "https://13-f-radar-omega.vercel.app/universe.json" | head -c 300 || true
+          echo
+          echo "=== /stocks.json (first bytes) ==="
+          curl -sS -m 30 "https://13-f-radar-omega.vercel.app/stocks.json" | head -c 300 || true

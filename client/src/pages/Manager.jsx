@@ -17,6 +17,8 @@ import BacktestChart from '../components/Charts/BacktestChart.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../auth.jsx';
+import Paywall from '../components/Paywall.jsx';
 
 function Loading({ t }) {
   return (
@@ -30,6 +32,7 @@ function Loading({ t }) {
 export default function Manager() {
   const { cik } = useParams();
   const { t } = useI18n();
+  const { isPro } = useAuth();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
   const [btOn, setBtOn] = useState(false);
@@ -295,7 +298,8 @@ export default function Manager() {
 
           <div className="card mt16 no-print">
             <h3>🧪 {t('manager.backtest')}</h3>
-            {!btOn && (
+            {!isPro && <Paywall compact />}
+            {isPro && !btOn && (
               <>
                 <p className="muted small" style={{ marginBottom: 12 }}>
                   {t('manager.backtestNote')}

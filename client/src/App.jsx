@@ -8,11 +8,15 @@ import Screen from './pages/Screen.jsx';
 import Compare from './pages/Compare.jsx';
 import Watchlist from './pages/Watchlist.jsx';
 import Consensus from './pages/Consensus.jsx';
+import Pricing from './pages/Pricing.jsx';
+import Account from './pages/Account.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
+import { useAuth } from './auth.jsx';
 
 export default function App() {
   const { t, lang, toggle } = useI18n();
+  const { configured, user, plan } = useAuth();
   const [theme, setTheme] = useState(document.documentElement.dataset.theme);
 
   const toggleTheme = () => {
@@ -28,6 +32,7 @@ export default function App() {
     { to: '/screen', label: t('nav.screen'), icon: '📊' },
     { to: '/compare', label: t('nav.compare'), icon: '⚖️' },
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
+    { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
   ];
 
   return (
@@ -46,6 +51,22 @@ export default function App() {
             <span>{n.icon}</span> {n.label}
           </NavLink>
         ))}
+        {configured && (
+          <NavLink
+            to="/account"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span>👤</span>{' '}
+            {user ? (
+              <>
+                {t('nav.account')}
+                {plan === 'pro' && <span className="badge pos" style={{ marginLeft: 6 }}>PRO</span>}
+              </>
+            ) : (
+              t('account.signIn')
+            )}
+          </NavLink>
+        )}
         <div className="kbd-hint muted small">⌘K / Ctrl+K</div>
         <div className="sidebar-footer">
           <button className="toggle-btn" onClick={toggleTheme} title="Theme">
@@ -65,6 +86,8 @@ export default function App() {
           <Route path="/screen" element={<Screen />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/watchlist" element={<Watchlist />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/account" element={<Account />} />
         </Routes>
         <Footer />
       </main>

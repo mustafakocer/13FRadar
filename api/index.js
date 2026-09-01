@@ -19,10 +19,12 @@ import positionHistory from './_handlers/position-history.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
+import lsWebhook from './_handlers/ls-webhook.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
   diag: [diag],
+  'ls-webhook': [lsWebhook],
   search: [search],
   returns: [returns],
   sectors: [sectors],

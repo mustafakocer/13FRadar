@@ -2,6 +2,7 @@ import axios from 'axios';
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getHoldings, padCik } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
+import { requirePro } from '../_lib/auth.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 
@@ -11,6 +12,7 @@ const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 // Filers are discovered via EDGAR full-text search on the CUSIP, then each
 // filer's latest + previous holdings (long-cached) are inspected.
 export default async function handler(req, res) {
+  if (!(await requirePro(req, res))) return;
   const cusip = String(req.query.cusip || '').toUpperCase().trim();
   if (cusip.length < 8) return res.status(400).json({ error: 'Missing/invalid cusip' });
 

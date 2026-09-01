@@ -5,6 +5,8 @@ import { api } from '../lib/api.js';
 import { fmtPct, fmtMoney, fmtNum, fmtRatio, fmtFracPct } from '../lib/format.js';
 import SearchBox from '../components/SearchBox.jsx';
 import { useI18n } from '../i18n.jsx';
+import { useAuth } from '../auth.jsx';
+import Paywall from '../components/Paywall.jsx';
 
 const STOCK_ROWS = [
   ['price', 'stock.prevClose', (s) => fmtNum(s.price?.price, 2)],
@@ -164,6 +166,7 @@ function List({ title, rows, t }) {
 
 export default function Compare() {
   const { t } = useI18n();
+  const { isPro } = useAuth();
   const [mode, setMode] = useState('managers');
   const [a, setA] = useState(null);
   const [b, setB] = useState(null);
@@ -211,13 +214,19 @@ export default function Compare() {
         ))}
       </div>
 
-      {mode === 'stocks' && <StockCompare t={t} />}
+      {!isPro ? (
+        <Paywall />
+      ) : (
+        <>
+          {mode === 'stocks' && <StockCompare t={t} />}
 
-      {mode === 'managers' && (
-      <div className="row" style={{ alignItems: 'stretch' }}>
-        <Picker label={t('compare.selectA')} mgr={a} setMgr={setA} t={t} />
-        <Picker label={t('compare.selectB')} mgr={b} setMgr={setB} t={t} />
-      </div>
+          {mode === 'managers' && (
+            <div className="row" style={{ alignItems: 'stretch' }}>
+              <Picker label={t('compare.selectA')} mgr={a} setMgr={setA} t={t} />
+              <Picker label={t('compare.selectB')} mgr={b} setMgr={setB} t={t} />
+            </div>
+          )}
+        </>
       )}
 
       {mode === 'managers' && loading && (

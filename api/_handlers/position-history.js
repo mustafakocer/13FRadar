@@ -1,11 +1,13 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
+import { requirePro } from '../_lib/auth.js';
 
 // GET /api/position-history/:cik/:cusip
 // Weight/value/shares of one security across the manager's recent quarters.
 // Holdings are cached long-term (and warmed by aum-history), so this is cheap.
 export default async function handler(req, res) {
+  if (!(await requirePro(req, res))) return;
   const cik = String(req.query.cik || '').replace(/\D/g, '');
   const cusip = String(req.query.cusip || '').toUpperCase().trim();
   if (!cik || !cusip) return res.status(400).json({ error: 'Missing cik/cusip' });

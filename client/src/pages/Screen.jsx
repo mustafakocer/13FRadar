@@ -5,6 +5,8 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, quarterLabel } from '../lib/format.js';
 import { POPULAR_MANAGERS } from '../data/popular.js';
 import { useI18n } from '../i18n.jsx';
+import { useAuth } from '../auth.jsx';
+import Paywall from '../components/Paywall.jsx';
 
 // Screener. Preferred source: /universe.json (all ~8k 13F filers, generated
 // weekly by the GitHub Action). Fallback: curated managers with live fetch.
@@ -57,6 +59,7 @@ function LiveRow({ cik, name, filters }) {
 
 export default function Screen() {
   const { t } = useI18n();
+  const { isPro } = useAuth();
   const [filters, setFilters] = useState({
     minAum: '',
     maxAum: '',
@@ -135,7 +138,7 @@ export default function Screen() {
             </thead>
             <tbody>
               {uniRows
-                ? uniRows.slice(0, shown).map((r) => (
+                ? uniRows.slice(0, isPro ? shown : 50).map((r) => (
                     <tr key={r.cik}>
                       <td className="l">
                         <Link to={`/manager/${r.cik}`} style={{ fontWeight: 700 }}>
@@ -155,7 +158,12 @@ export default function Screen() {
             </tbody>
           </table>
         </div>
-        {uniRows && uniRows.length > shown && (
+        {!isPro && uniRows && uniRows.length > 50 && (
+          <div className="mt16">
+            <Paywall compact />
+          </div>
+        )}
+        {isPro && uniRows && uniRows.length > shown && (
           <button className="btn ghost mt16" onClick={() => setShown((s) => s + 200)}>
             {t('common.all')} ({fmtNum(uniRows.length)})
           </button>

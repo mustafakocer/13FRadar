@@ -11,6 +11,8 @@ import {
   deltaClass,
 } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { useAuth } from '../auth.jsx';
+import Paywall from '../components/Paywall.jsx';
 import PriceChart from '../components/Charts/PriceChart.jsx';
 
 function KV({ k, v, cls = '' }) {
@@ -60,6 +62,7 @@ export default function Stock() {
   const [params] = useSearchParams();
   const cusip = params.get('cusip');
   const { t, lang } = useI18n();
+  const { isPro } = useAuth();
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['stock', ticker],
@@ -81,6 +84,7 @@ export default function Stock() {
   const insiders = useQuery({
     queryKey: ['insiders', ticker],
     queryFn: () => api.insiders(ticker),
+    enabled: isPro,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
@@ -89,7 +93,7 @@ export default function Stock() {
   const ownership = useQuery({
     queryKey: ['ownership', cusip],
     queryFn: () => api.stockOwnership(cusip),
-    enabled: !!cusip,
+    enabled: !!cusip && isPro,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
@@ -97,6 +101,7 @@ export default function Stock() {
   const filings13dg = useQuery({
     queryKey: ['13dg', ticker],
     queryFn: () => api.filings13dg(ticker),
+    enabled: isPro,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
@@ -366,7 +371,13 @@ export default function Stock() {
         </div>
       )}
 
-      {cusip && (ownership.isLoading || ownership.data?.holders?.length > 0) && (
+      {!isPro && (
+        <div className="mt16">
+          <Paywall />
+        </div>
+      )}
+
+      {cusip && isPro && (ownership.isLoading || ownership.data?.holders?.length > 0) && (
         <div className="card mt16">
           <h3>🐋 {t('stock.ownership')}</h3>
           {ownership.isLoading && (

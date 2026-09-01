@@ -5,7 +5,9 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
+import { useAuth } from '../auth.jsx';
 import SparkBar from './Charts/SparkBar.jsx';
+import Paywall from './Paywall.jsx';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -22,11 +24,13 @@ const COLS = [
 
 // Expanded row: weight history across recent quarters for one CUSIP.
 function HistoryPanel({ cik, cusip, t }) {
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, error } = useQuery({
     queryKey: ['poshist', cik, cusip],
     queryFn: () => api.positionHistory(cik, cusip),
     staleTime: 6 * 60 * 60 * 1000,
+    retry: false,
   });
+  if (error?.status === 402) return <Paywall compact />;
   if (isLoading) return <div className="muted small">{t('common.loading')}</div>;
   const hist = data?.history || [];
   const held = hist.filter((h) => h.weight > 0);
@@ -48,6 +52,7 @@ function HistoryPanel({ cik, cusip, t }) {
 
 export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName }) {
   const { t } = useI18n();
+  const { isPro } = useAuth();
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState({ key: 'value', dir: -1 });
   const [showAll, setShowAll] = useState(false);
@@ -92,7 +97,8 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
     });
   }, [positions, prevPositions, hasPrev, returns, filter, sort]);
 
-  const visible = showAll ? rows : rows.slice(0, 100);
+  // free tier sees the top 10 positions only
+  const visible = !isPro ? rows.slice(0, 10) : showAll ? rows : rows.slice(0, 100);
 
   const onSort = (key) =>
     setSort((s) => ({ key, dir: s.key === key ? -s.dir : key === 'ticker' || key === 'issuer' ? 1 : -1 }));
@@ -121,9 +127,11 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         <span className="muted small">
           {rows.length} {t('table.showing')}
         </span>
-        <button className="btn" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting}>
-          {exporting ? '…' : `⬇ ${t('table.export')}`}
-        </button>
+        {isPro && (
+          <button className="btn" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting}>
+            {exporting ? '…' : `⬇ ${t('table.export')}`}
+          </button>
+        )}
       </div>
       <div className="table-wrap">
         <table className="data">
@@ -205,7 +213,12 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
           </tbody>
         </table>
       </div>
-      {!showAll && rows.length > 100 && (
+      {!isPro && rows.length > 10 && (
+        <div className="mt16">
+          <Paywall compact>{null}</Paywall>
+        </div>
+      )}
+      {isPro && !showAll && rows.length > 100 && (
         <button className="btn ghost mt16" onClick={() => setShowAll(true)}>
           {t('common.all')} ({rows.length})
         </button>

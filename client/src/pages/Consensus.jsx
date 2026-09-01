@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtMoney, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { useAuth } from '../auth.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import Paywall from '../components/Paywall.jsx';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -30,6 +32,7 @@ function HoldersCell({ holders }) {
 
 export default function Consensus() {
   const { t } = useI18n();
+  const { isPro } = useAuth();
   usePageTitle(`${t('consensus.title')} — 13F Radar`);
 
   const { data, isLoading, error } = useQuery({
@@ -106,6 +109,14 @@ export default function Consensus() {
         </div>
       </div>
 
+      {!isPro && (
+        <div className="mt16">
+          <Paywall />
+        </div>
+      )}
+
+      {isPro && (
+      <>
       <div className="grid grid-2 mt16">
         {[
           { key: 'topBought', rows: topBought, icon: '📈', field: (r) => fmtMoney(r.netValue), cls: 'delta-pos' },
@@ -202,6 +213,8 @@ export default function Consensus() {
           </table>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }

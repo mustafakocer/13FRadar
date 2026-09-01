@@ -1,4 +1,5 @@
 import { cached, TTL } from '../_lib/cache.js';
+import { requirePro } from '../_lib/auth.js';
 import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { yahooChartPrices, mapLimit } from '../_lib/yahooClient.js';
@@ -16,6 +17,7 @@ const addDays = (dateStr, d) => {
 // same windows. Positions without price data are dropped and weights
 // renormalized; `coverage` reports how much of the portfolio was simulated.
 export default async function handler(req, res) {
+  if (!(await requirePro(req, res))) return;
   const cik = String(req.query.cik || '').replace(/\D/g, '');
   const quarters = Math.min(Number(req.query.quarters) || 8, 12);
   const topN = Math.min(Number(req.query.top) || 15, 25);

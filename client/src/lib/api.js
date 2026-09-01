@@ -1,7 +1,18 @@
+let authToken = null;
+export const setAuthToken = (t) => {
+  authToken = t;
+};
+
 async function get(url) {
-  const r = await fetch(url);
+  const r = await fetch(url, {
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+  });
   const data = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(data.error || `HTTP ${r.status}`);
+  if (!r.ok) {
+    const err = new Error(data.error || `HTTP ${r.status}`);
+    err.status = r.status;
+    throw err;
+  }
   return data;
 }
 

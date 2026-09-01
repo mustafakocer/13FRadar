@@ -2,6 +2,11 @@ name: Probe live API
 
 on:
   workflow_dispatch: {}
+  push:
+    paths:
+      - '.github/workflows/probe.yml'
+
+# probe-run: 1
 
 jobs:
   probe:

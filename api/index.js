@@ -18,9 +18,11 @@ import backtest from './_handlers/backtest.js';
 import positionHistory from './_handlers/position-history.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
+import diag from './_handlers/diag.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
+  diag: [diag],
   search: [search],
   returns: [returns],
   sectors: [sectors],

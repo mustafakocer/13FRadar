@@ -1,7 +1,7 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
 import { yahooChartPrices, mapLimit } from '../_lib/yahooClient.js';
-import { stooqDaily } from '../_lib/stooq.js';
+import { dailyCloses } from '../_lib/providers.js';
 
 // Quarterly AUM history + estimated net flows.
 // Estimated flow = ΔAUM - (previous AUM × SPY quarterly return)
@@ -28,7 +28,7 @@ export default async function handler(req, res) {
         const first = new Date(history[0].reportDate).getTime() / 1000 - 14 * 86400;
         const firstDate = new Date(first * 1000).toISOString().slice(0, 10);
         const { prices } = await yahooChartPrices('SPY', first, Date.now() / 1000).catch(() =>
-          stooqDaily('SPY').then((all) => ({ prices: all.filter((p) => p.date >= firstDate) }))
+          dailyCloses('SPY').then((all) => ({ prices: all.filter((p) => p.date >= firstDate) }))
         );
         spyAt = (date) => {
           let best = null;

@@ -1,12 +1,13 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { yahooChartReturns, mapLimit } from '../_lib/yahooClient.js';
-import { stooqDaily, returnsFromSeries } from '../_lib/stooq.js';
+import { returnsFromSeries } from '../_lib/stooq.js';
+import { dailyCloses } from '../_lib/providers.js';
 
 async function symbolReturns(sym) {
   try {
     return await yahooChartReturns(sym);
   } catch {
-    const prices = await stooqDaily(sym);
+    const prices = await dailyCloses(sym);
     return returnsFromSeries(sym, prices);
   }
 }

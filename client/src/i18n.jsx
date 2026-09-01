@@ -15,9 +15,42 @@ const dict = {
     'common.all': 'Tümü',
     'common.na': '—',
 
-    'search.title': 'Akıllı Parayı Takip Et',
+    'search.title': 'Amerikan Fonlarına Bakış',
     'search.subtitle':
-      'SEC 13F dosyalamalarıyla dünyanın en büyük fon yöneticilerinin portföylerini keşfedin.',
+      "Warren Buffett'tan Michael Burry'ye — ABD'nin en büyük fonlarının portföylerini SEC verisiyle, çeyrek çeyrek izleyin.",
+    'landing.cta.consensus': 'Konsensüsü Gör',
+    'landing.cta.screen': 'Fon Tarayıcı',
+    'landing.stat.funds': 'takip edilebilir fon',
+    'landing.stat.data': 'SEC EDGAR verisi',
+    'landing.stat.data.v': 'Çeyreklik · Resmi',
+    'landing.stat.price': 'fiyat & rasyolar',
+    'landing.stat.price.v': 'Gerçek zamanlı',
+    'landing.features': 'Neler Yapabilirsiniz?',
+    'landing.f1.t': 'Portföyleri Çözümleyin',
+    'landing.f1.d':
+      'Her fonun tüm pozisyonları: ağırlıklar, çeyreklik değişimler, yeni girilen ve terk edilen hisseler, AUM geçmişi ve tahmini para giriş-çıkışı.',
+    'landing.f2.t': 'Süper Yatırımcı Konsensüsü',
+    'landing.f2.d':
+      'Seçkin fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan ve satılan hisseler, yeni pozisyon radarı.',
+    'landing.f3.t': 'Hisseyi Kimler Tutuyor?',
+    'landing.f3.d':
+      'Herhangi bir hisse için en büyük kurumsal sahipler, adet değişimleri, 13D/G aktivist bildirimleri ve içeriden işlemler.',
+    'landing.f4.t': 'Fon Tarayıcı',
+    'landing.f4.d':
+      'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; gizli kalmış odaklı fonları keşfedin.',
+    'landing.f5.t': 'Karşılaştırın & Test Edin',
+    'landing.f5.d':
+      'İki fonu veya üç hisseyi yan yana koyun; "13F kopyalama" stratejisini SPY karşısında geriye dönük test edin.',
+    'landing.f6.t': 'Dışa Aktarın',
+    'landing.f6.d':
+      "Portföyleri Excel'e aktarın, sayfaları PDF raporuna çevirin, izleme listenizle yeni dosyalamaları kaçırmayın.",
+    'landing.how': 'Nasıl Çalışır?',
+    'landing.how1': "ABD'de 100 milyon $ üzeri varlık yöneten her kurum, portföyünü her çeyrek SEC'e bildirmek zorundadır (Form 13F).",
+    'landing.how2': '13F Radar bu dosyalamaları anında çeker, ayrıştırır ve anlaşılır portföy görünümlerine çevirir.',
+    'landing.how3': 'Siz de kurumsal yatırımcıların ne alıp sattığını herkesle aynı anda, ücretsiz görürsünüz.',
+    'footer.disclaimer':
+      'Bu sitedeki hiçbir içerik yatırım tavsiyesi değildir. Veriler SEC EDGAR ve halka açık kaynaklardan otomatik derlenir; doğruluğu garanti edilmez. 13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır ve geçmişe dönüktür.',
+    'footer.sources': 'Veri kaynakları: SEC EDGAR · Yahoo Finance · OpenFIGI · Stooq',
     'search.placeholder': 'Fon yöneticisi adı veya CIK numarası…',
     'search.popular': 'Popüler Yöneticiler',
     'search.favorites': 'İzleme Listeniz',
@@ -264,9 +297,42 @@ const dict = {
     'common.all': 'All',
     'common.na': '—',
 
-    'search.title': 'Follow the Smart Money',
+    'search.title': 'Inside American Funds',
     'search.subtitle':
-      "Explore the portfolios of the world's largest fund managers through SEC 13F filings.",
+      "From Warren Buffett to Michael Burry — track the portfolios of America's largest funds quarter by quarter, straight from SEC data.",
+    'landing.cta.consensus': 'View Consensus',
+    'landing.cta.screen': 'Fund Screener',
+    'landing.stat.funds': 'trackable funds',
+    'landing.stat.data': 'SEC EDGAR data',
+    'landing.stat.data.v': 'Quarterly · Official',
+    'landing.stat.price': 'prices & ratios',
+    'landing.stat.price.v': 'Real-time',
+    'landing.features': 'What You Can Do',
+    'landing.f1.t': 'Decode Portfolios',
+    'landing.f1.d':
+      'Every position of every fund: weights, quarterly changes, new buys and exits, AUM history and estimated money flows.',
+    'landing.f2.t': 'Superinvestor Consensus',
+    'landing.f2.d':
+      'A merged view of elite funds: most held stocks, top buys and sells this quarter, and a new-position radar.',
+    'landing.f3.t': 'Who Owns This Stock?',
+    'landing.f3.d':
+      'For any ticker: the largest institutional holders, share-count changes, 13D/G activist filings and insider trades.',
+    'landing.f4.t': 'Fund Screener',
+    'landing.f4.d':
+      'Filter the entire 13F universe by AUM, position count and concentration; surface under-the-radar focused funds.',
+    'landing.f5.t': 'Compare & Backtest',
+    'landing.f5.d':
+      'Put two funds or three stocks side by side; backtest a copy-the-13F strategy against SPY.',
+    'landing.f6.t': 'Export Everything',
+    'landing.f6.d':
+      'Export portfolios to Excel, print clean PDF reports, and never miss a new filing with your watchlist.',
+    'landing.how': 'How It Works',
+    'landing.how1': 'Every institution managing over $100M in the US must disclose its portfolio to the SEC each quarter (Form 13F).',
+    'landing.how2': '13F Radar fetches and parses these filings instantly, turning them into readable portfolio views.',
+    'landing.how3': 'You see what institutional investors bought and sold — at the same moment as everyone else, for free.',
+    'footer.disclaimer':
+      'Nothing on this site is investment advice. Data is compiled automatically from SEC EDGAR and public sources; accuracy is not guaranteed. 13F filings are disclosed up to 45 days after quarter end and are backward-looking.',
+    'footer.sources': 'Data sources: SEC EDGAR · Yahoo Finance · OpenFIGI · Stooq',
     'search.placeholder': 'Fund manager name or CIK number…',
     'search.popular': 'Popular Managers',
     'search.favorites': 'Your Watchlist',

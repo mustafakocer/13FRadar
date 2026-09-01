@@ -2,7 +2,7 @@ import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { yahooChartPrices, mapLimit } from '../_lib/yahooClient.js';
-import { stooqDaily } from '../_lib/stooq.js';
+import { dailyCloses } from '../_lib/providers.js';
 
 const addDays = (dateStr, d) => {
   const t = new Date(dateStr + 'T00:00:00Z');
@@ -45,7 +45,7 @@ export default async function handler(req, res) {
         priceSeries[sym] = await cached(`px:${sym}:${startDate}`, TTL.DAY_1, () =>
           yahooChartPrices(sym, t0, now)
             .then((r) => r.prices)
-            .catch(() => stooqDaily(sym).then((all) => all.filter((p) => p.date >= startDate)))
+            .catch(() => dailyCloses(sym).then((all) => all.filter((p) => p.date >= startDate)))
         );
       });
 

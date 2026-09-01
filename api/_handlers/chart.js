@@ -1,6 +1,6 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { yahooChart } from '../_lib/yahooClient.js';
-import { stooqDaily } from '../_lib/stooq.js';
+import { dailyCloses } from '../_lib/providers.js';
 
 const RANGES = new Set(['1mo', '3mo', '6mo', '1y', '2y', '5y', 'max']);
 const RANGE_DAYS = { '1mo': 32, '3mo': 95, '6mo': 187, '1y': 367, '2y': 732, '5y': 1830, max: 36500 };
@@ -32,14 +32,14 @@ export default async function handler(req, res) {
         if (!prices.length) throw new Error('empty');
         return { symbol: ticker, range, prices };
       } catch {
-        const all = await stooqDaily(ticker);
+        const all = await dailyCloses(ticker);
         const cutoff = new Date(Date.now() - RANGE_DAYS[range] * 86400 * 1000)
           .toISOString()
           .slice(0, 10);
         return {
           symbol: ticker,
           range,
-          source: 'stooq',
+          source: 'fallback',
           prices: all.filter((p) => p.date >= cutoff),
         };
       }

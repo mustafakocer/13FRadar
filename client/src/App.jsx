@@ -9,6 +9,7 @@ import Compare from './pages/Compare.jsx';
 import Watchlist from './pages/Watchlist.jsx';
 import Consensus from './pages/Consensus.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
+import Footer from './components/Footer.jsx';
 
 export default function App() {
   const { t, lang, toggle } = useI18n();
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="/compare" element={<Compare />} />
           <Route path="/watchlist" element={<Watchlist />} />
         </Routes>
+        <Footer />
       </main>
       <CommandPalette />
     </div>

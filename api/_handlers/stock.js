@@ -1,6 +1,7 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClient.js';
 import { stooqDaily } from '../_lib/stooq.js';
+import { hasFmp, hasTd, fmpStock, tdStock } from '../_lib/providers.js';
 
 const MODULES = [
   'price',
@@ -239,11 +240,26 @@ export default async function handler(req, res) {
         const r = await yahooQuoteSummary(ticker, MODULES);
         return shapeFull(r);
       } catch {
+        // Yahoo blocks datacenter IPs — keyed providers are the reliable path.
+        if (hasFmp()) {
+          try {
+            return await fmpStock(ticker);
+          } catch {
+            /* next provider */
+          }
+        }
         try {
           const [q] = await yahooQuote([ticker]);
           if (q) return shapeQuoteFallback(q);
         } catch {
-          /* fall through to chart */
+          /* next provider */
+        }
+        if (hasTd()) {
+          try {
+            return await tdStock(ticker);
+          } catch {
+            /* next provider */
+          }
         }
         try {
           const chart = await yahooChart(ticker, { range: '5d' });

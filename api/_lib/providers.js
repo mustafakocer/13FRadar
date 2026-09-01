@@ -95,15 +95,17 @@ const num = (x) => {
 
 // Full stock snapshot from FMP: quote + profile + TTM ratios (3 calls, cached upstream).
 export async function fmpStock(symbol) {
-  const [quoteArr, profileArr, ratiosArr] = await Promise.all([
+  const [quoteArr, profileArr, ratiosArr, kmArr] = await Promise.all([
     fmpGet('/quote', symbol, '/quote'),
     fmpGet('/profile', symbol, '/profile').catch(() => []),
     fmpGet('/ratios-ttm', symbol, '/ratios-ttm').catch(() => []),
+    fmpGet('/key-metrics-ttm', symbol, '/key-metrics-ttm').catch(() => []),
   ]);
   const q = quoteArr?.[0];
   if (!q) throw new Error('FMP: symbol not found');
   const p = profileArr?.[0] || {};
   const rt = ratiosArr?.[0] || {};
+  const km = kmArr?.[0] || {};
 
   return {
     source: 'fmp',
@@ -124,27 +126,37 @@ export async function fmpStock(symbol) {
       low52: num(q.yearLow),
     },
     valuation: {
-      trailingPE: num(q.pe) ?? num(rt.peRatioTTM),
+      // stable vs v3 use different TTM field names — tolerate both
+      trailingPE:
+        num(q.pe) ??
+        num(rt.peRatioTTM) ??
+        num(rt.priceToEarningsRatioTTM) ??
+        num(km.peRatioTTM),
       forwardPE: null,
-      peg: num(rt.pegRatioTTM),
+      peg: num(rt.pegRatioTTM) ?? num(rt.priceToEarningsGrowthRatioTTM),
       priceToSales: num(rt.priceToSalesRatioTTM),
       priceToBook: num(rt.priceToBookRatioTTM),
-      evToEbitda: num(rt.enterpriseValueMultipleTTM),
-      evToRevenue: null,
-      bookValue: null,
+      evToEbitda: num(rt.enterpriseValueMultipleTTM) ?? num(km.evToEBITDATTM),
+      evToRevenue: num(km.evToSalesTTM) ?? num(rt.evToSalesTTM),
+      bookValue: num(km.bookValuePerShareTTM),
     },
     fundamentals: {
-      eps: num(q.eps),
+      eps: num(q.eps) ?? num(km.netIncomePerShareTTM),
       grossMargin: num(rt.grossProfitMarginTTM),
       operatingMargin: num(rt.operatingProfitMarginTTM),
       profitMargin: num(rt.netProfitMarginTTM),
-      roe: num(rt.returnOnEquityTTM),
-      roa: num(rt.returnOnAssetsTTM),
-      debtToEquity: num(rt.debtEquityRatioTTM),
-      currentRatio: num(rt.currentRatioTTM),
+      roe: num(rt.returnOnEquityTTM) ?? num(km.returnOnEquityTTM),
+      roa: num(rt.returnOnAssetsTTM) ?? num(km.returnOnAssetsTTM),
+      debtToEquity:
+        num(rt.debtEquityRatioTTM) ??
+        num(rt.debtToEquityRatioTTM) ??
+        num(km.debtToEquityTTM),
+      currentRatio: num(rt.currentRatioTTM) ?? num(km.currentRatioTTM),
       quickRatio: num(rt.quickRatioTTM),
       dividendYield: num(rt.dividendYielTTM) ?? num(rt.dividendYieldTTM),
-      payoutRatio: num(rt.payoutRatioTTM),
+      payoutRatio: num(rt.payoutRatioTTM) ?? num(rt.dividendPayoutRatioTTM),
+      freeCashflow: null,
+      revenue: null,
     },
     trading: {
       beta: num(p.beta),

@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 9
+# probe-run: 10
 
 jobs:
   probe:
@@ -57,3 +57,55 @@ jobs:
           curl -sS -m 20 "$B/consensus.json" | jq '{updatedAt, managers: (.managers|length), mostHeld: (.mostHeld|length)}'
           curl -sS -m 20 "$B/returns.json" | jq '{updatedAt, tickers: (.returns|length), AAPL: .returns.AAPL, SPY: .returns.SPY}' || echo "returns.json yok"
           curl -sS -m 20 "$B/universe.json" | jq '{updatedAt, count}'
+      - name: Security & robustness audit
+        run: |
+          B="https://13-f-radar-omega.vercel.app"
+          ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc'); echo "ACC=$ACC"
+          H() { curl -sS -m 40 -o /dev/null -D - "$@" | tr -d '\r' | grep -iE '^(HTTP|cache-control|x-vercel-cache|access-control|content-security|strict-transport|x-frame|x-content-type|content-encoding|content-length|content-type|referrer|permissions)' ; echo; }
+          echo "=== [1] security headers: / ==="; H "$B/"
+          echo "=== [1b] security headers: /api/manager/1067983 ==="; H "$B/api/manager/1067983"
+          echo "=== [2] CORS with foreign Origin on API ==="; H -H "Origin: https://evil.example" "$B/api/holdings/1067983/$ACC" | grep -i access-control || echo "(no ACAO header)"
+          echo "=== [3] /api/diag reachable? (info disclosure + 6 outbound fetches per hit) ==="
+          curl -sS -m 40 -w " [HTTP %{http_code}, %{time_total}s]" "$B/api/diag" | head -c 300; echo
+          echo "=== [4] webhook: GET, POST w/o secret, POST wrong secret ==="
+          curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/ls-webhook"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook?secret=wrong"; echo
+          echo "=== [5] malformed params ==="
+          for p in "manager/abc" "manager/../../" "manager/%2e%2e%2f" "manager/00000000000000000000001067983" "holdings/1067983/foo" "holdings/1067983/..%2f..%2f" "chart/AAPL?range=foo" "stock/%3Cscript%3E" "stock/AAPL%27%20OR%201=1" "search?q=" "search?q=%3Cimg%20src=x%3E" "position-history/1067983/x" "returns?symbols=" "sectors?symbols=" "holders?q=" "backtest/abc" "nope" "manager" "manager/1067983/extra"; do
+            printf '%-45s ' "$p"; curl -sS -m 40 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/$p" | head -c 160; echo
+          done
+          echo "=== [6] method handling ==="
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X DELETE "$B/api/manager/1067983" | head -c 100; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d 'x=1' "$B/api/search?q=berk" | head -c 100; echo
+          echo "=== [7] paywall: 402 on every Pro route, with no token / garbage token / fake JWT ==="
+          FAKE="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImV4cCI6NDEwMjQ0NDgwMH0.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+          for r in "backtest/1067983" "position-history/1067983/037833100" "stock-ownership?cusip=037833100"; do
+            printf '%-40s none:' "$r"; curl -sS -m 40 -o /dev/null -w "%{http_code}" "$B/api/$r"
+            printf '  garbage:'; curl -sS -m 40 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer garbage" "$B/api/$r"
+            printf '  fakejwt:'; curl -sS -m 40 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $FAKE" "$B/api/$r"; echo
+          done
+          echo "=== [7b] cache headers on a 402 (must not be CDN-cached & served to Pro users) ==="; H "$B/api/backtest/1067983"
+          echo "=== [7c] paywall bypass via other routes exposing the same data? holders (free) vs stock-ownership (pro) ==="
+          curl -sS -m 40 -w " [HTTP %{http_code}]" "$B/api/holders?q=AAPL" | head -c 300; echo
+          echo "=== [8] quota abuse: one request fanning out to many symbols ==="
+          S=$(curl -sS -m 20 "$B/stocks.json" | jq -r '[.[]?.ticker // .stocks[]?.ticker] | .[:40] | join(",")' 2>/dev/null)
+          echo "symbols asked: $(echo $S | tr ',' '\n' | wc -l)"
+          curl -sS -m 60 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/returns?symbols=$S" | jq -c 'to_entries | {answered: length, nonNull: ([.[] | select(.value.price != null)] | length), sample: .[0]}' 2>/dev/null || echo "(non-json)"
+          curl -sS -m 60 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/sectors?symbols=$S" | head -c 200; echo
+          echo "=== [9] cold/warm latency of heavy endpoints ==="
+          for p in "manager/1067983" "holdings/1067983/$ACC" "aum-history/1067983" "manager-stats/1067983" "consensus" "search?q=bridgewater" "insiders/AAPL" "filings13dg/AAPL"; do
+            printf '%-45s ' "$p"; for i in 1 2; do curl -sS -m 60 -o /dev/null -w "[HTTP %{http_code} %{time_total}s %{size_download}B] " "$B/api/$p"; done; echo
+          done
+          echo "=== [10] static assets: compression + size ==="
+          for f in universe.json consensus.json stocks.json returns.json; do printf '%-18s ' "$f"; curl -sS -m 30 -o /dev/null -D - -H 'Accept-Encoding: br, gzip' "$B/$f" | tr -d '\r' | grep -iE '^(HTTP|content-encoding|content-length|cache-control|age)' | paste -sd' '; done
+          echo "=== [11] SPA/SEO: unknown page status, robots, sitemap ==="
+          curl -sS -m 20 -o /dev/null -w "/this-page-does-not-exist -> %{http_code}\n" "$B/this-page-does-not-exist"
+          curl -sS -m 20 -o /dev/null -w "/robots.txt -> %{http_code}\n" "$B/robots.txt"
+          curl -sS -m 20 -o /dev/null -w "/sitemap.xml -> %{http_code}\n" "$B/sitemap.xml"
+          curl -sS -m 20 -o /dev/null -w "/api/index.js (source leak?) -> %{http_code}\n" "$B/api/index.js"
+          curl -sS -m 20 -o /dev/null -w "/supabase/schema.sql -> %{http_code}\n" "$B/supabase/schema.sql"
+          curl -sS -m 20 -o /dev/null -w "/.env -> %{http_code}\n" "$B/.env"
+          echo "=== [12] error body leakage (upstream URL / stack) ==="
+          curl -sS -m 40 "$B/api/holdings/1067983/0000000000-00-000000" | head -c 400; echo
+          curl -sS -m 40 "$B/api/manager/999999999" | head -c 400; echo

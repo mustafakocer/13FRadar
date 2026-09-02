@@ -8,6 +8,7 @@ import Screen from './pages/Screen.jsx';
 import Compare from './pages/Compare.jsx';
 import Watchlist from './pages/Watchlist.jsx';
 import Consensus from './pages/Consensus.jsx';
+import Report from './pages/Report.jsx';
 import Pricing from './pages/Pricing.jsx';
 import Account from './pages/Account.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
@@ -29,6 +30,7 @@ export default function App() {
   const nav = [
     { to: '/', label: t('nav.search'), icon: '🔍', end: true },
     { to: '/consensus', label: t('nav.consensus'), icon: '🧭' },
+    { to: '/report', label: t('nav.report'), icon: '📰' },
     { to: '/screen', label: t('nav.screen'), icon: '📊' },
     { to: '/compare', label: t('nav.compare'), icon: '⚖️' },
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
@@ -83,6 +85,7 @@ export default function App() {
           <Route path="/manager/:cik" element={<Manager />} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />
+          <Route path="/report" element={<Report />} />
           <Route path="/screen" element={<Screen />} />
           <Route path="/compare" element={<Compare />} />
           <Route path="/watchlist" element={<Watchlist />} />

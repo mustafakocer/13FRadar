@@ -22,6 +22,8 @@ import Paywall from '../components/Paywall.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 import { managerStyle } from '../data/popular.js';
+import ChangeStory from '../components/ChangeStory.jsx';
+import InfoTip from '../components/InfoTip.jsx';
 
 function Loading({ t }) {
   return (
@@ -229,7 +231,7 @@ export default function Manager() {
         <>
           <div className="grid grid-3">
             <div className="card stat-card">
-              <span className="stat-label">{t('manager.aum')}</span>
+              <span className="stat-label">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
               <span className="stat-value">{fmtMoney(holdings.data?.aum)}</span>
               <SparkBar values={history.map((h) => h.aum)} />
             </div>
@@ -239,7 +241,7 @@ export default function Manager() {
               <SparkBar values={history.map((h) => h.positions)} color="--s2" />
             </div>
             <div className="card stat-card">
-              <span className="stat-label">{t('manager.top10')}</span>
+              <span className="stat-label">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>
               <span className="stat-value">{fmtPct(top10, { sign: false })}</span>
               <span className="stat-sub">
                 {latest?.estFlow != null && (
@@ -255,7 +257,7 @@ export default function Manager() {
           {mstats.data?.quarters >= 2 && (
             <div className="grid grid-3 mt16">
               <div className="card stat-card">
-                <span className="stat-label">{t('manager.turnover')}</span>
+                <span className="stat-label">{t('manager.turnover')}<InfoTip tip="tips.turnover" /></span>
                 <span className="stat-value">
                   {fmtPct(mstats.data.turnoverLatest, { sign: false })}
                 </span>
@@ -264,7 +266,7 @@ export default function Manager() {
                 </span>
               </div>
               <div className="card stat-card">
-                <span className="stat-label">{t('manager.avgHold')}</span>
+                <span className="stat-label">{t('manager.avgHold')}<InfoTip tip="tips.avgHold" /></span>
                 <span className="stat-value">
                   {mstats.data.avgHoldingQuarters != null
                     ? `${mstats.data.avgHoldingQuarters.toFixed(1)}`
@@ -348,6 +350,10 @@ export default function Manager() {
 
       {!holdings.isLoading && !holdings.error && tab === 'portfolio' && (
         <>
+          <ChangeStory
+            positions={positions}
+            prevPositions={prevHoldings.data?.positions || null}
+          />
           <PositionCards
             positions={positions}
             prevPositions={prevHoldings.data?.positions || null}

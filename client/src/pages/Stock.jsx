@@ -14,11 +14,16 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import PriceChart from '../components/Charts/PriceChart.jsx';
+import GuruSignal from '../components/GuruSignal.jsx';
+import InfoTip from '../components/InfoTip.jsx';
 
-function KV({ k, v, cls = '' }) {
+function KV({ k, v, cls = '', tip }) {
   return (
     <div className="kv">
-      <span className="k">{k}</span>
+      <span className="k">
+        {k}
+        {tip && <InfoTip tip={tip} />}
+      </span>
       <span className={`v ${cls}`}>{v}</span>
     </div>
   );
@@ -147,6 +152,8 @@ export default function Stock() {
         </div>
       </div>
 
+      <GuruSignal ticker={ticker} cusip={cusip} />
+
       {data.source !== 'quoteSummary' && (
         <div
           className="card"
@@ -168,7 +175,7 @@ export default function Stock() {
             k={t('stock.range52')}
             v={p.low52 != null ? `${fmtNum(p.low52, 2)} – ${fmtNum(p.high52, 2)}` : '—'}
           />
-          <KV k={t('stock.eps')} v={fmtRatio(f.eps)} />
+          <KV k={t('stock.eps')} tip="tips.eps" v={fmtRatio(f.eps)} />
         </div>
       </div>
 
@@ -181,13 +188,13 @@ export default function Stock() {
         <div className="card">
           <h3>{t('stock.valuation')}</h3>
           <KV k={t('stock.mktCap')} v={fmtMoney(p.marketCap)} />
-          <KV k={t('stock.trailingPE')} v={fmtRatio(v.trailingPE)} />
-          <KV k={t('stock.forwardPE')} v={fmtRatio(v.forwardPE)} />
-          <KV k={t('stock.peg')} v={fmtRatio(v.peg)} />
-          <KV k={t('stock.ps')} v={fmtRatio(v.priceToSales)} />
-          <KV k={t('stock.pb')} v={fmtRatio(v.priceToBook)} />
-          <KV k={t('stock.evEbitda')} v={fmtRatio(v.evToEbitda)} />
-          <KV k={t('stock.evRevenue')} v={fmtRatio(v.evToRevenue)} />
+          <KV k={t('stock.trailingPE')} tip="tips.pe" v={fmtRatio(v.trailingPE)} />
+          <KV k={t('stock.forwardPE')} tip="tips.fpe" v={fmtRatio(v.forwardPE)} />
+          <KV k={t('stock.peg')} tip="tips.peg" v={fmtRatio(v.peg)} />
+          <KV k={t('stock.ps')} tip="tips.ps" v={fmtRatio(v.priceToSales)} />
+          <KV k={t('stock.pb')} tip="tips.pb" v={fmtRatio(v.priceToBook)} />
+          <KV k={t('stock.evEbitda')} tip="tips.evEbitda" v={fmtRatio(v.evToEbitda)} />
+          <KV k={t('stock.evRevenue')} tip="tips.evRev" v={fmtRatio(v.evToRevenue)} />
           <KV k={t('stock.bookValue')} v={fmtRatio(v.bookValue)} />
           <KV k={t('stock.eps')} v={fmtRatio(f.eps)} />
           <KV k={t('stock.forwardEps')} v={fmtRatio(f.forwardEps)} />
@@ -205,25 +212,25 @@ export default function Stock() {
             v={fmtFracPct(f.earningsGrowth)}
             cls={deltaClass(f.earningsGrowth)}
           />
-          <KV k={t('stock.grossMargin')} v={fmtFracPct(f.grossMargin)} />
+          <KV k={t('stock.grossMargin')} tip="tips.gross" v={fmtFracPct(f.grossMargin)} />
           <KV k={t('stock.operatingMargin')} v={fmtFracPct(f.operatingMargin)} />
-          <KV k={t('stock.profitMargin')} v={fmtFracPct(f.profitMargin)} />
+          <KV k={t('stock.profitMargin')} tip="tips.netm" v={fmtFracPct(f.profitMargin)} />
           <KV k={t('stock.ebitda')} v={fmtMoney(f.ebitda)} />
-          <KV k={t('stock.roe')} v={fmtFracPct(f.roe)} />
-          <KV k={t('stock.roa')} v={fmtFracPct(f.roa)} />
+          <KV k={t('stock.roe')} tip="tips.roe" v={fmtFracPct(f.roe)} />
+          <KV k={t('stock.roa')} tip="tips.roa" v={fmtFracPct(f.roa)} />
           <KV k={t('stock.fcf')} v={fmtMoney(f.freeCashflow)} />
-          <KV k={t('stock.divYield')} v={fmtFracPct(f.dividendYield, { digits: 2 })} />
+          <KV k={t('stock.divYield')} tip="tips.divYield" v={fmtFracPct(f.dividendYield, { digits: 2 })} />
           <KV k={t('stock.dividendRate')} v={fmtRatio(f.dividendRate)} />
-          <KV k={t('stock.payoutRatio')} v={fmtFracPct(f.payoutRatio)} />
+          <KV k={t('stock.payoutRatio')} tip="tips.payout" v={fmtFracPct(f.payoutRatio)} />
         </div>
       </div>
 
       <div className="grid grid-2 mt16">
         <div className="card">
           <h3>{t('stock.trading')}</h3>
-          <KV k={t('stock.beta')} v={fmtRatio(tr.beta)} />
+          <KV k={t('stock.beta')} tip="tips.beta" v={fmtRatio(tr.beta)} />
           <KV k={t('stock.avgVolume')} v={fmtNum(tr.avgVolume)} />
-          <KV k={t('stock.fiftyDayAvg')} v={fmtNum(tr.fiftyDayAvg, 2)} />
+          <KV k={t('stock.fiftyDayAvg')} tip="tips.ma" v={fmtNum(tr.fiftyDayAvg, 2)} />
           <KV k={t('stock.twoHundredDayAvg')} v={fmtNum(tr.twoHundredDayAvg, 2)} />
           <KV
             k={t('stock.week52Change')}
@@ -231,19 +238,19 @@ export default function Stock() {
             cls={deltaClass(tr.week52Change)}
           />
           <KV k={t('stock.sharesOutstanding')} v={fmtNum(tr.sharesOutstanding)} />
-          <KV k={t('stock.floatShares')} v={fmtNum(tr.floatShares)} />
+          <KV k={t('stock.floatShares')} tip="tips.float" v={fmtNum(tr.floatShares)} />
           <KV k={t('stock.heldInsiders')} v={fmtFracPct(tr.heldInsiders, { digits: 2 })} />
-          <KV k={t('stock.heldInstitutions')} v={fmtFracPct(tr.heldInstitutions, { digits: 2 })} />
-          <KV k={t('stock.shortRatio')} v={fmtRatio(tr.shortRatio)} />
-          <KV k={t('stock.shortPercentFloat')} v={fmtFracPct(tr.shortPercentFloat, { digits: 2 })} />
+          <KV k={t('stock.heldInstitutions')} tip="tips.inst" v={fmtFracPct(tr.heldInstitutions, { digits: 2 })} />
+          <KV k={t('stock.shortRatio')} tip="tips.short" v={fmtRatio(tr.shortRatio)} />
+          <KV k={t('stock.shortPercentFloat')} tip="tips.shortFloat" v={fmtFracPct(tr.shortPercentFloat, { digits: 2 })} />
         </div>
         <div className="card">
           <h3>{t('stock.health')}</h3>
-          <KV k={t('stock.currentRatio')} v={fmtRatio(f.currentRatio)} />
-          <KV k={t('stock.quickRatio')} v={fmtRatio(f.quickRatio)} />
+          <KV k={t('stock.currentRatio')} tip="tips.current" v={fmtRatio(f.currentRatio)} />
+          <KV k={t('stock.quickRatio')} tip="tips.quick" v={fmtRatio(f.quickRatio)} />
           <KV k={t('stock.totalCash')} v={fmtMoney(f.totalCash)} />
           <KV k={t('stock.totalDebt')} v={fmtMoney(f.totalDebt)} />
-          <KV k={t('stock.debtEquity')} v={fmtRatio(f.debtToEquity)} />
+          <KV k={t('stock.debtEquity')} tip="tips.de" v={fmtRatio(f.debtToEquity)} />
           <h3 className="mt16">{t('stock.analyst')}</h3>
           <KV k={t('stock.targetMean')} v={fmtNum(an.targetMean, 2)} />
           <KV

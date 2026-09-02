@@ -285,6 +285,37 @@ table.data .num { font-weight: 600; }
   font-weight: 800; font-size: 17px;
 }
 
+/* ---------- info tooltips ---------- */
+.tip {
+  position: relative;
+  display: inline-block;
+  margin-left: 5px;
+  color: var(--faint);
+  font-size: 12px;
+  cursor: help;
+  outline: none;
+}
+.tip .tip-box {
+  display: none;
+  position: absolute;
+  bottom: 140%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  background: var(--ink);
+  color: var(--bg);
+  padding: 8px 11px;
+  border-radius: 9px;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 500;
+  z-index: 60;
+  box-shadow: var(--shadow);
+  white-space: normal;
+  text-align: left;
+}
+.tip:hover .tip-box, .tip:focus .tip-box { display: block; }
+
 /* ---------- skeleton shimmer ---------- */
 .skel {
   border-radius: 6px;

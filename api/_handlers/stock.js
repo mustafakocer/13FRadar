@@ -1,4 +1,4 @@
-import { cached, TTL } from '../_lib/cache.js';
+import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClient.js';
 import { stooqDaily } from '../_lib/stooq.js';
 import { hasFmp, hasTd, fmpStock, tdStock } from '../_lib/providers.js';
@@ -271,9 +271,15 @@ export default async function handler(req, res) {
         return shapeStooqFallback(ticker, prices);
       }
     });
+    remember(`stock:${ticker}`, data);
     res.setHeader('Cache-Control', 's-maxage=600, stale-while-revalidate=3600');
     res.status(200).json(data);
   } catch (err) {
+    const stale = recall(`stock:${ticker}`);
+    if (stale) {
+      res.setHeader('Cache-Control', 's-maxage=120');
+      return res.status(200).json({ ...stale, stale: true });
+    }
     res.status(502).json({ error: String(err.message || err) });
   }
 }

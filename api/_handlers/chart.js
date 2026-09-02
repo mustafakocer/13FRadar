@@ -1,4 +1,4 @@
-import { cached, TTL } from '../_lib/cache.js';
+import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { yahooChart } from '../_lib/yahooClient.js';
 import { dailyCloses } from '../_lib/providers.js';
 
@@ -44,9 +44,12 @@ export default async function handler(req, res) {
         };
       }
     });
+    remember(`chart:${ticker}:${range}`, data);
     res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=7200');
     res.status(200).json(data);
   } catch (err) {
+    const stale = recall(`chart:${ticker}:${range}`);
+    if (stale) return res.status(200).json({ ...stale, stale: true });
     res.status(502).json({ error: String(err.message || err) });
   }
 }

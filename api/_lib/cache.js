@@ -15,6 +15,12 @@ export function cached(key, ttlMs, fn) {
   return promise;
 }
 
+// Last-known-good store: survives cache TTL expiry so endpoints can serve
+// slightly stale data instead of erroring when every provider is rate-limited.
+const good = new Map();
+export const remember = (key, val) => good.set(key, val);
+export const recall = (key) => good.get(key);
+
 export const TTL = {
   MIN_5: 5 * 60 * 1000,
   HOUR_1: 60 * 60 * 1000,

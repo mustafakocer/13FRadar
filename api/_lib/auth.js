@@ -6,8 +6,9 @@ import { cached, TTL } from './cache.js';
 // pre-launch. Public defaults are baked in below (anon keys are public by
 // design); env vars override them. The service role key is only needed by
 // the payment webhook.
-const PUBLIC_SUPABASE_URL = '';
-const PUBLIC_SUPABASE_ANON_KEY = '';
+const PUBLIC_SUPABASE_URL = 'https://rmisfrxsnhdpcxqzmicy.supabase.co';
+const PUBLIC_SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtaXNmcnhzbmhkcGN4cXptaWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNDE2NzQsImV4cCI6MjEwMzkxNzY3NH0.61AzY7NluBE0vhGKagzq42U6ZlGIt1M328JtqqfR56A';
 
 const url = () =>
   (process.env.SUPABASE_URL || PUBLIC_SUPABASE_URL).replace(/\/$/, '');

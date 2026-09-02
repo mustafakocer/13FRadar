@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 6
+# probe-run: 7
 
 jobs:
   probe:
@@ -29,3 +29,9 @@ jobs:
           echo
           echo "=== /stocks.json (first bytes) ==="
           curl -sS -m 30 "https://13-f-radar-omega.vercel.app/stocks.json" | head -c 300 || true
+          echo
+          echo "=== paywall check: /api/backtest/1067983 without token (expect 402 pro-required) ==="
+          curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/backtest/1067983" | head -c 200 || true
+          echo
+          echo "=== free endpoint still open: /api/manager/1067983 ==="
+          curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/manager/1067983" | head -c 120 || true

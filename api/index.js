@@ -20,11 +20,13 @@ import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
 import lsWebhook from './_handlers/ls-webhook.js';
+import geo from './_handlers/geo.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
   diag: [diag],
   'ls-webhook': [lsWebhook],
+  geo: [geo],
   search: [search],
   returns: [returns],
   sectors: [sectors],

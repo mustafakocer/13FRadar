@@ -424,6 +424,7 @@ const dict = {
     'cat.pension': '👴 Emeklilik Fonu',
     'cat.endowment': '🎓 Üniversite / Vakıf',
     'cat.family': '👨‍👩‍👧 Aile Ofisi',
+    'pricing.trNote': "Türkiye'ye özel bölgesel fiyat",
     'palette.placeholder': 'Yönetici veya ticker ara…',
     'palette.goStock': 'Hisseye git:',
     'stock.limitedData':
@@ -848,6 +849,7 @@ const dict = {
     'cat.pension': '👴 Pension Fund',
     'cat.endowment': '🎓 University / Endowment',
     'cat.family': '👨‍👩‍👧 Family Office',
+    'pricing.trNote': 'Regional price for Türkiye',
     'palette.placeholder': 'Search manager or ticker…',
     'palette.goStock': 'Go to stock:',
     'stock.limitedData':

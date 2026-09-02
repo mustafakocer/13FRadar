@@ -2,8 +2,11 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useGeo } from '../hooks/useGeo.js';
 
 const CHECKOUT_URL = import.meta.env.VITE_CHECKOUT_URL || '';
+// Regional checkout for Turkey (separate Lemon Squeezy variant priced at $10)
+const CHECKOUT_URL_TR = import.meta.env.VITE_CHECKOUT_URL_TR || CHECKOUT_URL;
 
 const FREE_FEATURES = ['pf1', 'pf2', 'pf3', 'pf4'];
 const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
@@ -11,11 +14,16 @@ const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
 export default function Pricing() {
   const { t } = useI18n();
   const { user, isPro, configured } = useAuth();
+  const geo = useGeo();
   usePageTitle(`${t('pricing.title')} — 13F Radar`);
 
-  const checkoutHref = user && CHECKOUT_URL
-    ? `${CHECKOUT_URL}?checkout[email]=${encodeURIComponent(user.email)}&checkout[custom][user_id]=${user.id}`
-    : CHECKOUT_URL;
+  const isTR = geo.data?.country === 'TR';
+  const baseUrl = isTR ? CHECKOUT_URL_TR : CHECKOUT_URL;
+  const price = isTR ? '$10' : t('pricing.proPrice');
+
+  const checkoutHref = user && baseUrl
+    ? `${baseUrl}?checkout[email]=${encodeURIComponent(user.email)}&checkout[custom][user_id]=${user.id}`
+    : baseUrl;
 
   return (
     <div>
@@ -37,8 +45,20 @@ export default function Pricing() {
           <h3>
             {t('pricing.pro')} <span className="badge pos">{t('pricing.popular')}</span>
           </h3>
-          <div className="price-big">{t('pricing.proPrice')}</div>
-          <div className="muted small" style={{ marginBottom: 14 }}>{t('pricing.monthly')}</div>
+          <div className="price-big">
+            {price}
+            {isTR && (
+              <span className="muted" style={{ fontSize: 15, fontWeight: 500, marginLeft: 8, textDecoration: 'line-through' }}>
+                {t('pricing.proPrice')}
+              </span>
+            )}
+          </div>
+          <div className="muted small" style={{ marginBottom: 14 }}>
+            {t('pricing.monthly')}
+            {isTR && (
+              <div className="badge pos" style={{ marginTop: 6 }}>🇹🇷 {t('pricing.trNote')}</div>
+            )}
+          </div>
           {PRO_FEATURES.map((k) => (
             <div key={k} className="kv"><span className="k">✓ {t(`pricing.${k}`)}</span></div>
           ))}

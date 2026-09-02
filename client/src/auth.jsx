@@ -65,6 +65,34 @@ export function AuthProvider({ children }) {
     []
   );
 
+  const signInPassword = useCallback(
+    (email, password) => supabase.auth.signInWithPassword({ email, password }),
+    []
+  );
+
+  const signUpPassword = useCallback(
+    (email, password) =>
+      supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: window.location.origin + '/account' },
+      }),
+    []
+  );
+
+  const resetPassword = useCallback(
+    (email) =>
+      supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/account',
+      }),
+    []
+  );
+
+  const updatePassword = useCallback(
+    (password) => supabase.auth.updateUser({ password }),
+    []
+  );
+
   const signOut = useCallback(() => supabase.auth.signOut(), []);
 
   const value = {
@@ -75,6 +103,10 @@ export function AuthProvider({ children }) {
     isPro: !supabaseConfigured || plan === 'pro',
     loading,
     signInEmail,
+    signInPassword,
+    signUpPassword,
+    resetPassword,
+    updatePassword,
     signOut,
   };
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;

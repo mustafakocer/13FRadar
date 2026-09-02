@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - 'scripts/build-consensus.mjs'
+      - '.github/workflows/consensus.yml'
 
 permissions:
   contents: write
@@ -15,7 +16,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -27,10 +28,12 @@ jobs:
         env:
           SEC_USER_AGENT: '13FRadar bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
       - name: Commit if changed
         run: |
           git config user.name 'consensus-bot'
           git config user.email 'actions@github.com'
-          git add client/public/consensus.json client/public/returns.json
+          git pull --rebase || true
+          git add --all client/public
           git diff --cached --quiet || git commit -m 'chore: refresh consensus & returns data'
           git push

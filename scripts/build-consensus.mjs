@@ -7,7 +7,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { build } from '../api/_lib/consensusBuild.js';
-import { yahooChartReturns, mapLimit } from '../api/_lib/yahooClient.js';
+import { yahooChartReturns } from '../api/_lib/yahooClient.js';
+import { tdGet, hasTd } from '../api/_lib/providers.js';
+import { returnsFromSeries } from '../api/_lib/stooq.js';
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const pub = path.join(process.cwd(), 'client', 'public');
 fs.mkdirSync(pub, { recursive: true });
@@ -34,24 +38,57 @@ for (const list of [consensus.mostHeld, consensus.topBought, consensus.topSold, 
 }
 for (const s of ['SPY', 'QQQ', 'IWM']) tickers.add(s);
 
-const symbols = [...tickers].slice(0, 800);
+const symbols = [...tickers].slice(0, 400);
 console.log(`Fetching returns for ${symbols.length} tickers…`);
 let failed = 0;
-const rows = await mapLimit(symbols, 8, async (sym) => {
-  try {
-    const r = await yahooChartReturns(sym);
-    return [sym, { ret1y: round(r.ret1y), retYtd: round(r.retYtd), ret1d: round(r.ret1d) }];
-  } catch {
-    failed++;
-    return null;
-  }
-});
+const rows = [];
 
 function round(x) {
   return x == null ? null : Number(x.toFixed(2));
 }
 
-const ok = rows.filter(Boolean);
+async function tdReturns(sym) {
+  const d = await tdGet('/time_series', { symbol: sym, interval: '1day', outputsize: 270 });
+  const vals = d?.values || [];
+  const prices = vals
+    .map((v) => ({ date: v.datetime.slice(0, 10), close: Number(v.close) }))
+    .filter((v) => Number.isFinite(v.close))
+    .reverse();
+  if (!prices.length) throw new Error('empty');
+  return returnsFromSeries(sym, prices);
+}
+
+if (hasTd()) {
+  // Twelve Data free tier: 8 credits/minute — pace at 7 symbols per minute.
+  for (let i = 0; i < symbols.length; i += 7) {
+    const chunk = symbols.slice(i, i + 7);
+    await Promise.all(
+      chunk.map(async (sym) => {
+        try {
+          const r = await tdReturns(sym);
+          rows.push([sym, { ret1y: round(r.ret1y), retYtd: round(r.retYtd), ret1d: round(r.ret1d) }]);
+        } catch {
+          failed++;
+        }
+      })
+    );
+    if (i % 70 === 0) console.log(`  ${Math.min(i + 7, symbols.length)}/${symbols.length}`);
+    if (i + 7 < symbols.length) await sleep(62000);
+  }
+} else {
+  // no TD key: try Yahoo (works locally, usually blocked from datacenters)
+  for (const sym of symbols) {
+    try {
+      const r = await yahooChartReturns(sym);
+      rows.push([sym, { ret1y: round(r.ret1y), retYtd: round(r.retYtd), ret1d: round(r.ret1d) }]);
+    } catch {
+      failed++;
+      if (failed > 10 && rows.length === 0) break; // provider clearly blocked
+    }
+  }
+}
+
+const ok = rows;
 if (ok.length < symbols.length * 0.3) {
   console.warn(`Only ${ok.length}/${symbols.length} returns fetched — keeping previous returns.json`);
 } else {

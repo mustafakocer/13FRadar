@@ -30,5 +30,11 @@ jobs:
           git config user.name 'universe-bot'
           git config user.email 'actions@github.com'
           git add client/public/universe.json client/public/stocks.json api/_data/cusip-tickers.json
-          git diff --cached --quiet || git commit -m 'chore: refresh 13F universe data'
-          git push
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh 13F universe data'
+          # the branch may have moved during the multi-hour run — rebase and retry
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1

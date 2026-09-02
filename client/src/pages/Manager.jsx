@@ -19,6 +19,8 @@ import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
+import { useStaticReturns } from '../hooks/useStaticReturns.js';
+import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 
 function Loading({ t }) {
   return (
@@ -74,18 +76,9 @@ export default function Manager() {
     [holdings.data]
   );
 
-  const returns = useQuery({
-    queryKey: ['returns', topTickers.join(',')],
-    queryFn: () => api.returns(topTickers),
-    enabled: topTickers.length > 0,
-    staleTime: 30 * 60 * 1000,
-  });
-
-  const benchReturns = useQuery({
-    queryKey: ['returns', 'SPY,QQQ,IWM'],
-    queryFn: () => api.returns(['SPY', 'QQQ', 'IWM']),
-    staleTime: 30 * 60 * 1000,
-  });
+  // returns come from the precomputed static file — zero per-symbol calls
+  const returns = useStaticReturns();
+  const benchReturns = returns;
 
   const sectorTickers = topTickers.slice(0, 25);
   const sectors = useQuery({
@@ -216,7 +209,14 @@ export default function Manager() {
         ))}
       </div>
 
-      {holdings.isLoading && <Loading t={t} />}
+      {holdings.isLoading && (
+        <>
+          <SkeletonStats />
+          <div className="mt16">
+            <SkeletonRows rows={7} />
+          </div>
+        </>
+      )}
       {holdings.error && (
         <div className="error-box">{t('common.error')}: {String(holdings.error.message)}</div>
       )}

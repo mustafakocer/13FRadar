@@ -1,0 +1,36 @@
+name: Build consensus & returns
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Daily 04:30 UTC — keeps the consensus page and return columns fresh
+    - cron: '30 4 * * *'
+  push:
+    paths:
+      - 'scripts/build-consensus.mjs'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Build consensus.json & returns.json
+        run: node scripts/build-consensus.mjs
+        env:
+          SEC_USER_AGENT: '13FRadar bot (kocergpt@gmail.com)'
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      - name: Commit if changed
+        run: |
+          git config user.name 'consensus-bot'
+          git config user.email 'actions@github.com'
+          git add client/public/consensus.json client/public/returns.json
+          git diff --cached --quiet || git commit -m 'chore: refresh consensus & returns data'
+          git push

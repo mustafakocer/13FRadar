@@ -112,18 +112,37 @@ async function main() {
   );
   console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed})`);
 
-  // Top ~500 most-held securities across the whole universe
-  const topStocks = [...stockAgg.entries()]
+  // Rank all securities by total universe value
+  const ranked = [...stockAgg.entries()]
     .map(([cusip, a]) => ({ cusip, ...a, value: Math.round(a.value) }))
-    .sort((a, b) => b.value - a.value)
-    .slice(0, 500);
-  console.log('Resolving tickers for top stocks via OpenFIGI…');
+    .sort((a, b) => b.value - a.value);
+
+  // Big static CUSIP->ticker map (top 6000): makes holdings endpoints resolve
+  // tickers instantly at runtime instead of hitting OpenFIGI per request.
+  console.log('Resolving tickers via OpenFIGI (top 6000)…');
   let tickers = {};
   try {
-    tickers = await mapCusipsToTickers(topStocks.map((s) => s.cusip));
+    tickers = await mapCusipsToTickers(
+      ranked.slice(0, 6000).map((s) => s.cusip),
+      { maxLive: 6000 }
+    );
   } catch (e) {
     console.warn('FIGI mapping failed:', e.message);
   }
+  const map = {};
+  let mapped = 0;
+  for (const [c, t] of Object.entries(tickers)) {
+    if (t) {
+      map[c] = t;
+      mapped++;
+    }
+  }
+  const dataDir = path.join(process.cwd(), 'api', '_data');
+  fs.mkdirSync(dataDir, { recursive: true });
+  fs.writeFileSync(path.join(dataDir, 'cusip-tickers.json'), JSON.stringify(map));
+  console.log(`Wrote ${mapped} mappings -> api/_data/cusip-tickers.json`);
+
+  const topStocks = ranked.slice(0, 500);
   fs.writeFileSync(
     path.join(pub, 'stocks.json'),
     JSON.stringify({

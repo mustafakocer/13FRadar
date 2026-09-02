@@ -285,6 +285,16 @@ table.data .num { font-weight: 600; }
   font-weight: 800; font-size: 17px;
 }
 
+/* ---------- skeleton shimmer ---------- */
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.3s ease-in-out infinite;
+}
+.skel-row { height: 16px; margin: 12px 0; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
 /* ---------- paywall ---------- */
 .paywall { text-align: center; border-style: dashed; }
 .paywall-lock { font-size: 30px; margin-bottom: 6px; }

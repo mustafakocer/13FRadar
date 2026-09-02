@@ -1,4 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { api } from '../lib/api.js';
 import SearchBox from '../components/SearchBox.jsx';
 import { POPULAR_MANAGERS } from '../data/popular.js';
 import { useFavorites } from '../hooks/useFavorites.js';
@@ -18,7 +20,16 @@ export default function Search() {
   const { t } = useI18n();
   const navigate = useNavigate();
   const { favorites } = useFavorites();
+  const qc = useQueryClient();
   usePageTitle(null);
+
+  // warm the cache while the cursor is still over the chip
+  const prefetch = (cik) =>
+    qc.prefetchQuery({
+      queryKey: ['manager', cik],
+      queryFn: () => api.manager(cik),
+      staleTime: 30 * 60 * 1000,
+    });
 
   return (
     <div>
@@ -67,7 +78,12 @@ export default function Search() {
       <div className="section-title">{t('search.popular')}</div>
       <div className="chip-grid">
         {POPULAR_MANAGERS.map((m) => (
-          <Link key={m.cik} to={`/manager/${m.cik}`} className="chip">
+          <Link
+            key={m.cik}
+            to={`/manager/${m.cik}`}
+            className="chip"
+            onMouseEnter={() => prefetch(m.cik)}
+          >
             {m.name}
           </Link>
         ))}

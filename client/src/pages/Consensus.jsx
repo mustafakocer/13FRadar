@@ -37,7 +37,20 @@ export default function Consensus() {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['consensus'],
-    queryFn: api.consensus,
+    // static-first: the daily precomputed CDN file loads in milliseconds;
+    // the API build is only a fallback if the file is missing.
+    queryFn: async () => {
+      try {
+        const r = await fetch('/consensus.json');
+        if (r.ok) {
+          const d = await r.json();
+          if (d?.mostHeld?.length) return d;
+        }
+      } catch {
+        /* fall back to API */
+      }
+      return api.consensus();
+    },
     staleTime: 6 * 60 * 60 * 1000,
     retry: 2,
   });

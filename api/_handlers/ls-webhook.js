@@ -12,7 +12,9 @@ export default async function handler(req, res) {
   if (!secret || req.query.secret !== secret) {
     return res.status(401).json({ error: 'Bad secret' });
   }
-  if (!authConfigured()) return res.status(500).json({ error: 'Auth not configured' });
+  if (!authConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return res.status(500).json({ error: 'Auth not configured' });
+  }
 
   try {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body || {};

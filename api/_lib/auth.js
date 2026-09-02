@@ -1,13 +1,20 @@
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
 
-// Server-side plan check against Supabase. If SUPABASE_URL isn't configured
-// yet, everything is treated as Pro so the site keeps working pre-launch.
-const url = () => (process.env.SUPABASE_URL || '').replace(/\/$/, '');
-const anon = () => process.env.SUPABASE_ANON_KEY || '';
+// Server-side plan check against Supabase. If the URL/anon key aren't
+// configured yet, everything is treated as Pro so the site keeps working
+// pre-launch. Public defaults are baked in below (anon keys are public by
+// design); env vars override them. The service role key is only needed by
+// the payment webhook.
+const PUBLIC_SUPABASE_URL = '';
+const PUBLIC_SUPABASE_ANON_KEY = '';
+
+const url = () =>
+  (process.env.SUPABASE_URL || PUBLIC_SUPABASE_URL).replace(/\/$/, '');
+const anon = () => process.env.SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
 const service = () => process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-export const authConfigured = () => Boolean(url() && anon() && service());
+export const authConfigured = () => Boolean(url() && anon());
 
 async function planForToken(token) {
   const u = await axios.get(`${url()}/auth/v1/user`, {
@@ -17,11 +24,13 @@ async function planForToken(token) {
   });
   if (u.status !== 200 || !u.data?.id) return { plan: 'free', userId: null };
 
+  // RLS lets the user read their own profile row with their own token,
+  // so no service role key is needed for plan checks.
   const p = await axios.get(`${url()}/rest/v1/profiles`, {
     timeout: 8000,
     validateStatus: () => true,
     params: { id: `eq.${u.data.id}`, select: 'plan,plan_expires' },
-    headers: { apikey: service(), Authorization: `Bearer ${service()}` },
+    headers: { apikey: anon(), Authorization: `Bearer ${token}` },
   });
   const row = p.data?.[0];
   const active =

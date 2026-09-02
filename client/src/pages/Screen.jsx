@@ -152,8 +152,11 @@ export default function Screen() {
         </div>
       </div>
 
-      {/* Fintables-style toolbar */}
-      <div className="row" style={{ gap: 8 }}>
+      {/* Fintables-style toolbar — filtering is a Pro feature */}
+      <div
+        className="row"
+        style={{ gap: 8, ...(isPro ? {} : { opacity: 0.5, pointerEvents: 'none', filter: 'grayscale(0.6)' }) }}
+      >
         <input
           className="search-input sm"
           style={{ maxWidth: 220 }}
@@ -226,7 +229,13 @@ export default function Screen() {
         )}
       </div>
 
-      {advOpen && (
+      {!isPro && (
+        <div className="mt8">
+          <Paywall compact />
+        </div>
+      )}
+
+      {isPro && advOpen && (
         <div className="adv-panel">
           <div className="adv-grid">
             {[

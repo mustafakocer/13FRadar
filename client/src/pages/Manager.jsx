@@ -21,6 +21,7 @@ import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
+import { managerStyle } from '../data/popular.js';
 
 function Loading({ t }) {
   return (
@@ -179,6 +180,9 @@ export default function Manager() {
               {filing ? ` · ${t('manager.quarterEnd')}: ${filing.reportDate} · ${t('manager.filedOn')}: ${filing.filingDate}` : ''}
             </div>
             <div className="head-badges">
+              {managerStyle(mgr.data.cik) && (
+                <span className="badge plain">{t(`style.${managerStyle(mgr.data.cik)}`)}</span>
+              )}
               {badges.map((b) => (
                 <span key={b.label} className={`badge ${b.v >= 0 ? 'pos' : 'neg'}`}>
                   {b.label} {b.fmt(b.v)}

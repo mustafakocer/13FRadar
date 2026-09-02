@@ -2,11 +2,11 @@ import { createContext, useContext, useState, useCallback } from 'react';
 
 const dict = {
   tr: {
-    'nav.search': 'Arama',
-    'nav.consensus': 'Konsensüs',
-    'nav.screen': 'Tarayıcı',
+    'nav.search': 'Keşfet',
+    'nav.consensus': 'Usta Yatırımcılar',
+    'nav.screen': 'Fon Bul',
     'nav.compare': 'Karşılaştır',
-    'nav.watchlist': 'İzleme Listesi',
+    'nav.watchlist': 'Takip Listem',
 
     'common.loading': 'Yükleniyor…',
     'common.error': 'Bir hata oluştu',
@@ -18,8 +18,8 @@ const dict = {
     'search.title': 'Amerikan Fonlarına Bakış',
     'search.subtitle':
       "Warren Buffett'tan Michael Burry'ye — ABD'nin en büyük fonlarının portföylerini SEC verisiyle, çeyrek çeyrek izleyin.",
-    'landing.cta.consensus': 'Konsensüsü Gör',
-    'landing.cta.screen': 'Fon Tarayıcı',
+    'landing.cta.consensus': 'Usta Yatırımcıları Gör',
+    'landing.cta.screen': 'Fon Bul',
     'landing.stat.funds': 'takip edilebilir fon',
     'landing.stat.data': 'SEC EDGAR verisi',
     'landing.stat.data.v': 'Çeyreklik · Resmi',
@@ -29,13 +29,13 @@ const dict = {
     'landing.f1.t': 'Portföyleri Çözümleyin',
     'landing.f1.d':
       'Her fonun tüm pozisyonları: ağırlıklar, çeyreklik değişimler, yeni girilen ve terk edilen hisseler, AUM geçmişi ve tahmini para giriş-çıkışı.',
-    'landing.f2.t': 'Süper Yatırımcı Konsensüsü',
+    'landing.f2.t': 'Usta Yatırımcılar',
     'landing.f2.d':
-      'Seçkin fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan ve satılan hisseler, yeni pozisyon radarı.',
+      "Buffett'tan Burry'ye efsane yatırımcıların birleşik görünümü: en çok tuttukları, bu çeyrek aldıkları ve sattıkları.",
     'landing.f3.t': 'Hisseyi Kimler Tutuyor?',
     'landing.f3.d':
       'Herhangi bir hisse için en büyük kurumsal sahipler, adet değişimleri, 13D/G aktivist bildirimleri ve içeriden işlemler.',
-    'landing.f4.t': 'Fon Tarayıcı',
+    'landing.f4.t': 'Fon Bul',
     'landing.f4.d':
       'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; gizli kalmış odaklı fonları keşfedin.',
     'landing.f5.t': 'Karşılaştırın & Test Edin',
@@ -52,28 +52,28 @@ const dict = {
       'Bu sitedeki hiçbir içerik yatırım tavsiyesi değildir. Veriler SEC EDGAR ve halka açık kaynaklardan otomatik derlenir; doğruluğu garanti edilmez. 13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır ve geçmişe dönüktür.',
     'footer.sources': 'Veri kaynakları: SEC EDGAR · Yahoo Finance · OpenFIGI · Stooq',
     'search.placeholder': 'Fon yöneticisi adı veya CIK numarası…',
-    'search.popular': 'Popüler Yöneticiler',
-    'search.favorites': 'İzleme Listeniz',
+    'search.popular': 'Ünlü Yatırımcılar',
+    'search.favorites': 'Takip Listeniz',
     'search.noResults': 'Sonuç bulunamadı',
     'search.filings': 'dosyalama',
 
     'manager.overview': 'Özet',
     'manager.portfolio': 'Portföy',
     'manager.holdings': 'Tüm Pozisyonlar',
-    'manager.aum': 'Portföy Değeri (AUM)',
+    'manager.aum': 'Portföy Büyüklüğü',
     'manager.positions': 'Pozisyon',
-    'manager.top10': 'İlk 10 Yoğunluk',
-    'manager.estFlow': 'Tahmini Net Akış (Ç)',
-    'manager.qoq': 'Ç/Ç',
-    'manager.yoy': 'Y/Y',
-    'manager.day1': '1G Getiri',
-    'manager.aumHistory': 'AUM Geçmişi',
-    'manager.flowHistory': 'Tahmini Çeyreklik Net Akış',
+    'manager.top10': 'İlk 10 Hissenin Ağırlığı',
+    'manager.estFlow': 'Para Girişi/Çıkışı (Tahmini)',
+    'manager.qoq': '3 Aylık',
+    'manager.yoy': 'Yıllık',
+    'manager.day1': 'Günlük Getiri',
+    'manager.aumHistory': 'Portföy Büyüklüğü Geçmişi',
+    'manager.flowHistory': 'Çeyreklik Para Giriş-Çıkışı (Tahmini)',
     'manager.flowNote':
       'Tahmini akış = AUM değişimi − (önceki AUM × SPY çeyrek getirisi). Piyasa etkisinden arındırılmış yaklaşık giriş/çıkış.',
-    'manager.topHoldings': 'En Büyük Pozisyonlar',
-    'manager.increased': 'Yeni / Artırılan',
-    'manager.decreased': 'Azaltılan / Çıkılan',
+    'manager.topHoldings': 'En Büyük Yatırımları',
+    'manager.increased': 'Aldıkları & Artırdıkları',
+    'manager.decreased': 'Sattıkları & Azalttıkları',
     'manager.composition': 'Portföy Dağılımı',
     'manager.newBadge': 'YENİ',
     'manager.exitBadge': 'ÇIKIŞ',
@@ -187,7 +187,7 @@ const dict = {
     'reco.hold': 'Tut',
     'reco.underperform': 'Zayıf Performans',
     'reco.sell': 'Sat',
-    'stock.holders': 'Bu Hisseyi Bildiren Fonlar',
+    'stock.holders': 'Bu Hisseye Yatırım Yapan Fonlar',
     'stock.holdersNote':
       'EDGAR 13F tam metin aramasındaki ilk sonuçlar; sayı, eşleşen dosyalama adedidir.',
 
@@ -204,59 +204,59 @@ const dict = {
       'Henüz favori eklemediniz. Yönetici sayfalarındaki ⭐ butonuyla ekleyin.',
     'watchlist.remove': 'Kaldır',
 
-    'screen.title': 'Yönetici Tarayıcı',
+    'screen.title': 'Fon Bul',
     'screen.subtitle':
-      'Seçili ünlü yöneticilerin son çeyrek verileri. Satırlar yüklendikçe filtreleyebilirsiniz.',
+      "ABD'deki fonları büyüklük, pozisyon sayısı ve odaklılığa göre filtreleyin.",
     'screen.minAum': 'Min AUM ($M)',
     'screen.maxAum': 'Max AUM ($B)',
     'screen.maxPositions': 'Maks Pozisyon',
     'screen.minTop10': 'Min İlk-10 %',
-    'screen.manager': 'Yönetici',
+    'screen.manager': 'Fon',
     'screen.quarter': 'Çeyrek',
-    'screen.universeMode': 'Tüm 13F evreni',
+    'screen.universeMode': 'Tüm ABD fon evreni',
 
-    'consensus.title': 'Süper Yatırımcı Konsensüsü',
-    'consensus.subtitle': 'Takip edilen fonlar',
-    'consensus.loading': 'Konsensüs hesaplanıyor… İlk yükleme 30-60 sn sürebilir.',
-    'consensus.mostHeld': 'En Çok Tutulan Hisseler',
-    'consensus.topBought': 'Bu Çeyrek En Çok Alınan',
-    'consensus.topSold': 'Bu Çeyrek En Çok Satılan',
-    'consensus.newRadar': 'Yeni Pozisyon Radarı',
+    'consensus.title': 'Usta Yatırımcılar',
+    'consensus.subtitle': 'Takip edilen efsane yatırımcılar',
+    'consensus.loading': 'Usta yatırımcı verileri hazırlanıyor…',
+    'consensus.mostHeld': 'Ustaların En Çok Tuttuğu Hisseler',
+    'consensus.topBought': 'Bu Çeyrek Ne Aldılar?',
+    'consensus.topSold': 'Bu Çeyrek Ne Sattılar?',
+    'consensus.newRadar': 'Portföye Yeni Girenler',
     'consensus.newRadarNote':
-      'Bu çeyrek portföye ilk kez giren pozisyonlar, ağırlığa göre sıralı.',
+      'Ustaların bu çeyrek ilk kez satın aldığı hisseler, portföydeki ağırlığına göre sıralı.',
     'consensus.funds': 'Fon',
     'consensus.totalValue': 'Toplam Değer',
     'consensus.avgWeight': 'Ort. Ağırlık',
-    'consensus.net': 'Yaklaşık İşlem',
-    'consensus.heldBy': 'Tutanlar',
-    'consensus.universeTop': 'Tüm Evrende En Çok Tutulanlar',
+    'consensus.net': 'İşlem Tutarı (Yaklaşık)',
+    'consensus.heldBy': 'Kimler Tutuyor',
+    'consensus.universeTop': "Tüm Wall Street'in Favorileri",
     'consensus.universeNote':
-      'Tüm 13F dosyalayıcılarının (~8.000 fon) birleşik verisi; haftalık güncellenir.',
+      'ABD borsasındaki ~8.000 fonun tamamının birleşik verisi; haftalık güncellenir.',
 
-    'manager.turnover': 'Devir Hızı (Son Ç)',
+    'manager.turnover': 'Al-Sat Sıklığı (Son Çeyrek)',
     'manager.turnoverAvg': '8Ç ortalama',
-    'manager.avgHold': 'Ort. Tutma Süresi',
+    'manager.avgHold': 'Ortalama Elde Tutma',
     'manager.avgHoldUnit': 'çeyrek (ilk 50 pozisyon)',
     'manager.newExit': 'Yeni / Çıkan Pozisyon',
     'manager.newExitSub': 'son çeyrekte',
 
-    'stock.ownership': 'Kurumsal 13F Sahipliği — En Büyük Fonlar',
+    'stock.ownership': 'Bu Hisseyi Tutan Büyük Fonlar',
     'stock.ownershipLoading':
       'Sahiplik verisi hesaplanıyor… İlk yükleme 30-60 sn sürebilir.',
     'stock.ownershipFilings': 'Eşleşen dosyalama',
     'stock.ownershipNote':
       'EDGAR tam metin aramasında bu CUSIP\'i bildiren fonlardan en büyükleri; tüm sahiplerin tam listesi değildir.',
-    'stock.filings13dg': '13D/13G Bildirimleri',
+    'stock.filings13dg': 'Büyük Ortak Hamleleri (13D/13G)',
     'stock.filings13dgNote':
       '13D = aktivist niyetli %5+ ortaklık, 13G = pasif %5+ ortaklık. Detay için EDGAR bağlantısına tıklayın.',
     'stock.view': 'Görüntüle',
 
     'manager.print': 'PDF / Yazdır',
-    'manager.options': 'Opsiyon Pozisyonları',
+    'manager.options': 'Opsiyon Bahisleri (PUT/CALL)',
     'manager.optionsNote':
       '13F opsiyonları nominal hisse karşılığı değeriyle bildirir; prim maliyetini veya kullanım fiyatını göstermez.',
     'manager.notional': 'Nominal Değer',
-    'manager.backtest': 'Kopyalama Backtesti (deneysel)',
+    'manager.backtest': 'Bu Fonu Kopyalasaydınız? (deneysel)',
     'manager.backtestRun': 'Hesapla',
     'manager.backtestNote':
       'Her çeyrek, dosyalama kamuya açıldığında (dönem sonu + 46 gün) ilk 15 hisse pozisyonu dosyalanan ağırlıklarla alınıp bir sonraki dosyalamaya kadar tutulsaydı senaryosu. Fiyat verisi bulunamayan pozisyonlar atlanır; temettüler dahil değildir. Yatırım tavsiyesi değildir.',
@@ -268,7 +268,7 @@ const dict = {
 
     'watchlist.newFiling': 'YENİ 13F',
 
-    'stock.insiders': 'İçeriden İşlemler (Form 4)',
+    'stock.insiders': 'Şirket İçinden Alım-Satımlar',
     'stock.insidersNote': 'Şirketin son Form 4 dosyalamalarından; sadece hisse işlemleri (türevler hariç).',
     'stock.insDate': 'Tarih',
     'stock.insOwner': 'Kişi',
@@ -282,7 +282,7 @@ const dict = {
     'nav.account': 'Hesabım',
     'paywall.title': 'Pro Özellik',
     'paywall.desc':
-      'Bu bölüm 13F Radar Pro abonelerine özeldir. Tüm pozisyon tabloları, konsensüs alım-satımları, sahiplik analizi, backtest ve dışa aktarma Pro ile açılır.',
+      'Bu bölüm 13F Radar Pro abonelerine özeldir. Tam pozisyon tabloları, ustaların alım-satımları, sahiplik analizi ve dışa aktarma Pro ile açılır.',
     'paywall.cta': "Pro'ya Geç",
     'pricing.title': 'Fiyatlandırma',
     'pricing.subtitle': 'Kurumsal yatırımcı verisi, bireysel yatırımcı fiyatına.',
@@ -301,9 +301,9 @@ const dict = {
     'pricing.pf1': 'Fon arama ve özet portföy görünümü',
     'pricing.pf2': 'İlk 10 pozisyon ve portföy kartları',
     'pricing.pf3': 'Hisse fiyat ve temel rasyolar',
-    'pricing.pf4': 'Konsensüs: en çok tutulanlar',
+    'pricing.pf4': 'Ustaların en çok tuttuğu hisseler',
     'pricing.pp1': 'Tüm pozisyon tabloları + Δ değişim kolonu',
-    'pricing.pp2': 'Konsensüs alım/satım + yeni pozisyon radarı',
+    'pricing.pp2': 'Ustaların alım-satımları + portföye yeni girenler',
     'pricing.pp3': 'Kurumsal sahiplik, 13D/G ve insider işlemleri',
     'pricing.pp4': 'Pozisyon ağırlık geçmişi',
     'pricing.pp5': 'Kopyalama backtesti',
@@ -328,6 +328,11 @@ const dict = {
     'account.plan': 'Plan',
     'account.signOut': 'Çıkış yap',
     'account.notConfigured': 'Üyelik sistemi henüz aktif değil — çok yakında!',
+    'style.value': '💎 Değer Yatırımcısı',
+    'style.growth': '🚀 Büyüme Yatırımcısı',
+    'style.activist': '📣 Aktivist Yatırımcı',
+    'style.macro': '🌍 Makro / Küresel',
+    'style.quant': '🤖 Algoritmik (Quant)',
     'palette.placeholder': 'Yönetici veya ticker ara…',
     'palette.goStock': 'Hisseye git:',
     'stock.limitedData':
@@ -335,8 +340,8 @@ const dict = {
   },
   en: {
     'nav.search': 'Search',
-    'nav.consensus': 'Consensus',
-    'nav.screen': 'Screener',
+    'nav.consensus': 'Superinvestors',
+    'nav.screen': 'Find Funds',
     'nav.compare': 'Compare',
     'nav.watchlist': 'Watchlist',
 
@@ -384,7 +389,7 @@ const dict = {
       'Nothing on this site is investment advice. Data is compiled automatically from SEC EDGAR and public sources; accuracy is not guaranteed. 13F filings are disclosed up to 45 days after quarter end and are backward-looking.',
     'footer.sources': 'Data sources: SEC EDGAR · Yahoo Finance · OpenFIGI · Stooq',
     'search.placeholder': 'Fund manager name or CIK number…',
-    'search.popular': 'Popular Managers',
+    'search.popular': 'Famous Investors',
     'search.favorites': 'Your Watchlist',
     'search.noResults': 'No results found',
     'search.filings': 'filings',
@@ -535,7 +540,7 @@ const dict = {
     'watchlist.empty': 'No favorites yet. Add managers with the ⭐ button on their pages.',
     'watchlist.remove': 'Remove',
 
-    'screen.title': 'Manager Screener',
+    'screen.title': 'Find Funds',
     'screen.subtitle':
       'Latest quarterly stats for a curated set of famous managers. Filter as rows load.',
     'screen.minAum': 'Min AUM ($M)',
@@ -546,20 +551,20 @@ const dict = {
     'screen.quarter': 'Quarter',
     'screen.universeMode': 'Full 13F universe',
 
-    'consensus.title': 'Superinvestor Consensus',
+    'consensus.title': 'Superinvestors',
     'consensus.subtitle': 'Tracked funds',
     'consensus.loading': 'Computing consensus… first load can take 30-60s.',
     'consensus.mostHeld': 'Most Held Stocks',
-    'consensus.topBought': 'Most Bought This Quarter',
-    'consensus.topSold': 'Most Sold This Quarter',
-    'consensus.newRadar': 'New Position Radar',
+    'consensus.topBought': 'What Did They Buy?',
+    'consensus.topSold': 'What Did They Sell?',
+    'consensus.newRadar': 'Fresh New Buys',
     'consensus.newRadarNote': 'First-time positions this quarter, sorted by weight.',
     'consensus.funds': 'Funds',
     'consensus.totalValue': 'Total Value',
     'consensus.avgWeight': 'Avg Weight',
     'consensus.net': 'Approx. Trade',
     'consensus.heldBy': 'Held By',
-    'consensus.universeTop': 'Most Held Across the Whole Universe',
+    'consensus.universeTop': "All of Wall Street's Favorites",
     'consensus.universeNote':
       'Aggregated across ALL 13F filers (~8,000 funds); refreshed weekly.',
 
@@ -570,12 +575,12 @@ const dict = {
     'manager.newExit': 'New / Exited Positions',
     'manager.newExitSub': 'last quarter',
 
-    'stock.ownership': 'Institutional 13F Ownership — Largest Funds',
+    'stock.ownership': 'Top Funds Holding This Stock',
     'stock.ownershipLoading': 'Computing ownership… first load can take 30-60s.',
     'stock.ownershipFilings': 'Matching filings',
     'stock.ownershipNote':
       'The largest funds reporting this CUSIP via EDGAR full-text search; not an exhaustive list of all holders.',
-    'stock.filings13dg': '13D/13G Filings',
+    'stock.filings13dg': 'Major Stakeholder Moves (13D/13G)',
     'stock.filings13dgNote':
       '13D = activist 5%+ stake, 13G = passive 5%+ stake. Click the EDGAR link for details.',
     'stock.view': 'View',
@@ -585,7 +590,7 @@ const dict = {
     'manager.optionsNote':
       '13F reports options at notional share-equivalent value; premium cost and strikes are not disclosed.',
     'manager.notional': 'Notional Value',
-    'manager.backtest': 'Copy-the-13F Backtest (experimental)',
+    'manager.backtest': 'What If You Copied This Fund? (experimental)',
     'manager.backtestRun': 'Run',
     'manager.backtestNote':
       'Scenario: each quarter, buy the top 15 equity positions at filed weights once the filing is public (quarter end + 46 days) and hold until the next filing. Positions without price data are skipped; dividends excluded. Not investment advice.',
@@ -597,7 +602,7 @@ const dict = {
 
     'watchlist.newFiling': 'NEW 13F',
 
-    'stock.insiders': 'Insider Transactions (Form 4)',
+    'stock.insiders': 'Insider Buys & Sells',
     'stock.insidersNote': "From the company's recent Form 4 filings; equity transactions only (derivatives excluded).",
     'stock.insDate': 'Date',
     'stock.insOwner': 'Owner',
@@ -656,6 +661,11 @@ const dict = {
     'account.plan': 'Plan',
     'account.signOut': 'Sign out',
     'account.notConfigured': 'Membership is not live yet — coming soon!',
+    'style.value': '💎 Value Investor',
+    'style.growth': '🚀 Growth Investor',
+    'style.activist': '📣 Activist Investor',
+    'style.macro': '🌍 Global Macro',
+    'style.quant': '🤖 Quantitative',
     'palette.placeholder': 'Search manager or ticker…',
     'palette.goStock': 'Go to stock:',
     'stock.limitedData':

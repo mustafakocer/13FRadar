@@ -1,12 +1,20 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { useGeo } from '../hooks/useGeo.js';
 
-const CHECKOUT_URL = import.meta.env.VITE_CHECKOUT_URL || '';
-// Regional checkout for Turkey (separate Lemon Squeezy variant priced at $10)
-const CHECKOUT_URL_TR = import.meta.env.VITE_CHECKOUT_URL_TR || CHECKOUT_URL;
+const CO = {
+  m: import.meta.env.VITE_CHECKOUT_URL || '',
+  mTR: import.meta.env.VITE_CHECKOUT_URL_TR || import.meta.env.VITE_CHECKOUT_URL || '',
+  y: import.meta.env.VITE_CHECKOUT_URL_YEARLY || import.meta.env.VITE_CHECKOUT_URL || '',
+  yTR:
+    import.meta.env.VITE_CHECKOUT_URL_YEARLY_TR ||
+    import.meta.env.VITE_CHECKOUT_URL_YEARLY ||
+    import.meta.env.VITE_CHECKOUT_URL ||
+    '',
+};
 
 const FREE_FEATURES = ['pf1', 'pf2', 'pf3', 'pf4'];
 const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
@@ -15,21 +23,38 @@ export default function Pricing() {
   const { t } = useI18n();
   const { user, isPro, configured } = useAuth();
   const geo = useGeo();
+  const [cycle, setCycle] = useState('m'); // m | y
   usePageTitle(`${t('pricing.title')} — 13F Radar`);
 
   const isTR = geo.data?.country === 'TR';
-  const baseUrl = isTR ? CHECKOUT_URL_TR : CHECKOUT_URL;
-  const price = isTR ? '$10' : t('pricing.proPrice');
+  // Anchored discount display (TR); annual = 10× monthly everywhere → "2 months free"
+  const price = cycle === 'm' ? (isTR ? '$10' : t('pricing.proPrice')) : isTR ? '$100' : '$199';
+  const anchor = cycle === 'm' ? (isTR ? '$15' : null) : isTR ? '$120' : '$238';
+  const baseUrl = cycle === 'm' ? (isTR ? CO.mTR : CO.m) : isTR ? CO.yTR : CO.y;
 
-  const checkoutHref = user && baseUrl
-    ? `${baseUrl}?checkout[email]=${encodeURIComponent(user.email)}&checkout[custom][user_id]=${user.id}`
-    : baseUrl;
+  const checkoutHref =
+    user && baseUrl
+      ? `${baseUrl}?checkout[email]=${encodeURIComponent(user.email)}&checkout[custom][user_id]=${user.id}`
+      : baseUrl;
 
   return (
     <div>
-      <div className="hero" style={{ padding: '24px 0 16px' }}>
+      <div className="hero" style={{ padding: '24px 0 8px' }}>
         <h1>{t('pricing.title')}</h1>
         <p>{t('pricing.subtitle')}</p>
+      </div>
+
+      <div className="row" style={{ justifyContent: 'center', marginBottom: 18 }}>
+        {['m', 'y'].map((c) => (
+          <button
+            key={c}
+            className={`chip${cycle === c ? ' fsel-active' : ''}`}
+            onClick={() => setCycle(c)}
+          >
+            {c === 'm' ? t('pricing.billMonthly') : t('pricing.billYearly')}
+            {c === 'y' && ` · 🎁 ${t('pricing.twoFree')}`}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-2" style={{ maxWidth: 860, margin: '0 auto' }}>
@@ -47,16 +72,19 @@ export default function Pricing() {
           </h3>
           <div className="price-big">
             {price}
-            {isTR && (
-              <span className="muted" style={{ fontSize: 15, fontWeight: 500, marginLeft: 8, textDecoration: 'line-through' }}>
-                {t('pricing.proPrice')}
+            {anchor && (
+              <span
+                className="muted"
+                style={{ fontSize: 16, fontWeight: 500, marginLeft: 8, textDecoration: 'line-through' }}
+              >
+                {anchor}
               </span>
             )}
           </div>
           <div className="muted small" style={{ marginBottom: 14 }}>
-            {t('pricing.monthly')}
-            {isTR && (
-              <div className="badge pos" style={{ marginTop: 6 }}>🇹🇷 {t('pricing.trNote')}</div>
+            {cycle === 'm' ? t('pricing.monthly') : t('pricing.yearlySub')}
+            {cycle === 'y' && (
+              <div className="badge pos" style={{ marginTop: 6 }}>🎁 {t('pricing.twoFree')}</div>
             )}
           </div>
           {PRO_FEATURES.map((k) => (

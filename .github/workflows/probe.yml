@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 8
+# probe-run: 9
 
 jobs:
   probe:
@@ -35,3 +35,25 @@ jobs:
           echo
           echo "=== free endpoint still open: /api/manager/1067983 ==="
           curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/manager/1067983" | head -c 120 || true
+      - name: Data accuracy audit
+        run: |
+          B="https://13-f-radar-omega.vercel.app"
+          echo "=== BRK latest holdings: internal consistency ==="
+          ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc')
+          echo "acc=$ACC"
+          curl -sS -m 60 "$B/api/holdings/1067983/$ACC" -o /tmp/brk.json
+          jq '{aum, count, weightSum: ([.positions[].weight] | add | .*100 | round / 100), valueSum: ([.positions[].value] | add), top3: [.positions[:3][] | {ticker, issuer, valueB: (.value/1e9 | .*100 | round/100), weight: (.weight | .*100 | round/100)}]}' /tmp/brk.json
+          echo "=== cross-check BRK top position against raw SEC filing ==="
+          CIK=1067983; A=$(echo $ACC | tr -d '-')
+          XML=$(curl -sS -m 30 -H "User-Agent: audit kocergpt@gmail.com" "https://www.sec.gov/Archives/edgar/data/$CIK/$A/index.json" | jq -r '.directory.item[] | select(.name | test("\\.xml$")) | select(.name | test("primary") | not) | .name' | head -1)
+          echo "infotable=$XML"
+          curl -sS -m 60 -H "User-Agent: audit kocergpt@gmail.com" "https://www.sec.gov/Archives/edgar/data/$CIK/$A/$XML" -o /tmp/raw.xml
+          echo "SEC raw: rows=$(grep -c '<infoTable>' /tmp/raw.xml || grep -oc 'infoTable>' /tmp/raw.xml)  totalValue=$(grep -o '<value>[0-9]*</value>' /tmp/raw.xml | grep -o '[0-9]*' | paste -sd+ | bc)"
+          echo "=== cross-provider price agreement (AAPL) ==="
+          FMP=$(curl -sS -m 40 "$B/api/stock/AAPL" | jq -r '.price.price')
+          RET=$(curl -sS -m 40 "$B/api/returns?symbols=AAPL" | jq -r '.AAPL.price')
+          echo "stock(FMP)=$FMP  returns(chain)=$RET"
+          echo "=== static data freshness ==="
+          curl -sS -m 20 "$B/consensus.json" | jq '{updatedAt, managers: (.managers|length), mostHeld: (.mostHeld|length)}'
+          curl -sS -m 20 "$B/returns.json" | jq '{updatedAt, tickers: (.returns|length), AAPL: .returns.AAPL, SPY: .returns.SPY}' || echo "returns.json yok"
+          curl -sS -m 20 "$B/universe.json" | jq '{updatedAt, count}'

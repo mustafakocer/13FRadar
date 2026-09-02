@@ -425,6 +425,10 @@ const dict = {
     'cat.endowment': '🎓 Üniversite / Vakıf',
     'cat.family': '👨‍👩‍👧 Aile Ofisi',
     'pricing.trNote': "Türkiye'ye özel bölgesel fiyat",
+    'pricing.billMonthly': 'Aylık',
+    'pricing.billYearly': 'Yıllık',
+    'pricing.twoFree': '2 ay ücretsiz',
+    'pricing.yearlySub': 'yıllık tek ödeme · istediğiniz zaman iptal',
     'palette.placeholder': 'Yönetici veya ticker ara…',
     'palette.goStock': 'Hisseye git:',
     'stock.limitedData':
@@ -850,6 +854,10 @@ const dict = {
     'cat.endowment': '🎓 University / Endowment',
     'cat.family': '👨‍👩‍👧 Family Office',
     'pricing.trNote': 'Regional price for Türkiye',
+    'pricing.billMonthly': 'Monthly',
+    'pricing.billYearly': 'Yearly',
+    'pricing.twoFree': '2 months free',
+    'pricing.yearlySub': 'billed yearly · cancel anytime',
     'palette.placeholder': 'Search manager or ticker…',
     'palette.goStock': 'Go to stock:',
     'stock.limitedData':

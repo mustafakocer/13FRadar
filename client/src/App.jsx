@@ -16,6 +16,7 @@ import Congress from './pages/Congress.jsx';
 import Performance from './pages/Performance.jsx';
 import StockScreener from './pages/StockScreener.jsx';
 import Turkiye from './pages/Turkiye.jsx';
+import Backtest from './pages/Backtest.jsx';
 import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
@@ -45,6 +46,7 @@ export default function App() {
     ...(flagOn('congress') ? [{ to: '/congress', label: t('nav.congress'), icon: '🏛️' }] : []),
     ...(flagOn('performance') ? [{ to: '/performance', label: t('nav.performance'), icon: '🏆' }] : []),
     ...(flagOn('turkeyRadar') ? [{ to: '/turkiye', label: t('nav.turkiye'), icon: '🇹🇷' }] : []),
+    ...(flagOn('backtest') ? [{ to: '/backtest', label: t('nav.backtest'), icon: '⏪' }] : []),
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
     { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
   ];
@@ -108,6 +110,7 @@ export default function App() {
           <Route path="/performance" element={<Performance />} />
           <Route path="/stocks" element={<StockScreener />} />
           <Route path="/turkiye" element={<Turkiye />} />
+          <Route path="/backtest" element={<Backtest />} />
         </Routes>
         <SpkNotice />
         <Footer />

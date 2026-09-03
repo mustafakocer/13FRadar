@@ -4,6 +4,9 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P2-9 Backtester — 2026-09-03
+- New Pro backtester: pick a fund or up to five funds (AUM- or equal-weighted), a start quarter and a position count; the portfolio is rebalanced at each filing's release date (quarter end + 45 days) and compared with SPY. Outputs equity curve, total return, CAGR, maximum drawdown, price coverage and a per-quarter table. Feature flag `backtest`.
+
 ### TR-14 Türkiye Radarı — 2026-09-03
 - New `/turkiye` page: every 13F filer holding the TUR ETF or US-listed Turkish ADRs (curated list in `api/_data/turkey-securities.json`), quarter-over-quarter adding/reducing/new/exit counts and estimated net flow, quarterly total-value history, and a Turkish plain-language summary generated from the data at build time. Free plan sees 10 holders. Feature flag `turkeyRadar`.
 

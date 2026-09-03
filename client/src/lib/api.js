@@ -59,6 +59,8 @@ export const api = {
     save: (name, params) => get('/api/screens', { method: 'POST', body: { name, params } }),
     remove: (id) => get('/api/screens', { method: 'DELETE', body: { id } }),
   },
+  backtest: (ciks, start, weighting, top) =>
+    get(`/api/backtest?ciks=${ciks.map(encodeURIComponent).join(',')}&start=${start}&weighting=${weighting}&top=${top}`),
   turkey: async () => {
     const r = await fetch('/turkey.json');
     if (!r.ok) throw new Error('no-turkey');

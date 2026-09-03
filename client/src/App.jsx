@@ -13,6 +13,7 @@ import Pricing from './pages/Pricing.jsx';
 import Account from './pages/Account.jsx';
 import Insiders from './pages/Insiders.jsx';
 import Congress from './pages/Congress.jsx';
+import Performance from './pages/Performance.jsx';
 import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
@@ -39,6 +40,7 @@ export default function App() {
     { to: '/compare', label: t('nav.compare'), icon: '⚖️' },
     ...(flagOn('insiders') ? [{ to: '/insiders', label: t('nav.insiders'), icon: '👤' }] : []),
     ...(flagOn('congress') ? [{ to: '/congress', label: t('nav.congress'), icon: '🏛️' }] : []),
+    ...(flagOn('performance') ? [{ to: '/performance', label: t('nav.performance'), icon: '🏆' }] : []),
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
     { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
   ];
@@ -99,6 +101,7 @@ export default function App() {
           <Route path="/account" element={<Account />} />
           <Route path="/insiders" element={<Insiders />} />
           <Route path="/congress" element={<Congress />} />
+          <Route path="/performance" element={<Performance />} />
         </Routes>
         <SpkNotice />
         <Footer />

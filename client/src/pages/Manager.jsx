@@ -22,6 +22,8 @@ import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 import { managerStyle } from '../data/popular.js';
 import { cashLikeSummary, effectivePositions } from '../lib/cashLike.js';
 import AlertBell from '../components/AlertBell.jsx';
+import { usePerformance } from '../hooks/usePerformance.js';
+import { flagOn } from '../lib/flags.js';
 import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 
@@ -93,6 +95,9 @@ export default function Manager() {
 
   // mark the latest filing as "seen" for watchlist NEW badges
   if (mgr.data && filings[0]) markFilingSeen(mgr.data.cik, filings[0].filingDate);
+
+  const perf = usePerformance();
+  const perfRow = flagOn('performance') ? perf.data?.funds?.find((f) => f.cik === String(cik).padStart(10, '0')) : null;
 
   const mstats = useQuery({
     queryKey: ['mstats', cik],
@@ -176,6 +181,11 @@ export default function Manager() {
               {filing ? ` · ${t('manager.quarterEnd')}: ${filing.reportDate} · ${t('manager.filedOn')}: ${filing.filingDate}` : ''}
             </div>
             <div className="head-badges">
+              {perfRow?.score != null && (
+                <Link to="/performance" className={`badge ${perfRow.score >= 67 ? 'pos' : perfRow.score <= 33 ? 'neg' : 'plain'}`} title={t('perf.badgeTip')}>
+                  🏆 {t('perf.score')} {perfRow.score}{perfRow.ret1y != null ? ` · 1Y ${fmtPct(perfRow.ret1y * 100)}` : ''}
+                </Link>
+              )}
               {managerStyle(mgr.data.cik) && (
                 <span className="badge plain">{t(`style.${managerStyle(mgr.data.cik)}`)}</span>
               )}

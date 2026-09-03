@@ -4,6 +4,11 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P1-7 Fund performance score — 2026-09-03
+- Weekly build computes, for ~80 funds (popular, consensus and largest by AUM), the hypothetical return of holding each 13F's top-50 quarter-end weights until the next quarter end, compounded to 1Y / 3Y, versus SPY; plus activity %, top-10 concentration and 1Y AUM trend. Prices: FMP → Twelve Data → Stooq regular closes (stated in-app).
+- New `/performance` ranking page with sortable table, per-fund quarterly series (Pro) and a Turkish methodology section; score badge on fund pages. Free plan sees 20 rows. Feature flag `performance`.
+- The return engine (`api/_lib/performance.js`) also supports release-date rebalancing for the backtester.
+
 ### P1-6 Congress trades — 2026-09-03
 - Daily ingest of STOCK Act periodic transaction reports for the House and Senate from the House Stock Watcher / Senate Stock Watcher open datasets (the Clerk publishes PDFs and the Senate eFD is an HTML search, so no EDGAR-style feed exists). Rows are normalised, deduplicated, kept for 365 days and enriched with party/state from congress-legislators.
 - New `/congress` page: buys / sells / all with chamber, party, amount band and member/ticker filters; free plan sees 20 rows. Feature flag `congress`.

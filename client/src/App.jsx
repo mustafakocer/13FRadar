@@ -11,6 +11,8 @@ import Consensus from './pages/Consensus.jsx';
 import Report from './pages/Report.jsx';
 import Pricing from './pages/Pricing.jsx';
 import Account from './pages/Account.jsx';
+import Insiders from './pages/Insiders.jsx';
+import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
 import SpkNotice from './components/SpkNotice.jsx';
@@ -34,6 +36,7 @@ export default function App() {
     { to: '/report', label: t('nav.report'), icon: '📰' },
     { to: '/screen', label: t('nav.screen'), icon: '📊' },
     { to: '/compare', label: t('nav.compare'), icon: '⚖️' },
+    ...(flagOn('insiders') ? [{ to: '/insiders', label: t('nav.insiders'), icon: '👤' }] : []),
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
     { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
   ];
@@ -92,6 +95,7 @@ export default function App() {
           <Route path="/watchlist" element={<Watchlist />} />
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/account" element={<Account />} />
+          <Route path="/insiders" element={<Insiders />} />
         </Routes>
         <SpkNotice />
         <Footer />

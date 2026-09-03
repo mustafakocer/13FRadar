@@ -1,0 +1,42 @@
+name: Build insider transactions
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Days of daily indexes to (re)scan'
+        default: '3'
+  schedule:
+    # Daily 06:00 UTC — Form 4s are due within 2 business days of the trade
+    - cron: '0 6 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Build insiders.json
+        run: node scripts/build-insiders.mjs
+        env:
+          SEC_USER_AGENT: '13FRadar insiders bot (kocergpt@gmail.com)'
+          INSIDERS_DAYS: ${{ github.event.inputs.days || '3' }}
+      - name: Commit if changed
+        run: |
+          git config user.name 'insiders-bot'
+          git config user.email 'actions@github.com'
+          git add client/public/insiders.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh insider transactions'
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1

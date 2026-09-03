@@ -350,7 +350,7 @@ export default function Stock() {
                 <tr>
                   <th className="l">{t('stock.insDate')}</th>
                   <th className="l">{t('stock.insOwner')}</th>
-                  <th className="l">{t('stock.insTitle')}</th>
+                  <th className="l">{t('insiders.roleCol')}</th>
                   <th>{t('stock.insSide')}</th>
                   <th>{t('table.shares')}</th>
                   <th>{t('stock.insPrice')}</th>
@@ -362,7 +362,7 @@ export default function Stock() {
                   <tr key={i}>
                     <td className="l muted">{tx.date}</td>
                     <td className="l">{tx.owner}</td>
-                    <td className="l muted small">{tx.title || '—'}</td>
+                    <td className="l muted small" title={tx.title || ''}>{tx.role ? t(`insiders.role.${tx.role}`) : tx.title || '—'}</td>
                     <td>
                       {tx.side ? (
                         <span className={`badge ${tx.side === 'buy' ? 'pos' : 'neg'}`}>
@@ -381,7 +381,7 @@ export default function Stock() {
               </tbody>
             </table>
           </div>
-          <p className="muted small mt8">{t('stock.insidersNote')}</p>
+          <p className="muted small mt8">{t('stock.insidersNote')} <Link to="/insiders">{t('insiders.seeAll')}</Link></p>
         </div>
       )}
 

@@ -4,6 +4,11 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P1-5 Form 4 insider transactions — 2026-09-03
+- New daily ingest of every Form 4 / 4-A from EDGAR's daily form index into `client/public/insiders.json` (open-market purchases and sales, equity only, last 30 days, ≥ $10k, deduplicated). Roles are classified from the filing (CEO, CFO, COO, President, Officer, Director, 10% owner).
+- New `/insiders` page: largest buys, largest sells, full list by date; filters by role, amount band and text (Pro); free plan sees 20 rows per list.
+- Stock page insider table now shows the role and links to the feed. Feature flag `insiders`.
+
 ### P0-4 Watchlists & fund groups — 2026-09-03
 - Stock watchlist (per user, Supabase) with aggregate institutional ownership: number of 13F filers holding the stock, total value, and quarter-over-quarter change. The universe build now writes `stocks.json` with 2,000 rows + reporting period and rotates the previous period into `stocks-prev.json` when the period advances.
 - Fund groups: create groups, add up to 5 (free) / 20 (Pro) funds, view the combined "super fund" portfolio AUM-weighted or equal-weighted (treemap + table + holder counts) and the group's NEW / ADD / REDUCE / EXIT moves this quarter.

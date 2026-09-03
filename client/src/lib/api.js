@@ -54,6 +54,11 @@ export const api = {
   },
   groupPortfolio: (ciks, weighting) =>
     get(`/api/group-portfolio?ciks=${ciks.map(encodeURIComponent).join(',')}&weighting=${weighting}`),
+  screens: {
+    list: () => get('/api/screens'),
+    save: (name, params) => get('/api/screens', { method: 'POST', body: { name, params } }),
+    remove: (id) => get('/api/screens', { method: 'DELETE', body: { id } }),
+  },
   performance: async () => {
     const r = await fetch('/performance.json');
     if (!r.ok) throw new Error('no-performance');

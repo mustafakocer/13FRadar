@@ -108,3 +108,16 @@ create table if not exists public.fund_group_members (
 alter table public.fund_group_members enable row level security;
 create policy "own fund group members" on public.fund_group_members
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- Saved stock screens (P1-8, Pro)
+create table if not exists public.saved_screens (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  name text not null,
+  params jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+alter table public.saved_screens enable row level security;
+create policy "own saved screens" on public.saved_screens
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

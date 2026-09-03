@@ -14,6 +14,7 @@ import Account from './pages/Account.jsx';
 import Insiders from './pages/Insiders.jsx';
 import Congress from './pages/Congress.jsx';
 import Performance from './pages/Performance.jsx';
+import StockScreener from './pages/StockScreener.jsx';
 import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
@@ -37,6 +38,7 @@ export default function App() {
     { to: '/consensus', label: t('nav.consensus'), icon: '🧭' },
     { to: '/report', label: t('nav.report'), icon: '📰' },
     { to: '/screen', label: t('nav.screen'), icon: '📊' },
+    ...(flagOn('screener') ? [{ to: '/stocks', label: t('nav.stocks'), icon: '🧪' }] : []),
     { to: '/compare', label: t('nav.compare'), icon: '⚖️' },
     ...(flagOn('insiders') ? [{ to: '/insiders', label: t('nav.insiders'), icon: '👤' }] : []),
     ...(flagOn('congress') ? [{ to: '/congress', label: t('nav.congress'), icon: '🏛️' }] : []),
@@ -102,6 +104,7 @@ export default function App() {
           <Route path="/insiders" element={<Insiders />} />
           <Route path="/congress" element={<Congress />} />
           <Route path="/performance" element={<Performance />} />
+          <Route path="/stocks" element={<StockScreener />} />
         </Routes>
         <SpkNotice />
         <Footer />

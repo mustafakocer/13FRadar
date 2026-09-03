@@ -17,3 +17,12 @@ export async function exportHoldingsToExcel(positions, returns, filename) {
   XLSX.utils.book_append_sheet(wb, ws, 'Holdings');
   XLSX.writeFile(wb, filename);
 }
+
+// Generic sheet export: rows are plain objects; keys become the header row.
+export async function exportRowsToExcel(rows, filename = 'export.xlsx', sheet = 'Data') {
+  const XLSX = await import('xlsx');
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheet);
+  XLSX.writeFile(wb, filename);
+}

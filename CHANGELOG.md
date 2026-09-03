@@ -4,6 +4,10 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P1-8 13F stock screener — 2026-09-03
+- The weekly universe build now also parses each filer's prior filing (`UNIVERSE_DIFF`, on by default) and aggregates per stock: funds holding, funds adding vs reducing, new/exit counts, net institutional flow (share change × price) and a consensus score; the top 2,000 stocks are enriched with a SIC-based sector and the SEC-reported public float (size band). All EDGAR-only.
+- New `/stocks` screener: filters for fund count, funds adding, net flow direction/size, consensus score, sector and size band; sortable table; XLSX export and saved screens (Supabase `saved_screens`) for Pro; free plan sees 50 rows. Feature flag `screener`.
+
 ### P1-7 Fund performance score — 2026-09-03
 - Weekly build computes, for ~80 funds (popular, consensus and largest by AUM), the hypothetical return of holding each 13F's top-50 quarter-end weights until the next quarter end, compounded to 1Y / 3Y, versus SPY; plus activity %, top-10 concentration and 1Y AUM trend. Prices: FMP → Twelve Data → Stooq regular closes (stated in-app).
 - New `/performance` ranking page with sortable table, per-fund quarterly series (Pro) and a Turkish methodology section; score badge on fund pages. Free plan sees 20 rows. Feature flag `performance`.

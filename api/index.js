@@ -21,6 +21,7 @@ import alerts from './_handlers/alerts.js';
 import watchlistStocks from './_handlers/watchlist-stocks.js';
 import groups from './_handlers/groups.js';
 import groupPortfolio from './_handlers/group-portfolio.js';
+import screens from './_handlers/screens.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
@@ -53,6 +54,7 @@ const ROUTES = {
   'watchlist-stocks': [watchlistStocks],
   groups: [groups],
   'group-portfolio': [groupPortfolio],
+  screens: [screens],
 };
 
 export default async function handler(req, res) {

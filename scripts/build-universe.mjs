@@ -12,9 +12,16 @@ import axios from 'axios';
 import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { dominantPeriod, rotateSnapshot, withDeltas } from '../api/_lib/stocksSnapshot.js';
+import { accumulateFiler, finalizeAgg, sicToSector, latestPublicFloat, floatBand } from '../api/_lib/universeAgg.js';
+import { tickerMap } from '../api/_lib/tickers.js';
+import { getSubmissions } from '../api/_lib/sec.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
+// UNIVERSE_DIFF=0 skips each filer's PRIOR quarter filing (default on: the
+// stock screener needs adding/reducing counts and net flow; doubles EDGAR requests).
+const DIFF = process.env.UNIVERSE_DIFF !== '0';
+const ENRICH = Number(process.env.UNIVERSE_ENRICH || 2000); // stocks to enrich with SIC sector + public float
 const http = axios.create({ timeout: 60000, headers: { 'User-Agent': UA } });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -52,9 +59,9 @@ async function main() {
       const acc = /(\d{10}-\d{2}-\d{6})/.exec(file)?.[1];
       if (!acc) continue;
       const existing = latestByCik.get(cik);
-      if (!existing || existing.filed <= filed) {
-        latestByCik.set(cik, { cik, name, filed, acc });
-      }
+      if (!existing) latestByCik.set(cik, { cik, name, filed, acc, prevAcc: null, prevFiled: null });
+      else if (existing.filed <= filed) latestByCik.set(cik, { cik, name, filed, acc, prevAcc: existing.acc, prevFiled: existing.filed });
+      else if (!existing.prevAcc || existing.prevFiled < filed) Object.assign(existing, { prevAcc: acc, prevFiled: filed });
     }
   }
 
@@ -63,7 +70,7 @@ async function main() {
   console.log(`Filers to process: ${entries.length}`);
 
   const rows = [];
-  const stockAgg = new Map(); // cusip -> {issuer, value, funds}
+  const stockAgg = new Map(); // cusip -> per-stock aggregate (see universeAgg.js)
   let done = 0;
   let failed = 0;
   const CONCURRENCY = 3;
@@ -86,14 +93,18 @@ async function main() {
             positions: positions.length,
             top10: Number(top10.toFixed(1)),
           });
-          // whale-heatmap aggregate across ALL filers (equity positions only)
-          for (const p of positions) {
-            if (p.putCall) continue;
-            const a = stockAgg.get(p.cusip) || { issuer: p.issuer, value: 0, funds: 0 };
-            a.value += p.value;
-            a.funds++;
-            stockAgg.set(p.cusip, a);
+          // universe-wide per-stock aggregate; the prior filing gives adding/reducing
+          let prevPositions = null;
+          if (DIFF && e.prevAcc && e.prevAcc !== e.acc) {
+            try {
+              const px = await parse13F(await fetchInfoTableXml(e.cik, e.prevAcc));
+              prevPositions = aggregatePositions(px, e.prevFiled).positions;
+              await sleep(350);
+            } catch {
+              prevPositions = null;
+            }
           }
+          accumulateFiler(stockAgg, positions, prevPositions);
         } catch {
           failed++;
         }
@@ -114,9 +125,7 @@ async function main() {
   console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed})`);
 
   // Rank all securities by total universe value
-  const ranked = [...stockAgg.entries()]
-    .map(([cusip, a]) => ({ cusip, ...a, value: Math.round(a.value) }))
-    .sort((a, b) => b.value - a.value);
+  const ranked = finalizeAgg(stockAgg);
 
   // Big static CUSIP->ticker map (top 6000): makes holdings endpoints resolve
   // tickers instantly at runtime instead of hitting OpenFIGI per request.
@@ -156,12 +165,46 @@ async function main() {
   const { prev, rotated } = rotateSnapshot(readJson('stocks.json'), readJson('stocks-prev.json'), period);
   if (prev) fs.writeFileSync(path.join(pub, 'stocks-prev.json'), JSON.stringify(prev));
   const topStocks = withDeltas(ranked.slice(0, 2000), prev);
+
+  // Sector (SIC bucket) and size (SEC public float) for the screener — both
+  // from EDGAR, refreshed weekly. Needs ticker -> issuer CIK (company_tickers).
+  console.log(`Enriching ${Math.min(ENRICH, topStocks.length)} stocks with SIC sector + public float…`);
+  let tmap = new Map();
+  try {
+    tmap = await tickerMap();
+  } catch (e) {
+    console.warn('company_tickers unavailable:', e.message);
+  }
+  let enriched = 0;
+  for (const s of topStocks.slice(0, ENRICH)) {
+    const tk = tickers[s.cusip];
+    const icik = tk ? tmap.get(tk) || tmap.get(tk.replace('-', '')) : null;
+    if (!icik) continue;
+    try {
+      const sub = await getSubmissions(icik);
+      s.sic = sub.sic ? Number(sub.sic) : null;
+      s.sector = sicToSector(s.sic);
+      s.issuerCik = String(icik);
+      await sleep(200);
+      const { data: concept } = await http.get(`https://data.sec.gov/api/xbrl/companyconcept/CIK${String(icik).padStart(10, '0')}/dei/EntityPublicFloat.json`, { validateStatus: () => true });
+      const f = latestPublicFloat(concept);
+      s.float = f?.value ?? null;
+      s.floatAsOf = f?.asOf ?? null;
+      s.size = floatBand(s.float);
+      enriched++;
+      await sleep(200);
+    } catch {
+      /* enrichment optional */
+    }
+  }
+  console.log(`enriched ${enriched}`);
   fs.writeFileSync(
     path.join(pub, 'stocks.json'),
     JSON.stringify({
       updatedAt: new Date().toISOString(),
       period,
       prevPeriod: prev?.period || null,
+      diff: DIFF,
       rows: topStocks.map((s) => ({ ...s, ticker: tickers[s.cusip] ?? null })),
     })
   );

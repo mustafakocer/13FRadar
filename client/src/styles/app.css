@@ -105,6 +105,8 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--ink); }
 
 .grid { display: grid; gap: 16px; }
+.grid > * { min-width: 0; } /* let table-wrap scroll instead of widening the page on mobile */
+.card { min-width: 0; }
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }

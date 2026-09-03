@@ -3,41 +3,71 @@
 SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden, Finimize esintili tasarıma sahip web uygulaması.
 
 **Özellikler**
-- 🔍 EDGAR üzerinde gerçek zamanlı fon yöneticisi arama (isim veya CIK)
-- 📁 Yönetici detay sayfası: Özet / Portföy / Tüm Pozisyonlar sekmeleri
-- 📊 AUM geçmişi grafiği, tahmini çeyreklik net fon akışı (SPY'a göre piyasa etkisinden arındırılmış)
-- 🃏 Portföy kartları: En Büyük Pozisyonlar · Yeni/Artırılan · Azaltılan/Çıkılan (önceki çeyrekle karşılaştırmalı)
-- 🧾 Sıralanabilir, filtrelenebilir tam pozisyon tablosu + Excel'e aktarma (SheetJS, code-split)
-- 💹 Hisse detay sayfası: Yahoo Finance verisiyle fiyat, değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
-- 📈 1Y / YTD / 1G getiriler (Yahoo v8 chart, regular close)
-- 🏷️ CUSIP → ticker çözümleme (OpenFIGI)
-- ⚖️ İki yönetici karşılaştırma + 2-3 hisse rasyo karşılaştırma, 📋 tarayıcı, ⭐ izleme listesi (localStorage)
-- 🧭 **Süper Yatırımcı Konsensüsü** — seçili fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan/satılan, yeni pozisyon radarı
-- 🎯 Opsiyon görünümü (PUT/CALL pozisyonları ayrı tablo + toplam ağırlıklar)
-- 👤 İçeriden işlemler (Form 4): hisse sayfasında + günlük güncellenen piyasa geneli en büyük alım/satış listesi (`/insiders`)
-- 🔔 İzleme listesinde yeni 13F rozetleri, ⌘K komut paleti, 🖨 PDF/yazdır raporu
-- 🌍 Tam evren tarayıcı: haftalık GitHub Action tüm ~8.000 13F dosyalayıcısını tarayıp `client/public/universe.json` üretir
-- 🌗 Açık/koyu tema, 🇹🇷/🇬🇧 çift dil
+- 🔍 EDGAR üzerinde fon yöneticisi arama; fon sayfası: Özet / Portföy / Tüm Pozisyonlar, portföy haritası (treemap), AUM ve akış geçmişi, fon bilgisi
+- 🧾 Pozisyon tablosu: ağırlık, son işlem (adet değişimi), sahiplik geçmişi, tahmini ortalama alış fiyatı, 1Y/YTD getiri; hisse / opsiyon görünümü; CSV / Excel dışa aktarma
+- 📈 **Pozisyon zaman çizelgesi**: her (fon, hisse) için çeyreklik ağırlık / değer / adet grafiği ve YENİ / ARTIRDI / AZALTTI / ÇIKTI rozetleri (eksik çeyrekler ve düzeltmeler doğru işlenir)
+- ⚖️ **Fon örtüşmesi**: 2–5 fon, ortak/tekil pozisyonlar, Jaccard ve ağırlıklı örtüşme, ortak alım-satımlar
+- 🔔 **Uyarılar**: takip edilen fon yeni 13F dosyaladığında Türkçe e-posta özeti (yeni / artırılan / azaltılan / çıkılan); hisse uyarıları; asla iki kez gönderilmez
+- ⭐ **İzleme listeleri ve fon grupları**: hisse izleme listesi (kurumsal sahiplik ve çeyreklik değişim), AUM veya eşit ağırlıklı "süper fon" portföyü
+- 👤 **İçeriden işlemler (Form 4)**: günlük ingest, en büyük alım/satışlar, rol / tutar / metin filtreleri; hisse sayfasında rol bilgisi
+- 🏛️ **Kongre işlemleri (STOCK Act)**: Temsilciler Meclisi ve Senato bildirimleri, parti / üye / sembol / tutar bandı filtreleri
+- 🏆 **Fon performans skoru**: 13F portföyünün varsayımsal 1Y / 3Y getirisi, SPY farkı, aktivite, ilk 10 yoğunlaşması, AUM trendi; uygulama içi metodoloji
+- 🧪 **13F hisse tarayıcı**: fon sayısı, artıran/azaltan fon, net kurumsal akış, konsensüs skoru, sektör (SIC), büyüklük (SEC public float); kayıtlı taramalar
+- ⏪ **Backtest**: fon veya fon grubu, dosyalama yayın tarihinde (çeyrek sonu + 45 gün) yeniden dengeleme, S&P 500 karşılaştırmalı getiri eğrisi, CAGR, maksimum düşüş
+- 🌡️ **Akış ısı haritası**: sektör → hisse net kurumsal akış treemap'i
+- 📢 **13D/13G**: yapılandırılmış XML bildirimlerinden pay yüzdesi, bildiren ve olay tarihi; hisse başına sahip zaman çizelgesi
+- 🧭 **Tematik ETF akışları**: Bitcoin, altın, gümüş, petrol ETF'lerinde kurumsal pozisyonlar ve çeyreklik değişim
+- 🇹🇷 **Türkiye Radarı**: TUR ETF ve Türk ADR'lerini tutan ABD kurumları, çeyreklik akış, veriden üretilen Türkçe özet
+- 🧭 Usta yatırımcı konsensüsü, çeyrek raporu, fon tarayıcı, hisse detay sayfası (Yahoo verisi), ⌘K komut paleti, PDF/yazdır
+- 🔌 **Salt okunur REST API** (Pro, API anahtarı) ve tüm tablolarda CSV / Excel dışa aktarma
+- 🌗 Açık/koyu tema, 🇹🇷/🇬🇧 çift dil, mobil uyumlu; her sayfada SPK notu
+
+## Veri kaynakları ve güncelleme sıklığı
+
+| Veri | Kaynak | Nasıl | Sıklık |
+|---|---|---|---|
+| 13F-HR / 13F-HR/A pozisyonları | SEC EDGAR (submissions + Archives XML) | İstek anında, önbellekli; düzeltmeler (NEW HOLDINGS birleştirilir, RESTATEMENT yerine geçer) | Anlık (7 gün önbellek) |
+| Evren (tüm dosyalayıcılar), hisse evreni, artıran/azaltan, net akış, sektör (SIC), public float, Türkiye Radarı, tematik ETF'ler | SEC EDGAR full-index + Archives + submissions + XBRL companyconcept | `scripts/build-universe.mjs` → `client/public/{universe,stocks,stocks-prev,turkey,themes}.json` | Haftalık (Pazartesi 03:00 UTC) |
+| Konsensüs, 1Y/YTD getiriler | EDGAR + Twelve Data / Yahoo | `scripts/build-consensus.mjs` → `consensus.json`, `returns.json` | Günlük (04:30 UTC) |
+| Fon performansı | EDGAR + FMP → Twelve Data → Stooq kapanışları | `scripts/build-performance.mjs` → `performance.json` | Haftalık (Salı 05:00 UTC) |
+| İçeriden işlemler (Form 4) | SEC EDGAR daily-index + Form 4 XML | `scripts/build-insiders.mjs` → `insiders.json` (son 30 gün) | Günlük (06:00 UTC) |
+| Kongre işlemleri | House / Senate Stock Watcher açık veri setleri + congress-legislators | `scripts/build-congress.mjs` → `congress.json` (son 12 ay) | Günlük (07:00 UTC) |
+| Uyarı e-postaları | EDGAR + Supabase + Resend | `scripts/send-alerts.mjs` | 2 saatte bir |
+| Hisse fiyat/temel veri | Yahoo Finance (yedek: Stooq, FMP, Twelve Data) | İstek anında | Anlık |
+| Schedule 13D/G | SEC EDGAR (yapılandırılmış XML, Aralık 2024 sonrası) | İstek anında | Anlık (6 saat önbellek) |
+| CUSIP → ticker | OpenFIGI + statik harita | Haftalık evren build'inde | Haftalık |
+
+13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır; tüm 13F tabanlı veriler bu gecikmeyle gelir.
+
+## Ücretsiz ve Pro
+
+Ücretsiz plan: her fon için son iki çeyrek (pozisyon zaman çizelgesi, sahiplik geçmişi), pozisyon tablosunda ilk 10 satır, 2 fonlu karşılaştırma, 5 öğelik izleme listesi ve uyarı, 1 fon grubu (5 fon), içeriden / Kongre / performans / tarayıcı listelerinde ilk 20–50 satır, ısı haritasında sektör seviyesi, 13D/G'de son 3 bildirim. Pro plan (aylık abonelik): tüm geçmiş ve sınırsız izleme/uyarı, 5 fonlu karşılaştırma, 20 fonluk gruplar, tüm filtreler, kayıtlı taramalar, backtest, hisse seviyesinde ısı haritası, 13D/G detayları, CSV / Excel dışa aktarma ve REST API anahtarları. Plan `profiles.plan` alanında tutulur (Lemon Squeezy webhook'u günceller); sunucu tarafı `api/_lib/plan.js` sınırları uygular, istemci `client/src/lib/planLimits.js` ile aynı değerleri gösterir.
+
+## Modül bayrakları
+
+Her yeni modül bir bayrakla kapatılabilir: sunucuda `FEATURE_FLAGS`, istemcide `VITE_FEATURE_FLAGS` (örn. `alerts=off,congress=off`). Bayraklar: `positionTimeline, overlap, alerts, watchlists, insiders, congress, performance, screener, backtest, heatmap, filings13dg, themes, exportApi, turkeyRadar`.
 
 ## Mimari
 
 | Katman | Teknoloji |
 |---|---|
-| Frontend | React 18 + Vite + React Router v6 + TanStack Query v5 + Recharts |
-| API (Prod) | Vercel Serverless Functions (`api/` dizini) |
-| API (Dev) | Express (`server.js`, Vercel routing emülasyonu) |
-| Veri | SEC EDGAR (submissions + full-text search + Archives), Yahoo Finance (v7/v8/v10, cookie+crumb), OpenFIGI |
+| Frontend | React 18 + Vite + React Router v6 + TanStack Query v5 + Recharts (JavaScript) |
+| API (Prod) | Tek Vercel Serverless Function (`api/index.js` yönlendirir → `api/_handlers/*`) |
+| API (Dev) | Express (`server.js`) |
+| Veri | SEC EDGAR (canlı + statik JSON), Yahoo Finance / Stooq / FMP / Twelve Data, OpenFIGI |
+| Kullanıcı verisi | Supabase (auth, `profiles.plan`, izleme listeleri, uyarılar, fon grupları, kayıtlı taramalar, API anahtarları) — şema: `supabase/schema.sql` |
+| Kalite | `npm run check` = ESLint + `tsc --checkJs` (`// @ts-check` modülleri) + `node --test` (60+ birim testi: parser'lar, diff motoru, örtüşme, performans, uyarı şablonları) |
 
 ```
-api/
-  _lib/          # sec.js, yahooClient.js, figi.js, cache.js
-  search.js                  # GET /api/search?q=
-  manager/[cik].js           # GET /api/manager/:cik
-  holdings/[cik]/[acc].js    # GET /api/holdings/:cik/:acc?fd=&light=1
-  aum-history/[cik].js       # GET /api/aum-history/:cik
-  returns.js                 # GET /api/returns?symbols=A,B,C
-  stock/[ticker].js          # GET /api/stock/:ticker
-client/          # Vite + React uygulaması
+api/_lib/        sec.js (EDGAR + düzeltme birleştirme), positionDiff.js, overlap.js, alerts.js,
+                 groupPortfolio.js, performance.js, backtest.js, form4.js, congress.js,
+                 universeAgg.js, stocksSnapshot.js, turkey.js, themes.js, flowTree.js,
+                 schedule13.js, apiKeys.js, plan.js, flags.js, validate.js
+api/_handlers/   bir dosya = bir uç nokta
+scripts/         build-universe, build-consensus, build-performance, build-insiders,
+                 build-congress, send-alerts (GitHub Actions ile çalışır)
+client/src/      pages/, components/, lib/, i18n.jsx (TR/EN)
+tests/           node:test birim testleri
 ```
 
 ## Yerel Geliştirme
@@ -65,6 +95,8 @@ npm run dev:client
    - `FEATURE_FLAGS` (sunucu) / `VITE_FEATURE_FLAGS` (istemci) → modülleri kapatmak için, örn. `alerts=off,congress=off`.
    - Uyarılar (GitHub Actions secrets): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `ALERTS_FROM`, `SITE_URL` (vars). Şema: `supabase/schema.sql` içindeki `alert_*` tabloları uygulanmalı.
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
+7. **Supabase**: `supabase/schema.sql` dosyasını projeye uygulayın (profiles, watchlists, alert_subscriptions, alert_deliveries, stock_watchlist, fund_groups, fund_group_members, saved_screens, api_keys). Vercel'e `SUPABASE_SERVICE_ROLE_KEY` ekleyin (webhook ve REST API anahtar doğrulaması için).
+8. **GitHub Actions secrets**: `OPENFIGI_API_KEY`, `TWELVEDATA_API_KEY`, `FMP_API_KEY` (opsiyonel), `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `ALERTS_FROM`; vars: `SITE_URL`. İlk çalıştırma: `Build 13F universe` (uzun sürer), ardından `Build insider transactions` (`days=30`), `Build congress trades`, `Build fund performance`.
 
 ### Evren Verisi (Tarayıcı için)
 

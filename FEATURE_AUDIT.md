@@ -50,7 +50,36 @@ Status legend: ✅ full · 🟡 partial · ❌ none. "After" column is updated a
 | — | Feature flags per module | ❌ → ✅ Step 0 | `flags.js` |
 | — | Plan gating (free: 2 quarters, 5 watchlist; pro: all) | 🟡 | `requirePro` all-or-nothing on a few routes. Quarter-window trimming added in Step 0 helpers (`api/_lib/plan.js`). |
 
-## 2. Feature matrix — AFTER (updated per commit)
+## 2. Feature matrix — AFTER
+
+Summary (all items shipped on `claude/alan-kaldirma-fonksiyon-a6ixve`, one commit per feature; `npm run check` = lint + typecheck + 60 unit tests green):
+
+| # | Feature | Before | After |
+|---|---|---|---|
+| P0-1 | Position history timeline | 🟡 | ✅ |
+| P0-2 | Fund overlap comparison | 🟡 | ✅ |
+| P0-3 | Alerts | ❌ | ✅ email (web push n/a: no PWA) |
+| P0-4 | Watchlists & fund groups | 🟡 | ✅ |
+| P1-5 | Form 4 insider transactions | 🟡 | ✅ |
+| P1-6 | Congress trades | ❌ | ✅ via open datasets (documented) |
+| P1-7 | Fund performance score | 🟡 | ✅ |
+| P1-8 | 13F stock screener | 🟡 | ✅ |
+| P2-9 | Backtester | ❌ | ✅ Pro |
+| P2-10 | Flow heat map | 🟡 | ✅ |
+| P2-11 | Schedule 13D/G | 🟡 | ✅ structured XML; legacy = link |
+| P2-12 | Thematic ETF pages | ❌ | ✅ |
+| P2-13 | Export & API | 🟡 | ✅ |
+| TR-14 | Türkiye Radarı | ❌ | ✅ |
+
+### Not verified in this environment
+- Live EDGAR / Resend / Supabase / price-provider calls: the sandbox blocks outbound traffic to those hosts, so ingestion scripts and handlers are covered by unit tests on fixtures and by mocked UI renders (every route rendered on desktop and mobile without runtime errors). First real runs happen in GitHub Actions / Vercel.
+- Congress datasets: the House / Senate Stock Watcher URLs are defaults and overridable via `CONGRESS_HOUSE_URL` / `CONGRESS_SENATE_URL`.
+- Supabase migrations in `supabase/schema.sql` must be applied by hand (not applied from this session).
+
+### Free vs Pro (one paragraph)
+Free: last two quarters per fund, top-10 holdings rows, 2-fund overlap, 5 watchlist items and 5 alerts, 1 fund group of 5, first 20–50 rows of the insider / Congress / performance / screener lists, sector-level heat map, 3 latest 13D/G links. Pro (monthly subscription): full history, unlimited watchlists and alerts, 5-fund overlap, 20-fund groups, all filters, saved screens, backtester, stock-level heat map, parsed 13D/G with holder timeline, CSV/XLSX export on every table and REST API keys. Enforced server-side in `api/_lib/plan.js`; mirrored in `client/src/lib/planLimits.js`.
+
+Detailed per-feature notes:
 
 | # | Feature | Status | Notes |
 |---|---|---|---|

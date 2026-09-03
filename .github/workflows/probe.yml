@@ -30,8 +30,8 @@ jobs:
           echo "=== /stocks.json (first bytes) ==="
           curl -sS -m 30 "https://13-f-radar-omega.vercel.app/stocks.json" | head -c 300 || true
           echo
-          echo "=== paywall check: /api/backtest/1067983 without token (expect 402 pro-required) ==="
-          curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/backtest/1067983" | head -c 200 || true
+          echo "=== paywall check: /api/position-history/1067983/037833100 without token (expect 402 pro-required) ==="
+          curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/position-history/1067983/037833100" | head -c 200 || true
           echo
           echo "=== free endpoint still open: /api/manager/1067983 ==="
           curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/manager/1067983" | head -c 120 || true
@@ -73,7 +73,7 @@ jobs:
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook"; echo
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook?secret=wrong"; echo
           echo "=== [5] malformed params ==="
-          for p in "manager/abc" "manager/../../" "manager/%2e%2e%2f" "manager/00000000000000000000001067983" "holdings/1067983/foo" "holdings/1067983/..%2f..%2f" "chart/AAPL?range=foo" "stock/%3Cscript%3E" "stock/AAPL%27%20OR%201=1" "search?q=" "search?q=%3Cimg%20src=x%3E" "position-history/1067983/x" "returns?symbols=" "sectors?symbols=" "holders?q=" "backtest/abc" "nope" "manager" "manager/1067983/extra"; do
+          for p in "manager/abc" "manager/../../" "manager/%2e%2e%2f" "manager/00000000000000000000001067983" "holdings/1067983/foo" "holdings/1067983/..%2f..%2f" "chart/AAPL?range=foo" "stock/%3Cscript%3E" "stock/AAPL%27%20OR%201=1" "search?q=" "search?q=%3Cimg%20src=x%3E" "position-history/1067983/x" "returns?symbols=" "sectors?symbols=" "holders?q=" "nope" "manager" "manager/1067983/extra"; do
             printf '%-45s ' "$p"; curl -sS -m 40 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/$p" | head -c 160; echo
           done
           echo "=== [6] method handling ==="
@@ -81,12 +81,12 @@ jobs:
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d 'x=1' "$B/api/search?q=berk" | head -c 100; echo
           echo "=== [7] paywall: 402 on every Pro route, with no token / garbage token / fake JWT ==="
           FAKE="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwMDAwMDAwMC0wMDAwLTAwMDAtMDAwMC0wMDAwMDAwMDAwMDAiLCJyb2xlIjoiYXV0aGVudGljYXRlZCIsImV4cCI6NDEwMjQ0NDgwMH0.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-          for r in "backtest/1067983" "position-history/1067983/037833100" "stock-ownership?cusip=037833100"; do
+          for r in "position-history/1067983/037833100" "stock-ownership?cusip=037833100"; do
             printf '%-40s none:' "$r"; curl -sS -m 40 -o /dev/null -w "%{http_code}" "$B/api/$r"
             printf '  garbage:'; curl -sS -m 40 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer garbage" "$B/api/$r"
             printf '  fakejwt:'; curl -sS -m 40 -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $FAKE" "$B/api/$r"; echo
           done
-          echo "=== [7b] cache headers on a 402 (must not be CDN-cached & served to Pro users) ==="; H "$B/api/backtest/1067983"
+          echo "=== [7b] cache headers on a 402 (must not be CDN-cached & served to Pro users) ==="; H "$B/api/position-history/1067983/037833100"
           echo "=== [7c] paywall bypass via other routes exposing the same data? holders (free) vs stock-ownership (pro) ==="
           curl -sS -m 40 -w " [HTTP %{http_code}]" "$B/api/holders?q=AAPL" | head -c 300; echo
           echo "=== [8] quota abuse: one request fanning out to many symbols ==="

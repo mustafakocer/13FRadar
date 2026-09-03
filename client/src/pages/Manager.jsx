@@ -10,6 +10,7 @@ import HoldingsTable from '../components/HoldingsTable.jsx';
 import AumLineChart from '../components/Charts/AumLineChart.jsx';
 import FlowBarChart from '../components/Charts/FlowBarChart.jsx';
 import PortfolioPie from '../components/Charts/PortfolioPie.jsx';
+import HoldingsTreemap from '../components/Charts/HoldingsTreemap.jsx';
 import SectorPie from '../components/Charts/SectorPie.jsx';
 import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
 import SparkBar from '../components/Charts/SparkBar.jsx';
@@ -335,11 +336,65 @@ export default function Manager() {
               <p className="muted small mt8">{t('manager.flowNote')}</p>
             </div>
           )}
+
+          <div className="card mt16">
+            <h3>🏛 {t('manager.fundInfo')}</h3>
+            <div className="kv-grid">
+              {(mgr.data.address || mgr.data.city) && (
+                <div className="kv">
+                  <span className="k">{t('manager.address')}</span>
+                  <span className="v">
+                    {[mgr.data.address, mgr.data.city, mgr.data.state, mgr.data.zip].filter(Boolean).join(', ')}
+                  </span>
+                </div>
+              )}
+              {mgr.data.phone && (
+                <div className="kv"><span className="k">{t('manager.phone')}</span><span className="v">{mgr.data.phone}</span></div>
+              )}
+              {mgr.data.website && (
+                <div className="kv">
+                  <span className="k">{t('manager.website')}</span>
+                  <span className="v">
+                    <a href={/^https?:/i.test(mgr.data.website) ? mgr.data.website : `https://${mgr.data.website}`} target="_blank" rel="noreferrer">
+                      {mgr.data.website}
+                    </a>
+                  </span>
+                </div>
+              )}
+              <div className="kv"><span className="k">CIK</span><span className="v">{mgr.data.cik}</span></div>
+              {mgr.data.firstFiling && (
+                <div className="kv"><span className="k">{t('manager.firstFiling')}</span><span className="v">{mgr.data.firstFiling}</span></div>
+              )}
+              {mgr.data.filingCount > 0 && (
+                <div className="kv"><span className="k">{t('manager.filingCount')}</span><span className="v">{mgr.data.filingCount}</span></div>
+              )}
+              {mgr.data.formerNames?.length > 0 && (
+                <div className="kv"><span className="k">{t('manager.formerNames')}</span><span className="v">{mgr.data.formerNames.join(' · ')}</span></div>
+              )}
+              <div className="kv">
+                <span className="k">EDGAR</span>
+                <span className="v">
+                  <a href={`https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=${mgr.data.cik}&type=13F-HR`} target="_blank" rel="noreferrer">
+                    {t('manager.edgarLink')}
+                  </a>
+                </span>
+              </div>
+            </div>
+          </div>
         </>
       )}
 
       {!holdings.isLoading && !holdings.error && tab === 'portfolio' && (
         <>
+          <div className="card">
+            <h3>🗺 {t('manager.treemap')}</h3>
+            <HoldingsTreemap
+              positions={positions}
+              returns={returns.data}
+              labels={{ weight: t('table.weight'), ret: t('table.retYtd') }}
+            />
+            <p className="muted small mt8">{t('manager.treemapNote')}</p>
+          </div>
           <ChangeStory
             positions={positions}
             prevPositions={prevHoldings.data?.positions || null}

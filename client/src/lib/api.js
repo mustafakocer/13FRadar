@@ -32,6 +32,7 @@ export const api = {
   holders: (q) => get(`/api/holders?q=${encodeURIComponent(q)}`),
   positionHistory: (cik, cusip) =>
     get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}`),
+  holdingsHistory: (cik) => get(`/api/holdings-history/${cik}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),
   universe: async () => {

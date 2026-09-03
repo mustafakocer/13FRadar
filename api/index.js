@@ -15,6 +15,7 @@ import stock from './_handlers/stock.js';
 import chart from './_handlers/chart.js';
 import insiders from './_handlers/insiders.js';
 import positionHistory from './_handlers/position-history.js';
+import holdingsHistory from './_handlers/holdings-history.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
@@ -41,6 +42,7 @@ const ROUTES = {
   filings13dg: [filings13dg, 'ticker'],
   holdings: [holdings, 'cik', 'acc'],
   'position-history': [positionHistory, 'cik', 'cusip'],
+  'holdings-history': [holdingsHistory, 'cik'],
 };
 
 export default async function handler(req, res) {

@@ -6,12 +6,30 @@ export default async function handler(req, res) {
   try {
     const sub = await getSubmissions(cik);
     const filings = list13F(sub);
+    const biz = sub.addresses?.business || {};
+    // Filer profile (SEC submissions JSON). `recent` holds up to ~1000 filings,
+    // so firstFiling / filingCount are lower bounds for very old filers.
+    const r = sub.filings?.recent || {};
+    let firstFiling = null;
+    let filingCount = 0;
+    for (let i = 0; i < (r.form || []).length; i++) {
+      if (!String(r.form[i]).startsWith('13F-HR')) continue;
+      filingCount++;
+      if (!firstFiling || r.filingDate[i] < firstFiling) firstFiling = r.filingDate[i];
+    }
     res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=86400');
     res.status(200).json({
       cik: padCik(cik),
       name: sub.name,
-      city: sub.addresses?.business?.city || null,
-      state: sub.addresses?.business?.stateOrCountry || null,
+      city: biz.city || null,
+      state: biz.stateOrCountry || null,
+      address: [biz.street1, biz.street2].filter(Boolean).join(', ') || null,
+      zip: biz.zipCode || null,
+      phone: sub.phone || null,
+      website: sub.website || null,
+      formerNames: (sub.formerNames || []).map((f) => f.name).filter(Boolean).slice(0, 3),
+      firstFiling,
+      filingCount,
       filings,
     });
   } catch (err) {

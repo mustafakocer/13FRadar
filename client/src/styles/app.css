@@ -118,6 +118,12 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
 .stat-sub { font-size: 13px; color: var(--muted); }
 .stat-value-sub { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
 
+/* ---------- segmented control ---------- */
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; padding: 6px 14px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; }
+.seg button.active { background: var(--surface-2); color: var(--ink); font-weight: 600; }
+.seg button + button { border-left: 1px solid var(--border); }
+
 /* ---------- badges ---------- */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;

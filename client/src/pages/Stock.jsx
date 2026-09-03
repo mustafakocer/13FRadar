@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -11,6 +12,7 @@ import {
   deltaClass,
 } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import PositionTimeline from '../components/PositionTimeline.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import PriceChart from '../components/Charts/PriceChart.jsx';
@@ -94,6 +96,7 @@ export default function Stock() {
     retry: 1,
   });
 
+  const [openHolder, setOpenHolder] = useState(null);
   // WhaleWisdom-style aggregate ownership (needs exact CUSIP)
   const ownership = useQuery({
     queryKey: ['ownership', cusip],
@@ -413,10 +416,16 @@ export default function Stock() {
                     </tr>
                   </thead>
                   <tbody>
-                    {ownership.data.holders.map((h) => (
-                      <tr key={h.cik}>
+                    {ownership.data.holders.map((h) => [
+                      <tr
+                        key={h.cik}
+                        onClick={() => setOpenHolder(openHolder === h.cik ? null : h.cik)}
+                        style={{ cursor: 'pointer' }}
+                        title={t('table.history')}
+                      >
                         <td className="l">
-                          <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }}>
+                          <span className="muted">{openHolder === h.cik ? '▾ ' : '▸ '}</span>
+                          <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }} onClick={(e) => e.stopPropagation()}>
                             {h.name}
                           </Link>
                         </td>
@@ -433,8 +442,15 @@ export default function Stock() {
                             '—'
                           )}
                         </td>
-                      </tr>
-                    ))}
+                      </tr>,
+                      openHolder === h.cik ? (
+                        <tr key={`${h.cik}-tl`}>
+                          <td colSpan={6} className="l" style={{ background: 'var(--surface-2)' }}>
+                            <PositionTimeline cik={h.cik} cusip={cusip} />
+                          </td>
+                        </tr>
+                      ) : null,
+                    ])}
                   </tbody>
                 </table>
               </div>

@@ -126,6 +126,20 @@ const dict = {
     'manager.formerNames': 'Eski adları',
     'manager.edgarLink': 'SEC EDGAR dosyalamaları',
     'poshist.quarters': 'çeyrektir portföyde',
+    'timeline.metric.weight': 'Ağırlık %',
+    'timeline.metric.value': 'Piyasa Değeri',
+    'timeline.metric.shares': 'Hisse Adedi',
+    'timeline.action.NEW': 'YENİ',
+    'timeline.action.ADD': 'ARTIRDI',
+    'timeline.action.REDUCE': 'AZALTTI',
+    'timeline.action.EXIT': 'ÇIKTI',
+    'timeline.action.HOLD': 'TUTTU',
+    'timeline.action.START': 'BAŞLANGIÇ',
+    'timeline.action.NONE': '—',
+    'timeline.notFiled': 'Bu çeyrek için dosyalama yok',
+    'timeline.window': 'son {n} dosyalama',
+    'timeline.freeNote': 'Ücretsiz planda son 2 çeyrek gösterilir. Tüm geçmiş Pro ile açılır.',
+    'timeline.truncatedNote': 'Grafik son 16 çeyreği gösterir; daha eski dosyalamalar için EDGAR bağlantısını kullanın.',
 
     'stock.open': 'Açılış',
     'stock.high': 'Yüksek',
@@ -589,6 +603,20 @@ const dict = {
     'manager.formerNames': 'Former names',
     'manager.edgarLink': 'SEC EDGAR filings',
     'poshist.quarters': 'quarters in portfolio',
+    'timeline.metric.weight': 'Weight %',
+    'timeline.metric.value': 'Market Value',
+    'timeline.metric.shares': 'Shares',
+    'timeline.action.NEW': 'NEW',
+    'timeline.action.ADD': 'ADD',
+    'timeline.action.REDUCE': 'REDUCE',
+    'timeline.action.EXIT': 'EXIT',
+    'timeline.action.HOLD': 'HOLD',
+    'timeline.action.START': 'START',
+    'timeline.action.NONE': '—',
+    'timeline.notFiled': 'No filing for this quarter',
+    'timeline.window': 'last {n} filings',
+    'timeline.freeNote': 'Free plan shows the last 2 quarters. Full history unlocks with Pro.',
+    'timeline.truncatedNote': 'The chart shows the last 16 quarters; use the EDGAR link for older filings.',
 
     'stock.open': 'Open',
     'stock.high': 'High',
@@ -929,7 +957,14 @@ const I18nCtx = createContext(null);
 
 export function I18nProvider({ children }) {
   const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'tr');
-  const t = useCallback((key) => dict[lang][key] ?? dict.en[key] ?? key, [lang]);
+  const t = useCallback(
+    (key, vars) => {
+      const raw = dict[lang][key] ?? dict.en[key] ?? key;
+      if (!vars) return raw;
+      return String(raw).replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? String(vars[k]) : m));
+    },
+    [lang]
+  );
   const toggle = useCallback(() => {
     setLang((l) => {
       const next = l === 'tr' ? 'en' : 'tr';

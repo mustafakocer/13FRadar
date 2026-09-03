@@ -54,4 +54,5 @@ Status legend: ✅ full · 🟡 partial · ❌ none. "After" column is updated a
 
 | # | Feature | Status | Notes |
 |---|---|---|---|
-| Step 0 | Audit, test/lint/typecheck, flags, plan helpers, SPK notice | ✅ | this commit |
+| Step 0 | Audit, test/lint/typecheck, flags, plan helpers, SPK notice | ✅ | `eslint.config.js`, `tests/`, `api/_lib/{flags,plan,validate}.js`, `SpkNotice.jsx` |
+| P0-1 | Position history timeline | ✅ | `api/_lib/positionDiff.js` (quarter grid + NEW/ADD/REDUCE/EXIT/HOLD/START, missing quarters, splits), `/api/position-history` (flag `positionTimeline`, free = 2 quarters, pro = up to 40), `PositionTimeline.jsx` (weight / value / shares toggle, badges, mobile scroll) used in holdings table row-expand and stock page holder rows. Tests: `tests/position-diff.test.mjs`. |

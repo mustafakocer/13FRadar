@@ -30,8 +30,10 @@ export const api = {
     get(`/api/chart/${encodeURIComponent(ticker)}?range=${range}`),
   sectors: (symbols) => get(`/api/sectors?symbols=${symbols.join(',')}`),
   holders: (q) => get(`/api/holders?q=${encodeURIComponent(q)}`),
-  positionHistory: (cik, cusip) =>
-    get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}`),
+  positionHistory: (cik, cusip, opts = {}) => {
+    const qs = new URLSearchParams(opts).toString();
+    return get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}${qs ? `?${qs}` : ''}`);
+  },
   holdingsHistory: (cik) => get(`/api/holdings-history/${cik}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),

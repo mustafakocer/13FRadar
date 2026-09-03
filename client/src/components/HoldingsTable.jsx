@@ -8,6 +8,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import SparkBar from './Charts/SparkBar.jsx';
 import Paywall from './Paywall.jsx';
+import PositionTimeline from './PositionTimeline.jsx';
 import InfoTip from './InfoTip.jsx';
 
 const COLS = [
@@ -46,38 +47,6 @@ const fmtShares = (v) => {
   if (a >= 1e3) return `${s}${(a / 1e3).toFixed(1)}k`;
   return `${s}${a}`;
 };
-
-// Expanded row: weight history across recent quarters for one CUSIP.
-function HistoryPanel({ cik, cusip, t }) {
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['poshist', cik, cusip],
-    queryFn: () => api.positionHistory(cik, cusip),
-    staleTime: 6 * 60 * 60 * 1000,
-    retry: false,
-  });
-  if (error?.status === 402) return <Paywall compact />;
-  if (isLoading) return <div className="muted small">{t('common.loading')}</div>;
-  const hist = data?.history || [];
-  const held = hist.filter((h) => h.weight > 0);
-  if (!held.length) return <div className="muted small">{t('common.na')}</div>;
-  return (
-    <div className="row" style={{ gap: 24, alignItems: 'center' }}>
-      <div>
-        <b>{held.length}</b> {t('poshist.quarters')}
-        <div className="muted small">
-          {held.map((h) => `${quarterLabel(h.reportDate)}: ${fmtPct(h.weight, { sign: false })}`).join(' · ')}
-        </div>
-      </div>
-      <div style={{ width: 220 }}>
-        <SparkBar
-          values={hist.map((h) => h.weight)}
-          labels={hist.map((h) => quarterLabel(h.reportDate))}
-          format={(v) => fmtPct(v, { sign: false })}
-        />
-      </div>
-    </div>
-  );
-}
 
 export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName }) {
   const { t } = useI18n();
@@ -333,7 +302,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                 cik && expanded === rowKey ? (
                   <tr key={`${rowKey}-hist`}>
                     <td colSpan={cols.length} className="l" style={{ background: 'var(--surface-2)' }}>
-                      <HistoryPanel cik={cik} cusip={p.cusip} t={t} />
+                      <PositionTimeline cik={cik} cusip={p.cusip} />
                     </td>
                   </tr>
                 ) : null,

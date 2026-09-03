@@ -51,6 +51,7 @@ const dict = {
     'footer.disclaimer':
       'Bu sitedeki hiçbir içerik yatırım tavsiyesi değildir. Veriler SEC EDGAR ve halka açık kaynaklardan otomatik derlenir; doğruluğu garanti edilmez. 13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır ve geçmişe dönüktür.',
     'footer.sources': 'Veri kaynakları: SEC EDGAR · Yahoo Finance · OpenFIGI · Stooq',
+    'legal.spk': 'Burada yer alan bilgiler yatırım danışmanlığı kapsamında değildir.',
     'search.placeholder': 'Fon yöneticisi adı veya CIK numarası…',
     'search.popular': 'Ünlü Yatırımcılar',
     'search.favorites': 'Takip Listeniz',
@@ -513,6 +514,7 @@ const dict = {
     'footer.disclaimer':
       'Nothing on this site is investment advice. Data is compiled automatically from SEC EDGAR and public sources; accuracy is not guaranteed. 13F filings are disclosed up to 45 days after quarter end and are backward-looking.',
     'footer.sources': 'Data sources: SEC EDGAR · Yahoo Finance · OpenFIGI · Stooq',
+    'legal.spk': 'Burada yer alan bilgiler yatırım danışmanlığı kapsamında değildir. (The information here does not constitute investment advisory services.)',
     'search.placeholder': 'Fund manager name or CIK number…',
     'search.popular': 'Famous Investors',
     'search.favorites': 'Your Watchlist',

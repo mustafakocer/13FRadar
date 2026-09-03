@@ -13,6 +13,7 @@ import Pricing from './pages/Pricing.jsx';
 import Account from './pages/Account.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
+import SpkNotice from './components/SpkNotice.jsx';
 import { useAuth } from './auth.jsx';
 
 export default function App() {
@@ -92,6 +93,7 @@ export default function App() {
           <Route path="/pricing" element={<Pricing />} />
           <Route path="/account" element={<Account />} />
         </Routes>
+        <SpkNotice />
         <Footer />
       </main>
       <CommandPalette />

@@ -124,7 +124,7 @@ function useLatestHoldings(mgr) {
   return { info, filing, holdings };
 }
 
-function Picker({ label, mgr, setMgr, t }) {
+function Picker({ label, mgr, setMgr }) {
   return (
     <div className="card" style={{ flex: 1, minWidth: 260 }}>
       {mgr ? (

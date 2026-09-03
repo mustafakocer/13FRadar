@@ -17,8 +17,6 @@ import SparkBar from '../components/Charts/SparkBar.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../auth.jsx';
-import Paywall from '../components/Paywall.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 import { managerStyle } from '../data/popular.js';
@@ -38,7 +36,6 @@ function Loading({ t }) {
 export default function Manager() {
   const { cik } = useParams();
   const { t } = useI18n();
-  const { isPro } = useAuth();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
 

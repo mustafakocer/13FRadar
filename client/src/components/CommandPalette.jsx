@@ -53,7 +53,7 @@ export default function CommandPalette() {
   };
 
   const results = q.length >= 2 ? data?.results || [] : POPULAR_MANAGERS.slice(0, 8);
-  const tickerish = /^[A-Za-z][A-Za-z.\-]{0,6}$/.test(q);
+  const tickerish = /^[A-Za-z][A-Za-z.-]{0,6}$/.test(q);
 
   return (
     <div className="palette-overlay" onMouseDown={() => setOpen(false)}>

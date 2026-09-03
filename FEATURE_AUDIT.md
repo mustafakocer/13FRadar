@@ -1,0 +1,57 @@
+# 13F Radar — Feature Audit
+
+Audit date: 2026-09-03. Baseline commit: `47f9aa1` on `claude/alan-kaldirma-fonksiyon-a6ixve`.
+Status legend: ✅ full · 🟡 partial · ❌ none. "After" column is updated as features ship.
+
+## 0. Codebase map
+
+| Area | Finding | Files |
+|---|---|---|
+| Frontend | React 18 + Vite 5, JavaScript/JSX (no TypeScript), React Router v6, TanStack Query v5, Recharts 2, SheetJS for XLSX | `client/src/**`, `client/package.json` |
+| Backend | One Vercel serverless function; `api/index.js` routes `/api/<name>/<params>` to `api/_handlers/*.js`. Express shim for local dev (`server.js`). Plain ESM JavaScript. | `api/index.js`, `vercel.json`, `server.js` |
+| Database | **No database for 13F data.** Filings are fetched on demand from SEC EDGAR and cached in-memory per warm instance (`api/_lib/cache.js`). Supabase (Postgres) holds only `profiles` (plan) and `watchlists` (fund favourites). | `supabase/schema.sql`, `api/_lib/auth.js` |
+| 13F ingestion | (a) On demand: `getSubmissions` → `list13F` (one entry per report period, 13F-HR/A amendments attached) → `getFilingHoldings` (NEW HOLDINGS amendments merged, RESTATEMENTs replace) → `aggregatePositions` (CUSIP+put/call key, pre-2023 $000s multiplier). (b) Batch: `scripts/build-universe.mjs` scans the last two EDGAR `master.idx` quarterly indexes for every 13F-HR filer (weekly Action) → `client/public/universe.json`, `stocks.json`, `api/_data/cusip-tickers.json`. `scripts/build-consensus.mjs` (daily Action) → `consensus.json`, `returns.json`. | `api/_lib/sec.js`, `scripts/*.mjs`, `.github/workflows/*.yml` |
+| Auth / plans | Supabase email+password / magic link. `profiles.plan` ∈ {free, pro} with `plan_expires`; Lemon Squeezy webhook sets plan. Server check `isPro(req)` via bearer token (`api/_lib/auth.js`), client `useAuth().isPro`. **Pre-launch escape hatch:** if Supabase is not configured everything is Pro. | `client/src/auth.jsx`, `api/_lib/auth.js`, `api/_handlers/ls-webhook.js` |
+| Pages | `/` search+landing, `/manager/:cik`, `/stock/:ticker`, `/consensus`, `/report`, `/screen`, `/compare`, `/watchlist`, `/pricing`, `/account` | `client/src/App.jsx`, `client/src/pages/*` |
+| i18n | Flat dotted keys in `client/src/i18n.jsx` (`dict.tr`, `dict.en`), `useI18n().t()`, TR default, persisted toggle. | `client/src/i18n.jsx` |
+| Tests / lint / types | **None existed.** Added in Step 0: `node:test` suites under `tests/`, ESLint 9 flat config, `tsc --checkJs` on `// @ts-check` modules. | `package.json`, `eslint.config.js`, `tsconfig.json`, `tests/` |
+| Legal footer | Generic disclaimer only. SPK sentence added in Step 0 as a shared component rendered on every page (print included). | `client/src/components/SpkNotice.jsx` |
+| Feature flags | None. Added in Step 0 (`FEATURE_FLAGS` / `VITE_FEATURE_FLAGS`, default on). | `api/_lib/flags.js`, `client/src/lib/flags.js` |
+| PWA | No manifest / service worker → web push is out of scope (documented under Alerts). | `client/index.html` |
+
+### Assumptions (one line each)
+1. The repo is JavaScript; "typed" is delivered as JSDoc + `// @ts-check` + runtime validators, not a TypeScript migration.
+2. There is no filings database; persistence for new user features (alerts, groups, saved screens, API keys) goes to Supabase, 13F data stays EDGAR-on-demand + static JSON built by GitHub Actions.
+3. Supabase migrations are written to `supabase/schema.sql` and listed as a deploy step; they are **not** applied to the live project from this session.
+4. SEC EDGAR and third-party hosts are unreachable from this sandbox; ingestion scripts are unit-tested on fixtures and will run live in GitHub Actions.
+5. Email provider = Resend REST API (`RESEND_API_KEY`); no SDK dependency. Web push skipped (no PWA manifest).
+6. Free plan = current + previous quarter and 5 watchlist items; Pro = full history, unlimited. Gating lives server-side (`api/_lib/plan.js`) and is mirrored in the UI.
+7. Prices for hypothetical returns come from Stooq daily closes (Yahoo as first choice where reachable) — stated in-app.
+
+## 1. Feature matrix — BEFORE
+
+| # | Feature | Status | Existing implementation |
+|---|---|---|---|
+| P0-1 | Position history timeline (weight / value / shares toggle, NEW/ADD/REDUCE/EXIT badges) | 🟡 | Row-expand panel shows 8-quarter **weight only** (`HoldingsTable.jsx` `HistoryPanel`, `/api/position-history`, Pro). Ownership mini bars + est. avg buy price (`/api/holdings-history`). No chart toggle, no action badges, no full history, no missing-quarter handling. |
+| P0-2 | Fund overlap comparison (2, Pro 5; Jaccard; shared buys/sells) | 🟡 | `Compare.jsx` managers mode: exactly 2 funds, common / only-A / only-B lists with weights. No Jaccard, no shared buys/sells, no 3–5 funds. |
+| P0-3 | Alerts (email on new 13F with diff; queue + dedupe) | ❌ | Only in-app "YENİ 13F" badge from localStorage (`hooks/useSeenFilings.js`). No email, no queue. |
+| P0-4 | Watchlists & fund groups (stock watchlist w/ ownership change; super-fund portfolio) | 🟡 | Fund favourites only (`hooks/useFavorites.js`, Supabase `watchlists`). Consensus "super fund" logic exists for a fixed list (`api/_lib/consensusBuild.js`). No stock watchlist, no user groups. |
+| P1-5 | Form 4 insider transactions (daily ingest, largest buys/sells, filters) | 🟡 | Per-stock, on-demand last 25 transactions (`/api/insiders/:ticker`, `Stock.jsx`, Pro). No market-wide ingest, no ranking page, no role/value filters. |
+| P1-6 | Congress trades (STOCK Act) | ❌ | — |
+| P1-7 | Fund performance score (1Y/3Y hypothetical, turnover, top-10, AUM trend, ranking) | 🟡 | Per-fund: weighted 1Y/YTD of *current* holdings vs SPY/QQQ/IWM (`BenchmarkBars`), trading activity % (`/api/manager-stats`), top-10 %, AUM history. No quarter-by-quarter hypothetical return, no 3Y, no ranking table, no methodology page. |
+| P1-8 | 13F stock screener (# funds, adding vs reducing, net flow, consensus score, sector, mcap; saved screens) | 🟡 | `stocks.json` has per-CUSIP fund count + total value (universe build); Consensus page ranks by count. No adding/reducing counts, no net flow, no sector/mcap filters, no saved screens. |
+| P2-9 | Backtester (rebalance at release date, equity curve vs S&P, CAGR, MDD) | ❌ | Removed this week (was a simplistic "copy the fund" experiment). |
+| P2-10 | Sector/stock heat map of net institutional flow | 🟡 | Treemap of one fund's holdings by weight/YTD (`HoldingsTreemap.jsx`). No flow, no sector level, no universe-wide. |
+| P2-11 | Schedule 13D/G ingestion & timeline | 🟡 | Per-stock list of recent SC 13D/G filings with EDGAR links (`/api/filings13dg`, Pro). No parsed % ownership, no timeline. |
+| P2-12 | Thematic ETF flow pages (BTC, gold, silver, oil) | ❌ | — |
+| P2-13 | Export & API (CSV/XLSX everywhere; REST API keys; rate limit) | 🟡 | XLSX export on holdings + screener (Pro). No CSV, no public API, no keys. |
+| TR-14 | Türkiye Radarı (TUR ETF + Turkish ADRs holders, QoQ flow, generated TR summary) | ❌ | — |
+| — | SPK footer on every data page (shared component) | ❌ → ✅ Step 0 | `SpkNotice.jsx` |
+| — | Feature flags per module | ❌ → ✅ Step 0 | `flags.js` |
+| — | Plan gating (free: 2 quarters, 5 watchlist; pro: all) | 🟡 | `requirePro` all-or-nothing on a few routes. Quarter-window trimming added in Step 0 helpers (`api/_lib/plan.js`). |
+
+## 2. Feature matrix — AFTER (updated per commit)
+
+| # | Feature | Status | Notes |
+|---|---|---|---|
+| Step 0 | Audit, test/lint/typecheck, flags, plan helpers, SPK notice | ✅ | this commit |

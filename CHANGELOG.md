@@ -4,6 +4,10 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P0-2 Fund overlap comparison — 2026-09-03
+- New `/api/overlap?ciks=a,b[,c,d,e]`: shared positions with each fund's weight, unique-to-each lists, pairwise Jaccard and weighted overlap (Σ min weight), overall Jaccard, and shared buys / sells in the latest quarter (NEW/ADD vs REDUCE/EXIT via the position diff engine). Options excluded. Free plan compares 2 funds, Pro up to 5. Feature flag `overlap`.
+- Compare page (managers mode) now supports up to 5 pickers with a Turkish methodology note; the stocks mode stays Pro.
+
 ### P0-1 Position history timeline — 2026-09-03
 - `/api/position-history/:cik/:cusip` now returns a complete quarter grid with `filed`/`held` flags and per-quarter actions (NEW / ADD / REDUCE / EXIT / HOLD / START). Quarters without a filing are never counted as EXIT; splits are neutralised; zero share counts fall back to value deltas.
 - Plan gating: free plan gets the newest 2 filed quarters, Pro up to 40 (`limit` query, default 16). Feature flag `positionTimeline`.

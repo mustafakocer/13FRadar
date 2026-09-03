@@ -35,6 +35,7 @@ export const api = {
     return get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}${qs ? `?${qs}` : ''}`);
   },
   holdingsHistory: (cik) => get(`/api/holdings-history/${cik}`),
+  overlap: (ciks) => get(`/api/overlap?ciks=${ciks.map(encodeURIComponent).join(',')}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),
   universe: async () => {

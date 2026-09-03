@@ -16,6 +16,7 @@ import chart from './_handlers/chart.js';
 import insiders from './_handlers/insiders.js';
 import positionHistory from './_handlers/position-history.js';
 import holdingsHistory from './_handlers/holdings-history.js';
+import overlap from './_handlers/overlap.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
@@ -43,6 +44,7 @@ const ROUTES = {
   holdings: [holdings, 'cik', 'acc'],
   'position-history': [positionHistory, 'cik', 'cusip'],
   'holdings-history': [holdingsHistory, 'cik'],
+  overlap: [overlap],
 };
 
 export default async function handler(req, res) {

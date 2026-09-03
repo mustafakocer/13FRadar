@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
+import { LIMITS } from '../lib/planLimits.js';
 import { api } from '../lib/api.js';
 import { fmtPct, fmtMoney, fmtNum, fmtRatio, fmtFracPct } from '../lib/format.js';
 import SearchBox from '../components/SearchBox.jsx';
@@ -108,29 +109,15 @@ function StockCompare({ t }) {
   );
 }
 
-function useLatestHoldings(mgr) {
-  const info = useQuery({
-    queryKey: ['manager', mgr?.cik],
-    queryFn: () => api.manager(mgr.cik),
-    enabled: !!mgr,
-  });
-  const filing = info.data?.filings?.[0];
-  const holdings = useQuery({
-    queryKey: ['holdings', mgr?.cik, filing?.acc],
-    queryFn: () => api.holdings(mgr.cik, filing.acc, { fd: filing.filingDate, rd: filing.reportDate }),
-    enabled: !!filing,
-    staleTime: 6 * 60 * 60 * 1000,
-  });
-  return { info, filing, holdings };
-}
+const LETTERS = ['A', 'B', 'C', 'D', 'E'];
 
-function Picker({ label, mgr, setMgr }) {
+function Picker({ label, mgr, setMgr, onRemove }) {
   return (
-    <div className="card" style={{ flex: 1, minWidth: 260 }}>
+    <div className="card" style={{ flex: '1 1 220px', minWidth: 0 }}>
       {mgr ? (
         <div className="row" style={{ justifyContent: 'space-between' }}>
-          <b>{mgr.name}</b>
-          <button className="btn ghost" onClick={() => setMgr(null)}>
+          <b style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{mgr.name}</b>
+          <button className="btn ghost" onClick={onRemove}>
             ✕
           </button>
         </div>
@@ -141,25 +128,153 @@ function Picker({ label, mgr, setMgr }) {
   );
 }
 
-function List({ title, rows, t }) {
+function Sym({ r }) {
+  return r.ticker ? <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <span className="muted small">{r.cusip}</span>;
+}
+
+function Overlap({ ciks, names, t }) {
+  const q = useQuery({
+    queryKey: ['overlap', [...ciks].sort().join(',')],
+    queryFn: () => api.overlap(ciks),
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: false,
+  });
+  if (q.isLoading)
+    return (
+      <div className="loading">
+        <div className="spinner" />
+        {t('common.loading')}
+      </div>
+    );
+  if (q.error?.status === 402) return <div className="mt16"><Paywall compact /></div>;
+  if (q.error) return <div className="error-box mt16">{t('common.error')}: {String(q.error.message)}</div>;
+  const d = q.data;
+  const letter = Object.fromEntries(ciks.map((c, i) => [c, LETTERS[i]]));
+  const label = (cik) => names[cik] || d.funds.find((f) => f.cik === cik)?.name || cik;
+  const pct = (x) => fmtPct(x * 100, { sign: false, digits: 0 });
+
   return (
-    <div className="card pos-col">
-      <h3>{title}</h3>
-      {!rows.length && <div className="muted small">{t('common.na')}</div>}
-      {rows.slice(0, 25).map((r) => (
-        <div className="pos-row" key={r.key}>
-          <div style={{ minWidth: 0 }}>
-            <div className="tick">
-              {r.ticker ? <Link to={`/stock/${r.ticker}`}>{r.ticker}</Link> : r.cusip}
-            </div>
-            <div className="issuer">{r.issuer}</div>
-          </div>
-          <div className="right">
-            {r.wA != null && <div className="w">A: {fmtPct(r.wA, { sign: false })}</div>}
-            {r.wB != null && <div className="w">B: {fmtPct(r.wB, { sign: false })}</div>}
-          </div>
+    <div className="mt16">
+      <div className="card">
+        <h3>🧮 {t('compare.similarity')}</h3>
+        <div className="head-badges" style={{ marginBottom: 12 }}>
+          <span className="badge plain">{t('compare.jaccardAll')}: <b>{pct(d.overallJaccard)}</b></span>
+          <span className="badge plain">{t('compare.sharedAll')}: <b>{d.sharedAllCount}</b></span>
+          <span className="badge plain">{t('compare.sharedAny')}: <b>{d.shared.length}</b></span>
         </div>
-      ))}
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th className="l">{t('compare.pair')}</th>
+                <th>{t('compare.sharedCount')}</th>
+                <th>{t('compare.jaccard')}</th>
+                <th>{t('compare.weighted')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {d.pairs.map((p) => (
+                <tr key={`${p.a}-${p.b}`}>
+                  <td className="l">
+                    <b>{letter[p.a]}</b> {label(p.a)} × <b>{letter[p.b]}</b> {label(p.b)}
+                  </td>
+                  <td className="num">{p.shared}</td>
+                  <td className="num">{pct(p.jaccard)}</td>
+                  <td className="num">{fmtPct(p.weightedOverlap, { sign: false })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="muted small mt8">{t('compare.methodNote')}</p>
+      </div>
+
+      <div className="card mt16">
+        <h3>🤝 {t('compare.common')} ({d.shared.length})</h3>
+        {!d.shared.length && <div className="muted small">{t('common.na')}</div>}
+        {d.shared.length > 0 && (
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('table.symbol')}</th>
+                  <th className="l">{t('table.company')}</th>
+                  {ciks.map((c) => (
+                    <th key={c} title={label(c)}>{letter[c]} %</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {d.shared.slice(0, 100).map((r) => (
+                  <tr key={r.cusip} className={r.all ? 'row-all' : ''}>
+                    <td className="l"><Sym r={r} />{r.all && <span className="badge pos" style={{ marginLeft: 6 }}>{t('compare.allBadge')}</span>}</td>
+                    <td className="l" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.issuer}</td>
+                    {ciks.map((c) => (
+                      <td key={c} className="num">{r.weights[c] != null ? fmtPct(r.weights[c], { sign: false, digits: 2 }) : <span className="muted">—</span>}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-2 mt16">
+        <div className="card pos-col">
+          <h3>🟢 {t('compare.sharedBuys')} ({d.sharedBuys.length})</h3>
+          {!d.sharedBuys.length && <div className="muted small">{t('compare.noSharedTrades')}</div>}
+          {d.sharedBuys.map((r) => (
+            <div className="pos-row" key={r.cusip}>
+              <div style={{ minWidth: 0 }}>
+                <div className="tick"><Sym r={r} /></div>
+                <div className="issuer">{r.issuer}</div>
+              </div>
+              <div className="right small">
+                {r.buys.map((b) => (
+                  <span key={b.cik} className="badge pos" style={{ marginLeft: 4 }}>{letter[b.cik]} {t(`timeline.action.${b.action}`)}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="card pos-col">
+          <h3>🔴 {t('compare.sharedSells')} ({d.sharedSells.length})</h3>
+          {!d.sharedSells.length && <div className="muted small">{t('compare.noSharedTrades')}</div>}
+          {d.sharedSells.map((r) => (
+            <div className="pos-row" key={r.cusip}>
+              <div style={{ minWidth: 0 }}>
+                <div className="tick"><Sym r={r} /></div>
+                <div className="issuer">{r.issuer}</div>
+              </div>
+              <div className="right small">
+                {r.sells.map((b) => (
+                  <span key={b.cik} className="badge neg" style={{ marginLeft: 4 }}>{letter[b.cik]} {t(`timeline.action.${b.action}`)}</span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+      {d.funds.some((f) => !f.hasPrev) && <p className="muted small mt8">{t('compare.noPrevNote')}</p>}
+
+      <div className={`grid grid-${Math.min(3, ciks.length)} mt16`}>
+        {ciks.map((c) => (
+          <div className="card pos-col" key={c}>
+            <h3>{letter[c]} · {t('compare.uniqueTo')} {label(c)} ({(d.unique[c] || []).length})</h3>
+            {!(d.unique[c] || []).length && <div className="muted small">{t('common.na')}</div>}
+            {(d.unique[c] || []).map((r) => (
+              <div className="pos-row" key={r.cusip}>
+                <div style={{ minWidth: 0 }}>
+                  <div className="tick"><Sym r={r} /></div>
+                  <div className="issuer">{r.issuer}</div>
+                </div>
+                <div className="right"><div className="w">{fmtPct(r.weight, { sign: false })}</div></div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -168,34 +283,15 @@ export default function Compare() {
   const { t } = useI18n();
   const { isPro } = useAuth();
   const [mode, setMode] = useState('managers');
-  const [a, setA] = useState(null);
-  const [b, setB] = useState(null);
-  const A = useLatestHoldings(a);
-  const B = useLatestHoldings(b);
+  const [funds, setFunds] = useState([null, null]);
+  const maxFunds = isPro ? LIMITS.pro.compareFunds : LIMITS.free.compareFunds;
 
-  let common = [];
-  let onlyA = [];
-  let onlyB = [];
-  if (A.holdings.data && B.holdings.data) {
-    const mapB = new Map(B.holdings.data.positions.map((p) => [p.cusip, p]));
-    const seen = new Set();
-    for (const p of A.holdings.data.positions) {
-      const q = mapB.get(p.cusip);
-      const row = { key: p.cusip, ticker: p.ticker || q?.ticker, issuer: p.issuer, cusip: p.cusip };
-      if (q) {
-        common.push({ ...row, wA: p.weight, wB: q.weight });
-        seen.add(p.cusip);
-      } else {
-        onlyA.push({ ...row, wA: p.weight });
-      }
-    }
-    onlyB = B.holdings.data.positions
-      .filter((p) => !seen.has(p.cusip) && !A.holdings.data.positions.some((x) => x.cusip === p.cusip))
-      .map((p) => ({ key: p.cusip, ticker: p.ticker, issuer: p.issuer, cusip: p.cusip, wB: p.weight }));
-    common.sort((x, y) => y.wA + y.wB - (x.wA + x.wB));
-  }
-
-  const loading = (a && !A.holdings.data && !A.holdings.error) || (b && !B.holdings.data && !B.holdings.error);
+  const setAt = (i, mgr) => setFunds((f) => f.map((x, j) => (j === i ? mgr : x)));
+  const removeAt = (i) =>
+    setFunds((f) => (f.length > 2 ? f.filter((_, j) => j !== i) : f.map((x, j) => (j === i ? null : x))));
+  const chosen = funds.filter(Boolean);
+  const ciks = chosen.map((m) => m.cik);
+  const names = Object.fromEntries(chosen.map((m) => [m.cik, m.name]));
 
   return (
     <div>
@@ -214,34 +310,33 @@ export default function Compare() {
         ))}
       </div>
 
-      {!isPro ? (
-        <Paywall />
-      ) : (
+      {mode === 'stocks' && (isPro ? <StockCompare t={t} /> : <Paywall />)}
+
+      {mode === 'managers' && (
         <>
-          {mode === 'stocks' && <StockCompare t={t} />}
-
-          {mode === 'managers' && (
-            <div className="row" style={{ alignItems: 'stretch' }}>
-              <Picker label={t('compare.selectA')} mgr={a} setMgr={setA} t={t} />
-              <Picker label={t('compare.selectB')} mgr={b} setMgr={setB} t={t} />
-            </div>
-          )}
+          <div className="row" style={{ alignItems: 'stretch', flexWrap: 'wrap' }}>
+            {funds.map((m, i) => (
+              <Picker
+                key={i}
+                label={t('compare.selectN', { n: LETTERS[i] })}
+                mgr={m}
+                setMgr={(x) => setAt(i, x)}
+                onRemove={() => removeAt(i)}
+              />
+            ))}
+            {funds.length < maxFunds && (
+              <button className="btn ghost" style={{ alignSelf: 'center' }} onClick={() => setFunds((f) => [...f, null])}>
+                + {t('compare.addFund')}
+              </button>
+            )}
+            {!isPro && funds.length >= maxFunds && (
+              <span className="muted small" style={{ alignSelf: 'center' }}>
+                {t('compare.proMore', { n: LIMITS.pro.compareFunds })} <Link to="/pricing">{t('paywall.cta')}</Link>
+              </span>
+            )}
+          </div>
+          {ciks.length >= 2 && <Overlap ciks={ciks} names={names} t={t} />}
         </>
-      )}
-
-      {mode === 'managers' && loading && (
-        <div className="loading">
-          <div className="spinner" />
-          {t('common.loading')}
-        </div>
-      )}
-
-      {mode === 'managers' && A.holdings.data && B.holdings.data && (
-        <div className="grid grid-3 mt24">
-          <List title={`🤝 ${t('compare.common')} (${common.length})`} rows={common} t={t} />
-          <List title={`🅰️ ${t('compare.onlyA')} (${onlyA.length})`} rows={onlyA} t={t} />
-          <List title={`🅱️ ${t('compare.onlyB')} (${onlyB.length})`} rows={onlyB} t={t} />
-        </div>
       )}
     </div>
   );

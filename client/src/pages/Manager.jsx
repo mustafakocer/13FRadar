@@ -13,7 +13,6 @@ import PortfolioPie from '../components/Charts/PortfolioPie.jsx';
 import SectorPie from '../components/Charts/SectorPie.jsx';
 import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
 import SparkBar from '../components/Charts/SparkBar.jsx';
-import BacktestChart from '../components/Charts/BacktestChart.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
@@ -40,7 +39,6 @@ export default function Manager() {
   const { isPro } = useAuth();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
-  const [btOn, setBtOn] = useState(false);
 
   const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik) });
 
@@ -95,14 +93,6 @@ export default function Manager() {
 
   // mark the latest filing as "seen" for watchlist NEW badges
   if (mgr.data && filings[0]) markFilingSeen(mgr.data.cik, filings[0].filingDate);
-
-  const backtest = useQuery({
-    queryKey: ['backtest', cik],
-    queryFn: () => api.backtest(cik, { quarters: 8, top: 15 }),
-    enabled: btOn,
-    staleTime: 6 * 60 * 60 * 1000,
-    retry: 1,
-  });
 
   const mstats = useQuery({
     queryKey: ['mstats', cik],
@@ -301,50 +291,6 @@ export default function Manager() {
               <p className="muted small mt8">{t('manager.flowNote')}</p>
             </div>
           )}
-
-          <div className="card mt16 no-print">
-            <h3>🧪 {t('manager.backtest')}</h3>
-            {!isPro && <Paywall compact />}
-            {isPro && !btOn && (
-              <>
-                <p className="muted small" style={{ marginBottom: 12 }}>
-                  {t('manager.backtestNote')}
-                </p>
-                <button className="btn" onClick={() => setBtOn(true)}>
-                  {t('manager.backtestRun')}
-                </button>
-              </>
-            )}
-            {btOn && backtest.isLoading && <Loading t={t} />}
-            {btOn && backtest.error && (
-              <div className="muted small">{t('common.error')}: {String(backtest.error.message)}</div>
-            )}
-            {btOn && backtest.data?.points?.length > 1 && (
-              <>
-                <div className="head-badges" style={{ marginBottom: 12 }}>
-                  <span className={`badge ${backtest.data.totalPort >= 0 ? 'pos' : 'neg'}`}>
-                    {t('manager.portfolioSeries')} {fmtPct(backtest.data.totalPort)}
-                  </span>
-                  <span className={`badge ${backtest.data.totalSpy >= 0 ? 'pos' : 'neg'}`}>
-                    SPY {fmtPct(backtest.data.totalSpy)}
-                  </span>
-                  {backtest.data.coverage != null && (
-                    <span className="badge plain">
-                      {t('manager.backtestCoverage')}: {fmtPct(backtest.data.coverage, { sign: false, digits: 0 })}
-                    </span>
-                  )}
-                </div>
-                <BacktestChart
-                  points={backtest.data.points}
-                  labels={{ port: t('manager.portfolioSeries') }}
-                />
-                <p className="muted small mt8">{t('manager.backtestNote')}</p>
-              </>
-            )}
-            {btOn && backtest.data && !(backtest.data.points?.length > 1) && !backtest.isLoading && (
-              <div className="muted small">{t('common.na')}</div>
-            )}
-          </div>
         </>
       )}
 

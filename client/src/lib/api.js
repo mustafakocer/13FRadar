@@ -34,10 +34,6 @@ export const api = {
     get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),
-  backtest: (cik, opts = {}) => {
-    const qs = new URLSearchParams(opts).toString();
-    return get(`/api/backtest/${cik}${qs ? `?${qs}` : ''}`);
-  },
   universe: async () => {
     const r = await fetch('/universe.json');
     if (!r.ok) throw new Error('no-universe');

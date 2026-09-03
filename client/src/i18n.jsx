@@ -256,11 +256,6 @@ const dict = {
     'manager.optionsNote':
       '13F opsiyonları nominal hisse karşılığı değeriyle bildirir; prim maliyetini veya kullanım fiyatını göstermez.',
     'manager.notional': 'Nominal Değer',
-    'manager.backtest': 'Bu Fonu Kopyalasaydınız? (deneysel)',
-    'manager.backtestRun': 'Hesapla',
-    'manager.backtestNote':
-      'Her çeyrek, dosyalama kamuya açıldığında (dönem sonu + 46 gün) ilk 15 hisse pozisyonu dosyalanan ağırlıklarla alınıp bir sonraki dosyalamaya kadar tutulsaydı senaryosu. Fiyat verisi bulunamayan pozisyonlar atlanır; temettüler dahil değildir. Yatırım tavsiyesi değildir.',
-    'manager.backtestCoverage': 'Kapsam',
 
     'compare.mode.managers': 'Yöneticiler',
     'compare.mode.stocks': 'Hisseler',
@@ -686,11 +681,6 @@ const dict = {
     'manager.optionsNote':
       '13F reports options at notional share-equivalent value; premium cost and strikes are not disclosed.',
     'manager.notional': 'Notional Value',
-    'manager.backtest': 'What If You Copied This Fund? (experimental)',
-    'manager.backtestRun': 'Run',
-    'manager.backtestNote':
-      'Scenario: each quarter, buy the top 15 equity positions at filed weights once the filing is public (quarter end + 46 days) and hold until the next filing. Positions without price data are skipped; dividends excluded. Not investment advice.',
-    'manager.backtestCoverage': 'Coverage',
 
     'compare.mode.managers': 'Managers',
     'compare.mode.stocks': 'Stocks',

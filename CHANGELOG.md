@@ -4,6 +4,10 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P1-6 Congress trades — 2026-09-03
+- Daily ingest of STOCK Act periodic transaction reports for the House and Senate from the House Stock Watcher / Senate Stock Watcher open datasets (the Clerk publishes PDFs and the Senate eFD is an HTML search, so no EDGAR-style feed exists). Rows are normalised, deduplicated, kept for 365 days and enriched with party/state from congress-legislators.
+- New `/congress` page: buys / sells / all with chamber, party, amount band and member/ticker filters; free plan sees 20 rows. Feature flag `congress`.
+
 ### P1-5 Form 4 insider transactions — 2026-09-03
 - New daily ingest of every Form 4 / 4-A from EDGAR's daily form index into `client/public/insiders.json` (open-market purchases and sales, equity only, last 30 days, ≥ $10k, deduplicated). Roles are classified from the filing (CEO, CFO, COO, President, Officer, Director, 10% owner).
 - New `/insiders` page: largest buys, largest sells, full list by date; filters by role, amount band and text (Pro); free plan sees 20 rows per list.

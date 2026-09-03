@@ -54,6 +54,11 @@ export const api = {
   },
   groupPortfolio: (ciks, weighting) =>
     get(`/api/group-portfolio?ciks=${ciks.map(encodeURIComponent).join(',')}&weighting=${weighting}`),
+  congressFeed: async () => {
+    const r = await fetch('/congress.json');
+    if (!r.ok) throw new Error('no-congress-feed');
+    return r.json();
+  },
   insidersFeed: async () => {
     const r = await fetch('/insiders.json');
     if (!r.ok) throw new Error('no-insiders-feed');

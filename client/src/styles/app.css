@@ -135,6 +135,11 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
 .alert-bell-wrap { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .alert-bell.on { border-color: var(--pos); color: var(--pos); }
 
+/* ---------- congress party chips ---------- */
+.badge.party-d { color: #1d4ed8; }
+.badge.party-r { color: #b91c1c; }
+.badge.party-i { color: #6b21a8; }
+
 /* ---------- badges ---------- */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;

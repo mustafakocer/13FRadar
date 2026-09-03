@@ -1,0 +1,39 @@
+name: Build congress trades
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # Daily 07:00 UTC — upstream datasets refresh roughly daily; PTRs are due
+    # within 45 days of the trade
+    - cron: '0 7 * * *'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Build congress.json
+        run: node scripts/build-congress.mjs
+        env:
+          CONGRESS_HOUSE_URL: ${{ vars.CONGRESS_HOUSE_URL }}
+          CONGRESS_SENATE_URL: ${{ vars.CONGRESS_SENATE_URL }}
+      - name: Commit if changed
+        run: |
+          git config user.name 'congress-bot'
+          git config user.email 'actions@github.com'
+          git add client/public/congress.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh congress trades'
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1

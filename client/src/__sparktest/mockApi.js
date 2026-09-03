@@ -1,0 +1,3 @@
+export const setAuthToken = () => {};
+const row = (i) => ({ id: `R${i}`, chamber: i % 2 ? 'house' : 'senate', member: `Member ${i}`, party: ['D', 'R', 'I', null][i % 4], state: 'CA', district: null, transactionDate: `2026-08-${String(1 + (i % 28)).padStart(2, '0')}`, disclosureDate: '2026-08-30', ticker: i % 5 ? `SYM${i}` : null, asset: `Asset ${i}`, type: ['buy', 'sell', 'exchange'][i % 3], typeRaw: '', amountMin: [1001, 15001, 250001, 1000001][i % 4], amountMax: null, amountBand: ['$1K – $15K', '$15K – $50K', '$250K – $500K', '$1M – $5M'][i % 4], owner: null, link: 'https://x' });
+export const api = { congressFeed: async () => ({ updatedAt: '2026-09-03T07:00:00Z', rows: Array.from({ length: 30 }, (_, i) => row(i)) }) };

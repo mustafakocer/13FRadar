@@ -1,4 +1,4 @@
-import { getSubmissions, list13F, getHoldings } from './sec.js';
+import { getSubmissions, list13F, getFilingHoldings } from './sec.js';
 import { mapLimit } from './yahooClient.js';
 import { mapCusipsToTickers } from './figi.js';
 import { CONSENSUS_MANAGERS } from './consensusList.js';
@@ -10,11 +10,11 @@ export async function build() {
     const sub = await getSubmissions(m.cik);
     const fl = list13F(sub);
     if (!fl.length) return null;
-    const cur = await getHoldings(m.cik, fl[0].acc, fl[0].filingDate);
+    const cur = await getFilingHoldings(m.cik, fl[0]);
     let prev = null;
     if (fl[1]) {
       try {
-        prev = await getHoldings(m.cik, fl[1].acc, fl[1].filingDate);
+        prev = await getFilingHoldings(m.cik, fl[1]);
       } catch {
         /* prev optional */
       }

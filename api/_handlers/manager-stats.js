@@ -1,82 +1,104 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
+import { getSubmissions, list13F, getFilingHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
 
-// Portfolio characteristics over the last 8 quarters (WhaleWisdom-style):
-// turnover %, average holding period, new/exited counts.
+// Trading activity over the last 8 quarters, derived from share-count changes
+// so that price moves do not masquerade as trades:
+//   bought $ = Σ max(Δshares, 0) × quarter-end price   (new positions: full value)
+//   sold $   = Σ max(-Δshares, 0) × prior quarter-end price (exits: prior value)
+//   activity % = (bought + sold) / average AUM
+// Stock splits are detected (share ratio ≈ inverse price ratio) and neutralised.
+const EQUITY = (p) => !p.putCall;
+
+export function quarterTrades(prev, cur) {
+  let bought = 0;
+  let sold = 0;
+  let newCount = 0;
+  let exitCount = 0;
+  let addCount = 0;
+  let trimCount = 0;
+
+  for (const [c, p] of cur.byCusip) {
+    const q = prev.byCusip.get(c);
+    if (!q) {
+      bought += p.value;
+      newCount++;
+      continue;
+    }
+    if (!p.shares || !q.shares) {
+      // no share data: fall back to value delta
+      const d = p.value - q.value;
+      if (d > 0) { bought += d; addCount++; }
+      else if (d < 0) { sold += -d; trimCount++; }
+      continue;
+    }
+    const pxCur = p.value / p.shares;
+    const pxPrev = q.value / q.shares;
+    let prevShares = q.shares;
+    const sr = p.shares / q.shares;
+    const pr = pxCur > 0 ? pxPrev / pxCur : 0;
+    if (pr > 0 && Math.abs(sr / pr - 1) < 0.15 && (sr >= 1.9 || sr <= 0.55)) {
+      prevShares = q.shares * sr; // split/reverse split, not a trade
+    }
+    const d = p.shares - prevShares;
+    // ignore rounding noise below 0.5% of the position
+    if (Math.abs(d) <= prevShares * 0.005) continue;
+    if (d > 0) { bought += d * pxCur; addCount++; }
+    else { sold += -d * pxPrev; trimCount++; }
+  }
+  for (const [c, q] of prev.byCusip) {
+    if (!cur.byCusip.has(c)) {
+      sold += q.value;
+      exitCount++;
+    }
+  }
+  const avgAum = (prev.aum + cur.aum) / 2;
+  return {
+    reportDate: cur.reportDate,
+    bought,
+    sold,
+    net: bought - sold,
+    activity: avgAum ? ((bought + sold) / avgAum) * 100 : null,
+    newCount,
+    exitCount,
+    addCount,
+    trimCount,
+  };
+}
+
 export default async function handler(req, res) {
   const cik = String(req.query.cik || '').replace(/\D/g, '');
   if (!cik) return res.status(400).json({ error: 'Missing CIK' });
 
   try {
-    const data = await cached(`mstats:${cik}`, TTL.HOUR_6, async () => {
+    const data = await cached(`mstats2:${cik}`, TTL.HOUR_6, async () => {
       const sub = await getSubmissions(cik);
-      const filings = list13F(sub).slice(0, 8).reverse(); // oldest -> newest
+      const filings = list13F(sub).slice(0, 9).reverse(); // oldest -> newest
       if (filings.length < 2) return { quarters: filings.length };
 
       const snaps = (
         await mapLimit(filings, 4, async (f) => {
-          const { aum, positions } = await getHoldings(cik, f.acc, f.filingDate);
+          const { aum, positions } = await getFilingHoldings(cik, f);
           return {
             reportDate: f.reportDate,
             aum,
-            byCusip: new Map(positions.filter((p) => !p.putCall).map((p) => [p.cusip, p])),
+            byCusip: new Map(positions.filter(EQUITY).map((p) => [p.cusip, p])),
           };
         })
       ).filter(Boolean);
 
-      // per-quarter turnover: (new value + exited value) / avg AUM
-      const turnovers = [];
-      let lastNew = 0;
-      let lastExit = 0;
+      const quarters = [];
       for (let i = 1; i < snaps.length; i++) {
-        const prev = snaps[i - 1];
-        const cur = snaps[i];
-        let newVal = 0;
-        let newCount = 0;
-        let exitVal = 0;
-        let exitCount = 0;
-        for (const [c, p] of cur.byCusip) {
-          if (!prev.byCusip.has(c)) {
-            newVal += p.value;
-            newCount++;
-          }
-        }
-        for (const [c, p] of prev.byCusip) {
-          if (!cur.byCusip.has(c)) {
-            exitVal += p.value;
-            exitCount++;
-          }
-        }
-        const avgAum = (prev.aum + cur.aum) / 2;
-        turnovers.push(avgAum ? ((newVal + exitVal) / avgAum) * 100 : null);
-        if (i === snaps.length - 1) {
-          lastNew = newCount;
-          lastExit = exitCount;
-        }
+        quarters.push(quarterTrades(snaps[i - 1], snaps[i]));
       }
-      const tvals = turnovers.filter((x) => x != null);
-
-      // average holding period: consecutive quarters present, over the top 50
-      const latest = snaps[snaps.length - 1];
-      const top50 = [...latest.byCusip.values()].sort((a, b) => b.value - a.value).slice(0, 50);
-      let heldSum = 0;
-      for (const p of top50) {
-        let held = 1;
-        for (let i = snaps.length - 2; i >= 0; i--) {
-          if (snaps[i].byCusip.has(p.cusip)) held++;
-          else break;
-        }
-        heldSum += held;
-      }
+      const acts = quarters.map((q) => q.activity).filter((x) => x != null);
+      const latest = quarters[quarters.length - 1];
 
       return {
         quarters: snaps.length,
-        turnoverLatest: turnovers[turnovers.length - 1],
-        turnoverAvg: tvals.length ? tvals.reduce((s, x) => s + x, 0) / tvals.length : null,
-        avgHoldingQuarters: top50.length ? heldSum / top50.length : null,
-        newCount: lastNew,
-        exitCount: lastExit,
+        latest,
+        activityAvg: acts.length ? acts.reduce((s, x) => s + x, 0) / acts.length : null,
+        history: quarters,
       };
     });
     res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=604800');

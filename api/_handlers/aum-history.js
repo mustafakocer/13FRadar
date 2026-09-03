@@ -1,5 +1,5 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
+import { getSubmissions, list13F, getFilingHoldings } from '../_lib/sec.js';
 import { yahooChartPrices, mapLimit } from '../_lib/yahooClient.js';
 import { dailyCloses } from '../_lib/providers.js';
 
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       if (!filings.length) return { history: [] };
 
       const sums = await mapLimit(filings, 4, async (f) => {
-        const { aum, positions } = await getHoldings(cik, f.acc, f.filingDate);
+        const { aum, positions } = await getFilingHoldings(cik, f);
         return { ...f, aum, positions: positions.length };
       });
       const history = sums.filter(Boolean);

@@ -1,5 +1,5 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
+import { getSubmissions, list13F, getFilingHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
 import { requirePro } from '../_lib/auth.js';
 
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
       const sub = await getSubmissions(cik);
       const filings = list13F(sub).slice(0, 8).reverse(); // oldest -> newest
       const rows = await mapLimit(filings, 4, async (f) => {
-        const { positions } = await getHoldings(cik, f.acc, f.filingDate);
+        const { positions } = await getFilingHoldings(cik, f);
         const match = positions.filter((p) => p.cusip === cusip);
         return {
           reportDate: f.reportDate,

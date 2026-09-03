@@ -233,12 +233,17 @@ const dict = {
     'consensus.universeNote':
       'ABD borsasındaki ~8.000 fonun tamamının birleşik verisi; haftalık güncellenir.',
 
-    'manager.turnover': 'Al-Sat Sıklığı (Son Çeyrek)',
-    'manager.turnoverAvg': '8Ç ortalama',
-    'manager.avgHold': 'Ortalama Elde Tutma',
-    'manager.avgHoldUnit': 'çeyrek (ilk 50 pozisyon)',
+    'manager.activity': 'Portföy Aktivitesi (Son Çeyrek)',
+    'manager.activityAvg': '8Ç ortalama',
+    'manager.netTrade': 'Net Alım / Satım (Son Çeyrek)',
+    'manager.bought': 'Alım',
+    'manager.sold': 'Satım',
     'manager.newExit': 'Yeni / Çıkan Pozisyon',
-    'manager.newExitSub': 'son çeyrekte',
+    'manager.adds': 'artırma',
+    'manager.trims': 'azaltma',
+    'manager.effN': 'Etkin pozisyon',
+    'manager.cash': 'Nakit Benzeri Pozisyon',
+    'manager.cashNone': 'Bu dosyalamada nakit benzeri ETF yok',
 
     'stock.ownership': 'Bu Hisseyi Tutan Büyük Fonlar',
     'stock.ownershipLoading':
@@ -380,8 +385,14 @@ const dict = {
     'tips.ma': 'Belirtilen gün sayısının ortalama fiyatı; trend göstergesi olarak izlenir.',
     'tips.aum': 'Fonun SEC’e bildirdiği ABD hisse portföyünün toplam değeri.',
     'tips.top10': 'Portföyün ne kadarının en büyük 10 hissede toplandığı. Yüksekse fon az sayıda hisseye odaklanıyor.',
-    'tips.turnover': 'Fonun portföyünü ne hızla değiştirdiği. Yüksekse kısa vadeli işlem yapıyor.',
-    'tips.avgHold': 'En büyük pozisyonların ortalama kaç çeyrektir portföyde tutulduğu.',
+    'tips.activity':
+      'Çeyrek içinde alınıp satılan hisselerin toplam tutarının ortalama portföye oranı. Hisse adedi değişiminden hesaplanır; fiyat hareketi ve hisse bölünmeleri işlem sayılmaz.',
+    'tips.netTrade':
+      'Çeyrek içindeki toplam alım eksi toplam satım, dönem sonu fiyatlarıyla. Pozitifse fon net alıcı, negatifse net satıcı.',
+    'tips.effN':
+      '1 / Σ(ağırlık²). 30 hissesi olup parayı 5 hissede toplayan fonun etkin pozisyon sayısı 5 civarıdır.',
+    'tips.cash':
+      '13F dosyalamaları gerçek nakdi içermez. Burada kısa vadeli Hazine bonosu ve para piyasası benzeri ETF pozisyonları gösterilir; fonun gerçek nakit seviyesi daha yüksek olabilir.',
     'screen.search': 'Fon ara…',
     'screen.size': 'Büyüklük',
     'screen.positions': 'Pozisyon',
@@ -658,12 +669,17 @@ const dict = {
     'consensus.universeNote':
       'Aggregated across ALL 13F filers (~8,000 funds); refreshed weekly.',
 
-    'manager.turnover': 'Turnover (Last Q)',
-    'manager.turnoverAvg': '8Q average',
-    'manager.avgHold': 'Avg Holding Period',
-    'manager.avgHoldUnit': 'quarters (top 50 positions)',
+    'manager.activity': 'Trading Activity (Last Q)',
+    'manager.activityAvg': '8Q average',
+    'manager.netTrade': 'Net Buying / Selling (Last Q)',
+    'manager.bought': 'Bought',
+    'manager.sold': 'Sold',
     'manager.newExit': 'New / Exited Positions',
-    'manager.newExitSub': 'last quarter',
+    'manager.adds': 'added',
+    'manager.trims': 'trimmed',
+    'manager.effN': 'Effective positions',
+    'manager.cash': 'Cash-Like Holdings',
+    'manager.cashNone': 'No cash-like ETFs in this filing',
 
     'stock.ownership': 'Top Funds Holding This Stock',
     'stock.ownershipLoading': 'Computing ownership… first load can take 30-60s.',
@@ -803,8 +819,14 @@ const dict = {
     'tips.ma': 'Average price over the stated days; a trend gauge.',
     'tips.aum': "Total value of the fund's US stock portfolio reported to the SEC.",
     'tips.top10': 'How much of the portfolio sits in the 10 largest holdings. High = concentrated bets.',
-    'tips.turnover': 'How fast the fund changes its portfolio. High = short-term trading.',
-    'tips.avgHold': 'Average quarters the largest positions have been held.',
+    'tips.activity':
+      'Dollar value of shares bought plus sold during the quarter, as a share of average AUM. Derived from share-count changes, so price moves and stock splits do not count as trades.',
+    'tips.netTrade':
+      'Total buying minus total selling during the quarter at quarter-end prices. Positive = net buyer, negative = net seller.',
+    'tips.effN':
+      '1 / Σ(weight²). A 30-stock book with the money in 5 names has an effective count near 5.',
+    'tips.cash':
+      "13F filings never include actual cash. Shown here are T-bill and money-market-style ETF holdings; the fund's real cash level may be higher.",
     'screen.search': 'Search funds…',
     'screen.size': 'Size',
     'screen.positions': 'Positions',

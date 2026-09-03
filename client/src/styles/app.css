@@ -105,15 +105,18 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--ink); }
 
 .grid { display: grid; gap: 16px; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
-@media (max-width: 1000px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 1000px) { .grid-4 { grid-template-columns: 1fr 1fr; } .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .grid-4 { grid-template-columns: 1fr; } }
 
 /* ---------- stat cards ---------- */
 .stat-card { display: flex; flex-direction: column; gap: 2px; }
 .stat-label { font-size: 13px; font-weight: 600; color: var(--muted); }
 .stat-value { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; }
 .stat-sub { font-size: 13px; color: var(--muted); }
+.stat-value-sub { font-size: 15px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
 
 /* ---------- badges ---------- */
 .badge {

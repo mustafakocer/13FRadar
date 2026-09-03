@@ -21,6 +21,7 @@ import Paywall from '../components/Paywall.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 import { managerStyle } from '../data/popular.js';
+import { cashLikeSummary, effectivePositions } from '../lib/cashLike.js';
 import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 
@@ -124,6 +125,10 @@ export default function Manager() {
   }
 
   const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
+  const effN = effectivePositions(positions);
+  const cash = cashLikeSummary(positions);
+  const trades = mstats.data?.latest || null;
+  const signedMoney = (v) => (v > 0 ? '+' : '') + fmtMoney(v);
 
   // Current-portfolio weighted 1Y/YTD return over resolved top-50 tickers
   let port1y = null;
@@ -190,7 +195,7 @@ export default function Manager() {
           <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)}>
             {filings.map((f) => (
               <option key={f.acc} value={f.acc}>
-                {quarterLabel(f.reportDate)} {f.form === '13F-HR/A' ? '(A)' : ''}
+                {quarterLabel(f.reportDate)} {f.form === '13F-HR/A' || f.amended ? '(A)' : ''}
               </option>
             ))}
           </select>
@@ -219,7 +224,7 @@ export default function Manager() {
 
       {!holdings.isLoading && !holdings.error && tab === 'overview' && (
         <>
-          <div className="grid grid-3">
+          <div className="grid grid-4">
             <div className="card stat-card">
               <span className="stat-label">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
               <span className="stat-value">{fmtMoney(holdings.data?.aum)}</span>
@@ -232,6 +237,14 @@ export default function Manager() {
             <div className="card stat-card">
               <span className="stat-label">{t('manager.positions')}</span>
               <span className="stat-value">{fmtNum(holdings.data?.count)}</span>
+              <span className="stat-sub">
+                {effN != null && (
+                  <>
+                    {t('manager.effN')}: <b>{effN.toFixed(1)}</b>
+                    <InfoTip tip="tips.effN" />
+                  </>
+                )}
+              </span>
               <SparkBar
                 values={history.map((h) => h.positions)}
                 labels={history.map((h) => quarterLabel(h.reportDate))}
@@ -251,35 +264,57 @@ export default function Manager() {
                 )}
               </span>
             </div>
+            <div className="card stat-card">
+              <span className="stat-label">{t('manager.cash')}<InfoTip tip="tips.cash" /></span>
+              {cash.items.length ? (
+                <>
+                  <span className="stat-value">
+                    {fmtPct(cash.weight, { sign: false })}
+                    <span className="stat-value-sub"> · {fmtMoney(cash.value)}</span>
+                  </span>
+                  <span className="stat-sub">
+                    {cash.items
+                      .slice(0, 4)
+                      .map((p) => `${p.ticker || p.issuer} ${fmtPct(p.weight, { sign: false })}`)
+                      .join(' · ')}
+                    {cash.items.length > 4 ? ` · +${cash.items.length - 4}` : ''}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="stat-value muted">—</span>
+                  <span className="stat-sub">{t('manager.cashNone')}</span>
+                </>
+              )}
+            </div>
           </div>
 
-          {mstats.data?.quarters >= 2 && (
+          {trades && (
             <div className="grid grid-3 mt16">
               <div className="card stat-card">
-                <span className="stat-label">{t('manager.turnover')}<InfoTip tip="tips.turnover" /></span>
-                <span className="stat-value">
-                  {fmtPct(mstats.data.turnoverLatest, { sign: false })}
-                </span>
+                <span className="stat-label">{t('manager.activity')}<InfoTip tip="tips.activity" /></span>
+                <span className="stat-value">{fmtPct(trades.activity, { sign: false })}</span>
                 <span className="stat-sub">
-                  {t('manager.turnoverAvg')}: {fmtPct(mstats.data.turnoverAvg, { sign: false })}
+                  {t('manager.activityAvg')}: {fmtPct(mstats.data.activityAvg, { sign: false })}
                 </span>
               </div>
               <div className="card stat-card">
-                <span className="stat-label">{t('manager.avgHold')}<InfoTip tip="tips.avgHold" /></span>
-                <span className="stat-value">
-                  {mstats.data.avgHoldingQuarters != null
-                    ? `${mstats.data.avgHoldingQuarters.toFixed(1)}`
-                    : '—'}
+                <span className="stat-label">{t('manager.netTrade')}<InfoTip tip="tips.netTrade" /></span>
+                <span className={`stat-value ${deltaClass(trades.net)}`}>{signedMoney(trades.net)}</span>
+                <span className="stat-sub">
+                  {t('manager.bought')} <b>{fmtMoney(trades.bought)}</b> · {t('manager.sold')}{' '}
+                  <b>{fmtMoney(trades.sold)}</b>
                 </span>
-                <span className="stat-sub">{t('manager.avgHoldUnit')}</span>
               </div>
               <div className="card stat-card">
                 <span className="stat-label">{t('manager.newExit')}</span>
                 <span className="stat-value">
-                  <span className="delta-pos">+{mstats.data.newCount ?? 0}</span>{' '}
-                  <span className="delta-neg">−{mstats.data.exitCount ?? 0}</span>
+                  <span className="delta-pos">+{trades.newCount ?? 0}</span>{' '}
+                  <span className="delta-neg">−{trades.exitCount ?? 0}</span>
                 </span>
-                <span className="stat-sub">{t('manager.newExitSub')}</span>
+                <span className="stat-sub">
+                  {trades.addCount ?? 0} {t('manager.adds')} · {trades.trimCount ?? 0} {t('manager.trims')}
+                </span>
               </div>
             </div>
           )}

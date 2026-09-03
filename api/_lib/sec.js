@@ -21,28 +21,42 @@ export function getSubmissions(cik) {
   });
 }
 
-// Extract the list of 13F-HR filings (deduped by report period; the most
-// recently filed document per quarter wins, so amendments replace originals).
+// Extract the list of 13F-HR filings, one entry per report period. The entry
+// is the original 13F-HR (its accession is the stable id used in URLs); any
+// 13F-HR/A amendments for the same period are attached so holdings can be
+// merged (see getFilingHoldings). Newest report period first.
 export function list13F(sub) {
   const r = sub?.filings?.recent;
   if (!r) return [];
-  const out = [];
+  const byPeriod = new Map();
   for (let i = 0; i < (r.form || []).length; i++) {
-    if (!String(r.form[i]).startsWith('13F-HR')) continue;
-    out.push({
+    const form = String(r.form[i]);
+    if (!form.startsWith('13F-HR')) continue;
+    const f = {
       acc: r.accessionNumber[i],
-      form: r.form[i],
+      form,
       filingDate: r.filingDate[i],
       reportDate: r.reportDate[i],
-    });
+    };
+    const g = byPeriod.get(f.reportDate) || { originals: [], amendments: [] };
+    (form === '13F-HR/A' ? g.amendments : g.originals).push(f);
+    byPeriod.set(f.reportDate, g);
   }
-  out.sort((a, b) => (a.filingDate < b.filingDate ? 1 : -1));
-  const seen = new Set();
-  return out.filter((f) => {
-    if (seen.has(f.reportDate)) return false;
-    seen.add(f.reportDate);
-    return true;
-  });
+  const byDateDesc = (a, b) => (a.filingDate < b.filingDate ? 1 : -1);
+  const out = [];
+  for (const [reportDate, g] of byPeriod) {
+    g.originals.sort(byDateDesc);
+    g.amendments.sort(byDateDesc);
+    // No original on record (rare): the earliest amendment stands in for it.
+    const base = g.originals[0] || g.amendments.pop();
+    if (!base) continue;
+    const amendments = g.amendments
+      .filter((a) => a.filingDate >= base.filingDate)
+      .sort((a, b) => (a.filingDate < b.filingDate ? -1 : 1)) // oldest -> newest
+      .map((a) => ({ acc: a.acc, filingDate: a.filingDate }));
+    out.push({ ...base, reportDate, amendments, amended: amendments.length > 0 });
+  }
+  return out.sort((a, b) => (a.reportDate < b.reportDate ? 1 : -1));
 }
 
 export async function fetchInfoTableXml(cik, acc) {
@@ -111,7 +125,7 @@ export function aggregatePositions(rows, filingDate) {
   return { aum, positions };
 }
 
-// Full holdings for one filing — cached long-term since filings are immutable.
+// Raw holdings for one accession — cached long-term since filings are immutable.
 export function getHoldings(cik, acc, filingDate) {
   return cached(`hold:${numCik(cik)}:${acc}`, TTL.DAY_7, async () => {
     const xml = await fetchInfoTableXml(cik, acc);
@@ -122,6 +136,77 @@ export function getHoldings(cik, acc, filingDate) {
       fd = list13F(sub).find((f) => f.acc === acc)?.filingDate;
     }
     return aggregatePositions(rows, fd);
+  });
+}
+
+// 13F-HR/A amendments come in two flavours (primary_doc.xml amendmentType):
+//   RESTATEMENT  — a complete replacement of the original table
+//   NEW HOLDINGS — only the additional positions (typically holdings that were
+//                  kept confidential and disclosed later), to be ADDED to the
+//                  original. Treating these as a full filing makes AUM collapse.
+export function getAmendmentType(cik, acc) {
+  return cached(`amtype:${numCik(cik)}:${acc}`, TTL.DAY_7, async () => {
+    try {
+      const cikN = numCik(cik);
+      const accNo = acc.replace(/-/g, '');
+      const { data: xml } = await http.get(
+        `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}/primary_doc.xml`,
+        { responseType: 'text', transformResponse: [(d) => d] }
+      );
+      const m = /<amendmentType>\s*([^<]+?)\s*<\/amendmentType>/i.exec(xml);
+      const type = m ? m[1].toUpperCase() : '';
+      if (/RESTATEMENT/.test(type)) return 'RESTATEMENT';
+      if (/NEW/.test(type)) return 'NEW HOLDINGS';
+    } catch {
+      /* fall through to heuristic */
+    }
+    return null;
+  });
+}
+
+// Sum two aggregated position sets (same cusip|putCall keys are combined).
+function mergeHoldings(a, b) {
+  const map = new Map();
+  for (const src of [a, b]) {
+    for (const p of src.positions) {
+      const key = `${p.cusip}|${p.putCall}`;
+      const cur = map.get(key);
+      if (cur) {
+        cur.value += p.value;
+        cur.shares += p.shares;
+      } else {
+        map.set(key, { ...p });
+      }
+    }
+  }
+  const positions = [...map.values()].sort((x, y) => y.value - x.value);
+  const aum = positions.reduce((s, p) => s + p.value, 0);
+  for (const p of positions) p.weight = aum ? (p.value / aum) * 100 : 0;
+  return { aum, positions };
+}
+
+// Effective holdings for one report period: the original filing with its
+// amendments applied. `filing` is an entry from list13F().
+export function getFilingHoldings(cik, filing) {
+  const amends = filing.amendments || [];
+  if (!amends.length) return getHoldings(cik, filing.acc, filing.filingDate);
+  const key = `holdq:${numCik(cik)}:${filing.acc}:${amends.map((a) => a.acc).join(',')}`;
+  return cached(key, TTL.DAY_7, async () => {
+    let base = await getHoldings(cik, filing.acc, filing.filingDate);
+    for (const a of amends) {
+      let amend;
+      try {
+        amend = await getHoldings(cik, a.acc, a.filingDate);
+      } catch {
+        continue; // an unreadable amendment must not take the whole quarter down
+      }
+      let type = await getAmendmentType(cik, a.acc);
+      // Heuristic when primary_doc is unavailable: a table far smaller than the
+      // original cannot be a full restatement.
+      if (!type) type = amend.aum < base.aum * 0.5 ? 'NEW HOLDINGS' : 'RESTATEMENT';
+      base = type === 'RESTATEMENT' ? amend : mergeHoldings(base, amend);
+    }
+    return base;
   });
 }
 

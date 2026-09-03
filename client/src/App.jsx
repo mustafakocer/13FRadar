@@ -18,6 +18,7 @@ import StockScreener from './pages/StockScreener.jsx';
 import Turkiye from './pages/Turkiye.jsx';
 import Backtest from './pages/Backtest.jsx';
 import Heatmap from './pages/Heatmap.jsx';
+import Themes from './pages/Themes.jsx';
 import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
@@ -49,6 +50,7 @@ export default function App() {
     ...(flagOn('turkeyRadar') ? [{ to: '/turkiye', label: t('nav.turkiye'), icon: '🇹🇷' }] : []),
     ...(flagOn('backtest') ? [{ to: '/backtest', label: t('nav.backtest'), icon: '⏪' }] : []),
     ...(flagOn('heatmap') ? [{ to: '/heatmap', label: t('nav.heatmap'), icon: '🌡️' }] : []),
+    ...(flagOn('themes') ? [{ to: '/themes', label: t('nav.themes'), icon: '🧭' }] : []),
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
     { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
   ];
@@ -114,6 +116,7 @@ export default function App() {
           <Route path="/turkiye" element={<Turkiye />} />
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/heatmap" element={<Heatmap />} />
+          <Route path="/themes" element={<Themes />} />
         </Routes>
         <SpkNotice />
         <Footer />

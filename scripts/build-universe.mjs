@@ -15,6 +15,7 @@ import { dominantPeriod, rotateSnapshot, withDeltas } from '../api/_lib/stocksSn
 import { accumulateFiler, finalizeAgg, sicToSector, latestPublicFloat, floatBand } from '../api/_lib/universeAgg.js';
 import { tickerMap } from '../api/_lib/tickers.js';
 import { createTurkeyState, collectTurkey, finalizeTurkey, upsertHistory, narrativeTr } from '../api/_lib/turkey.js';
+import { resolveThemes, createThemeStates, collectThemes, finalizeThemes } from '../api/_lib/themes.js';
 import { getSubmissions } from '../api/_lib/sec.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar-universe/1.0 (kocergpt@gmail.com)';
@@ -73,6 +74,12 @@ async function main() {
   const rows = [];
   const stockAgg = new Map(); // cusip -> per-stock aggregate (see universeAgg.js)
   const turkey = createTurkeyState(JSON.parse(fs.readFileSync(path.join(process.cwd(), 'api', '_data', 'turkey-securities.json'), 'utf8')));
+  // thematic ETFs: CUSIPs resolved from the previous build's cusip->ticker map
+  let priorMap = {};
+  try {
+    priorMap = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'api', '_data', 'cusip-tickers.json'), 'utf8'));
+  } catch {}
+  const themeStates = createThemeStates(resolveThemes(JSON.parse(fs.readFileSync(path.join(process.cwd(), 'api', '_data', 'themes.json'), 'utf8')), priorMap));
   let done = 0;
   let failed = 0;
   const CONCURRENCY = 3;
@@ -108,6 +115,7 @@ async function main() {
           }
           accumulateFiler(stockAgg, positions, prevPositions);
           collectTurkey(turkey, { cik: e.cik.padStart(10, '0'), name: e.name, filed: e.filed, aum }, positions, prevPositions);
+          collectThemes(themeStates, { cik: e.cik.padStart(10, '0'), name: e.name, filed: e.filed, aum }, positions, prevPositions);
         } catch {
           failed++;
         }
@@ -222,6 +230,10 @@ async function main() {
   });
   fs.writeFileSync(path.join(pub, 'turkey.json'), JSON.stringify({ updatedAt: new Date().toISOString(), period, diff: DIFF, securities }));
   console.log(`Wrote turkey.json: ${securities.map((s) => `${s.ticker}=${s.funds}`).join(', ')}`);
+
+  const themes = finalizeThemes(themeStates, period, readJson('themes.json'));
+  fs.writeFileSync(path.join(pub, 'themes.json'), JSON.stringify({ updatedAt: new Date().toISOString(), period, diff: DIFF, themes }));
+  console.log(`Wrote themes.json: ${themes.map((t) => `${t.id}=${t.funds}`).join(', ')}`);
 }
 
 main().catch((e) => {

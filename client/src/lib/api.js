@@ -61,6 +61,11 @@ export const api = {
   },
   backtest: (ciks, start, weighting, top) =>
     get(`/api/backtest?ciks=${ciks.map(encodeURIComponent).join(',')}&start=${start}&weighting=${weighting}&top=${top}`),
+  themes: async () => {
+    const r = await fetch('/themes.json');
+    if (!r.ok) throw new Error('no-themes');
+    return r.json();
+  },
   turkey: async () => {
     const r = await fetch('/turkey.json');
     if (!r.ok) throw new Error('no-turkey');

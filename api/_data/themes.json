@@ -1,0 +1,39 @@
+[
+  { "id": "btc", "name": "Bitcoin ETF'leri", "nameEn": "Bitcoin ETFs", "icon": "₿",
+    "securities": [
+      { "ticker": "IBIT", "name": "iShares Bitcoin Trust", "kind": "etf" },
+      { "ticker": "FBTC", "name": "Fidelity Wise Origin Bitcoin Fund", "kind": "etf" },
+      { "ticker": "GBTC", "cusip": "389637109", "name": "Grayscale Bitcoin Trust", "kind": "etf" },
+      { "ticker": "ARKB", "name": "ARK 21Shares Bitcoin ETF", "kind": "etf" },
+      { "ticker": "BITB", "name": "Bitwise Bitcoin ETF", "kind": "etf" },
+      { "ticker": "HODL", "name": "VanEck Bitcoin ETF", "kind": "etf" },
+      { "ticker": "BTCO", "name": "Invesco Galaxy Bitcoin ETF", "kind": "etf" },
+      { "ticker": "BRRR", "name": "Valkyrie Bitcoin Fund", "kind": "etf" },
+      { "ticker": "EZBC", "name": "Franklin Bitcoin ETF", "kind": "etf" },
+      { "ticker": "BTC", "name": "Grayscale Bitcoin Mini Trust", "kind": "etf" }
+    ] },
+  { "id": "gold", "name": "Altın ETF'leri", "nameEn": "Gold ETFs", "icon": "🥇",
+    "securities": [
+      { "ticker": "GLD", "cusip": "78463V107", "name": "SPDR Gold Shares", "kind": "etf" },
+      { "ticker": "IAU", "cusip": "464285204", "name": "iShares Gold Trust", "kind": "etf" },
+      { "ticker": "GLDM", "name": "SPDR Gold MiniShares", "kind": "etf" },
+      { "ticker": "SGOL", "name": "abrdn Physical Gold Shares", "kind": "etf" },
+      { "ticker": "IAUM", "name": "iShares Gold Trust Micro", "kind": "etf" },
+      { "ticker": "OUNZ", "name": "VanEck Merk Gold Trust", "kind": "etf" },
+      { "ticker": "AAAU", "name": "Goldman Sachs Physical Gold ETF", "kind": "etf" },
+      { "ticker": "BAR", "name": "GraniteShares Gold Trust", "kind": "etf" }
+    ] },
+  { "id": "silver", "name": "Gümüş ETF'leri", "nameEn": "Silver ETFs", "icon": "🥈",
+    "securities": [
+      { "ticker": "SLV", "name": "iShares Silver Trust", "kind": "etf" },
+      { "ticker": "SIVR", "name": "abrdn Physical Silver Shares", "kind": "etf" },
+      { "ticker": "PSLV", "name": "Sprott Physical Silver Trust", "kind": "etf" }
+    ] },
+  { "id": "oil", "name": "Petrol ETF'leri", "nameEn": "Oil ETFs", "icon": "🛢️",
+    "securities": [
+      { "ticker": "USO", "name": "United States Oil Fund", "kind": "etf" },
+      { "ticker": "BNO", "name": "United States Brent Oil Fund", "kind": "etf" },
+      { "ticker": "DBO", "name": "Invesco DB Oil Fund", "kind": "etf" },
+      { "ticker": "USL", "name": "United States 12 Month Oil Fund", "kind": "etf" }
+    ] }
+]

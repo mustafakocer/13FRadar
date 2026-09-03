@@ -1,13 +1,14 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getFilingHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
+import { splitFactor } from '../_lib/positionDiff.js';
 
 // Trading activity over the last 8 quarters, derived from share-count changes
 // so that price moves do not masquerade as trades:
 //   bought $ = Σ max(Δshares, 0) × quarter-end price   (new positions: full value)
 //   sold $   = Σ max(-Δshares, 0) × prior quarter-end price (exits: prior value)
 //   activity % = (bought + sold) / average AUM
-// Stock splits are detected (share ratio ≈ inverse price ratio) and neutralised.
+// Stock splits are neutralised via positionDiff.splitFactor.
 const EQUITY = (p) => !p.putCall;
 
 export function quarterTrades(prev, cur) {
@@ -34,12 +35,7 @@ export function quarterTrades(prev, cur) {
     }
     const pxCur = p.value / p.shares;
     const pxPrev = q.value / q.shares;
-    let prevShares = q.shares;
-    const sr = p.shares / q.shares;
-    const pr = pxCur > 0 ? pxPrev / pxCur : 0;
-    if (pr > 0 && Math.abs(sr / pr - 1) < 0.15 && (sr >= 1.9 || sr <= 0.55)) {
-      prevShares = q.shares * sr; // split/reverse split, not a trade
-    }
+    const prevShares = q.shares * splitFactor(q, p); // split-adjusted, not a trade
     const d = p.shares - prevShares;
     // ignore rounding noise below 0.5% of the position
     if (Math.abs(d) <= prevShares * 0.005) continue;

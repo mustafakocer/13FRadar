@@ -41,13 +41,33 @@ export function quarterGrid(reportDates) {
 
 const NOISE = 0.005; // <0.5% share change is rounding, not a trade
 
-/** @param {Snap} prev @param {Snap} cur */
-export function splitAdjustedPrevShares(prev, cur) {
-  if (!prev.shares || !cur.shares || !prev.value || !cur.value) return prev.shares || 0;
+const SPLIT_RATIOS = [2, 3, 4, 5, 6, 7, 8, 10, 15, 20, 25, 30, 40, 50];
+
+/**
+ * Detect a stock split between two quarter-end snapshots. A split shows up as
+ * the implied price (value / shares) dropping by a common ratio while the
+ * share count rises by a similar ratio (reverse split: the opposite). The
+ * factor comes from the PRICE ratio, so a split combined with a trade still
+ * yields the trade (shares - prevShares x factor). Returns 1 when no split.
+ * @param {{shares:number, value:number}} prev @param {{shares:number, value:number}} cur
+ */
+export function splitFactor(prev, cur) {
+  if (!prev.shares || !cur.shares || !prev.value || !cur.value) return 1;
   const sr = cur.shares / prev.shares;
   const pr = prev.value / prev.shares / (cur.value / cur.shares);
-  if (pr > 0 && Math.abs(sr / pr - 1) < 0.15 && (sr >= 1.9 || sr <= 0.55)) return prev.shares * sr;
-  return prev.shares;
+  if (!(pr > 0)) return 1;
+  const forward = pr >= 1.9 && sr >= 1.9;
+  const reverse = pr <= 0.55 && sr <= 0.55;
+  if (!forward && !reverse) return 1;
+  const ratio = forward ? pr : 1 / pr;
+  const near = SPLIT_RATIOS.find((r) => Math.abs(ratio / r - 1) <= 0.1);
+  if (!near) return 1;
+  return forward ? near : 1 / near;
+}
+
+/** @param {Snap} prev @param {Snap} cur */
+export function splitAdjustedPrevShares(prev, cur) {
+  return (prev.shares || 0) * splitFactor(prev, cur);
 }
 
 /**

@@ -2,6 +2,7 @@ import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getFilingHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
 import { requirePro } from '../_lib/auth.js';
+import { splitFactor } from '../_lib/positionDiff.js';
 
 // GET /api/holdings-history/:cik?top=150   (Pro)
 // For the manager's largest current equity positions: weight / shares history
@@ -15,32 +16,26 @@ import { requirePro } from '../_lib/auth.js';
 // first in-window price — hence "estimated".
 const QUARTERS = 8;
 
-function isSplit(prevShares, curShares, prevPx, curPx) {
-  if (!prevShares || !curShares || !prevPx || !curPx) return false;
-  const sr = curShares / prevShares;
-  const pr = prevPx / curPx;
-  return Math.abs(sr / pr - 1) < 0.15 && (sr >= 1.9 || sr <= 0.55);
-}
-
 export function estimateAvgBuy(series) {
   // series: [{shares, value}] oldest -> newest, null where not held
   let lotShares = 0;
   let lotCost = 0;
   let prevShares = 0;
-  let prevPx = null;
+  /** @type {{shares:number, value:number} | null} */
+  let prevSnap = null;
   for (const cur of series) {
     if (!cur || !cur.shares || !cur.value) {
       lotShares = 0;
       lotCost = 0;
       prevShares = 0;
-      prevPx = null;
+      prevSnap = null;
       continue;
     }
     const px = cur.value / cur.shares;
-    if (isSplit(prevShares, cur.shares, prevPx, px)) {
-      const r = cur.shares / prevShares;
-      prevShares *= r;
-      lotShares *= r;
+    const f = prevSnap ? splitFactor(prevSnap, cur) : 1;
+    if (f !== 1) {
+      prevShares *= f;
+      lotShares *= f;
     }
     const d = cur.shares - prevShares;
     if (d > prevShares * 0.005) {
@@ -52,7 +47,7 @@ export function estimateAvgBuy(series) {
       lotCost = lotShares * avg;
     }
     prevShares = cur.shares;
-    prevPx = px;
+    prevSnap = cur;
   }
   return lotShares > 0 ? lotCost / lotShares : null;
 }

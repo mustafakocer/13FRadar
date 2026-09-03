@@ -10,6 +10,7 @@ import SparkBar from './Charts/SparkBar.jsx';
 import Paywall from './Paywall.jsx';
 import PositionTimeline from './PositionTimeline.jsx';
 import InfoTip from './InfoTip.jsx';
+import { splitFactor } from '../../../api/_lib/positionDiff.js';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -30,12 +31,7 @@ const COLS = [
 // Share-count change vs the prior quarter, ignoring stock splits.
 export function shareChange(cur, prev) {
   if (!prev) return { dShares: null, pct: null, isNew: true };
-  let prevShares = prev.shares || 0;
-  if (cur.shares && prevShares && cur.value && prev.value) {
-    const sr = cur.shares / prevShares;
-    const pr = prev.value / prevShares / (cur.value / cur.shares);
-    if (pr > 0 && Math.abs(sr / pr - 1) < 0.15 && (sr >= 1.9 || sr <= 0.55)) prevShares *= sr;
-  }
+  const prevShares = (prev.shares || 0) * splitFactor(prev, cur);
   const d = (cur.shares || 0) - prevShares;
   return { dShares: d, pct: prevShares ? (d / prevShares) * 100 : null, isNew: false };
 }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { quarterEnd, nextQuarterEnd, quarterGrid, classify, buildTimeline } from '../api/_lib/positionDiff.js';
+import { quarterEnd, nextQuarterEnd, quarterGrid, classify, buildTimeline, splitFactor } from '../api/_lib/positionDiff.js';
 
 const S = (reportDate, shares, px, weight = 1) => ({ reportDate, shares, value: shares * px, weight });
 
@@ -10,6 +10,16 @@ test('quarter helpers', () => {
   assert.equal(nextQuarterEnd('2025-12-31'), '2026-03-31');
   assert.deepEqual(quarterGrid(['2025-06-30', '2024-12-31']), ['2024-12-31', '2025-03-31', '2025-06-30']);
   assert.deepEqual(quarterGrid([]), []);
+});
+
+test('splitFactor: forward, reverse, split+trade, plain price moves', () => {
+  assert.equal(splitFactor(S('q', 100, 100), S('q', 1000, 10)), 10);
+  assert.equal(splitFactor(S('q', 100, 100), S('q', 1200, 10)), 10, 'split plus a 20% add');
+  assert.equal(splitFactor(S('q', 1000, 10), S('q', 100, 100)), 0.1, 'reverse split');
+  assert.equal(splitFactor(S('q', 100, 10), S('q', 100, 25)), 1, 'price move only');
+  assert.equal(splitFactor(S('q', 100, 10), S('q', 250, 10)), 1, 'genuine 2.5x add');
+  assert.equal(splitFactor(S('q', 100, 100), S('q', 1000, 47)), 1, 'shares 10x but price only ~2x: not a clean split');
+  assert.equal(splitFactor({ shares: 0, value: 0 }, S('q', 1, 1)), 1);
 });
 
 test('classify: new/add/reduce/hold/exit/start, split, value fallback', () => {

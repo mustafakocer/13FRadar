@@ -23,6 +23,8 @@ import groups from './_handlers/groups.js';
 import groupPortfolio from './_handlers/group-portfolio.js';
 import screens from './_handlers/screens.js';
 import backtest from './_handlers/backtest.js';
+import keys from './_handlers/keys.js';
+import v1 from './_handlers/v1.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
@@ -57,6 +59,8 @@ const ROUTES = {
   'group-portfolio': [groupPortfolio],
   screens: [screens],
   backtest: [backtest],
+  keys: [keys],
+  v1: [v1], // variadic: the rest of the path is passed as req.query.v1path
 };
 
 export default async function handler(req, res) {
@@ -80,7 +84,12 @@ export default async function handler(req, res) {
   delete req.query.__path;
 
   const def = ROUTES[route[0]];
-  if (!def || route.length - 1 !== def.length - 1) {
+  if (!def) return res.status(404).json({ error: 'Not found' });
+  if (route[0] === 'v1') {
+    req.query.v1path = route.slice(1);
+    return def[0](req, res);
+  }
+  if (route.length - 1 !== def.length - 1) {
     return res.status(404).json({ error: 'Not found' });
   }
   const [fn, ...params] = def;

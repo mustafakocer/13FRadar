@@ -121,3 +121,20 @@ create table if not exists public.saved_screens (
 alter table public.saved_screens enable row level security;
 create policy "own saved screens" on public.saved_screens
   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+-- ---------------------------------------------------------------------------
+-- Read-only REST API keys (P2-13, Pro). Only a SHA-256 hash is stored.
+create table if not exists public.api_keys (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  name text not null,
+  prefix text not null,               -- first 12 chars, shown in the UI
+  key_hash text not null unique,      -- sha256(hex) of the full key
+  created_at timestamptz not null default now(),
+  last_used_at timestamptz,
+  revoked_at timestamptz
+);
+alter table public.api_keys enable row level security;
+create policy "own api keys" on public.api_keys
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+-- the public API validates keys with the service role (bypasses RLS)

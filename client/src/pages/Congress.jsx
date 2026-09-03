@@ -6,6 +6,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import Paywall from '../components/Paywall.jsx';
+import ExportButtons from '../components/ExportButtons.jsx';
 
 const AMOUNTS = [['all', 0], ['15k', 15001], ['50k', 50001], ['250k', 250001], ['1m', 1000001]];
 const FREE_ROWS = 20;
@@ -62,6 +63,7 @@ export default function Congress() {
           <select className="select" value={amount} onChange={(e) => setAmount(e.target.value)} disabled={!isPro}>
             {AMOUNTS.map(([k]) => <option key={k} value={k}>{t(`congress.amount.${k}`)}</option>)}
           </select>
+          <ExportButtons name="congress_trades" rows={() => rows.map((r) => ({ transactionDate: r.transactionDate, disclosureDate: r.disclosureDate, chamber: r.chamber, member: r.member, party: r.party, state: r.state, ticker: r.ticker, asset: r.asset, type: r.type, amountMin: r.amountMin, amountMax: r.amountMax, link: r.link }))} compact />
           <span className="muted small">{rows.length} {t('congress.count')}{feed.data?.updatedAt ? ` · ${t('insiders.updated')} ${feed.data.updatedAt.slice(0, 10)}` : ''}</span>
         </div>
         {!isPro && <p className="muted small mt8">{t('congress.freeNote', { n: FREE_ROWS })} <Link to="/pricing">{t('paywall.cta')}</Link></p>}

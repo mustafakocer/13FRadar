@@ -6,6 +6,7 @@ import { useAuth } from '../auth.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { usePerformance } from '../hooks/usePerformance.js';
 import Paywall from '../components/Paywall.jsx';
+import ExportButtons from '../components/ExportButtons.jsx';
 
 const COLS = [
   ['name', 'perf.fund', true],
@@ -62,6 +63,7 @@ export default function Performance() {
               <span className="badge plain">{t('perf.priceSource')}: {perf.data.priceSource}</span>
               <span className="badge plain">{t('perf.benchmark')}: {perf.data.benchmark}</span>
               <span className="badge plain">{rows.length} {t('perf.funds')}</span>
+              <ExportButtons name="fund_performance" rows={() => rows.map((f) => ({ cik: f.cik, name: f.name, score: f.score, ret1y: f.ret1y, ret3y: f.ret3y, spy1y: f.spy1y, spy3y: f.spy3y, turnover: f.turnover, top10: f.top10, aum: f.aum, aumTrend1y: f.aumTrend1y, coverage: f.coverage }))} compact />
             </div>
             {!isPro && <p className="muted small mt8">{t('perf.freeNote', { n: FREE_ROWS })} <Link to="/pricing">{t('paywall.cta')}</Link></p>}
             <div className="table-wrap mt8">

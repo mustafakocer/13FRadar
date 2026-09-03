@@ -7,6 +7,7 @@ import { useI18n } from '../i18n.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import HoldingsTreemap from './Charts/HoldingsTreemap.jsx';
 import Paywall from './Paywall.jsx';
+import ExportButtons from './ExportButtons.jsx';
 
 const Sym = ({ r }) => (r.ticker ? <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <span className="muted small">{r.cusip}</span>);
 
@@ -35,11 +36,11 @@ export default function GroupPortfolio({ ciks, weighting: initial = 'aum' }) {
           <span className="badge plain">{t('groups.fundCount')}: <b>{d.funds.length}</b></span>
           <span className="badge plain">{t('manager.positions')}: <b>{d.positions.length}</b></span>
         </div>
-        <div className="seg">
+        <span className="row" style={{ gap: 8 }}><ExportButtons name="group_portfolio" rows={() => d.positions.map((p) => ({ ticker: p.ticker, cusip: p.cusip, issuer: p.issuer, weight: p.weight, value: p.value, holders: p.holderCount }))} compact /><div className="seg">
           {['aum', 'equal'].map((w) => (
             <button key={w} className={weighting === w ? 'active' : ''} onClick={() => setWeighting(w)}>{t(`groups.weighting.${w}`)}</button>
           ))}
-        </div>
+        </div></span>
       </div>
       <div className="head-badges mt8">
         {d.funds.map((f) => (

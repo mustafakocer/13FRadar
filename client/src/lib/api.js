@@ -54,6 +54,11 @@ export const api = {
   },
   groupPortfolio: (ciks, weighting) =>
     get(`/api/group-portfolio?ciks=${ciks.map(encodeURIComponent).join(',')}&weighting=${weighting}`),
+  keys: {
+    list: () => get('/api/keys'),
+    create: (name) => get('/api/keys', { method: 'POST', body: { name } }),
+    revoke: (id) => get('/api/keys', { method: 'DELETE', body: { id } }),
+  },
   screens: {
     list: () => get('/api/screens'),
     save: (name, params) => get('/api/screens', { method: 'POST', body: { name, params } }),

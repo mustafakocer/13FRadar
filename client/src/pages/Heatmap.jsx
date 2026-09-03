@@ -9,6 +9,7 @@ import { usePageTitle } from '../hooks/usePageTitle.js';
 import { buildFlowTree } from '../../../api/_lib/flowTree.js';
 import FlowTreemap from '../components/Charts/FlowTreemap.jsx';
 import Paywall from '../components/Paywall.jsx';
+import ExportButtons from '../components/ExportButtons.jsx';
 
 export default function Heatmap() {
   const { t } = useI18n();
@@ -75,7 +76,7 @@ export default function Heatmap() {
       )}
       {hasData && (
         <div className="card mt16">
-          <h3>{t('heat.bySector')}</h3>
+          <div className="row" style={{ justifyContent: 'space-between' }}><h3 style={{ margin: 0 }}>{t('heat.bySector')}</h3><ExportButtons name="sector_flows" rows={() => tree.children.flatMap((c) => c.children.map((s) => ({ sector: c.name, ticker: s.ticker, issuer: s.issuer, netFlow: s.flow, value: s.value, funds: s.funds, adding: s.adding, reducing: s.reducing })))} compact /></div>
           <div className="table-wrap">
             <table className="data">
               <thead><tr><th className="l">{t('screener.sector')}</th><th>{t('screener.netFlow')}</th><th>{t('heat.in')}</th><th>{t('heat.out')}</th><th>{t('screener.value')}</th><th>{t('screener.count')}</th></tr></thead>

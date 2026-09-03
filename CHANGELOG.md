@@ -4,6 +4,10 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P2-13 Export & API — 2026-09-03
+- CSV and Excel export buttons (Pro) on every new table: insider trades, Congress trades, fund performance, Türkiye/theme holders, sector flows, group portfolios, shared positions, plus CSV on the holdings table.
+- Read-only REST API with per-user keys (Pro): keys are generated once and stored hashed; `X-API-Key` auth; 60 requests/minute per key; endpoints for fund profile, holdings, position history, fund overlap and dataset URLs. Key management on the account page and a Turkish `/api-docs` page. Feature flag `exportApi`.
+
 ### P2-12 Thematic ETF flows — 2026-09-03
 - New `/themes` page: Bitcoin, gold, silver and oil ETF holdings across all 13F filers, aggregated per quarter with distinct fund counts, adding/reducing, net flow, theme and per-ETF history charts and top holders. Built weekly alongside the universe. Feature flag `themes`.
 - Türkiye Radarı and the theme pages share one `SecurityHolders` component.

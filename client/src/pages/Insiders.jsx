@@ -7,6 +7,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import Paywall from '../components/Paywall.jsx';
+import ExportButtons from '../components/ExportButtons.jsx';
 
 const ROLES = ['ALL', 'CEO', 'CFO', 'COO', 'PRESIDENT', 'OFFICER', 'DIRECTOR', 'TEN_PCT', 'OTHER'];
 const BANDS = [
@@ -66,6 +67,7 @@ export default function Insiders() {
           <select className="select" value={band} onChange={(e) => setBand(e.target.value)} disabled={!isPro}>
             {BANDS.map(([k]) => <option key={k} value={k}>{t(`insiders.band.${k}`)}</option>)}
           </select>
+          <ExportButtons name="insider_trades" rows={() => rows.map((r) => ({ date: r.date, symbol: r.symbol, issuer: r.issuer, owner: r.owner, role: r.role, title: r.title, side: r.side, code: r.code, shares: r.shares, price: r.price, value: r.value, filed: r.filed, acc: r.acc }))} compact />
           <span className="muted small">{rows.length} {t('insiders.count')}{feed.data?.updatedAt ? ` · ${t('insiders.updated')} ${feed.data.updatedAt.slice(0, 10)}` : ''}</span>
         </div>
         {!isPro && <p className="muted small mt8">{t('insiders.freeNote', { n: FREE_ROWS })} <Link to="/pricing">{t('paywall.cta')}</Link></p>}

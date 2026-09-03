@@ -19,6 +19,7 @@ import Turkiye from './pages/Turkiye.jsx';
 import Backtest from './pages/Backtest.jsx';
 import Heatmap from './pages/Heatmap.jsx';
 import Themes from './pages/Themes.jsx';
+import ApiDocs from './pages/ApiDocs.jsx';
 import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
@@ -117,6 +118,7 @@ export default function App() {
           <Route path="/backtest" element={<Backtest />} />
           <Route path="/heatmap" element={<Heatmap />} />
           <Route path="/themes" element={<Themes />} />
+          <Route path="/api-docs" element={<ApiDocs />} />
         </Routes>
         <SpkNotice />
         <Footer />

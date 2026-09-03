@@ -4,6 +4,7 @@ import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import AlertSettings from '../components/AlertSettings.jsx';
+import ApiKeys from '../components/ApiKeys.jsx';
 
 export default function Account() {
   const { t } = useI18n();
@@ -183,6 +184,7 @@ export default function Account() {
       </div>
     </div>
     <AlertSettings />
+    <ApiKeys />
     </>
   );
 }

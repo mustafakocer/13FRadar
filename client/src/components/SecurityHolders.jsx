@@ -5,6 +5,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { getVar, tooltipStyle } from './Charts/chartUtils.js';
 import Paywall from './Paywall.jsx';
+import ExportButtons from './ExportButtons.jsx';
 
 const FREE_ROWS = 10;
 const ACTION_CLASS = { NEW: 'pos', ADD: 'pos', REDUCE: 'neg', EXIT: 'neg', HOLD: 'plain' };
@@ -41,7 +42,7 @@ export default function SecurityHolders({ s }) {
         <h3 style={{ margin: 0 }}>
           <Link to={`/stock/${s.ticker}?cusip=${s.cusip}`}>{s.ticker}</Link> · {s.name}
         </h3>
-        <span className="muted small">{quarterLabel(s.period)}</span>
+        <span className="row" style={{ gap: 8 }}><span className="muted small">{quarterLabel(s.period)}</span><ExportButtons name={`${s.ticker}_holders`} rows={() => holders.map((h) => ({ cik: h.cik, fund: h.name, value: h.value, shares: h.shares, weight: h.weight, dShares: h.dShares, action: h.action }))} compact /></span>
       </div>
       <div className="head-badges mt8">
         <span className="badge plain">{t('turkiye.funds')}: <b>{fmtNum(s.funds)}</b></span>

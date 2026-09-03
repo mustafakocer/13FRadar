@@ -11,6 +11,7 @@ import Paywall from './Paywall.jsx';
 import PositionTimeline from './PositionTimeline.jsx';
 import InfoTip from './InfoTip.jsx';
 import { splitFactor } from '../../../api/_lib/positionDiff.js';
+import { downloadCsv } from '../lib/exportCsv.js';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -166,9 +167,12 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
           {rows.length} {t('table.showing')}
         </span>
         {isPro && (
-          <button className="btn" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting}>
-            {exporting ? '…' : `⬇ ${t('table.export')}`}
-          </button>
+          <span className="row" style={{ marginLeft: 'auto', gap: 6 }}>
+            <button className="btn ghost" onClick={() => downloadCsv(rows.map((p) => ({ rank: p.rank, ticker: p.ticker, cusip: p.cusip, issuer: p.issuer, type: p.putCall || 'SH', value: Math.round(p.value), weight: Number(p.weight.toFixed(4)), shares: p.shares, deltaWeight: p.delta, sharesChange: p.dShares, avgBuy: p.avgBuy })), (exportName || 'holdings.xlsx').replace(/\.xlsx$/, '.csv'))}>⬇ CSV</button>
+            <button className="btn" onClick={onExport} disabled={exporting}>
+              {exporting ? '…' : `⬇ ${t('table.export')}`}
+            </button>
+          </span>
         )}
       </div>
       <div className="table-wrap">

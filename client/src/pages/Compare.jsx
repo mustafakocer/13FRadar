@@ -8,6 +8,7 @@ import SearchBox from '../components/SearchBox.jsx';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
+import ExportButtons from '../components/ExportButtons.jsx';
 
 const STOCK_ROWS = [
   ['price', 'stock.prevClose', (s) => fmtNum(s.price?.price, 2)],
@@ -190,7 +191,7 @@ function Overlap({ ciks, names, t }) {
       </div>
 
       <div className="card mt16">
-        <h3>🤝 {t('compare.common')} ({d.shared.length})</h3>
+        <div className="row" style={{ justifyContent: 'space-between' }}><h3 style={{ margin: 0 }}>🤝 {t('compare.common')} ({d.shared.length})</h3><ExportButtons name="shared_positions" rows={() => d.shared.map((r) => ({ ticker: r.ticker, cusip: r.cusip, issuer: r.issuer, holders: r.holders, ...Object.fromEntries(ciks.map((c) => [`w_${letter[c]}`, r.weights[c] ?? null])) }))} compact /></div>
         {!d.shared.length && <div className="muted small">{t('common.na')}</div>}
         {d.shared.length > 0 && (
           <div className="table-wrap">

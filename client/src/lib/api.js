@@ -59,6 +59,11 @@ export const api = {
     save: (name, params) => get('/api/screens', { method: 'POST', body: { name, params } }),
     remove: (id) => get('/api/screens', { method: 'DELETE', body: { id } }),
   },
+  turkey: async () => {
+    const r = await fetch('/turkey.json');
+    if (!r.ok) throw new Error('no-turkey');
+    return r.json();
+  },
   performance: async () => {
     const r = await fetch('/performance.json');
     if (!r.ok) throw new Error('no-performance');

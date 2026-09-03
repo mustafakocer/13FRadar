@@ -4,6 +4,9 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### TR-14 Türkiye Radarı — 2026-09-03
+- New `/turkiye` page: every 13F filer holding the TUR ETF or US-listed Turkish ADRs (curated list in `api/_data/turkey-securities.json`), quarter-over-quarter adding/reducing/new/exit counts and estimated net flow, quarterly total-value history, and a Turkish plain-language summary generated from the data at build time. Free plan sees 10 holders. Feature flag `turkeyRadar`.
+
 ### P1-8 13F stock screener — 2026-09-03
 - The weekly universe build now also parses each filer's prior filing (`UNIVERSE_DIFF`, on by default) and aggregates per stock: funds holding, funds adding vs reducing, new/exit counts, net institutional flow (share change × price) and a consensus score; the top 2,000 stocks are enriched with a SIC-based sector and the SEC-reported public float (size band). All EDGAR-only.
 - New `/stocks` screener: filters for fund count, funds adding, net flow direction/size, consensus score, sector and size band; sortable table; XLSX export and saved screens (Supabase `saved_screens`) for Pro; free plan sees 50 rows. Feature flag `screener`.

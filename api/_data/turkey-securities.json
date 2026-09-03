@@ -1,0 +1,4 @@
+[
+  { "ticker": "TUR", "cusip": "464286715", "name": "iShares MSCI Turkey ETF", "kind": "etf" },
+  { "ticker": "TKC", "cusip": "900111204", "name": "Turkcell İletişim Hizmetleri (ADR)", "kind": "adr" }
+]

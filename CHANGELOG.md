@@ -4,6 +4,10 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P2-11 Schedule 13D/G timeline — 2026-09-03
+- Schedule 13D/G filings in the SEC's structured XML format (mandatory since December 2024) are now parsed: filer, % of class, shares, event date, stated purpose, activist (13D) and amendment flags. Stock pages show a per-holder stake timeline and a detailed table; legacy HTML filings keep their EDGAR link. Free plan sees the last 3 filings, Pro 15 with details. Feature flag `filings13dg`.
+- Heat map: switched to click-to-drill nested mode with readable labels.
+
 ### P2-10 Flow heat map — 2026-09-03
 - New `/heatmap` page: nested treemap of net institutional flow by sector then stock for the selected quarter (from the weekly universe aggregate), with inflow-only / outflow-only views and a sector table. Free plan sees sectors; Pro drills into stocks. Feature flag `heatmap`.
 

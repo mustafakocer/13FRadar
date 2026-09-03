@@ -467,12 +467,31 @@ export default function Stock() {
       {filings13dg.data?.filings?.length > 0 && (
         <div className="card mt16">
           <h3>📢 {t('stock.filings13dg')}</h3>
+          {filings13dg.data.holders?.length > 0 && (
+            <div className="timeline-badges" style={{ marginBottom: 12 }}>
+              {filings13dg.data.holders.slice(0, 8).map((h) => {
+                const last = h.events[h.events.length - 1];
+                const first = h.events[0];
+                return (
+                  <div key={h.name} className="timeline-q" style={{ minWidth: 150, textAlign: 'left' }}>
+                    <div style={{ fontWeight: 700, fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={h.name}>{h.name}</div>
+                    <div><b>{last.percent != null ? fmtPct(last.percent, { sign: false }) : '—'}</b>{h.events.length > 1 && first.percent != null && last.percent != null && <span className={`small ${last.percent >= first.percent ? 'delta-pos' : 'delta-neg'}`}> ({fmtPct(last.percent - first.percent)} pp)</span>}</div>
+                    <div className="muted small">{h.events.length} {t('stock.dgFilings')} · {last.filingDate}</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
           <div className="table-wrap">
             <table className="data">
               <thead>
                 <tr>
                   <th className="l">{t('stock.insDate')}</th>
                   <th className="l">Form</th>
+                  <th className="l">{t('stock.dgHolder')}</th>
+                  <th>{t('stock.dgPercent')}</th>
+                  <th>{t('table.shares')}</th>
+                  <th className="l">{t('stock.dgEvent')}</th>
                   <th className="l">EDGAR</th>
                 </tr>
               </thead>
@@ -481,8 +500,13 @@ export default function Stock() {
                   <tr key={f.acc}>
                     <td className="l muted">{f.filingDate}</td>
                     <td className="l">
-                      <span className={`badge ${/13D/i.test(f.form) ? 'neg' : 'plain'}`}>{f.form}</span>
+                      <span className={`badge ${f.activist ? 'neg' : 'plain'}`}>{f.form}</span>
+                      {f.activist && <span className="muted small"> {t('stock.dgActivist')}</span>}
                     </td>
+                    <td className="l" style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }} title={f.holders?.map((h) => h.name).join(', ')}>{f.holder || (f.parsed === false ? <span className="muted small">{t('stock.dgUnparsed')}</span> : '—')}</td>
+                    <td className="num">{f.percent != null ? fmtPct(f.percent, { sign: false }) : '—'}</td>
+                    <td className="num">{f.shares != null ? fmtNum(f.shares) : '—'}</td>
+                    <td className="l muted small">{f.eventDate || '—'}</td>
                     <td className="l">
                       <a href={f.url} target="_blank" rel="noreferrer">
                         {t('stock.view')} ↗
@@ -493,6 +517,7 @@ export default function Stock() {
               </tbody>
             </table>
           </div>
+          {filings13dg.data.truncated && <p className="muted small mt8">{t('stock.dgFreeNote')} <Link to="/pricing">{t('paywall.cta')}</Link></p>}
           <p className="muted small mt8">{t('stock.filings13dgNote')}</p>
         </div>
       )}

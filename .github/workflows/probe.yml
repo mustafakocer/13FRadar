@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 10
+# probe-run: 11
 
 jobs:
   probe:
@@ -59,6 +59,7 @@ jobs:
           curl -sS -m 20 "$B/universe.json" | jq '{updatedAt, count}'
       - name: Security & robustness audit
         run: |
+          set +e
           B="https://13-f-radar-omega.vercel.app"
           ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc'); echo "ACC=$ACC"
           H() { curl -sS -m 40 -o /dev/null -D - "$@" | tr -d '\r' | grep -iE '^(HTTP|cache-control|x-vercel-cache|access-control|content-security|strict-transport|x-frame|x-content-type|content-encoding|content-length|content-type|referrer|permissions)' ; echo; }
@@ -89,9 +90,9 @@ jobs:
           echo "=== [7c] paywall bypass via other routes exposing the same data? holders (free) vs stock-ownership (pro) ==="
           curl -sS -m 40 -w " [HTTP %{http_code}]" "$B/api/holders?q=AAPL" | head -c 300; echo
           echo "=== [8] quota abuse: one request fanning out to many symbols ==="
-          S=$(curl -sS -m 20 "$B/stocks.json" | jq -r '[.[]?.ticker // .stocks[]?.ticker] | .[:40] | join(",")' 2>/dev/null)
+          S=$(curl -sS -m 20 "$B/stocks.json" | jq -r '[.rows[:40][].ticker | select(. != null)] | join(",")' || echo "AAPL,MSFT")
           echo "symbols asked: $(echo $S | tr ',' '\n' | wc -l)"
-          curl -sS -m 60 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/returns?symbols=$S" | jq -c 'to_entries | {answered: length, nonNull: ([.[] | select(.value.price != null)] | length), sample: .[0]}' 2>/dev/null || echo "(non-json)"
+          curl -sS -m 60 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/returns?symbols=$S" | jq -c 'to_entries | {answered: length, nonNull: ([.[] | select(.value.price != null)] | length), sample: .[0]}' || echo "(non-json)"
           curl -sS -m 60 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/sectors?symbols=$S" | head -c 200; echo
           echo "=== [9] cold/warm latency of heavy endpoints ==="
           for p in "manager/1067983" "holdings/1067983/$ACC" "aum-history/1067983" "manager-stats/1067983" "consensus" "search?q=bridgewater" "insiders/AAPL" "filings13dg/AAPL"; do

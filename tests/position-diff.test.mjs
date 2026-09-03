@@ -18,7 +18,7 @@ test('splitFactor: forward, reverse, split+trade, plain price moves', () => {
   assert.equal(splitFactor(S('q', 1000, 10), S('q', 100, 100)), 0.1, 'reverse split');
   assert.equal(splitFactor(S('q', 100, 10), S('q', 100, 25)), 1, 'price move only');
   assert.equal(splitFactor(S('q', 100, 10), S('q', 250, 10)), 1, 'genuine 2.5x add');
-  assert.equal(splitFactor(S('q', 100, 100), S('q', 1000, 47)), 1, 'shares 10x but price only ~2x: not a clean split');
+  assert.equal(splitFactor(S('q', 100, 100), S('q', 1000, 47)), 2, 'price ~halved, shares 10x: read as 2:1 split plus a 5x add');
   assert.equal(splitFactor({ shares: 0, value: 0 }, S('q', 1, 1)), 1);
 });
 

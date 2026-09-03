@@ -62,6 +62,8 @@ npm run dev:client
 5. (Önerilen) Environment Variables:
    - `SEC_USER_AGENT` → `13FRadar/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
+   - `FEATURE_FLAGS` (sunucu) / `VITE_FEATURE_FLAGS` (istemci) → modülleri kapatmak için, örn. `alerts=off,congress=off`.
+   - Uyarılar (GitHub Actions secrets): `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `RESEND_API_KEY`, `ALERTS_FROM`, `SITE_URL` (vars). Şema: `supabase/schema.sql` içindeki `alert_*` tabloları uygulanmalı.
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
 
 ### Evren Verisi (Tarayıcı için)

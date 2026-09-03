@@ -4,6 +4,13 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P0-3 Alerts — 2026-09-03
+- Users can follow funds (CIK) and stocks (CUSIP) for email alerts: `🔔` on fund/stock pages, management on the account page. Free plan: 5 subscriptions; Pro unlimited. Feature flag `alerts`.
+- New Supabase tables `alert_subscriptions` and `alert_deliveries` (RLS; deliveries unique per user/kind/key/filing event so nothing is sent twice; amendments create a new event id).
+- `scripts/send-alerts.mjs` (GitHub Action every 2 hours) reads the latest 13F of every followed fund, diffs it against the prior filing (NEW / ADD / REDUCE / EXIT, split-aware) and sends a Turkish summary email through Resend (`RESEND_API_KEY`, `ALERTS_FROM`, `SITE_URL`). Claim-then-send with up to 3 retries; filings older than 30 days are recorded as skipped instead of emailed.
+- Stock alerts are evaluated against the filings of all followed funds plus the curated superinvestor list.
+- Web push not implemented (no PWA manifest in the app).
+
 ### P0-2 Fund overlap comparison — 2026-09-03
 - New `/api/overlap?ciks=a,b[,c,d,e]`: shared positions with each fund's weight, unique-to-each lists, pairwise Jaccard and weighted overlap (Σ min weight), overall Jaccard, and shared buys / sells in the latest quarter (NEW/ADD vs REDUCE/EXIT via the position diff engine). Options excluded. Free plan compares 2 funds, Pro up to 5. Feature flag `overlap`.
 - Compare page (managers mode) now supports up to 5 pickers with a Turkish methodology note; the stocks mode stays Pro.

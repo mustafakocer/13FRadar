@@ -1,0 +1,32 @@
+name: Send 13F alerts
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # every 2 hours — new 13Fs cluster around the 45-day deadline, but late
+    # filings and amendments arrive all quarter
+    - cron: '15 */2 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Send alerts
+        run: node scripts/send-alerts.mjs
+        env:
+          SEC_USER_AGENT: '13FRadar alerts bot (kocergpt@gmail.com)'
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERTS_FROM: ${{ secrets.ALERTS_FROM }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}

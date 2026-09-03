@@ -40,9 +40,23 @@ async function planForToken(token) {
   return { plan: active ? 'pro' : 'free', userId: u.data.id };
 }
 
+const bearer = (req) => String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+
+// { userId, plan, token } for the signed-in user, or null when anonymous.
+export async function getUser(req) {
+  const token = bearer(req);
+  if (!authConfigured() || !token) return null;
+  try {
+    const r = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    return r.userId ? { ...r, token } : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function isPro(req) {
   if (!authConfigured()) return true;
-  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  const token = bearer(req);
   if (!token) return false;
   try {
     const { plan } = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () =>
@@ -53,6 +67,15 @@ export async function isPro(req) {
     return false;
   }
 }
+
+// Supabase REST helpers (PostgREST). `auth` = user token (RLS) or service role.
+export function restHeaders(auth) {
+  const key = auth === 'service' ? service() : anon();
+  const tok = auth === 'service' ? service() : auth;
+  return { apikey: key, Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' };
+}
+export const restUrl = (table) => `${url()}/rest/v1/${table}`;
+export const hasServiceRole = () => Boolean(service());
 
 // Returns true if the request may proceed; otherwise responds 402 itself.
 export async function requirePro(req, res) {

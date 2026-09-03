@@ -3,10 +3,9 @@ export const setAuthToken = (t) => {
   authToken = t;
 };
 
-async function get(url) {
-  const r = await fetch(url, {
-    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-  });
+async function get(url, init = {}) {
+  const headers = { ...(init.body ? { 'Content-Type': 'application/json' } : {}), ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) };
+  const r = await fetch(url, { ...init, headers, body: init.body ? JSON.stringify(init.body) : undefined });
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     const err = new Error(data.error || `HTTP ${r.status}`);
@@ -35,6 +34,11 @@ export const api = {
     return get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}${qs ? `?${qs}` : ''}`);
   },
   holdingsHistory: (cik) => get(`/api/holdings-history/${cik}`),
+  alerts: {
+    list: () => get('/api/alerts'),
+    add: (kind, key, label) => get('/api/alerts', { method: 'POST', body: { kind, key, label } }),
+    remove: (kind, key) => get('/api/alerts', { method: 'DELETE', body: { kind, key } }),
+  },
   overlap: (ciks) => get(`/api/overlap?ciks=${ciks.map(encodeURIComponent).join(',')}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),

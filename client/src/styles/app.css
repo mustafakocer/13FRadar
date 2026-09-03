@@ -131,6 +131,10 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
 .timeline-q.unfiled { opacity: 0.55; border-style: dashed; }
 .timeline-q .badge { margin-top: 2px; font-size: 11px; }
 
+/* ---------- alert bell ---------- */
+.alert-bell-wrap { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.alert-bell.on { border-color: var(--pos); color: var(--pos); }
+
 /* ---------- badges ---------- */
 .badge {
   display: inline-flex; align-items: center; gap: 4px;

@@ -21,6 +21,7 @@ import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 import { managerStyle } from '../data/popular.js';
 import { cashLikeSummary, effectivePositions } from '../lib/cashLike.js';
+import AlertBell from '../components/AlertBell.jsx';
 import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 
@@ -187,6 +188,7 @@ export default function Manager() {
           </div>
         </div>
         <div className="row">
+          <AlertBell kind="fund" alertKey={mgr.data.cik} label={mgr.data.name} />
           <button className="btn ghost no-print" onClick={() => window.print()}>
             🖨 {t('manager.print')}
           </button>

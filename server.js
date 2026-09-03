@@ -3,6 +3,7 @@
 import express from 'express';
 
 const app = express();
+app.use(express.json({ limit: '256kb' }));
 const PORT = process.env.PORT || 3001;
 
 app.use(async (req, res) => {

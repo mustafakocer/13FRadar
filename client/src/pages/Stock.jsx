@@ -13,6 +13,7 @@ import {
 } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import PositionTimeline from '../components/PositionTimeline.jsx';
+import AlertBell from '../components/AlertBell.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import PriceChart from '../components/Charts/PriceChart.jsx';
@@ -150,6 +151,7 @@ export default function Stock() {
                 {fmtPct(chg, { digits: 2 })}
               </span>
             )}
+            {cusip && <AlertBell kind="stock" alertKey={cusip} label={p.symbol} compact />}
             {pr.sector && <span className="badge plain">{pr.sector}</span>}
           </div>
         </div>

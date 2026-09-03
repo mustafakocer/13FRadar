@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import AlertSettings from '../components/AlertSettings.jsx';
 
 export default function Account() {
   const { t } = useI18n();
@@ -153,6 +154,7 @@ export default function Account() {
   }
 
   return (
+    <>
     <div className="card" style={{ maxWidth: 560, margin: '40px auto' }}>
       <h3>{t('account.title')}</h3>
       <div className="kv">
@@ -180,5 +182,7 @@ export default function Account() {
         </button>
       </div>
     </div>
+    <AlertSettings />
+    </>
   );
 }

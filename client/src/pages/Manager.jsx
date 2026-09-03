@@ -223,12 +223,21 @@ export default function Manager() {
             <div className="card stat-card">
               <span className="stat-label">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
               <span className="stat-value">{fmtMoney(holdings.data?.aum)}</span>
-              <SparkBar values={history.map((h) => h.aum)} />
+              <SparkBar
+                values={history.map((h) => h.aum)}
+                labels={history.map((h) => quarterLabel(h.reportDate))}
+                format={fmtMoney}
+              />
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.positions')}</span>
               <span className="stat-value">{fmtNum(holdings.data?.count)}</span>
-              <SparkBar values={history.map((h) => h.positions)} color="--s2" />
+              <SparkBar
+                values={history.map((h) => h.positions)}
+                labels={history.map((h) => quarterLabel(h.reportDate))}
+                format={fmtNum}
+                color="--s2"
+              />
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>

@@ -38,9 +38,9 @@ const dict = {
     'landing.f4.t': 'Fon Bul',
     'landing.f4.d':
       'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; gizli kalmış odaklı fonları keşfedin.',
-    'landing.f5.t': 'Karşılaştırın & Test Edin',
+    'landing.f5.t': 'Karşılaştırın',
     'landing.f5.d':
-      'İki fonu veya üç hisseyi yan yana koyun; "13F kopyalama" stratejisini SPY karşısında geriye dönük test edin.',
+      'İki fonu veya üç hisseyi yan yana koyun; portföy farklarını ve ortak pozisyonları tek bakışta görün.',
     'landing.f6.t': 'Dışa Aktarın',
     'landing.f6.d':
       "Portföyleri Excel'e aktarın, sayfaları PDF raporuna çevirin, izleme listenizle yeni dosyalamaları kaçırmayın.",
@@ -301,7 +301,6 @@ const dict = {
     'pricing.pp2': 'Ustaların alım-satımları + portföye yeni girenler',
     'pricing.pp3': 'Kurumsal sahiplik, 13D/G ve insider işlemleri',
     'pricing.pp4': 'Pozisyon ağırlık geçmişi',
-    'pricing.pp5': 'Kopyalama backtesti',
     'pricing.pp6': "Tam evren tarayıcı (8.000+ fon)",
     'pricing.pp7': 'Fon ve hisse karşılaştırma',
     'pricing.pp8': "Excel/PDF dışa aktarma",
@@ -466,9 +465,9 @@ const dict = {
     'landing.f4.t': 'Fund Screener',
     'landing.f4.d':
       'Filter the entire 13F universe by AUM, position count and concentration; surface under-the-radar focused funds.',
-    'landing.f5.t': 'Compare & Backtest',
+    'landing.f5.t': 'Compare',
     'landing.f5.d':
-      'Put two funds or three stocks side by side; backtest a copy-the-13F strategy against SPY.',
+      'Put two funds or three stocks side by side; spot portfolio differences and shared positions at a glance.',
     'landing.f6.t': 'Export Everything',
     'landing.f6.d':
       'Export portfolios to Excel, print clean PDF reports, and never miss a new filing with your watchlist.',
@@ -702,7 +701,7 @@ const dict = {
     'nav.account': 'Account',
     'paywall.title': 'Pro Feature',
     'paywall.desc':
-      'This section is exclusive to 13F Radar Pro. Full holdings tables, consensus trades, ownership analysis, backtests and exports unlock with Pro.',
+      'This section is exclusive to 13F Radar Pro. Full holdings tables, consensus trades, ownership analysis and exports unlock with Pro.',
     'paywall.cta': 'Upgrade to Pro',
     'pricing.title': 'Pricing',
     'pricing.subtitle': 'Institutional-grade data at a retail price.',
@@ -726,7 +725,6 @@ const dict = {
     'pricing.pp2': 'Consensus buys/sells + new position radar',
     'pricing.pp3': 'Institutional ownership, 13D/G and insider trades',
     'pricing.pp4': 'Position weight history',
-    'pricing.pp5': 'Copy-the-13F backtest',
     'pricing.pp6': 'Full-universe screener (8,000+ funds)',
     'pricing.pp7': 'Fund and stock comparison',
     'pricing.pp8': 'Excel/PDF export',

@@ -44,7 +44,11 @@ function HistoryPanel({ cik, cusip, t }) {
         </div>
       </div>
       <div style={{ width: 220 }}>
-        <SparkBar values={hist.map((h) => h.weight)} />
+        <SparkBar
+          values={hist.map((h) => h.weight)}
+          labels={hist.map((h) => quarterLabel(h.reportDate))}
+          format={(v) => fmtPct(v, { sign: false })}
+        />
       </div>
     </div>
   );

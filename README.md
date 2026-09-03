@@ -14,7 +14,6 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - ⚖️ İki yönetici karşılaştırma + 2-3 hisse rasyo karşılaştırma, 📋 tarayıcı, ⭐ izleme listesi (localStorage)
 - 🧭 **Süper Yatırımcı Konsensüsü** — seçili fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan/satılan, yeni pozisyon radarı
 - 🎯 Opsiyon görünümü (PUT/CALL pozisyonları ayrı tablo + toplam ağırlıklar)
-- 🧪 Kopyalama backtesti (deneysel): "13F'i her çeyrek kopyalasaydım" vs SPY
 - 👤 İçeriden işlemler (Form 4) hisse sayfasında
 - 🔔 İzleme listesinde yeni 13F rozetleri, ⌘K komut paleti, 🖨 PDF/yazdır raporu
 - 🌍 Tam evren tarayıcı: haftalık GitHub Action tüm ~8.000 13F dosyalayıcısını tarayıp `client/public/universe.json` üretir

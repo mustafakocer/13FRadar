@@ -1,3 +1,4 @@
 export const setAuthToken = () => {};
-const fund = (i) => ({ cik: String(1000 + i).padStart(10, '0'), name: `FUND ${i}`, reportDate: '2026-06-30', aum: 1e9 * (i + 1), positions: 20 + i, top10: 40 + i, turnover: 10 + i, aumTrend1y: (i - 5) / 20, retQ: 0.02, ret1y: (i - 3) / 20, ret3y: i % 2 ? (i - 2) / 10 : null, spy1y: 0.12, spy3y: 0.4, coverage: 0.9, score: 100 - i * 4, quarters: Array.from({ length: 12 }, (_, q) => ({ reportDate: `202${3 + Math.floor(q / 4)}-${String(((q % 4) + 1) * 3).padStart(2, '0')}-30`, ret: (q - 5) / 50, bench: 0.03, coverage: 0.88 })) });
-export const api = { performance: async () => ({ updatedAt: '2026-09-02T05:00:00Z', priceSource: 'Stooq', benchmark: 'SPY', funds: Array.from({ length: 25 }, (_, i) => fund(i)) }) };
+const sectors = ['Technology', 'Healthcare', 'Financials', 'Energy', 'Industrials', 'Consumer Discretionary'];
+const rows = Array.from({ length: 120 }, (_, i) => ({ cusip: `C${i}`, ticker: `T${i}`, issuer: `Company ${i}`, sector: sectors[i % sectors.length], netFlow: (i % 3 === 0 ? -1 : 1) * (5e6 + (i * 7919) % 900e6), value: 1e9 + i * 3e8, funds: 50 + i, adding: 10 + (i % 7), reducing: 5 + (i % 5), diffFunds: 40 }));
+export const api = { stocksUniverse: async () => ({ period: '2026-06-30', prevPeriod: '2026-03-31', rows }), stocksPrev: async () => null };

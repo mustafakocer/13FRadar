@@ -4,6 +4,9 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P2-10 Flow heat map — 2026-09-03
+- New `/heatmap` page: nested treemap of net institutional flow by sector then stock for the selected quarter (from the weekly universe aggregate), with inflow-only / outflow-only views and a sector table. Free plan sees sectors; Pro drills into stocks. Feature flag `heatmap`.
+
 ### P2-9 Backtester — 2026-09-03
 - New Pro backtester: pick a fund or up to five funds (AUM- or equal-weighted), a start quarter and a position count; the portfolio is rebalanced at each filing's release date (quarter end + 45 days) and compared with SPY. Outputs equity curve, total return, CAGR, maximum drawdown, price coverage and a per-quarter table. Feature flag `backtest`.
 

@@ -17,6 +17,7 @@ import Performance from './pages/Performance.jsx';
 import StockScreener from './pages/StockScreener.jsx';
 import Turkiye from './pages/Turkiye.jsx';
 import Backtest from './pages/Backtest.jsx';
+import Heatmap from './pages/Heatmap.jsx';
 import { flagOn } from './lib/flags.js';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
@@ -47,6 +48,7 @@ export default function App() {
     ...(flagOn('performance') ? [{ to: '/performance', label: t('nav.performance'), icon: '🏆' }] : []),
     ...(flagOn('turkeyRadar') ? [{ to: '/turkiye', label: t('nav.turkiye'), icon: '🇹🇷' }] : []),
     ...(flagOn('backtest') ? [{ to: '/backtest', label: t('nav.backtest'), icon: '⏪' }] : []),
+    ...(flagOn('heatmap') ? [{ to: '/heatmap', label: t('nav.heatmap'), icon: '🌡️' }] : []),
     { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
     { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
   ];
@@ -111,6 +113,7 @@ export default function App() {
           <Route path="/stocks" element={<StockScreener />} />
           <Route path="/turkiye" element={<Turkiye />} />
           <Route path="/backtest" element={<Backtest />} />
+          <Route path="/heatmap" element={<Heatmap />} />
         </Routes>
         <SpkNotice />
         <Footer />

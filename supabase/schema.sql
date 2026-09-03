@@ -71,3 +71,40 @@ alter table public.alert_deliveries enable row level security;
 create policy "read own deliveries" on public.alert_deliveries
   for select using (auth.uid() = user_id);
 -- writes happen from the sender job with the service role (bypasses RLS)
+
+-- ---------------------------------------------------------------------------
+-- Watchlists & fund groups (P0-4)
+create table if not exists public.stock_watchlist (
+  user_id uuid not null references auth.users on delete cascade,
+  cusip text not null,
+  ticker text,
+  name text,
+  created_at timestamptz not null default now(),
+  primary key (user_id, cusip)
+);
+alter table public.stock_watchlist enable row level security;
+create policy "own stock watchlist" on public.stock_watchlist
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create table if not exists public.fund_groups (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users on delete cascade,
+  name text not null,
+  weighting text not null default 'aum' check (weighting in ('aum', 'equal')),
+  created_at timestamptz not null default now()
+);
+alter table public.fund_groups enable row level security;
+create policy "own fund groups" on public.fund_groups
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create table if not exists public.fund_group_members (
+  group_id uuid not null references public.fund_groups on delete cascade,
+  user_id uuid not null references auth.users on delete cascade,
+  cik text not null,
+  name text,
+  created_at timestamptz not null default now(),
+  primary key (group_id, cik)
+);
+alter table public.fund_group_members enable row level security;
+create policy "own fund group members" on public.fund_group_members
+  for all using (auth.uid() = user_id) with check (auth.uid() = user_id);

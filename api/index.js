@@ -18,6 +18,9 @@ import positionHistory from './_handlers/position-history.js';
 import holdingsHistory from './_handlers/holdings-history.js';
 import overlap from './_handlers/overlap.js';
 import alerts from './_handlers/alerts.js';
+import watchlistStocks from './_handlers/watchlist-stocks.js';
+import groups from './_handlers/groups.js';
+import groupPortfolio from './_handlers/group-portfolio.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
@@ -47,6 +50,9 @@ const ROUTES = {
   'holdings-history': [holdingsHistory, 'cik'],
   overlap: [overlap],
   alerts: [alerts],
+  'watchlist-stocks': [watchlistStocks],
+  groups: [groups],
+  'group-portfolio': [groupPortfolio],
 };
 
 export default async function handler(req, res) {

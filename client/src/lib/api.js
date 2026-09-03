@@ -39,6 +39,26 @@ export const api = {
     add: (kind, key, label) => get('/api/alerts', { method: 'POST', body: { kind, key, label } }),
     remove: (kind, key) => get('/api/alerts', { method: 'DELETE', body: { kind, key } }),
   },
+  watchlistStocks: {
+    list: () => get('/api/watchlist-stocks'),
+    add: (cusip, ticker, name) => get('/api/watchlist-stocks', { method: 'POST', body: { cusip, ticker, name } }),
+    remove: (cusip) => get('/api/watchlist-stocks', { method: 'DELETE', body: { cusip } }),
+  },
+  groups: {
+    list: () => get('/api/groups'),
+    create: (name, weighting) => get('/api/groups', { method: 'POST', body: { action: 'create', name, weighting } }),
+    rename: (id, patch) => get('/api/groups', { method: 'POST', body: { action: 'rename', id, ...patch } }),
+    addMember: (id, cik, name) => get('/api/groups', { method: 'POST', body: { action: 'add', id, cik, name } }),
+    removeMember: (id, cik) => get('/api/groups', { method: 'POST', body: { action: 'remove', id, cik } }),
+    remove: (id) => get('/api/groups', { method: 'DELETE', body: { id } }),
+  },
+  groupPortfolio: (ciks, weighting) =>
+    get(`/api/group-portfolio?ciks=${ciks.map(encodeURIComponent).join(',')}&weighting=${weighting}`),
+  stocksPrev: async () => {
+    const r = await fetch('/stocks-prev.json');
+    if (!r.ok) return null;
+    return r.json();
+  },
   overlap: (ciks) => get(`/api/overlap?ciks=${ciks.map(encodeURIComponent).join(',')}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),

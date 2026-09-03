@@ -4,6 +4,11 @@ All notable changes to 13F Radar. Dates are UTC.
 
 ## [Unreleased]
 
+### P0-4 Watchlists & fund groups — 2026-09-03
+- Stock watchlist (per user, Supabase) with aggregate institutional ownership: number of 13F filers holding the stock, total value, and quarter-over-quarter change. The universe build now writes `stocks.json` with 2,000 rows + reporting period and rotates the previous period into `stocks-prev.json` when the period advances.
+- Fund groups: create groups, add up to 5 (free) / 20 (Pro) funds, view the combined "super fund" portfolio AUM-weighted or equal-weighted (treemap + table + holder counts) and the group's NEW / ADD / REDUCE / EXIT moves this quarter.
+- Watchlist page now has Fonlar / Hisseler / Fon Grupları tabs; fund favourites capped at 5 on the free plan; ☆ watch button on stock pages. Feature flag `watchlists`.
+
 ### P0-3 Alerts — 2026-09-03
 - Users can follow funds (CIK) and stocks (CUSIP) for email alerts: `🔔` on fund/stock pages, management on the account page. Free plan: 5 subscriptions; Pro unlimited. Feature flag `alerts`.
 - New Supabase tables `alert_subscriptions` and `alert_deliveries` (RLS; deliveries unique per user/kind/key/filing event so nothing is sent twice; amendments create a new event id).

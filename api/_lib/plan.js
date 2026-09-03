@@ -4,8 +4,8 @@ import { isPro } from './auth.js';
 // Plan limits. Free users see the current and the previous quarter only and
 // may follow 5 items; Pro is unlimited.
 export const LIMITS = {
-  free: { quarters: 2, watchlist: 5, compareFunds: 2, alerts: 5 },
-  pro: { quarters: Infinity, watchlist: Infinity, compareFunds: 5, alerts: Infinity },
+  free: { quarters: 2, watchlist: 5, compareFunds: 2, alerts: 5, groups: 1, groupMembers: 5 },
+  pro: { quarters: Infinity, watchlist: Infinity, compareFunds: 5, alerts: Infinity, groups: Infinity, groupMembers: 20 },
 };
 
 /** @param {any} req @returns {Promise<'free'|'pro'>} */

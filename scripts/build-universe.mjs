@@ -11,6 +11,7 @@ import path from 'node:path';
 import axios from 'axios';
 import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
+import { dominantPeriod, rotateSnapshot, withDeltas } from '../api/_lib/stocksSnapshot.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -142,15 +143,29 @@ async function main() {
   fs.writeFileSync(path.join(dataDir, 'cusip-tickers.json'), JSON.stringify(map));
   console.log(`Wrote ${mapped} mappings -> api/_data/cusip-tickers.json`);
 
-  const topStocks = ranked.slice(0, 500);
+  // Quarter-over-quarter: keep the previous period's file so the stock
+  // watchlist / screener can show the change in fund count and value.
+  const readJson = (f) => {
+    try {
+      return JSON.parse(fs.readFileSync(path.join(pub, f), 'utf8'));
+    } catch {
+      return null;
+    }
+  };
+  const period = dominantPeriod(rows.map((r) => r.filed));
+  const { prev, rotated } = rotateSnapshot(readJson('stocks.json'), readJson('stocks-prev.json'), period);
+  if (prev) fs.writeFileSync(path.join(pub, 'stocks-prev.json'), JSON.stringify(prev));
+  const topStocks = withDeltas(ranked.slice(0, 2000), prev);
   fs.writeFileSync(
     path.join(pub, 'stocks.json'),
     JSON.stringify({
       updatedAt: new Date().toISOString(),
+      period,
+      prevPeriod: prev?.period || null,
       rows: topStocks.map((s) => ({ ...s, ticker: tickers[s.cusip] ?? null })),
     })
   );
-  console.log(`Wrote ${topStocks.length} stocks -> stocks.json`);
+  console.log(`Wrote ${topStocks.length} stocks -> stocks.json (period ${period}${rotated ? ', rotated prev snapshot' : ''})`);
 }
 
 main().catch((e) => {

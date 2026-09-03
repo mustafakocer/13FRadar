@@ -18,13 +18,14 @@ export default function Heatmap() {
   const prev = useQuery({ queryKey: ['stocks-prev'], queryFn: () => api.stocksPrev(), staleTime: Infinity, retry: 0 });
   const [period, setPeriod] = useState('current');
   const [metric, setMetric] = useState('net');
+  const [sector, setSector] = useState(null);
   const periods = [
     cur.data?.period && { key: 'current', label: quarterLabel(cur.data.period), rows: cur.data.rows },
     prev.data?.period && prev.data.rows?.some((r) => r.diffFunds) && { key: 'prev', label: quarterLabel(prev.data.period), rows: prev.data.rows },
   ].filter(Boolean);
   const selected = periods.find((p) => p.key === period) || periods[0];
   const tree = useMemo(() => (selected ? buildFlowTree(selected.rows, { metric, maxPerSector: 30, minAbsFlow: 1e6 }) : null), [selected, metric]);
-  const labels = { sector: (s) => t(`sector.${s}`), flow: t('screener.netFlow'), in: t('heat.in'), out: t('heat.out'), stocks: t('screener.count'), value: t('screener.value'), funds: t('screener.funds') };
+  const labels = { sector: (s) => t(`sector.${s}`), flow: t('screener.netFlow'), in: t('heat.in'), out: t('heat.out'), stocks: t('screener.count'), value: t('screener.value'), funds: t('screener.funds'), click: t('heat.click'), all: t('heat.all') };
   const hasData = tree && tree.children.length > 0;
 
   return (
@@ -57,7 +58,17 @@ export default function Heatmap() {
       {cur.data && !hasData && <div className="card muted mt16">{t('heat.noData')}</div>}
       {hasData && (
         <div className="card mt16">
-          <FlowTreemap tree={tree} labels={labels} drill={isPro} />
+          {sector && (
+            <div className="row" style={{ marginBottom: 8 }}>
+              <button className="btn ghost" onClick={() => setSector(null)}>← {t('heat.all')}</button>
+              <b>{t(`sector.${sector}`)}</b>
+            </div>
+          )}
+          <FlowTreemap
+            nodes={sector ? tree.children.find((c) => c.name === sector)?.children || [] : tree.children}
+            labels={labels}
+            onSelect={isPro ? setSector : undefined}
+          />
           {!isPro && <div className="mt16"><Paywall compact /></div>}
           <p className="muted small mt8">{t('heat.note')}</p>
         </div>

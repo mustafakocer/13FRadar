@@ -90,7 +90,7 @@ export function legislatorIndex(legislators) {
   for (const l of legislators) {
     const term = l.terms[l.terms.length - 1];
     if (!term) continue;
-    const party = /^dem/i.test(term.party) ? 'D' : /^rep/i.test(term.party) ? 'R' : 'I';
+    const party = /** @type {'D'|'R'|'I'} */ (/^dem/i.test(term.party) ? 'D' : /^rep/i.test(term.party) ? 'R' : 'I');
     const info = { party, state: term.state, district: term.district != null ? String(term.district) : null, chamber: term.type === 'sen' ? /** @type {const} */ ('senate') : /** @type {const} */ ('house') };
     const keys = new Set([strip(`${l.name.first} ${l.name.last}`), strip(l.name.official_full || ''), strip(`${l.name.last} ${l.name.first}`)]);
     for (const k of keys) if (k) byName.set(`${info.chamber}|${k}`, info);

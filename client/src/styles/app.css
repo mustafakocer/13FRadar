@@ -389,3 +389,39 @@ th.sortable { cursor: pointer; user-select: none; }
 .small { font-size: 12.5px; }
 .mt8 { margin-top: 8px; } .mt16 { margin-top: 16px; } .mt24 { margin-top: 24px; }
 .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ---- auth form -------------------------------------------------------- */
+.auth-card { padding: 28px 28px 22px; }
+.auth-title { margin: 0 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.01em; }
+.auth-sub { margin: 0 0 14px; font-size: 14.5px; line-height: 1.45; }
+.auth-card form { display: flex; flex-direction: column; gap: 14px; margin-top: 6px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > span { font-size: 12.5px; font-weight: 600; color: var(--muted); letter-spacing: .02em; }
+.field input {
+  width: 100%; box-sizing: border-box; padding: 12px 14px; font: inherit; font-size: 15px;
+  border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--ink);
+}
+.field input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 72px; }
+.pw-toggle {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12.5px; font-weight: 600;
+  padding: 6px 8px; border-radius: 6px; cursor: pointer;
+}
+.pw-toggle:hover { background: var(--bg); color: var(--ink); }
+.field .hint { font-size: 12.5px; color: var(--muted); }
+.field .hint.warn { color: var(--neg); }
+.alert { padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; }
+.alert.err { background: var(--neg-soft); color: var(--neg); }
+.alert.ok { background: var(--pos-soft); color: var(--pos); }
+.auth-submit { width: 100%; padding: 13px 16px; font-size: 15px; }
+.btn:disabled, .btn[disabled] { opacity: .55; cursor: not-allowed; }
+.auth-links { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 16px; font-size: 13.5px; color: var(--muted); flex-wrap: wrap; }
+.linklike { border: 0; background: none; padding: 0; font: inherit; font-size: inherit; color: var(--ink); font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.linklike:hover { opacity: .8; }
+.auth-success { text-align: center; padding: 8px 4px; }
+.auth-success .auth-icon { font-size: 40px; margin-bottom: 6px; }
+.auth-success h2 { margin: 0 0 8px; font-size: 22px; }
+.auth-success p { margin: 0 0 8px; }
+.auth-success .alert { margin: 10px auto; text-align: left; }

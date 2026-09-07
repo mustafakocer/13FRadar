@@ -94,7 +94,7 @@ export default function Pricing() {
             {isPro && configured ? (
               <span className="badge pos">{t('pricing.current')}</span>
             ) : !user && configured ? (
-              <Link to="/account" className="btn" style={{ textDecoration: 'none' }}>
+              <Link to="/account?next=/pricing" className="btn" style={{ textDecoration: 'none' }}>
                 {t('pricing.signInFirst')}
               </Link>
             ) : (

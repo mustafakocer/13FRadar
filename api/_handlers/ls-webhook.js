@@ -33,15 +33,30 @@ const LIFECYCLE_EVENTS = new Set([
 const ACTIVE_STATUSES = new Set(['active', 'on_trial', 'past_due']);
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// The signature covers the exact bytes Lemon Squeezy sent, so the body must be
-// read raw (api/index.js disables Vercel's body parser for this reason).
-async function readRawBody(req) {
-  if (typeof req.body === 'string') return req.body;
-  if (Buffer.isBuffer(req.body)) return req.body.toString('utf8');
-  if (req.body && typeof req.body === 'object') return null; // already parsed — bytes are gone
-  const chunks = [];
-  for await (const chunk of req) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  return Buffer.concat(chunks).toString('utf8');
+// The signature covers the exact bytes Lemon Squeezy sent, so the body has
+// to be read raw from the request stream. Vercel's Node helpers consume the
+// stream to build req.body but replay it afterwards, so 'data'/'end' listeners
+// still receive the original bytes; the local dev server never touches it.
+function readRawBody(req) {
+  return new Promise((resolve) => {
+    const chunks = [];
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      resolve(Buffer.concat(chunks).toString('utf8'));
+    };
+    req.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
+    req.on('end', finish);
+    req.on('error', finish);
+    setTimeout(finish, 3000); // never hang a delivery
+  }).then((raw) => {
+    if (raw) return raw;
+    const b = req.body;
+    if (typeof b === 'string') return b;
+    if (Buffer.isBuffer(b)) return b.toString('utf8');
+    return null; // parsed object only — the original bytes are gone
+  });
 }
 
 function signatureValid(raw, header, secret) {

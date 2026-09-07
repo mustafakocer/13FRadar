@@ -69,11 +69,13 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
 
-  const secret = process.env.LS_WEBHOOK_SECRET;
-  if (!secret) return res.status(500).json({ error: 'Webhook not configured' });
-
+  // Read the raw bytes first so a misconfigured body parser is visible even
+  // before the signing secret is set up.
   const raw = await readRawBody(req);
   if (raw == null) return res.status(500).json({ error: 'raw-body-unavailable' });
+
+  const secret = process.env.LS_WEBHOOK_SECRET;
+  if (!secret) return res.status(500).json({ error: 'Webhook not configured' });
 
   if (!signatureValid(raw, req.headers['x-signature'], secret)) {
     return res.status(401).json({ error: 'Bad signature' });

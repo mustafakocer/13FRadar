@@ -6,12 +6,12 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 12
+# probe-run: 13
 
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 12
     steps:
       - name: Probe stock endpoint
         run: |

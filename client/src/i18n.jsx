@@ -429,6 +429,7 @@ const dict = {
     'pricing.billYearly': 'Yıllık',
     'pricing.twoFree': '2 ay ücretsiz',
     'pricing.yearlySub': 'yıllık tek ödeme · istediğiniz zaman iptal',
+    'table.lockedNote': 'Ücretsiz planda ilk 10 pozisyon görünür. Kalan {n} pozisyon, tam portföy ve çeyrek değişimleri Pro ile açılır.',
     'palette.placeholder': 'Yönetici veya ticker ara…',
     'palette.goStock': 'Hisseye git:',
     'stock.limitedData':
@@ -858,6 +859,7 @@ const dict = {
     'pricing.billYearly': 'Yearly',
     'pricing.twoFree': '2 months free',
     'pricing.yearlySub': 'billed yearly · cancel anytime',
+    'table.lockedNote': 'The free plan shows the top 10 positions. The remaining {n} positions, the full portfolio and quarter changes unlock with Pro.',
     'palette.placeholder': 'Search manager or ticker…',
     'palette.goStock': 'Go to stock:',
     'stock.limitedData':

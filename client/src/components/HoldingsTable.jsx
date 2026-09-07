@@ -50,7 +50,7 @@ function HistoryPanel({ cik, cusip, t }) {
   );
 }
 
-export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName }) {
+export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked }) {
   const { t } = useI18n();
   const { isPro } = useAuth();
   const [filter, setFilter] = useState('');
@@ -125,7 +125,9 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
           onChange={(e) => setFilter(e.target.value)}
         />
         <span className="muted small">
-          {rows.length} {t('table.showing')}
+          {locked && total > rows.length
+            ? `${rows.length} / ${total} ${t('table.showing')}`
+            : `${rows.length} ${t('table.showing')}`}
         </span>
         {isPro && (
           <button className="btn" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting}>
@@ -213,8 +215,13 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
           </tbody>
         </table>
       </div>
-      {!isPro && rows.length > 10 && (
+      {!isPro && (locked || rows.length > 10) && (
         <div className="mt16">
+          {locked && total > rows.length && (
+            <p className="muted small" style={{ marginBottom: 8 }}>
+              {t('table.lockedNote').replace('{n}', String(total - rows.length))}
+            </p>
+          )}
           <Paywall compact>{null}</Paywall>
         </div>
       )}

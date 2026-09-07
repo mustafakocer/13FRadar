@@ -19,9 +19,15 @@ fs.mkdirSync(pub, { recursive: true });
 // ---- consensus.json -------------------------------------------------------
 console.log('Building consensus…');
 const consensus = await build();
-fs.writeFileSync(path.join(pub, 'consensus.json'), JSON.stringify(consensus));
+// Public file: only the free part (most-held). Buys/sells/new positions are
+// Pro data and go to api/_data (served by /api/consensus behind the paywall).
+const { updatedAt, managers, mostHeld } = consensus;
+fs.writeFileSync(path.join(pub, 'consensus.json'), JSON.stringify({ updatedAt, managers, mostHeld }));
+const dataDir = path.join(process.cwd(), 'api', '_data');
+fs.mkdirSync(dataDir, { recursive: true });
+fs.writeFileSync(path.join(dataDir, 'consensus-pro.json'), JSON.stringify(consensus));
 console.log(
-  `consensus.json: ${consensus.managers.length} managers, ${consensus.mostHeld.length} most-held`
+  `consensus.json (public) + consensus-pro.json: ${managers.length} managers, ${mostHeld.length} most-held, ${consensus.topBought.length} bought, ${consensus.newPositions.length} new`
 );
 
 // ---- returns.json ---------------------------------------------------------

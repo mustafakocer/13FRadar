@@ -22,6 +22,10 @@ import diag from './_handlers/diag.js';
 import lsWebhook from './_handlers/ls-webhook.js';
 import geo from './_handlers/geo.js';
 
+// Keep request bodies raw: the payment webhook verifies an HMAC over the exact
+// bytes Lemon Squeezy sent. Every other route is GET and never reads a body.
+export const config = { api: { bodyParser: false } };
+
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
   diag: [diag],

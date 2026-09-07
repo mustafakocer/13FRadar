@@ -49,18 +49,27 @@ export default function Manager() {
   const filing = filings.find((f) => f.acc === acc);
   const prevFiling = filings[filings.findIndex((f) => f.acc === acc) + 1];
 
+  // Pro asks for the whole portfolio (private response); free gets the
+  // server-truncated top 10 plus the true totals.
   const holdings = useQuery({
-    queryKey: ['holdings', cik, acc],
-    queryFn: () => api.holdings(cik, acc, { fd: filing.filingDate, rd: filing.reportDate }),
+    queryKey: ['holdings', cik, acc, isPro],
+    queryFn: () => api.holdings(cik, acc, isPro ? { full: '1' } : {}),
     enabled: !!acc,
     staleTime: 6 * 60 * 60 * 1000,
   });
 
+  // Previous quarter for change detection. Free users may only fetch the
+  // CUSIPs they can already see, so exits below the top 10 stay Pro-only.
+  const visibleCusips = (holdings.data?.positions || []).slice(0, 10).map((p) => p.cusip);
   const prevHoldings = useQuery({
-    queryKey: ['holdings-light', cik, prevFiling?.acc],
+    queryKey: ['holdings-light', cik, prevFiling?.acc, isPro, isPro ? '' : visibleCusips.join(',')],
     queryFn: () =>
-      api.holdings(cik, prevFiling.acc, { fd: prevFiling.filingDate, light: '1' }),
-    enabled: !!prevFiling,
+      api.holdings(
+        cik,
+        prevFiling.acc,
+        isPro ? { light: '1', full: '1' } : { light: '1', cusips: visibleCusips.join(',') }
+      ),
+    enabled: !!prevFiling && (isPro || visibleCusips.length > 0),
     staleTime: 6 * 60 * 60 * 1000,
   });
 
@@ -439,6 +448,8 @@ export default function Manager() {
           prevPositions={prevHoldings.data?.positions || null}
           returns={returns.data}
           cik={mgr.data.cik}
+          total={holdings.data?.count}
+          locked={!!holdings.data?.locked}
           exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
         />
       )}

@@ -54,8 +54,15 @@ export async function isPro(req) {
   }
 }
 
+// Pro-only responses must never land in the shared CDN cache, where the next
+// anonymous request for the same URL would be served the paid payload.
+export function noStore(res) {
+  res.setHeader('Cache-Control', 'private, no-store');
+}
+
 // Returns true if the request may proceed; otherwise responds 402 itself.
 export async function requirePro(req, res) {
+  noStore(res);
   if (await isPro(req)) return true;
   res.status(402).json({ error: 'pro-required' });
   return false;

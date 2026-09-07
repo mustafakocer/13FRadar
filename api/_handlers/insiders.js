@@ -3,6 +3,7 @@ import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, numCik } from '../_lib/sec.js';
 import { tickerToCik } from '../_lib/tickers.js';
+import { requirePro } from '../_lib/auth.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 const http = axios.create({ timeout: 20000, headers: { 'User-Agent': UA } });
@@ -55,6 +56,7 @@ async function parseForm4(cik, acc) {
 
 // GET /api/insiders/:ticker — recent Form 4 transactions for the issuer.
 export default async function handler(req, res) {
+  if (!(await requirePro(req, res))) return;
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
 
@@ -84,7 +86,6 @@ export default async function handler(req, res) {
         .slice(0, 25);
       return { cik, transactions };
     });
-    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

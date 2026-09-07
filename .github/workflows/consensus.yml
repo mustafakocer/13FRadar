@@ -33,7 +33,7 @@ jobs:
         run: |
           git config user.name 'consensus-bot'
           git config user.email 'actions@github.com'
-          git add --all client/public
+          git add --all client/public api/_data/consensus-pro.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh consensus & returns data'
           # the branch may have moved during the long run — rebase our data

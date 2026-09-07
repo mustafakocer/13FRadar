@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 11
+# probe-run: 12
 
 jobs:
   probe:
@@ -110,3 +110,31 @@ jobs:
           echo "=== [12] error body leakage (upstream URL / stack) ==="
           curl -sS -m 40 "$B/api/holdings/1067983/0000000000-00-000000" | head -c 400; echo
           curl -sS -m 40 "$B/api/manager/999999999" | head -c 400; echo
+      - name: Paywall & webhook verification (post-fix)
+        run: |
+          set +e
+          B="https://13-f-radar-omega.vercel.app"
+          ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc')
+          echo "waiting for the new deployment (holdings response gains a 'locked' field)…"
+          for i in $(seq 1 24); do
+            if curl -sS -m 30 "$B/api/holdings/1067983/$ACC?light=1&v=$i" | jq -e 'has("locked")' >/dev/null 2>&1; then echo "deployed after $((i*10))s"; break; fi
+            sleep 10
+          done
+          echo "=== [A] holdings, anonymous: expect 10 rows, locked=true, full count ==="
+          curl -sS -m 40 "$B/api/holdings/1067983/$ACC?light=1&v=a" | jq -c '{rows: (.positions|length), count, locked, aum}'
+          echo "=== [A2] holdings full=1 without token: still 10 rows, private cache ==="
+          curl -sS -m 40 -D - -o /tmp/h.json "$B/api/holdings/1067983/$ACC?light=1&full=1" | tr -d '\r' | grep -iE '^(HTTP|cache-control|x-vercel-cache)'; jq -c '{rows: (.positions|length), locked}' /tmp/h.json
+          echo "=== [A3] holdings cusips filter (free change detection) ==="
+          curl -sS -m 40 "$B/api/holdings/1067983/$ACC?light=1&cusips=037833100,025816109" | jq -c '{rows: (.positions|length), cusips: [.positions[].cusip]}'
+          echo "=== [A4] invalid accession → 400 fast ==="
+          curl -sS -m 40 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/holdings/1067983/foo"; echo
+          echo "=== [B] newly gated routes → 402 ==="
+          for r in "insiders/AAPL" "filings13dg/AAPL" "consensus"; do printf '%-22s ' "$r"; curl -sS -m 40 -w " [HTTP %{http_code}]" -D /tmp/hd "$B/api/$r" | head -c 80; echo " | $(grep -i cache-control /tmp/hd | tr -d '\r')"; done
+          echo "=== [C] public consensus.json must not carry Pro lists ==="
+          curl -sS -m 20 "$B/consensus.json" | jq -c '{keys: keys, mostHeld: (.mostHeld|length), topBought: (.topBought|length?), newPositions: (.newPositions|length?)}'
+          echo "=== [D] webhook: unsigned POST → 401 (a 500 would mean the raw body could not be read) ==="
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"meta":{"event_name":"subscription_created"}}' "$B/api/ls-webhook"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -H 'X-Signature: deadbeef' -d '{"meta":{"event_name":"subscription_created"}}' "$B/api/ls-webhook"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook?secret=anything"; echo
+          echo "=== [E] free routes still public-cached ==="
+          curl -sS -m 40 -D - -o /dev/null "$B/api/manager/1067983" | tr -d '\r' | grep -iE '^(HTTP|cache-control)'

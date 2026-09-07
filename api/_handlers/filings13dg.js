@@ -1,12 +1,14 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, numCik } from '../_lib/sec.js';
 import { tickerToCik } from '../_lib/tickers.js';
+import { requirePro } from '../_lib/auth.js';
 
 const FORMS = new Set(['SC 13D', 'SC 13D/A', 'SC 13G', 'SC 13G/A', 'SCHEDULE 13D', 'SCHEDULE 13D/A', 'SCHEDULE 13G', 'SCHEDULE 13G/A']);
 
 // GET /api/filings13dg/:ticker — recent activist / large-holder schedules
 // (13D = activist intent, 13G = passive >5% stake) filed against the issuer.
 export default async function handler(req, res) {
+  if (!(await requirePro(req, res))) return;
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
 
@@ -29,7 +31,6 @@ export default async function handler(req, res) {
       }
       return { cik, filings };
     });
-    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=86400');
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

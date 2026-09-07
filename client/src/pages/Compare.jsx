@@ -109,6 +109,7 @@ function StockCompare({ t }) {
 }
 
 function useLatestHoldings(mgr) {
+  const { isPro } = useAuth();
   const info = useQuery({
     queryKey: ['manager', mgr?.cik],
     queryFn: () => api.manager(mgr.cik),
@@ -116,8 +117,8 @@ function useLatestHoldings(mgr) {
   });
   const filing = info.data?.filings?.[0];
   const holdings = useQuery({
-    queryKey: ['holdings', mgr?.cik, filing?.acc],
-    queryFn: () => api.holdings(mgr.cik, filing.acc, { fd: filing.filingDate, rd: filing.reportDate }),
+    queryKey: ['holdings', mgr?.cik, filing?.acc, isPro],
+    queryFn: () => api.holdings(mgr.cik, filing.acc, isPro ? { full: '1' } : {}),
     enabled: !!filing,
     staleTime: 6 * 60 * 60 * 1000,
   });

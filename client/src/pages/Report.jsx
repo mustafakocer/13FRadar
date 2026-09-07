@@ -3,6 +3,8 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { fmtMoney, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useAuth } from '../auth.jsx';
+import Paywall from '../components/Paywall.jsx';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -16,6 +18,7 @@ const Sym = ({ r }) =>
 // Auto-generated quarterly season recap in plain language.
 export default function Report() {
   const { t } = useI18n();
+  const { isPro } = useAuth();
   usePageTitle(`${t('report.title')} — 13F Radar`);
   const { data, isLoading, error } = useConsensusStatic();
 
@@ -58,6 +61,9 @@ export default function Report() {
         </div>
       </div>
 
+      {!isPro && <Paywall />}
+
+      {isPro && (
       <div className="grid grid-2">
         <div className="card">
           <h3>🛒 {t('report.bought')}</h3>
@@ -90,6 +96,7 @@ export default function Report() {
           ))}
         </div>
       </div>
+      )}
 
       <div className="card mt16">
         <h3>👑 {t('report.kings')}</h3>
@@ -104,6 +111,7 @@ export default function Report() {
         </div>
       </div>
 
+      {isPro && (
       <div className="card mt16">
         <h3>🗞️ {t('report.byManager')}</h3>
         {managerRows.length === 0 && <div className="muted small">{t('common.na')}</div>}
@@ -130,6 +138,7 @@ export default function Report() {
           </div>
         ))}
       </div>
+      )}
 
       <p className="muted small mt16">{t('report.note')}</p>
     </div>

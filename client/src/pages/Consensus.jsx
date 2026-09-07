@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { fmtMoney, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -35,25 +36,9 @@ export default function Consensus() {
   const { isPro } = useAuth();
   usePageTitle(`${t('consensus.title')} — 13F Radar`);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['consensus'],
-    // static-first: the daily precomputed CDN file loads in milliseconds;
-    // the API build is only a fallback if the file is missing.
-    queryFn: async () => {
-      try {
-        const r = await fetch('/consensus.json');
-        if (r.ok) {
-          const d = await r.json();
-          if (d?.mostHeld?.length) return d;
-        }
-      } catch {
-        /* fall back to API */
-      }
-      return api.consensus();
-    },
-    staleTime: 6 * 60 * 60 * 1000,
-    retry: 2,
-  });
+  // public part from the static CDN file; buys/sells/new positions come from
+  // the Pro-only API and are merged in for Pro users
+  const { data, isLoading, error, proLoading, proError } = useConsensusStatic();
 
   // whole-universe most-held (static file produced by the GitHub Action)
   const uniStocks = useQuery({
@@ -128,7 +113,23 @@ export default function Consensus() {
         </div>
       )}
 
-      {isPro && (
+      {isPro && proLoading && (
+        <div className="loading mt16">
+          <div className="spinner" />
+          {t('common.loading')}
+        </div>
+      )}
+      {isPro && proError && (
+        <div className="mt16">
+          {proError.status === 402 ? (
+            <Paywall />
+          ) : (
+            <div className="error-box">{t('common.error')}: {String(proError.message)}</div>
+          )}
+        </div>
+      )}
+
+      {isPro && !proLoading && !proError && (
       <>
       <div className="grid grid-2 mt16">
         {[

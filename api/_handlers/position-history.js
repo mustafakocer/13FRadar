@@ -28,7 +28,6 @@ export default async function handler(req, res) {
       });
       return { cusip, history: rows.filter(Boolean) };
     });
-    res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=604800');
     res.status(200).json(payload);
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

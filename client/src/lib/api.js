@@ -16,7 +16,23 @@ async function get(url) {
   return data;
 }
 
+async function post(url) {
+  const r = await fetch(url, {
+    method: 'POST',
+    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    const err = new Error(data.error || `HTTP ${r.status}`);
+    err.status = r.status;
+    throw err;
+  }
+  return data;
+}
+
 export const api = {
+  checkout: (cycle) => post(`/api/checkout?cycle=${cycle === 'y' ? 'y' : 'm'}`),
+  portal: () => post('/api/portal'),
   search: (q) => get(`/api/search?q=${encodeURIComponent(q)}`),
   manager: (cik) => get(`/api/manager/${cik}`),
   holdings: (cik, acc, opts = {}) => {

@@ -12,8 +12,9 @@ Kod incelemesi, canlı site testi (GitHub Actions runner'ından `curl`) ve veri 
 
 | Bulgu | Durum | Commit |
 |---|---|---|
-| K1 · Ödeme olayları Free'ye düşürüyor | ✅ Düzeltildi. Yalnızca abonelik yaşam döngüsü olayları plan değiştiriyor; `subscription_payment_*` yoksayılıyor. | `ec3848c` |
-| K2 · Webhook imza doğrulaması | ✅ Düzeltildi. `X-Signature` HMAC-SHA256 ham gövde üzerinde, `timingSafeEqual`; `?secret=` kaldırıldı; `user_id` UUID kontrolü. Lemon Squeezy'de webhook URL'sini `/api/ls-webhook` (parametresiz) olarak güncelle, imzalama gizli anahtarı `LS_WEBHOOK_SECRET` ile aynı olmalı. | `ec3848c` |
+| K1 · Ödeme olayları Free'ye düşürüyor | ✅ Kapandı. Ödeme sağlayıcısı Stripe'a taşındı; yalnızca `checkout.session.completed` ve `customer.subscription.*` olayları plan değiştiriyor, fatura olayları yoksayılıyor. Yerel test 13/13. | `ec3848c` → Stripe |
+| K2 · Webhook imza doğrulaması | ✅ Kapandı. `Stripe-Signature` (t + v1) ham gövde üzerinde HMAC-SHA256, `timingSafeEqual`, 5 dk replay toleransı; `user_id` UUID kontrolü. Kurulum: `docs/STRIPE-KURULUM.md`. | Stripe |
+| O2 · Bölgesel fiyat atlatma | ✅ Kapandı. TR fiyatını artık sunucu `/api/checkout` içinde IP ülkesine göre seçiyor; istemcide ödeme URL'si yok. | Stripe |
 | K3 · Paywall sadece arayüzde | ✅ Düzeltildi. `holdings` Free için 10 satır + gerçek toplamlar; Pro `?full=1` ile özel (CDN'siz) tam yanıt; `consensus.json` yalnızca en çok tutulanlar, alım/satım/yeni pozisyonlar `/api/consensus` (Pro); `insiders` ve `filings13dg` Pro; tüm Pro yanıtları `private, no-store`. Fon filtreleri (universe.json) ve Excel dışa aktarımı arayüz kilidi olarak kaldı. | `ec3848c` |
 | Y5 · `fd` ile önbellek zehirlenmesi | ✅ Düzeltildi (K3 kapsamında). İstemcinin gönderdiği tarih artık kullanılmıyor; accession biçimi doğrulanıyor. | `ec3848c` |
 | Y6 · CUSIP haritası 470 kayıt | ✅ Kendiliğinden kapandı. 7 Eylül haftalık Action haritayı 5.466 kayda çıkardı (OpenFIGI anahtarı devreye girmiş). `BRK-B`/`BRK.B` normalizasyonu hâlâ açık. | `6bbd238` |

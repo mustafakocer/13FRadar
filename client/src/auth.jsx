@@ -95,6 +95,12 @@ export function AuthProvider({ children }) {
 
   const signOut = useCallback(() => supabase.auth.signOut(), []);
 
+  // Re-read the plan (after returning from Stripe Checkout).
+  const refreshPlan = useCallback(async () => {
+    const { data } = await supabase.auth.getSession();
+    await loadProfile(data.session);
+  }, [loadProfile]);
+
   const value = {
     configured: supabaseConfigured,
     user,
@@ -108,6 +114,7 @@ export function AuthProvider({ children }) {
     resetPassword,
     updatePassword,
     signOut,
+    refreshPlan,
   };
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }

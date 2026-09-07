@@ -5,9 +5,13 @@ create table if not exists public.profiles (
   email text,
   plan text not null default 'free',
   plan_expires timestamptz,
-  ls_customer_id text,
+  stripe_customer_id text,
+  stripe_subscription_id text,
   created_at timestamptz not null default now()
 );
+-- existing databases: add the billing columns (safe to re-run)
+alter table public.profiles add column if not exists stripe_customer_id text;
+alter table public.profiles add column if not exists stripe_subscription_id text;
 alter table public.profiles enable row level security;
 create policy "read own profile" on public.profiles
   for select using (auth.uid() = id);

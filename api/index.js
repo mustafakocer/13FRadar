@@ -19,17 +19,17 @@ import positionHistory from './_handlers/position-history.js';
 import managerStats from './_handlers/manager-stats.js';
 import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
-import lsWebhook from './_handlers/ls-webhook.js';
+import stripeWebhook from './_handlers/stripe-webhook.js';
+import checkout from './_handlers/checkout.js';
+import portal from './_handlers/portal.js';
 import geo from './_handlers/geo.js';
-
-// Keep request bodies raw: the payment webhook verifies an HMAC over the exact
-// bytes Lemon Squeezy sent. Every other route is GET and never reads a body.
-export const config = { api: { bodyParser: false } };
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
   diag: [diag],
-  'ls-webhook': [lsWebhook],
+  'stripe-webhook': [stripeWebhook],
+  checkout: [checkout],
+  portal: [portal],
   geo: [geo],
   search: [search],
   returns: [returns],

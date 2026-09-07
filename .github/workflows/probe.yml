@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 15
+# probe-run: 16
 
 jobs:
   probe:
@@ -68,10 +68,14 @@ jobs:
           echo "=== [2] CORS with foreign Origin on API ==="; H -H "Origin: https://evil.example" "$B/api/holdings/1067983/$ACC" | grep -i access-control || echo "(no ACAO header)"
           echo "=== [3] /api/diag reachable? (info disclosure + 6 outbound fetches per hit) ==="
           curl -sS -m 40 -w " [HTTP %{http_code}, %{time_total}s]" "$B/api/diag" | head -c 300; echo
-          echo "=== [4] webhook: GET, POST w/o secret, POST wrong secret ==="
-          curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/ls-webhook"; echo
-          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook"; echo
-          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook?secret=wrong"; echo
+          echo "=== [4] stripe webhook: GET → 405, unsigned POST → 401 or 'not configured' (never raw-body-unavailable) ==="
+          curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/stripe-webhook"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"type":"checkout.session.completed"}' "$B/api/stripe-webhook"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -H 'Stripe-Signature: t=1,v1=deadbeef' -d '{"type":"x"}' "$B/api/stripe-webhook"; echo
+          echo "=== [4b] checkout/portal: GET → 405, POST without token → 401 or 503 not-configured ==="
+          curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/checkout?cycle=m"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST "$B/api/checkout?cycle=m"; echo
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST "$B/api/portal"; echo
           echo "=== [5] malformed params ==="
           for p in "manager/abc" "manager/../../" "manager/%2e%2e%2f" "manager/00000000000000000000001067983" "holdings/1067983/foo" "holdings/1067983/..%2f..%2f" "chart/AAPL?range=foo" "stock/%3Cscript%3E" "stock/AAPL%27%20OR%201=1" "search?q=" "search?q=%3Cimg%20src=x%3E" "position-history/1067983/x" "returns?symbols=" "sectors?symbols=" "holders?q=" "backtest/abc" "nope" "manager" "manager/1067983/extra"; do
             printf '%-45s ' "$p"; curl -sS -m 40 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/$p" | head -c 160; echo
@@ -132,9 +136,7 @@ jobs:
           for r in "insiders/AAPL" "filings13dg/AAPL" "consensus"; do printf '%-22s ' "$r"; curl -sS -m 40 -w " [HTTP %{http_code}]" -D /tmp/hd "$B/api/$r" | head -c 80; echo " | $(grep -i cache-control /tmp/hd | tr -d '\r')"; done
           echo "=== [C] public consensus.json must not carry Pro lists ==="
           curl -sS -m 20 "$B/consensus.json" | jq -c '{keys: keys, mostHeld: (.mostHeld|length), topBought: (.topBought|length?), newPositions: (.newPositions|length?)}'
-          echo "=== [D] webhook: unsigned POST → 401 (a 500 would mean the raw body could not be read) ==="
-          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"meta":{"event_name":"subscription_created"}}' "$B/api/ls-webhook"; echo
-          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -H 'X-Signature: deadbeef' -d '{"meta":{"event_name":"subscription_created"}}' "$B/api/ls-webhook"; echo
-          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -d '{}' "$B/api/ls-webhook?secret=anything"; echo
+          echo "=== [D] stripe webhook raw-body path: expect 401/500-not-configured, not raw-body-unavailable ==="
+          curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"type":"checkout.session.completed"}' "$B/api/stripe-webhook"; echo
           echo "=== [E] free routes still public-cached ==="
           curl -sS -m 40 -D - -o /dev/null "$B/api/manager/1067983" | tr -d '\r' | grep -iE '^(HTTP|cache-control)'

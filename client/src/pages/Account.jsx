@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
+import { api } from '../lib/api.js';
 
 export default function Account() {
   const { t } = useI18n();
@@ -16,13 +17,42 @@ export default function Account() {
     signUpPassword,
     resetPassword,
     signOut,
+    refreshPlan,
   } = useAuth();
   const [mode, setMode] = useState('signin'); // signin | signup | magic
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [msg, setMsg] = useState(null); // {type:'ok'|'err', text}
   const [busy, setBusy] = useState(false);
+  const [params] = useSearchParams();
+  const justPaid = params.get('checkout') === 'success';
+  const [billingBusy, setBillingBusy] = useState(false);
+  const [billingErr, setBillingErr] = useState(null);
   usePageTitle(`${t('account.title')} — 13F Radar`);
+
+  // Back from Stripe: the webhook flips the plan within seconds — poll a few times.
+  useEffect(() => {
+    if (!justPaid || plan === 'pro' || !refreshPlan) return undefined;
+    let n = 0;
+    const id = setInterval(() => {
+      n++;
+      refreshPlan();
+      if (n >= 10) clearInterval(id);
+    }, 3000);
+    return () => clearInterval(id);
+  }, [justPaid, plan, refreshPlan]);
+
+  const openPortal = async () => {
+    setBillingBusy(true);
+    setBillingErr(null);
+    try {
+      const { url } = await api.portal();
+      window.location.assign(url);
+    } catch (e) {
+      setBillingErr(e.status === 404 ? t('account.noSubscription') : t('account.billingError'));
+      setBillingBusy(false);
+    }
+  };
 
   if (!configured) {
     return (
@@ -155,8 +185,11 @@ export default function Account() {
   return (
     <div className="card" style={{ maxWidth: 560, margin: '40px auto' }}>
       <h3>{t('account.title')}</h3>
+      {justPaid && plan !== 'pro' && (
+        <div className="badge pos" style={{ marginBottom: 12 }}>{t('account.paymentReceived')}</div>
+      )}
       <div className="kv">
-        <span className="k">E-posta</span>
+        <span className="k">{t('account.email')}</span>
         <span className="v">{user.email}</span>
       </div>
       <div className="kv">
@@ -175,10 +208,16 @@ export default function Account() {
             {t('paywall.cta')}
           </Link>
         )}
+        {plan === 'pro' && (
+          <button className="btn ghost" onClick={openPortal} disabled={billingBusy}>
+            {billingBusy ? '…' : t('account.manageBilling')}
+          </button>
+        )}
         <button className="btn ghost" onClick={signOut}>
           {t('account.signOut')}
         </button>
       </div>
+      {billingErr && <div className="muted small mt8">{billingErr}</div>}
     </div>
   );
 }

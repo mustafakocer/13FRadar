@@ -4,17 +4,7 @@ import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { usePageTitle } from '../hooks/usePageTitle.js';
 import { useGeo } from '../hooks/useGeo.js';
-
-const CO = {
-  m: import.meta.env.VITE_CHECKOUT_URL || '',
-  mTR: import.meta.env.VITE_CHECKOUT_URL_TR || import.meta.env.VITE_CHECKOUT_URL || '',
-  y: import.meta.env.VITE_CHECKOUT_URL_YEARLY || import.meta.env.VITE_CHECKOUT_URL || '',
-  yTR:
-    import.meta.env.VITE_CHECKOUT_URL_YEARLY_TR ||
-    import.meta.env.VITE_CHECKOUT_URL_YEARLY ||
-    import.meta.env.VITE_CHECKOUT_URL ||
-    '',
-};
+import { api } from '../lib/api.js';
 
 const FREE_FEATURES = ['pf1', 'pf2', 'pf3', 'pf4'];
 const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
@@ -24,18 +14,28 @@ export default function Pricing() {
   const { user, isPro, configured } = useAuth();
   const geo = useGeo();
   const [cycle, setCycle] = useState('m'); // m | y
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(null);
   usePageTitle(`${t('pricing.title')} — 13F Radar`);
+
+  // Stripe Checkout session is created on the server (it also decides the
+  // regional price from the visitor's IP), then we redirect to Stripe.
+  const startCheckout = async () => {
+    setBusy(true);
+    setErr(null);
+    try {
+      const { url } = await api.checkout(cycle);
+      window.location.assign(url);
+    } catch (e) {
+      setErr(e.status === 503 ? t('pricing.soon') : t('pricing.checkoutError'));
+      setBusy(false);
+    }
+  };
 
   const isTR = geo.data?.country === 'TR';
   // Anchored discount display (TR); annual = 10× monthly everywhere → "2 months free"
   const price = cycle === 'm' ? (isTR ? '$10' : t('pricing.proPrice')) : isTR ? '$100' : '$199';
   const anchor = cycle === 'm' ? (isTR ? '$15' : null) : isTR ? '$120' : '$238';
-  const baseUrl = cycle === 'm' ? (isTR ? CO.mTR : CO.m) : isTR ? CO.yTR : CO.y;
-
-  const checkoutHref =
-    user && baseUrl
-      ? `${baseUrl}?checkout[email]=${encodeURIComponent(user.email)}&checkout[custom][user_id]=${user.id}`
-      : baseUrl;
 
   return (
     <div>
@@ -97,13 +97,12 @@ export default function Pricing() {
               <Link to="/account" className="btn" style={{ textDecoration: 'none' }}>
                 {t('pricing.signInFirst')}
               </Link>
-            ) : checkoutHref ? (
-              <a href={checkoutHref} className="btn" style={{ textDecoration: 'none' }}>
-                {t('pricing.subscribe')}
-              </a>
             ) : (
-              <span className="muted small">{t('pricing.soon')}</span>
+              <button className="btn" onClick={startCheckout} disabled={busy}>
+                {busy ? t('pricing.redirecting') : t('pricing.subscribe')}
+              </button>
             )}
+            {err && <div className="muted small" style={{ marginTop: 8 }}>{err}</div>}
           </div>
         </div>
       </div>

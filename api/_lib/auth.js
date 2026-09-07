@@ -23,7 +23,7 @@ async function planForToken(token) {
     validateStatus: () => true,
     headers: { apikey: anon(), Authorization: `Bearer ${token}` },
   });
-  if (u.status !== 200 || !u.data?.id) return { plan: 'free', userId: null };
+  if (u.status !== 200 || !u.data?.id) return { plan: 'free', userId: null, email: null };
 
   // RLS lets the user read their own profile row with their own token,
   // so no service role key is needed for plan checks.
@@ -37,7 +37,20 @@ async function planForToken(token) {
   const active =
     row?.plan === 'pro' &&
     (!row.plan_expires || new Date(row.plan_expires) > new Date());
-  return { plan: active ? 'pro' : 'free', userId: u.data.id };
+  return { plan: active ? 'pro' : 'free', userId: u.data.id, email: u.data.email || null };
+}
+
+// Signed-in user (id, email, plan) or null. Cached per token for 5 minutes.
+export async function getUser(req) {
+  if (!authConfigured()) return null;
+  const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
+  if (!token) return null;
+  try {
+    const r = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    return r.userId ? { id: r.userId, email: r.email, plan: r.plan } : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function isPro(req) {
@@ -68,20 +81,52 @@ export async function requirePro(req, res) {
   return false;
 }
 
+// ---- service-role access (payment webhook / checkout only) -----------------
+const svcHeaders = () => ({
+  apikey: service(),
+  Authorization: `Bearer ${service()}`,
+  'Content-Type': 'application/json',
+});
+
+async function svcPatch(userId, fields) {
+  const r = await axios.patch(`${url()}/rest/v1/profiles`, fields, {
+    timeout: 8000,
+    validateStatus: () => true,
+    params: { id: `eq.${userId}` },
+    headers: { ...svcHeaders(), Prefer: 'return=minimal' },
+  });
+  if (r.status >= 300) throw new Error(`profiles update HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+}
+
 // Update a user's plan from the payment webhook (service role).
-export async function setUserPlan(userId, plan, expires = null) {
-  await axios.patch(
-    `${url()}/rest/v1/profiles`,
-    { plan, plan_expires: expires },
-    {
-      timeout: 8000,
-      params: { id: `eq.${userId}` },
-      headers: {
-        apikey: service(),
-        Authorization: `Bearer ${service()}`,
-        'Content-Type': 'application/json',
-        Prefer: 'return=minimal',
-      },
-    }
-  );
+export function setUserPlan(userId, plan, expires = null) {
+  return svcPatch(userId, { plan, plan_expires: expires });
+}
+
+// Extra billing columns (stripe_customer_id, …). Callers treat failure as
+// non-fatal so an older schema without the columns keeps working.
+export function setProfileFields(userId, fields) {
+  return svcPatch(userId, fields);
+}
+
+export async function getProfile(userId, select = 'plan,plan_expires') {
+  const r = await axios.get(`${url()}/rest/v1/profiles`, {
+    timeout: 8000,
+    validateStatus: () => true,
+    params: { id: `eq.${userId}`, select },
+    headers: svcHeaders(),
+  });
+  if (r.status !== 200) throw new Error(`profiles read HTTP ${r.status}`);
+  return r.data?.[0] || null;
+}
+
+export async function findUserByCustomer(customerId) {
+  const r = await axios.get(`${url()}/rest/v1/profiles`, {
+    timeout: 8000,
+    validateStatus: () => true,
+    params: { stripe_customer_id: `eq.${customerId}`, select: 'id' },
+    headers: svcHeaders(),
+  });
+  if (r.status !== 200) return null;
+  return r.data?.[0]?.id || null;
 }

@@ -63,6 +63,8 @@ npm run dev:client
 5. (Önerilen) Environment Variables:
    - `SEC_USER_AGENT` → `13FRadar/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
+   - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.
+   - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
 
 ### Evren Verisi (Tarayıcı için)

@@ -28,7 +28,7 @@ import { classifyRole, businessDaysBetween } from '../api/_lib/insiderModel.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
-const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 14); // days scanned per run
+const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 25); // days scanned per run
 const KEEP_SELLS_DAYS = 120; // sells are only needed for the activity stats
 
 const http = axios.create({

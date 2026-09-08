@@ -28,7 +28,7 @@ import { classifyRole, businessDaysBetween } from '../api/_lib/insiderModel.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
-const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 120);
+const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 14); // days scanned per run
 const KEEP_SELLS_DAYS = 120; // sells are only needed for the activity stats
 
 const http = axios.create({
@@ -36,6 +36,19 @@ const http = axios.create({
   headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip, deflate' },
 });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+// Global pacer: SEC's fair-access limit is 10 requests/second per IP and it
+// answers 403 for a while once you cross it. Every EDGAR call goes through
+// here, so concurrency can never push the rate past the limit.
+const MIN_GAP_MS = 130; // ≈7.5 req/s
+let nextSlot = 0;
+async function paced(fn) {
+  const now = Date.now();
+  const at = Math.max(now, nextSlot);
+  nextSlot = at + MIN_GAP_MS;
+  if (at > now) await sleep(at - now);
+  return fn();
+}
 
 const dataDir = path.join(process.cwd(), 'api', '_data');
 const pubDir = path.join(process.cwd(), 'client', 'public');
@@ -77,7 +90,10 @@ async function downloadQuarter({ y, q }, tmp) {
         responseType: 'arraybuffer',
         validateStatus: () => true,
       });
-      if (status !== 200 || !data || data.byteLength < 10000) continue;
+      if (status !== 200 || !data || data.byteLength < 10000) {
+        console.log(`  ${name}: HTTP ${status} from ${host}`);
+        continue;
+      }
       const file = path.join(tmp, name);
       fs.writeFileSync(file, Buffer.from(data));
       console.log(`  downloaded ${name} (${(data.byteLength / 1e6).toFixed(1)} MB) from ${host}`);
@@ -212,6 +228,7 @@ function makeRow({ s, o, code, d, shares, price, owned, acc }) {
   const oc = prev && prev > 0 ? ((owned - prev) / prev) * 100 : null;
   return {
     t: s.ticker,
+    c: s.issuer, // stripped again once the ticker -> name map is built
     ci: s.cik,
     n: o.name,
     r: classifyRole(o),
@@ -233,29 +250,39 @@ async function dailyIndex(day) {
   const y = day.slice(0, 4);
   const q = Math.floor(Number(day.slice(5, 7) - 1) / 3) + 1;
   const url = `https://www.sec.gov/Archives/edgar/daily-index/${y}/QTR${q}/form.${day.replace(/-/g, '')}.idx`;
-  const { data, status } = await http.get(url, {
-    responseType: 'text',
-    transformResponse: [(x) => x],
-    validateStatus: () => true,
-  });
-  if (status !== 200 || typeof data !== 'string') return [];
+  let status = 0;
+  let data = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    ({ data, status } = await paced(() =>
+      http.get(url, { responseType: 'text', transformResponse: [(x) => x], validateStatus: () => true })
+    ));
+    if (status === 200) break;
+    if (status !== 403 && status !== 429) break; // 404 = no filings that day
+    await sleep(5000 * (attempt + 1));
+  }
+  if (status !== 200 || typeof data !== 'string') {
+    if (status !== 404) console.warn(`  ${day}: index HTTP ${status}`);
+    return { files: [], status };
+  }
   const out = [];
   for (const line of data.split('\n')) {
     if (!/^4(\/A)?\s/.test(line)) continue;
     const file = line.trim().split(/\s+/).pop();
     if (file && file.endsWith('.txt')) out.push(file);
   }
-  return out;
+  return { files: out, status };
 }
 
 const OWNERSHIP_RE = /<ownershipDocument>[\s\S]*?<\/ownershipDocument>/i;
 
 async function parseForm4(pathname, filedFallback) {
-  const { data, status } = await http.get(`https://www.sec.gov/Archives/${pathname}`, {
-    responseType: 'text',
-    transformResponse: [(x) => x],
-    validateStatus: () => true,
-  });
+  const { data, status } = await paced(() =>
+    http.get(`https://www.sec.gov/Archives/${pathname}`, {
+      responseType: 'text',
+      transformResponse: [(x) => x],
+      validateStatus: () => true,
+    })
+  );
   if (status !== 200 || typeof data !== 'string') return [];
   const m = OWNERSHIP_RE.exec(data);
   if (!m) return [];
@@ -279,8 +306,7 @@ async function parseForm4(pathname, filedFallback) {
     ticker: String(issuer.issuerTradingSymbol || '').trim().toUpperCase() || null,
     issuer: issuer.issuerName || '',
     cik: String(issuer.issuerCik || '').padStart(10, '0'),
-    filed:
-      normDate(val(od.periodOfReport)) && filedFallback ? filedFallback : filedFallback,
+    filed: filedFallback,
   };
   const ro = arr(od.reportingOwner)[0] || {};
   const rel = ro.reportingOwnerRelationship || {};
@@ -312,30 +338,42 @@ async function parseForm4(pathname, filedFallback) {
 async function fromDailyIndex(fromDay) {
   const rows = [];
   const today = new Date();
-  const days = [];
-  for (let i = 0; i < MAX_DAYS; i++) {
+  const all = [];
+  for (let i = 0; i < 400; i++) {
     const d = new Date(today.getTime() - i * 86400000);
     const day = iso(d);
     if (day <= fromDay) break;
     const dow = d.getUTCDay();
     if (dow === 0 || dow === 6) continue;
-    days.push(day);
+    all.push(day);
   }
-  days.reverse();
-  if (!days.length) return rows;
-  console.log(`Scanning ${days.length} day(s) of the daily index (after ${fromDay})…`);
+  all.reverse();
+  // Oldest first, capped per run: a full day is ~1900 filings ≈ 4 minutes at
+  // SEC's rate limit, so the backlog is worked off over consecutive nights.
+  const days = all.slice(0, MAX_DAYS);
+  if (!days.length) return { rows, scannedThrough: fromDay, remaining: 0 };
+  console.log(
+    `Daily index: ${all.length} day(s) behind (after ${fromDay}); scanning ${days.length} this run…`
+  );
 
+  let scannedThrough = fromDay;
   for (const day of days) {
     let files = [];
+    let status = 0;
     try {
-      files = await dailyIndex(day);
-    } catch {
-      continue;
+      ({ files, status } = await dailyIndex(day));
+    } catch (e) {
+      console.warn(`  ${day}: index failed (${e.message}) — stopping here`);
+      break;
     }
-    if (!files.length) continue;
+    // 403/429 means EDGAR is refusing us; stopping keeps the checkpoint honest
+    if (status !== 200 && status !== 404) {
+      console.warn(`  ${day}: index HTTP ${status} — stopping so the day is retried next run`);
+      break;
+    }
     let kept = 0;
-    // SEC allows 10 req/s; stay near 6 with a small worker pool.
-    const CONC = 6;
+    let failed = 0;
+    const CONC = 8; // the pacer, not this number, decides the request rate
     let i = 0;
     await Promise.all(
       Array.from({ length: CONC }, async () => {
@@ -350,15 +388,19 @@ async function fromDailyIndex(fromDay) {
               kept++;
             }
           } catch {
-            /* skip unparseable filing */
+            failed++;
           }
-          await sleep(160);
         }
       })
     );
-    console.log(`  ${day}: ${files.length} form 4s → ${kept} open-market transactions`);
+    if (files.length && failed > files.length * 0.5) {
+      console.warn(`  ${day}: ${failed}/${files.length} filings unreadable — stopping, will retry`);
+      break;
+    }
+    scannedThrough = day;
+    console.log(`  ${day}: ${files.length} form 4s → ${kept} transactions${failed ? ` (${failed} unreadable)` : ''}`);
   }
-  return rows;
+  return { rows, scannedThrough, remaining: all.length - days.length };
 }
 
 // --------------------------------------------------------------- enrichment
@@ -433,17 +475,11 @@ if (!prevRows.length) {
 }
 
 const daily = await fromDailyIndex(lastDay || iso(new Date(Date.now() - 7 * 86400000)));
-fresh = fresh.concat(daily);
-if (daily.length) {
-  const maxFiled = daily.reduce((m, r) => (r.f > m ? r.f : m), lastDay || '');
-  lastDay = maxFiled || lastDay;
-}
-// even with no new filings, remember how far we scanned
-const todayIso = iso(new Date());
-if (!lastDay || lastDay < todayIso) {
-  const scanned = iso(new Date(Date.now() - 86400000));
-  if (!lastDay || scanned > lastDay) lastDay = scanned;
-}
+fresh = fresh.concat(daily.rows);
+// The checkpoint only moves over days we actually read. A throttled or failed
+// day is left behind so the next run picks it up again.
+if (daily.scannedThrough && daily.scannedThrough > (lastDay || '')) lastDay = daily.scannedThrough;
+if (daily.remaining > 0) console.log(`${daily.remaining} day(s) still to backfill — the next run continues.`);
 
 // merge, de-duplicate (accession + insider + date + shares), trim the window
 const seen = new Set();

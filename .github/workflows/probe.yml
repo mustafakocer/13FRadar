@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 18
+# probe-run: 19
 
 jobs:
   probe:
@@ -147,3 +147,22 @@ jobs:
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"type":"checkout.session.completed"}' "$B/api/stripe-webhook"; echo
           echo "=== [E] free routes still public-cached ==="
           curl -sS -m 40 -D - -o /dev/null "$B/api/manager/1067983" | tr -d '\r' | grep -iE '^(HTTP|cache-control)'
+      - name: Competitor crawl (13radar.com)
+        run: |
+          set +e
+          UA="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+          for path in "/" "/pricing/" "/gurus/" "/stocks/" "/insider/ceo-buys/" "/insights/" "/sitemap.xml" "/robots.txt"; do
+            echo "=================== https://www.13radar.com$path"
+            curl -sSL -m 40 -A "$UA" -o /tmp/p.html -D /tmp/h.txt -w "HTTP %{http_code} · %{size_download} B · %{time_total}s\n" "https://www.13radar.com$path"
+            tr -d '\r' < /tmp/h.txt | grep -iE '^(server|x-powered-by|cf-|x-vercel|x-nextjs|via|cache-control|x-frame|content-security|strict-transport|x-content-type|set-cookie):' | head -12
+            if [ "$path" = "/sitemap.xml" ] || [ "$path" = "/robots.txt" ]; then head -c 3000 /tmp/p.html; echo; continue; fi
+            echo "--- <title> / meta"; grep -oiE '<title>[^<]*</title>|<meta name="description" content="[^"]*"|<meta property="og:[a-z:]+" content="[^"]*"' /tmp/p.html | head -8
+            echo "--- framework hints"; grep -oiE '__NEXT_DATA__|_next/static|__nuxt|nuxt|react|vue|svelte|astro|remix|wp-content|wordpress|webflow|framer|gatsby|tailwind|bootstrap|chakra|mui|fontawesome|googletagmanager|gtag|plausible|posthog|hotjar|clarity|segment|intercom|crisp|stripe|paddle|lemonsqueezy|supabase|firebase|clerk|auth0|cloudflare|vercel' /tmp/p.html | tr 'A-Z' 'a-z' | sort | uniq -c | sort -rn | head -20
+            echo "--- fonts"; grep -oiE 'fonts.googleapis.com/css2?\?[^"'"'"']*|font-family:[^;}]{3,60}' /tmp/p.html | sort -u | head -8
+            echo "--- nav links (href + text)"; grep -oiE '<a [^>]*href="[^"]*"[^>]*>[^<]{1,60}</a>' /tmp/p.html | sed -E 's/<a [^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/\2 → \1/' | grep -vE '^\s*→' | sort -u | head -70
+            echo "--- headings"; grep -oiE '<h[1-4][^>]*>[^<]{1,120}' /tmp/p.html | sed -E 's/<h([1-4])[^>]*>/h\1: /' | head -40
+            echo "--- table headers"; grep -oiE '<th[^>]*>[^<]{1,60}' /tmp/p.html | sed -E 's/<th[^>]*>//' | sort -u | head -40
+            echo "--- numbers with labels (stats)"; grep -oiE '[0-9][0-9,.]*[KMB+]?\s*(funds?|institutions?|filings?|insiders?|stocks?|managers?|gurus?|transactions?|holdings?|users?)' /tmp/p.html | sort -u | head -20
+            echo "--- scripts"; grep -oiE '<script[^>]*src="[^"]*"' /tmp/p.html | sed -E 's/.*src="([^"]*)".*/\1/' | head -15
+            echo "--- body text sample"; sed -E 's/<script[^>]*>[^<]*<\/script>//g; s/<style[^>]*>[^<]*<\/style>//g; s/<[^>]+>/ /g; s/&nbsp;/ /g; s/\s+/ /g' /tmp/p.html | head -c 4000; echo
+          done

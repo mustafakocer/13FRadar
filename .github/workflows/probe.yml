@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 17
+# probe-run: 18
 
 jobs:
   probe:
@@ -72,7 +72,14 @@ jobs:
           curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/stripe-webhook"; echo
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"type":"checkout.session.completed"}' "$B/api/stripe-webhook"; echo
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -H 'Stripe-Signature: t=1,v1=deadbeef' -d '{"type":"x"}' "$B/api/stripe-webhook"; echo
-          echo "=== [4b] checkout/portal: GET → 405, POST without token → 401 or 503 not-configured ==="
+          echo "=== [4b] stripe config: which piece is missing? ==="
+          echo -n "checkout (no token): "; curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST "$B/api/checkout?cycle=m"; echo
+          echo "  503 not-configured  → STRIPE_SECRET_KEY or the price IDs are missing on Vercel"
+          echo "  401 sign-in-required → Stripe keys ARE set; only the bearer token was absent"
+          echo -n "portal   (no token): "; curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST "$B/api/portal"; echo
+          echo -n "webhook (unsigned) : "; curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"type":"x"}' "$B/api/stripe-webhook"; echo
+          echo "  500 Webhook not configured → STRIPE_WEBHOOK_SECRET missing · 401 Bad signature → secret is set"
+          echo "=== [4c] method handling ==="
           curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/checkout?cycle=m"; echo
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST "$B/api/checkout?cycle=m"; echo
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST "$B/api/portal"; echo

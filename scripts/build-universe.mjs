@@ -24,10 +24,24 @@ function prevQuarter({ y, q }) {
   return q === 1 ? { y: y - 1, q: 4 } : { y, q: q - 1 };
 }
 
+// The quarterly index is the backbone of the run: a missed fetch silently
+// drops thousands of filers, so retry before giving up (the Sep 7 run wrote
+// 1,379 funds instead of 7,830 after one such miss).
 async function masterIdx({ y, q }) {
   const url = `https://www.sec.gov/Archives/edgar/full-index/${y}/QTR${q}/master.idx`;
-  const { data } = await http.get(url, { responseType: 'text', transformResponse: [(d) => d] });
-  return data;
+  let last = null;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const r = await http.get(url, {
+      responseType: 'text',
+      transformResponse: [(d) => d],
+      validateStatus: () => true,
+    });
+    if (r.status === 200 && typeof r.data === 'string' && r.data.length > 1000) return r.data;
+    if (r.status === 404) return null; // quarter index not published yet
+    last = r.status;
+    await sleep(4000 * (attempt + 1));
+  }
+  throw new Error(`master.idx ${y}Q${q} unavailable (HTTP ${last})`);
 }
 
 async function main() {
@@ -39,8 +53,15 @@ async function main() {
     let idx;
     try {
       idx = await masterIdx(qt);
-    } catch {
-      continue; // quarter index may not exist yet
+    } catch (e) {
+      // the previous quarter holds the bulk of current filers — without it the
+      // universe would be a fraction of reality, so stop rather than publish it
+      console.error(e.message);
+      process.exit(1);
+    }
+    if (!idx) {
+      console.log(`  ${qt.y}Q${qt.q}: index not published yet`);
+      continue;
     }
     for (const line of idx.split('\n')) {
       // CIK|Company Name|Form Type|Date Filed|Filename
@@ -98,7 +119,7 @@ async function main() {
         }
         done++;
         if (done % 200 === 0) console.log(`  ${done}/${entries.length} (failed: ${failed})`);
-        await sleep(350); // ~2.8 req/s per worker x2 requests -> stays under SEC limits
+        await sleep(500); // 3 workers × 2 requests ≈ 7 req/s, under SEC's 10/s limit
       }
     })
   );
@@ -106,6 +127,20 @@ async function main() {
   rows.sort((a, b) => b.aum - a.aum);
   const pub = path.join(process.cwd(), 'client', 'public');
   fs.mkdirSync(pub, { recursive: true });
+
+  // Never replace a good universe with a partial one: if this run found far
+  // fewer filers than the committed file, something upstream failed.
+  try {
+    const prev = JSON.parse(fs.readFileSync(path.join(pub, 'universe.json'), 'utf8'));
+    if (prev?.count && rows.length < prev.count * 0.7) {
+      console.error(
+        `Only ${rows.length} filers vs ${prev.count} in the committed universe — keeping the old file.`
+      );
+      process.exit(1);
+    }
+  } catch (e) {
+    if (e?.code !== 'ENOENT' && !(e instanceof SyntaxError)) throw e;
+  }
   fs.writeFileSync(
     path.join(pub, 'universe.json'),
     JSON.stringify({ updatedAt: new Date().toISOString(), count: rows.length, rows })

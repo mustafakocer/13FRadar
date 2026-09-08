@@ -34,7 +34,7 @@ export default function SearchBox({ onSelect, placeholder, small = false, autoFo
   const results = data?.results || [];
 
   return (
-    <div className="search-wrap" ref={wrapRef}>
+    <div className={`search-wrap${small ? ' inline' : ''}`} ref={wrapRef}>
       <input
         className={`search-input${small ? ' sm' : ''}`}
         value={text}

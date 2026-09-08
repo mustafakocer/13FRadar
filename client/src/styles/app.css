@@ -102,6 +102,9 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
   box-shadow: var(--shadow);
 }
 .card + .card { margin-top: 16px; }
+/* …but not when they are columns of a grid/flex row — there the gap
+   already spaces them and the margin would misalign the second card. */
+.grid > .card + .card, .row > .card + .card { margin-top: 0; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--ink); }
 
 .grid { display: grid; gap: 16px; }
@@ -136,6 +139,8 @@ h1, h2, h3 { letter-spacing: -0.02em; font-weight: 800; }
 @media (max-width: 840px) { .hero h1 { font-size: 30px; } }
 
 .search-wrap { position: relative; max-width: 640px; margin: 24px auto 0; }
+/* inside a card the box fills its column and brings no hero spacing */
+.search-wrap.inline { max-width: none; margin: 0; }
 .search-input {
   width: 100%;
   padding: 16px 22px;
@@ -425,3 +430,12 @@ th.sortable { cursor: pointer; user-select: none; }
 .auth-success h2 { margin: 0 0 8px; font-size: 22px; }
 .auth-success p { margin: 0 0 8px; }
 .auth-success .alert { margin: 10px auto; text-align: left; }
+
+/* ---- compare pickers -------------------------------------------------- */
+.picker-row { align-items: stretch; }
+.picker-card {
+  display: flex; align-items: center; min-height: 76px;
+  padding: 16px; box-sizing: border-box;
+}
+.picker-card > * { width: 100%; min-width: 0; }
+.picker-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -127,9 +127,9 @@ function useLatestHoldings(mgr) {
 
 function Picker({ label, mgr, setMgr, t }) {
   return (
-    <div className="card" style={{ flex: 1, minWidth: 260 }}>
+    <div className="card picker-card">
       {mgr ? (
-        <div className="row" style={{ justifyContent: 'space-between' }}>
+        <div className="row" style={{ justifyContent: 'space-between', width: '100%' }}>
           <b>{mgr.name}</b>
           <button className="btn ghost" onClick={() => setMgr(null)}>
             ✕
@@ -222,7 +222,7 @@ export default function Compare() {
           {mode === 'stocks' && <StockCompare t={t} />}
 
           {mode === 'managers' && (
-            <div className="row" style={{ alignItems: 'stretch' }}>
+            <div className="grid grid-2 picker-row">
               <Picker label={t('compare.selectA')} mgr={a} setMgr={setA} t={t} />
               <Picker label={t('compare.selectB')} mgr={b} setMgr={setB} t={t} />
             </div>

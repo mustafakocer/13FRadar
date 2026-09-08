@@ -67,4 +67,5 @@ export const api = {
   stockOwnership: (cusip) => get(`/api/stock-ownership?cusip=${encodeURIComponent(cusip)}`),
   managerStats: (cik) => get(`/api/manager-stats/${cik}`),
   filings13dg: (ticker) => get(`/api/filings13dg/${encodeURIComponent(ticker)}`),
+  insiderFeed: (params) => get(`/api/insider-feed?${new URLSearchParams(params).toString()}`),
 };

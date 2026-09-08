@@ -6,7 +6,7 @@ on:
     paths:
       - '.github/workflows/probe.yml'
 
-# probe-run: 16
+# probe-run: 17
 
 jobs:
   probe:
@@ -133,7 +133,7 @@ jobs:
           echo "=== [A4] invalid accession → 400 fast ==="
           curl -sS -m 40 -w " [HTTP %{http_code} %{time_total}s]" "$B/api/holdings/1067983/foo"; echo
           echo "=== [B] newly gated routes → 402 ==="
-          for r in "insiders/AAPL" "filings13dg/AAPL" "consensus"; do printf '%-22s ' "$r"; curl -sS -m 40 -w " [HTTP %{http_code}]" -D /tmp/hd "$B/api/$r" | head -c 80; echo " | $(grep -i cache-control /tmp/hd | tr -d '\r')"; done
+          for r in "insiders/AAPL" "filings13dg/AAPL" "consensus" "insider-feed" "insider-feed?tab=ceo&period=1m"; do printf '%-22s ' "$r"; curl -sS -m 40 -w " [HTTP %{http_code}]" -D /tmp/hd "$B/api/$r" | head -c 80; echo " | $(grep -i cache-control /tmp/hd | tr -d '\r')"; done
           echo "=== [C] public consensus.json must not carry Pro lists ==="
           curl -sS -m 20 "$B/consensus.json" | jq -c '{keys: keys, mostHeld: (.mostHeld|length), topBought: (.topBought|length?), newPositions: (.newPositions|length?)}'
           echo "=== [D] stripe webhook raw-body path: expect 401/500-not-configured, not raw-body-unavailable ==="

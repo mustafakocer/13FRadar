@@ -1,0 +1,51 @@
+name: Build insider trading data
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    # 05:30 UTC — after the consensus job, before the US pre-market. Form 4s
+    # are filed through the evening, so this picks up the previous session.
+    - cron: '30 5 * * 1-6'
+  push:
+    paths:
+      - 'scripts/build-insiders.mjs'
+      - '.github/workflows/insiders.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: insiders-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # the first run pulls a year of quarterly SEC datasets; later runs only
+    # scan the days added since the last commit and take a few minutes
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Build insiders.json
+        run: node scripts/build-insiders.mjs
+        env:
+          SEC_USER_AGENT: '13FRadar insider bot (kocergpt@gmail.com)'
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          INSIDER_MONTHS: '12'
+      - name: Commit if changed
+        run: |
+          git config user.name 'insider-bot'
+          git config user.email 'actions@github.com'
+          git add api/_data/insiders.json api/_data/ticker-meta.json client/public/insiders-teaser.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh insider trading data'
+          # the branch may have moved during the long run — rebase and retry
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1

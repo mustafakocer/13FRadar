@@ -1,0 +1,488 @@
+// Builds the insider-trading dataset from SEC EDGAR.
+//
+//   node scripts/build-insiders.mjs
+//
+// Two sources, because neither covers everything:
+//   1. Quarterly "Insider Transactions Data Sets" (structured TSV inside a zip)
+//      — the whole market, but published ~1 month after each quarter ends.
+//   2. The daily index, for every day after the newest quarterly dataset.
+//      One request per filing, so only the recent tail is scanned.
+//
+// The run is incremental: api/_data/insiders.json is read first and only days
+// newer than the ones already stored are fetched.
+//
+// Outputs
+//   api/_data/insiders.json        full dataset (Pro, served by /api/insider-feed)
+//   client/public/insiders-teaser.json  20 newest buys (public preview)
+//   api/_data/ticker-meta.json     sector / market cap / last price per ticker
+//
+// Env: SEC_USER_AGENT (required by SEC), FMP_API_KEY (optional enrichment),
+//      INSIDER_MONTHS (default 12), INSIDER_MAX_DAYS (daily-index safety cap)
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { execFileSync } from 'node:child_process';
+import axios from 'axios';
+import { parseStringPromise, processors } from 'xml2js';
+import { classifyRole, businessDaysBetween } from '../api/_lib/insiderModel.js';
+
+const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
+const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
+const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 120);
+const KEEP_SELLS_DAYS = 120; // sells are only needed for the activity stats
+
+const http = axios.create({
+  timeout: 60000,
+  headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip, deflate' },
+});
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const dataDir = path.join(process.cwd(), 'api', '_data');
+const pubDir = path.join(process.cwd(), 'client', 'public');
+fs.mkdirSync(dataDir, { recursive: true });
+fs.mkdirSync(pubDir, { recursive: true });
+
+const OUT = path.join(dataDir, 'insiders.json');
+const META = path.join(dataDir, 'ticker-meta.json');
+const iso = (d) => d.toISOString().slice(0, 10);
+const readJson = (p, fallback) => {
+  try {
+    return JSON.parse(fs.readFileSync(p, 'utf8'));
+  } catch {
+    return fallback;
+  }
+};
+
+const cutoff = iso(new Date(Date.now() - MONTHS * 31 * 86400000));
+const sellCutoff = iso(new Date(Date.now() - KEEP_SELLS_DAYS * 86400000));
+
+// ---------------------------------------------------------------- quarterly
+function quarterOf(d) {
+  return { y: d.getUTCFullYear(), q: Math.floor(d.getUTCMonth() / 3) + 1 };
+}
+function prevQuarter({ y, q }) {
+  return q === 1 ? { y: y - 1, q: 4 } : { y, q: q - 1 };
+}
+
+const ZIP_HOSTS = [
+  'https://www.sec.gov/files/structureddata/data/insider-transactions-data-sets',
+  'https://www.sec.gov/files/dera/data/insider-transactions-data-sets',
+];
+
+async function downloadQuarter({ y, q }, tmp) {
+  const name = `${y}q${q}_form345.zip`;
+  for (const host of ZIP_HOSTS) {
+    try {
+      const { data, status } = await http.get(`${host}/${name}`, {
+        responseType: 'arraybuffer',
+        validateStatus: () => true,
+      });
+      if (status !== 200 || !data || data.byteLength < 10000) continue;
+      const file = path.join(tmp, name);
+      fs.writeFileSync(file, Buffer.from(data));
+      console.log(`  downloaded ${name} (${(data.byteLength / 1e6).toFixed(1)} MB) from ${host}`);
+      return file;
+    } catch {
+      /* try next host */
+    }
+  }
+  return null;
+}
+
+// TSV -> array of objects (the SEC files are tab separated with a header row)
+function parseTsv(text) {
+  const lines = text.split(/\r?\n/);
+  const head = lines[0].split('\t');
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i]) continue;
+    const cells = lines[i].split('\t');
+    const o = {};
+    for (let j = 0; j < head.length; j++) o[head[j]] = cells[j];
+    rows.push(o);
+  }
+  return rows;
+}
+
+const unzip = (zip, member) => {
+  try {
+    return execFileSync('unzip', ['-p', zip, member], { maxBuffer: 1024 * 1024 * 512 }).toString('utf8');
+  } catch {
+    return null;
+  }
+};
+
+// SEC dates in the datasets are DD-MON-YYYY (e.g. 04-SEP-2026) or ISO.
+const MON = { JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06', JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12' };
+function normDate(s) {
+  if (!s) return null;
+  const v = String(s).trim();
+  let m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = /^(\d{2})-([A-Z]{3})-(\d{4})/i.exec(v);
+  if (m) return `${m[3]}-${MON[m[2].toUpperCase()] || '01'}-${m[1]}`;
+  return null;
+}
+const num = (x) => {
+  const n = Number(String(x ?? '').replace(/,/g, ''));
+  return Number.isFinite(n) ? n : null;
+};
+const truthy = (x) => ['1', 'true', 'Y', 'y'].includes(String(x ?? '').trim());
+
+async function fromQuarterlyDatasets() {
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'form345-'));
+  const rows = [];
+  let newest = null;
+  const quarters = [];
+  let q = quarterOf(new Date());
+  for (let i = 0; i < Math.ceil(MONTHS / 3) + 1; i++) {
+    quarters.push(q);
+    q = prevQuarter(q);
+  }
+
+  for (const qt of quarters) {
+    const zip = await downloadQuarter(qt, tmp);
+    if (!zip) {
+      console.log(`  ${qt.y}Q${qt.q}: dataset not published yet`);
+      continue;
+    }
+    const sub = parseTsv(unzip(zip, 'SUBMISSION.tsv') || '');
+    const own = parseTsv(unzip(zip, 'REPORTINGOWNER.tsv') || '');
+    const trans = parseTsv(unzip(zip, 'NONDERIV_TRANS.tsv') || '');
+    if (!sub.length || !trans.length) {
+      console.warn(`  ${qt.y}Q${qt.q}: unexpected archive layout, skipping`);
+      continue;
+    }
+
+    const subByAcc = new Map();
+    for (const s of sub) {
+      if (!String(s.DOCUMENT_TYPE || '').startsWith('4')) continue;
+      const filed = normDate(s.FILING_DATE);
+      if (!filed || filed < cutoff) continue;
+      subByAcc.set(s.ACCESSION_NUMBER, {
+        filed,
+        issuer: s.ISSUERNAME || '',
+        cik: String(s.ISSUERCIK || '').padStart(10, '0'),
+        ticker: String(s.ISSUERTRADINGSYMBOL || '').trim().toUpperCase() || null,
+      });
+      if (!newest || filed > newest) newest = filed;
+    }
+
+    const ownByAcc = new Map();
+    for (const o of own) {
+      if (!subByAcc.has(o.ACCESSION_NUMBER)) continue;
+      if (ownByAcc.has(o.ACCESSION_NUMBER)) continue; // first reporting owner
+      ownByAcc.set(o.ACCESSION_NUMBER, {
+        name: (o.RPTOWNERNAME || '').trim(),
+        title: (o.RPTOWNER_TITLE || o.OFFICER_TITLE || '').trim(),
+        isDirector: truthy(o.RPTOWNER_RELATIONSHIP?.includes?.('Director') ? 1 : o.ISDIRECTOR),
+        isOfficer: truthy(o.RPTOWNER_RELATIONSHIP?.includes?.('Officer') ? 1 : o.ISOFFICER),
+        isTenPercentOwner: truthy(
+          o.RPTOWNER_RELATIONSHIP?.includes?.('TenPercentOwner') ? 1 : o.ISTENPERCENTOWNER
+        ),
+      });
+    }
+
+    let kept = 0;
+    for (const tr of trans) {
+      const s = subByAcc.get(tr.ACCESSION_NUMBER);
+      if (!s) continue;
+      const code = String(tr.TRANS_CODE || '').trim().toUpperCase();
+      if (code !== 'P' && code !== 'S') continue;
+      const d = normDate(tr.TRANS_DATE);
+      if (!d || d < cutoff) continue;
+      if (code === 'S' && d < sellCutoff) continue;
+      const shares = num(tr.TRANS_SHARES);
+      const price = num(tr.TRANS_PRICEPERSHARE);
+      if (!shares || shares <= 0) continue;
+      const o = ownByAcc.get(tr.ACCESSION_NUMBER) || { name: '—' };
+      const owned = num(tr.SHRS_OWND_FOLWNG_TRANS);
+      rows.push(makeRow({ s, o, code, d, shares, price, owned, acc: tr.ACCESSION_NUMBER }));
+      kept++;
+    }
+    console.log(`  ${qt.y}Q${qt.q}: ${kept} transactions kept`);
+  }
+  fs.rmSync(tmp, { recursive: true, force: true });
+  return { rows, newest };
+}
+
+function makeRow({ s, o, code, d, shares, price, owned, acc }) {
+  const value = price != null ? shares * price : null;
+  const prev = owned != null ? owned - (code === 'P' ? shares : -shares) : null;
+  const oc = prev && prev > 0 ? ((owned - prev) / prev) * 100 : null;
+  return {
+    t: s.ticker,
+    ci: s.cik,
+    n: o.name,
+    r: classifyRole(o),
+    ti: o.title || null,
+    d,
+    f: s.filed,
+    k: code,
+    s: Math.round(shares),
+    p: price != null ? Number(price.toFixed(4)) : null,
+    v: value != null ? Math.round(value) : null,
+    o: owned != null ? Math.round(owned) : null,
+    oc: oc != null ? Number(oc.toFixed(1)) : null,
+    a: acc,
+  };
+}
+
+// ------------------------------------------------------------- daily index
+async function dailyIndex(day) {
+  const y = day.slice(0, 4);
+  const q = Math.floor(Number(day.slice(5, 7) - 1) / 3) + 1;
+  const url = `https://www.sec.gov/Archives/edgar/daily-index/${y}/QTR${q}/form.${day.replace(/-/g, '')}.idx`;
+  const { data, status } = await http.get(url, {
+    responseType: 'text',
+    transformResponse: [(x) => x],
+    validateStatus: () => true,
+  });
+  if (status !== 200 || typeof data !== 'string') return [];
+  const out = [];
+  for (const line of data.split('\n')) {
+    if (!/^4(\/A)?\s/.test(line)) continue;
+    const file = line.trim().split(/\s+/).pop();
+    if (file && file.endsWith('.txt')) out.push(file);
+  }
+  return out;
+}
+
+const OWNERSHIP_RE = /<ownershipDocument>[\s\S]*?<\/ownershipDocument>/i;
+
+async function parseForm4(pathname, filedFallback) {
+  const { data, status } = await http.get(`https://www.sec.gov/Archives/${pathname}`, {
+    responseType: 'text',
+    transformResponse: [(x) => x],
+    validateStatus: () => true,
+  });
+  if (status !== 200 || typeof data !== 'string') return [];
+  const m = OWNERSHIP_RE.exec(data);
+  if (!m) return [];
+  let doc;
+  try {
+    doc = await parseStringPromise(m[0], {
+      explicitArray: false,
+      ignoreAttrs: true,
+      tagNameProcessors: [processors.stripPrefix],
+    });
+  } catch {
+    return [];
+  }
+  const od = doc?.ownershipDocument;
+  if (!od) return [];
+  const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);
+  const val = (x) => (x && typeof x === 'object' ? x.value : x) ?? null;
+
+  const issuer = od.issuer || {};
+  const s = {
+    ticker: String(issuer.issuerTradingSymbol || '').trim().toUpperCase() || null,
+    issuer: issuer.issuerName || '',
+    cik: String(issuer.issuerCik || '').padStart(10, '0'),
+    filed:
+      normDate(val(od.periodOfReport)) && filedFallback ? filedFallback : filedFallback,
+  };
+  const ro = arr(od.reportingOwner)[0] || {};
+  const rel = ro.reportingOwnerRelationship || {};
+  const o = {
+    name: (ro.reportingOwnerId?.rptOwnerName || '—').trim(),
+    title: (rel.officerTitle || '').trim(),
+    isDirector: truthy(val(rel.isDirector)),
+    isOfficer: truthy(val(rel.isOfficer)),
+    isTenPercentOwner: truthy(val(rel.isTenPercentOwner)),
+  };
+  const acc = /(\d{10}-\d{2}-\d{6})/.exec(pathname)?.[1] || pathname;
+
+  const rows = [];
+  for (const tx of arr(od.nonDerivativeTable?.nonDerivativeTransaction)) {
+    const code = String(val(tx.transactionCoding?.transactionCode) || tx.transactionCoding?.transactionCode || '')
+      .trim()
+      .toUpperCase();
+    if (code !== 'P' && code !== 'S') continue;
+    const d = normDate(val(tx.transactionDate));
+    const shares = num(val(tx.transactionAmounts?.transactionShares));
+    const price = num(val(tx.transactionAmounts?.transactionPricePerShare));
+    const owned = num(val(tx.postTransactionAmounts?.sharesOwnedFollowingTransaction));
+    if (!d || !shares || shares <= 0) continue;
+    rows.push(makeRow({ s, o, code, d, shares, price, owned, acc }));
+  }
+  return rows;
+}
+
+async function fromDailyIndex(fromDay) {
+  const rows = [];
+  const today = new Date();
+  const days = [];
+  for (let i = 0; i < MAX_DAYS; i++) {
+    const d = new Date(today.getTime() - i * 86400000);
+    const day = iso(d);
+    if (day <= fromDay) break;
+    const dow = d.getUTCDay();
+    if (dow === 0 || dow === 6) continue;
+    days.push(day);
+  }
+  days.reverse();
+  if (!days.length) return rows;
+  console.log(`Scanning ${days.length} day(s) of the daily index (after ${fromDay})…`);
+
+  for (const day of days) {
+    let files = [];
+    try {
+      files = await dailyIndex(day);
+    } catch {
+      continue;
+    }
+    if (!files.length) continue;
+    let kept = 0;
+    // SEC allows 10 req/s; stay near 6 with a small worker pool.
+    const CONC = 6;
+    let i = 0;
+    await Promise.all(
+      Array.from({ length: CONC }, async () => {
+        while (i < files.length) {
+          const f = files[i++];
+          try {
+            const parsed = await parseForm4(f, day);
+            for (const r of parsed) {
+              if (r.d < cutoff) continue;
+              if (r.k === 'S' && r.d < sellCutoff) continue;
+              rows.push(r);
+              kept++;
+            }
+          } catch {
+            /* skip unparseable filing */
+          }
+          await sleep(160);
+        }
+      })
+    );
+    console.log(`  ${day}: ${files.length} form 4s → ${kept} open-market transactions`);
+  }
+  return rows;
+}
+
+// --------------------------------------------------------------- enrichment
+// FMP batch endpoints: one request covers many symbols, so this stays well
+// inside the free daily quota. Sector/market cap is cached and only fetched
+// for tickers we have never seen.
+async function enrich(tickers) {
+  const meta = readJson(META, {});
+  const key = process.env.FMP_API_KEY;
+  if (!key) return meta;
+  const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+
+  const unknown = tickers.filter((t) => !meta[t]?.sector);
+  console.log(`Enriching: ${unknown.length} new tickers, ${tickers.length} price refreshes`);
+  for (const group of chunk(unknown, 50).slice(0, 40)) {
+    try {
+      const { data } = await axios.get('https://financialmodelingprep.com/stable/profile', {
+        params: { symbol: group.join(','), apikey: key },
+        timeout: 20000,
+        validateStatus: () => true,
+      });
+      for (const p of Array.isArray(data) ? data : []) {
+        const sym = String(p.symbol || '').toUpperCase();
+        if (!sym) continue;
+        meta[sym] = {
+          ...(meta[sym] || {}),
+          sector: p.sector || null,
+          industry: p.industry || null,
+          mcap: num(p.marketCap ?? p.mktCap),
+          name: p.companyName || meta[sym]?.name || null,
+        };
+      }
+    } catch {
+      /* enrichment is optional */
+    }
+    await sleep(400);
+  }
+  for (const group of chunk(tickers, 50).slice(0, 60)) {
+    try {
+      const { data } = await axios.get('https://financialmodelingprep.com/stable/quote', {
+        params: { symbol: group.join(','), apikey: key },
+        timeout: 20000,
+        validateStatus: () => true,
+      });
+      for (const qd of Array.isArray(data) ? data : []) {
+        const sym = String(qd.symbol || '').toUpperCase();
+        if (!sym) continue;
+        meta[sym] = { ...(meta[sym] || {}), px: num(qd.price), mcap: num(qd.marketCap) ?? meta[sym]?.mcap };
+      }
+    } catch {
+      /* optional */
+    }
+    await sleep(400);
+  }
+  return meta;
+}
+
+// --------------------------------------------------------------------- main
+const existing = readJson(OUT, { rows: [], lastDay: null });
+const prevRows = Array.isArray(existing.rows) ? existing.rows : [];
+console.log(`Existing dataset: ${prevRows.length} rows, last day ${existing.lastDay || '—'}`);
+
+let fresh = [];
+let lastDay = existing.lastDay;
+
+if (!prevRows.length) {
+  console.log('First run — pulling the quarterly SEC datasets…');
+  const q = await fromQuarterlyDatasets();
+  fresh = q.rows;
+  lastDay = q.newest || iso(new Date(Date.now() - 30 * 86400000));
+  console.log(`Quarterly datasets: ${fresh.length} rows through ${lastDay}`);
+}
+
+const daily = await fromDailyIndex(lastDay || iso(new Date(Date.now() - 7 * 86400000)));
+fresh = fresh.concat(daily);
+if (daily.length) {
+  const maxFiled = daily.reduce((m, r) => (r.f > m ? r.f : m), lastDay || '');
+  lastDay = maxFiled || lastDay;
+}
+// even with no new filings, remember how far we scanned
+const todayIso = iso(new Date());
+if (!lastDay || lastDay < todayIso) {
+  const scanned = iso(new Date(Date.now() - 86400000));
+  if (!lastDay || scanned > lastDay) lastDay = scanned;
+}
+
+// merge, de-duplicate (accession + insider + date + shares), trim the window
+const seen = new Set();
+const all = [];
+for (const r of [...prevRows, ...fresh]) {
+  if (!r?.d || r.d < cutoff) continue;
+  if (r.k === 'S' && r.d < sellCutoff) continue;
+  const id = `${r.a}|${r.n}|${r.d}|${r.k}|${r.s}`;
+  if (seen.has(id)) continue;
+  seen.add(id);
+  all.push(r);
+}
+// Ascending by filing date: new rows append at the end and only a small slice
+// falls off the front each day, which keeps the daily git delta tiny.
+all.sort((a, b) => (a.f === b.f ? (a.d < b.d ? -1 : 1) : a.f < b.f ? -1 : 1));
+
+const companies = { ...(existing.companies || {}) };
+for (const r of [...prevRows, ...fresh]) if (r.t && r.c) companies[r.t] = r.c;
+for (const r of all) delete r.c;
+for (const k of Object.keys(companies)) if (!all.some((r) => r.t === k)) delete companies[k];
+
+const tickers = [...new Set(all.filter((r) => r.t).map((r) => r.t))];
+const meta = await enrich(tickers.slice(0, 3000));
+fs.writeFileSync(META, JSON.stringify(meta));
+
+fs.writeFileSync(
+  OUT,
+  JSON.stringify({ updatedAt: new Date().toISOString(), lastDay, count: all.length, companies, rows: all })
+);
+const buys = all.filter((r) => r.k === 'P').slice().reverse();
+fs.writeFileSync(
+  path.join(pubDir, 'insiders-teaser.json'),
+  JSON.stringify({
+    updatedAt: new Date().toISOString(),
+    total: buys.length,
+    rows: buys.slice(0, 20).map((r) => ({ t: r.t, c: companies[r.t] || null, n: r.n, r: r.r, d: r.d, v: r.v, p: r.p })),
+  })
+);
+
+console.log(
+  `insiders.json: ${all.length} rows (${buys.length} buys), ${tickers.length} tickers, through ${lastDay}`
+);

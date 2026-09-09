@@ -8,6 +8,7 @@ on:
   push:
     paths:
       - 'scripts/build-consensus.mjs'
+      - 'api/_lib/consensusBuild.js'
       - '.github/workflows/consensus.yml'
 
 permissions:

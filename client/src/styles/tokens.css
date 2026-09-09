@@ -74,3 +74,20 @@
   --s7: #d55181;
   --s8: #d95926;
 }
+
+/* Landing hero — a fixed deep-navy band in both themes (the brand colour,
+   not the page ink, so the dark theme keeps its own contrast). */
+:root {
+  --hero-bg: #0d1b3e;
+  --hero-bg-2: #12264f;
+  --hero-ink: #ffffff;
+  --hero-muted: #c3cbdd;
+  --hero-line: rgba(255, 255, 255, 0.14);
+  --hero-chip: rgba(255, 255, 255, 0.08);
+  --strip-bg: #0a1530;
+}
+[data-theme='dark'] {
+  --hero-bg: #0a1631;
+  --hero-bg-2: #0f2047;
+  --strip-bg: #070f24;
+}

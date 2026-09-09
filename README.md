@@ -18,7 +18,8 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - 👤 İçeriden işlemler (Form 4) hisse sayfasında
 - 🔔 İzleme listesinde yeni 13F rozetleri, ⌘K komut paleti, 🖨 PDF/yazdır raporu
 - 🌍 Tam evren tarayıcı: haftalık GitHub Action tüm ~8.000 13F dosyalayıcısını tarayıp `client/public/universe.json` üretir
-- 🌗 Açık/koyu tema, 🇹🇷/🇬🇧 çift dil
+- 🏠 **Landing:** akıllı para hero'su, endeks şeridi (SPY/QQQ/IWM), gerçek zamanlı insider sinyalleri (piyasa nabzı · küme / C-suite / kuruş hisse alımları), usta yatırımcı konsensüsü, yönetici bazlı portföy güncellemeleri (Yeni Alım / Artırdı / Azalttı / Çıktı), çeyreklik piyasa aktivitesi — tamamı statik CDN dosyalarından, paywall'suz
+- 🌗 Açık/koyu tema, 🇹🇷/🇬🇧 çift dil — dil otomatik seçilir: Türkiye'den gelen ziyaretçi TR, diğer ülkeler EN (`/api/geo`, Vercel ülke başlığı); TR/EN anahtarı ile yapılan seçim kalıcıdır
 
 ## Mimari
 
@@ -66,6 +67,11 @@ npm run dev:client
    - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.
    - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
+
+### Landing Verisi
+
+Ana sayfa şu statik dosyaları okur (hepsi Action'lar tarafından üretilir, `client/public/`):
+`consensus.json` (en çok tutulanlar + `updates` yönetici kartları), `insiders-teaser.json` (nabız, öne çıkan alım, sinyaller), `returns.json` (endeks şeridi ve YBB getiriler), `universe-summary.json` (fon sayısı, toplam AUM, pozisyon sayısı). `updates` alanı ilk kez **Build consensus & returns** workflow'u çalışınca dolar; o ana kadar "Usta Portföy Güncellemeleri" bölümü gizli kalır.
 
 ### Evren Verisi (Tarayıcı için)
 

@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+import { useGeo } from './hooks/useGeo.js';
 
 const dict = {
   tr: {
@@ -56,6 +57,77 @@ const dict = {
     'search.favorites': 'Takip Listeniz',
     'search.noResults': 'Sonuç bulunamadı',
     'search.filings': 'dosyalama',
+
+    // ---- landing (home) ------------------------------------------------
+    'landing.banner': '🎁 Erken erişim: yıllık Pro planda 2 ay ücretsiz.',
+    'landing.banner.cta': 'Planları gör →',
+    'landing.h1.pre': '',
+    'landing.h1.accent': 'Akıllı Parayı ve İçeriden Alımları',
+    'landing.h1.post': ' Takip Edin',
+    'landing.sub':
+      "Tahmin etmeyi bırakın. Wall Street'in en büyük fonlarının ve şirket yöneticilerinin gerçek para akışını izleyerek piyasayı yenen fırsatları keşfedin.",
+    'landing.cta.start': 'Ücretsiz Başla',
+    'landing.cta.ceo': 'Son CEO Alımlarını Gör',
+    'landing.stat.aum': 'İzlenen varlık',
+    'landing.stat.positions': 'Analiz edilen pozisyon',
+    'landing.stat.live': 'Veri kaynağı',
+    'landing.stat.live.v': 'SEC EDGAR',
+    'landing.stat.funds2': 'Takip edilen fon',
+    'landing.mkt.ytd': 'YBB',
+    'landing.mkt.day': 'Gün',
+    'landing.ins.title': 'Gerçek Zamanlı Insider Sinyalleri',
+    'landing.ins.sub': 'C-suite alımlarını ve küme alım anomalilerini ana akım habere düşmeden önce yakalayın.',
+    'landing.ins.live': 'Canlı veri',
+    'landing.ins.pulse': 'Piyasa Nabzı',
+    'landing.ins.sentiment': 'Insider Duyarlılığı',
+    'landing.ins.buys': 'Alımlar',
+    'landing.ins.sells': 'Satışlar',
+    'landing.ins.highlight': 'ÖNE ÇIKAN',
+    'landing.ins.insiderBuy': 'Insider Alımı',
+    'landing.ins.curated': 'Seçilmiş Insider Sinyalleri',
+    'landing.ins.tab.cluster': 'Küme Alımları',
+    'landing.ins.tab.csuite': 'C-Suite Alımları',
+    'landing.ins.tab.penny': 'Kuruş Hisse Fırsatları',
+    'landing.ins.th.ticker': 'Hisse',
+    'landing.ins.th.signal': 'Sinyal',
+    'landing.ins.th.window': 'Zaman',
+    'landing.ins.th.value': 'Tutar',
+    'landing.ins.th.action': 'İşlem',
+    'landing.ins.insiders': 'Insider',
+    'landing.ins.days': 'gün',
+    'landing.ins.ago': 'önce',
+    'landing.ins.today': 'bugün',
+    'landing.ins.details': 'Detay',
+    'landing.ins.cta': 'Insider Tarayıcıya Git',
+    'landing.ins.empty': 'Bu kategoride son 30 günde sinyal yok.',
+    'landing.ins.asOf': 'Son dosyalama günü',
+    'landing.guru.title': 'Usta Yatırımcı Konsensüsü',
+    'landing.guru.sub': 'En akıllı paranın ne aldığını, sattığını ve tuttuğunu keşfedin',
+    'landing.guru.mostOwned': 'En Çok Tutulan',
+    'landing.guru.byPct': 'Portföy Payına Göre',
+    'landing.guru.conviction': 'Yüksek Kanaat',
+    'landing.guru.gurus': 'Usta',
+    'landing.guru.full': 'Tam Listeyi Gör',
+    'landing.upd.title': 'Usta Portföy Güncellemeleri',
+    'landing.upd.sub': 'En iyi fon yöneticilerinin son çeyrek pozisyon değişimleri',
+    'landing.upd.new': 'Yeni Alım',
+    'landing.upd.add': 'Artırdı',
+    'landing.upd.reduce': 'Azalttı',
+    'landing.upd.exit': 'Çıktı',
+    'landing.upd.none': '—',
+    'landing.upd.more': 'Daha Fazla Göster',
+    'landing.upd.less': 'Daha Az Göster',
+    'landing.act.title': 'Piyasa Aktivitesi',
+    'landing.act.sub': 'Çeyreklik fon akışı trendleri',
+    'landing.act.buys': 'En Çok Alınanlar',
+    'landing.act.sells': 'En Çok Satılanlar',
+    'landing.act.netBuy': 'Net Alım',
+    'landing.act.netSell': 'Net Satış',
+    'landing.act.gurus': 'Usta',
+    'landing.act.ytd': 'YBB Getiri',
+    'landing.act.more': 'Tümünü Gör',
+    'landing.act.note': 'Usta yatırımcı setindeki fonların son çeyrek net alım/satım tutarı (13F, hisse bazında).',
+    'landing.lang.hint': 'Dil',
 
     'manager.overview': 'Özet',
     'manager.portfolio': 'Portföy',
@@ -611,6 +683,77 @@ const dict = {
     'search.noResults': 'No results found',
     'search.filings': 'filings',
 
+    // ---- landing (home) ------------------------------------------------
+    'landing.banner': '🎁 Early access: 2 months free on the yearly Pro plan.',
+    'landing.banner.cta': 'See plans →',
+    'landing.h1.pre': 'Track the ',
+    'landing.h1.accent': 'Smart Money & Insiders',
+    'landing.h1.post': '',
+    'landing.sub':
+      "Stop guessing. Find market-beating ideas by following the real money flows of Wall Street's top funds and corporate insiders.",
+    'landing.cta.start': 'Start Free',
+    'landing.cta.ceo': 'View Latest CEO Buys',
+    'landing.stat.aum': 'Assets tracked',
+    'landing.stat.positions': 'Positions analyzed',
+    'landing.stat.live': 'Data source',
+    'landing.stat.live.v': 'SEC EDGAR',
+    'landing.stat.funds2': 'Investment funds',
+    'landing.mkt.ytd': 'YTD',
+    'landing.mkt.day': '1D',
+    'landing.ins.title': 'Real-Time Insider Signals',
+    'landing.ins.sub': 'Catch C-suite buys and cluster-buying anomalies before they hit the mainstream news.',
+    'landing.ins.live': 'Live data',
+    'landing.ins.pulse': 'Market Pulse',
+    'landing.ins.sentiment': 'Insider Sentiment',
+    'landing.ins.buys': 'Buys',
+    'landing.ins.sells': 'Sells',
+    'landing.ins.highlight': 'HIGHLIGHT',
+    'landing.ins.insiderBuy': 'Insider Buy',
+    'landing.ins.curated': 'Curated Insider Signals',
+    'landing.ins.tab.cluster': 'Cluster Buys',
+    'landing.ins.tab.csuite': 'C-Suite Buys',
+    'landing.ins.tab.penny': 'Penny Gems',
+    'landing.ins.th.ticker': 'Ticker',
+    'landing.ins.th.signal': 'Signal',
+    'landing.ins.th.window': 'Window',
+    'landing.ins.th.value': 'Value',
+    'landing.ins.th.action': 'Action',
+    'landing.ins.insiders': 'Insiders',
+    'landing.ins.days': 'days',
+    'landing.ins.ago': 'ago',
+    'landing.ins.today': 'today',
+    'landing.ins.details': 'Details',
+    'landing.ins.cta': 'Access Insider Screener',
+    'landing.ins.empty': 'No signals in this category in the last 30 days.',
+    'landing.ins.asOf': 'Latest filing day',
+    'landing.guru.title': 'Guru Conviction',
+    'landing.guru.sub': 'Discover what the smartest money is buying, selling and holding',
+    'landing.guru.mostOwned': 'Top Most Owned',
+    'landing.guru.byPct': 'Top Stocks By %',
+    'landing.guru.conviction': 'High Conviction',
+    'landing.guru.gurus': 'Gurus',
+    'landing.guru.full': 'View Full List',
+    'landing.upd.title': 'Guru Portfolio Updates',
+    'landing.upd.sub': 'Latest quarterly position changes from top investment managers',
+    'landing.upd.new': 'New Buy',
+    'landing.upd.add': 'Add',
+    'landing.upd.reduce': 'Reduce',
+    'landing.upd.exit': 'Sold Out',
+    'landing.upd.none': '—',
+    'landing.upd.more': 'View More',
+    'landing.upd.less': 'Show Less',
+    'landing.act.title': 'Market Activity',
+    'landing.act.sub': 'Quarterly fund flow trends',
+    'landing.act.buys': 'Top Buys',
+    'landing.act.sells': 'Top Sells',
+    'landing.act.netBuy': 'Net Buys',
+    'landing.act.netSell': 'Net Sells',
+    'landing.act.gurus': 'Gurus',
+    'landing.act.ytd': 'YTD Return',
+    'landing.act.more': 'View All',
+    'landing.act.note': 'Net quarterly buy/sell value across the superinvestor set (13F, per stock).',
+    'landing.lang.hint': 'Language',
+
     'manager.overview': 'Overview',
     'manager.portfolio': 'Portfolio',
     'manager.holdings': 'All Positions',
@@ -1109,17 +1252,53 @@ const dict = {
 
 const I18nCtx = createContext(null);
 
+// Language resolution, in priority order:
+//   1. an explicit choice (the TR/EN switch) persisted in localStorage
+//   2. the visitor's country (Vercel geo header via /api/geo): Türkiye → TR,
+//      everywhere else → EN
+//   3. until geo answers: the browser language, so the first paint is close
+const readStored = () => {
+  try {
+    const v = localStorage.getItem('lang');
+    return v === 'tr' || v === 'en' ? v : null;
+  } catch {
+    return null;
+  }
+};
+const browserGuess = () =>
+  (typeof navigator !== 'undefined' && (navigator.language || '').toLowerCase().startsWith('tr')) ? 'tr' : 'en';
+
 export function I18nProvider({ children }) {
-  const [lang, setLang] = useState(() => localStorage.getItem('lang') || 'tr');
-  const t = useCallback((key) => dict[lang][key] ?? dict.en[key] ?? key, [lang]);
-  const toggle = useCallback(() => {
-    setLang((l) => {
-      const next = l === 'tr' ? 'en' : 'tr';
+  const [explicit, setExplicit] = useState(() => readStored());
+  const [lang, setLangState] = useState(() => explicit || browserGuess());
+  const geo = useGeo();
+
+  useEffect(() => {
+    if (explicit) return;
+    const country = geo.data?.country;
+    if (!country) return;
+    setLangState(country === 'TR' ? 'tr' : 'en');
+  }, [explicit, geo.data]);
+
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
+
+  const setLang = useCallback((next) => {
+    if (next !== 'tr' && next !== 'en') return;
+    try {
       localStorage.setItem('lang', next);
-      return next;
-    });
+    } catch {
+      /* private mode — the choice lives for this session only */
+    }
+    setExplicit(next);
+    setLangState(next);
   }, []);
-  return <I18nCtx.Provider value={{ lang, t, toggle }}>{children}</I18nCtx.Provider>;
+  const toggle = useCallback(() => setLang(lang === 'tr' ? 'en' : 'tr'), [lang, setLang]);
+
+  const t = useCallback((key) => dict[lang][key] ?? dict.en[key] ?? key, [lang]);
+  const value = useMemo(() => ({ lang, t, toggle, setLang }), [lang, t, toggle, setLang]);
+  return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
 }
 
 export const useI18n = () => useContext(I18nCtx);

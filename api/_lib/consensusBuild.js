@@ -19,12 +19,15 @@ export async function build() {
         /* prev optional */
       }
     }
-    return { name: m.name, cik: m.cik, reportDate: fl[0].reportDate, cur, prev };
+    return { name: m.name, cik: m.cik, reportDate: fl[0].reportDate, filed: fl[0].filingDate, cur, prev };
   });
   const managers = per.filter(Boolean);
 
   const agg = new Map();
   const newPositions = [];
+  // Per-manager quarter-over-quarter story for the landing page cards:
+  // new buys, adds, reduces and full exits (top few of each, by weight).
+  const updates = [];
   const blank = (p) => ({
     cusip: p.cusip,
     issuer: p.issuer,
@@ -41,6 +44,7 @@ export async function build() {
     const prevEq = (m.prev?.positions || []).filter((p) => !p.putCall);
     const prevMap = new Map(prevEq.map((p) => [p.cusip, p]));
     const curSet = new Set(curEq.map((p) => p.cusip));
+    const story = { newBuys: [], adds: [], reduces: [], exits: [] };
 
     for (const p of curEq) {
       const a = agg.get(p.cusip) || blank(p);
@@ -51,6 +55,7 @@ export async function build() {
         if (!q) {
           a.buyers++;
           a.buyValue += p.value;
+          story.newBuys.push({ cusip: p.cusip, issuer: p.issuer, weight: p.weight, value: p.value });
           newPositions.push({
             manager: m.name,
             cik: m.cik,
@@ -63,12 +68,15 @@ export async function build() {
         } else {
           const dSh = p.shares - q.shares;
           const px = p.shares > 0 ? p.value / p.shares : 0;
+          const chg = q.shares > 0 ? (dSh / q.shares) * 100 : null;
           if (dSh > 0) {
             a.buyers++;
             a.buyValue += dSh * px;
+            story.adds.push({ cusip: p.cusip, issuer: p.issuer, weight: p.weight, value: dSh * px, change: chg });
           } else if (dSh < 0) {
             a.sellers++;
             a.sellValue += -dSh * px;
+            story.reduces.push({ cusip: p.cusip, issuer: p.issuer, weight: p.weight, value: -dSh * px, change: chg });
           }
         }
       }
@@ -80,7 +88,32 @@ export async function build() {
       const a = agg.get(q.cusip) || blank(q);
       a.sellers++;
       a.sellValue += q.value;
+      story.exits.push({ cusip: q.cusip, issuer: q.issuer, weight: q.weight, value: q.value });
       agg.set(q.cusip, a);
+    }
+    if (m.prev) {
+      const byValue = (x, y) => y.value - x.value;
+      const top = (list, n = 3) =>
+        list
+          .sort(byValue)
+          .slice(0, n)
+          .map((r) => ({
+            cusip: r.cusip,
+            issuer: r.issuer,
+            weight: Number(r.weight.toFixed(2)),
+            value: Math.round(r.value),
+            ...(r.change != null ? { change: Number(r.change.toFixed(2)) } : {}),
+          }));
+      updates.push({
+        manager: m.name,
+        cik: m.cik,
+        reportDate: m.reportDate,
+        filed: m.filed,
+        newBuys: top(story.newBuys),
+        adds: top(story.adds),
+        reduces: top(story.reduces),
+        exits: top(story.exits),
+      });
     }
   }
 
@@ -103,13 +136,27 @@ export async function build() {
   newPositions.sort((x, y) => y.weight - x.weight);
   const newTop = newPositions.slice(0, 40);
 
-  const cusips = [
+  // newest filing first, so the landing shows what changed most recently
+  updates.sort((x, y) => (y.filed || '').localeCompare(x.filed || ''));
+
+  // Tickers: the main lists first (they get the live OpenFIGI budget), then the
+  // per-manager cards — most of those resolve from the static CUSIP map.
+  const main = [
     ...new Set(
       [...mostHeld, ...topBought, ...topSold].map((a) => a.cusip).concat(newTop.map((n) => n.cusip))
     ),
   ].slice(0, 60);
+  const fromCards = updates.flatMap((u) => [...u.newBuys, ...u.adds, ...u.reduces, ...u.exits].map((r) => r.cusip));
+  const cusips = [...new Set([...main, ...fromCards])];
   const tickers = await mapCusipsToTickers(cusips);
   const dress = (a) => ({ ...a, ticker: tickers[a.cusip] ?? null });
+  const dressCard = (u) => ({
+    ...u,
+    newBuys: u.newBuys.map(dress),
+    adds: u.adds.map(dress),
+    reduces: u.reduces.map(dress),
+    exits: u.exits.map(dress),
+  });
 
   return {
     updatedAt: new Date().toISOString(),
@@ -118,5 +165,6 @@ export async function build() {
     topBought: topBought.map(dress),
     topSold: topSold.map(dress),
     newPositions: newTop.map(dress),
+    updates: updates.map(dressCard),
   };
 }

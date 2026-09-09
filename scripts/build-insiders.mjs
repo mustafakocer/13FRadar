@@ -25,6 +25,7 @@ import { execFileSync } from 'node:child_process';
 import axios from 'axios';
 import { parseStringPromise, processors } from 'xml2js';
 import { classifyRole, businessDaysBetween } from '../api/_lib/insiderModel.js';
+import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
@@ -509,15 +510,9 @@ fs.writeFileSync(
   OUT,
   JSON.stringify({ updatedAt: new Date().toISOString(), lastDay, count: all.length, companies, rows: all })
 );
-const buys = all.filter((r) => r.k === 'P').slice().reverse();
-fs.writeFileSync(
-  path.join(pubDir, 'insiders-teaser.json'),
-  JSON.stringify({
-    updatedAt: new Date().toISOString(),
-    total: buys.length,
-    rows: buys.slice(0, 20).map((r) => ({ t: r.t, c: companies[r.t] || null, n: r.n, r: r.r, d: r.d, v: r.v, p: r.p })),
-  })
-);
+const teaser = buildTeaser(all, companies, meta);
+fs.writeFileSync(path.join(pubDir, 'insiders-teaser.json'), JSON.stringify(teaser));
+const buys = all.filter((r) => r.k === 'P');
 
 console.log(
   `insiders.json: ${all.length} rows (${buys.length} buys), ${tickers.length} tickers, through ${lastDay}`

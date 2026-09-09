@@ -186,9 +186,29 @@ async function main() {
     })
   );
   console.log(`Wrote ${topStocks.length} stocks -> stocks.json`);
+  writeUniverseSummary(pub);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+  main().catch((e) => {
+    console.error(e);
+    process.exit(1);
+  });
+}
+
+// Small companion file for the landing-page stat band: the full universe.json
+// is ~1 MB, far too much to download just for three headline numbers.
+export function writeUniverseSummary(pub) {
+  const u = JSON.parse(fs.readFileSync(path.join(pub, 'universe.json'), 'utf8'));
+  const rows = u.rows || [];
+  const sum = (k) => rows.reduce((s, r) => s + (Number.isFinite(r[k]) ? r[k] : 0), 0);
+  const summary = {
+    updatedAt: u.updatedAt,
+    count: rows.length,
+    totalAum: Math.round(sum('aum')),
+    totalPositions: sum('positions'),
+  };
+  fs.writeFileSync(path.join(pub, 'universe-summary.json'), JSON.stringify(summary));
+  console.log(`Wrote universe-summary.json (${summary.count} funds, $${(summary.totalAum / 1e12).toFixed(2)}T)`);
+  return summary;
+}

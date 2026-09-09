@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Routes, Route, NavLink } from 'react-router-dom';
 import { useI18n } from './i18n.jsx';
-import Search from './pages/Search.jsx';
+import Home from './pages/Home.jsx';
 import Manager from './pages/Manager.jsx';
 import Stock from './pages/Stock.jsx';
 import Screen from './pages/Screen.jsx';
@@ -83,7 +83,7 @@ export default function App() {
       </aside>
       <main className="main">
         <Routes>
-          <Route path="/" element={<Search />} />
+          <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />

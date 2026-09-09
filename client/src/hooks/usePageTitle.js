@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT = '13F Radar — Akıllı Para Takibi';
+const DEFAULT = '13F Radar — Track the Smart Money';
 
 export function usePageTitle(title) {
   useEffect(() => {

@@ -7,6 +7,8 @@ import { useSeo } from '../seo.jsx';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { breadcrumbs, quarterText } from '../lib/seoTemplates.js';
 import { Disclaimer } from '../components/Faq.jsx';
+import AnswerBox from '../components/AnswerBox.jsx';
+import { rankingAnswer, truncate155 } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
 
 // Indexable ranking pages computed from the public consensus file
@@ -30,18 +32,21 @@ export default function Rankings() {
   const latest = (data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
   const qt = quarterText(latest, lang);
   const title = t(def.key);
+  const answer = useMemo(() => rankingAnswer({ kind, reportDate: latest, first: rows[0], managers: data?.managers?.length }, lang), [kind, latest, rows, data, lang]);
   useSeo(
     useMemo(
       () => ({
         title: lang === 'tr' ? `${title} — Usta Yatırımcılar ${qt} | 13F Radar` : `${title} — Superinvestors ${qt} | 13F Radar`,
-        description:
-          lang === 'tr'
-            ? `${data?.managers?.length || ''} efsane fonun ${qt} 13F bildirimlerine göre ${title.toLowerCase()} listesi.${rows[0] ? ` 1. sıra: ${rows[0].ticker || rows[0].issuer}.` : ''}`
-            : `${title} across ${data?.managers?.length || ''} legendary funds, from ${qt} 13F filings.${rows[0] ? ` #1: ${rows[0].ticker || rows[0].issuer}.` : ''}`,
+        description: answer
+          ? truncate155(answer)
+          : lang === 'tr'
+            ? `${data?.managers?.length || ''} efsane fonun ${qt} 13F bildirimlerine göre ${title.toLowerCase()} listesi.`
+            : `${title} across ${data?.managers?.length || ''} legendary funds, from ${qt} 13F filings.`,
+        answer,
         path: `/rankings/${kind}`,
         jsonLd: [breadcrumbs(lang, [[t('footer.rankings'), '/rankings/consensus'], [title, `/rankings/${kind}`]])],
       }),
-      [lang, kind, title, qt, rows, data, t]
+      [lang, kind, title, qt, rows, data, t, answer]
     )
   );
   return (
@@ -52,6 +57,7 @@ export default function Rankings() {
           <div className="sub">{lang === 'tr' ? `Usta yatırımcı seti · ${latest ? quarterLabel(latest) : ''}` : `Superinvestor set · ${latest ? quarterLabel(latest) : ''}`}</div>
         </div>
       </div>
+      <AnswerBox text={answer} />
       <div className="row" style={{ gap: 6, marginBottom: 16 }}>
         {Object.keys(KINDS).map((k) => (
           <Link key={k} to={`/rankings/${k}`} className={`chip${k === kind ? ' fsel-active' : ''}`}>{t(KINDS[k].key)}</Link>

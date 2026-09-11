@@ -11,6 +11,7 @@ import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, Spa
 import HoldingsTable from '../components/HoldingsTable.jsx';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
+import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
 import { timeHeldLabel } from '../lib/timeHeld.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
@@ -256,6 +257,8 @@ export default function Manager() {
           </select>
         </div>
       </div>
+
+      <AnswerBox text={seo.answer} />
 
       <div className="tabs">
         {['overview', 'portfolio', 'holdings', ...(hasHist ? ['history'] : [])].map((k) => (

@@ -1,5 +1,18 @@
 import { getSubmissions, list13F, padCik } from '../_lib/sec.js';
 import { slugForCik, filerPath } from '../_lib/slugs.js';
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+// the manager's quarter-over-quarter card from the daily consensus build
+// (curated gurus only) — feeds the answer box's "biggest move"
+function updateCard(cik) {
+  try {
+    const c = require('../../client/public/consensus.json');
+    return (c.updates || []).find((u) => u.cik === cik) || null;
+  } catch {
+    return null;
+  }
+}
 
 export default async function handler(req, res) {
   const cik = String(req.query.cik || '').replace(/\D/g, '');
@@ -16,6 +29,7 @@ export default async function handler(req, res) {
       slug: entry?.slug || null,
       kind: entry?.kind || 'filer',
       path: filerPath(cik),
+      update: updateCard(padCik(cik)),
       city: sub.addresses?.business?.city || null,
       state: sub.addresses?.business?.stateOrCountry || null,
       filings,

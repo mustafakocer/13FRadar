@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
+import AnswerBox from '../components/AnswerBox.jsx';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { stockSeo } from '../lib/seoTemplates.js';
 import {
@@ -113,9 +114,10 @@ export default function Stock() {
     const rows = consensus.data?.mostHeld || [];
     return rows.find((r) => (cusip && r.cusip === cusip) || (r.ticker && r.ticker === ticker)) || null;
   }, [consensus.data, cusip, ticker]);
+  const reportDate = useMemo(() => (consensus.data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), ''), [consensus.data]);
   const seo = useMemo(
-    () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data, consensusRow }),
-    [lang, ticker, cusip, data, holders.data, consensusRow]
+    () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data, consensusRow, reportDate }),
+    [lang, ticker, cusip, data, holders.data, consensusRow, reportDate]
   );
   useSeo(seo);
 
@@ -167,6 +169,8 @@ export default function Stock() {
           </div>
         </div>
       </div>
+
+      <AnswerBox text={seo.answer} />
 
       <GuruSignal ticker={ticker} cusip={cusip} />
 

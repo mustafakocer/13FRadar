@@ -1,4 +1,5 @@
 import { fmtMoney, quarterLabel } from './format.js';
+import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155 } from './answerBox.js';
 
 // Title / description templates per entity type, TR and EN. Every
 // description carries real numbers from the data so no two pages read alike.
@@ -38,6 +39,8 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
     description += ' Quarterly buys, sells, new positions and exits from SEC EDGAR data.';
   }
   const path = manager?.path || `/manager/${cik}`;
+  const answer = guruAnswerFromPage({ manager, filing, holdings, prevPositions, update: manager?.update }, lang);
+  if (answer) description = truncate155(answer);
   const faq = managerFaq({ lang, name, filing, holdings, prevPositions });
   const crumbs = breadcrumbs(lang, [
     manager?.kind === 'guru' ? [lang === 'tr' ? 'Usta Yatırımcılar' : 'Superinvestors', '/gurus'] : [lang === 'tr' ? '13F Dosyalayan Kurumlar' : '13F Filers', '/filers'],
@@ -50,11 +53,12 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
     image: `/api/og?type=guru&cik=${cik}`,
     type: 'article',
     faq,
+    answer,
     jsonLd: [crumbs, ...(faq.length ? [faqJsonLd(faq)] : [])],
   };
 }
 
-export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow }) {
+export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow, reportDate }) {
   const sym = (stock?.price?.symbol || ticker || '').toUpperCase();
   const company = stock?.price?.name || sym;
   const n = holders?.total ?? holders?.holders?.length;
@@ -74,10 +78,13 @@ export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow }) 
     description += ' Largest holders, quarterly share changes, superinvestor signal and valuation ratios.';
   }
   const path = `/stock/${sym}`;
+  const answer = stock ? stockAnswerFromPage({ ticker: sym, company, consensusRow, reportDate, holders }, lang) : null;
+  if (answer) description = truncate155(answer);
   const faq = stockFaq({ lang, ticker: sym, company, holders, consensusRow });
   return {
     title,
     description,
+    answer,
     // one canonical per ticker: the ?cusip variant is a query-time hint only
     path,
     image: `/api/og?type=stock&ticker=${encodeURIComponent(sym)}`,

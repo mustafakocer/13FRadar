@@ -9,6 +9,8 @@ on:
     paths:
       - 'scripts/build-consensus.mjs'
       - 'api/_lib/consensusBuild.js'
+      - 'scripts/build-guru-history.mjs'
+      - 'scripts/build-splits.mjs'
       - '.github/workflows/consensus.yml'
 
 permissions:
@@ -30,11 +32,16 @@ jobs:
           SEC_USER_AGENT: '13FRadar bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+      - name: Build guru-history.json (10 years, curated gurus) & splits.json
+        run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs
+        env:
+          SEC_USER_AGENT: '13FRadar bot (kocergpt@gmail.com)'
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
       - name: Commit if changed
         run: |
           git config user.name 'consensus-bot'
           git config user.email 'actions@github.com'
-          git add --all client/public api/_data/consensus-pro.json
+          git add --all client/public api/_data/consensus-pro.json api/_data/guru-history.json api/_data/splits.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh consensus & returns data'
           # the branch may have moved during the long run — rebase our data

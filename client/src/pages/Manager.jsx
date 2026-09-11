@@ -17,6 +17,7 @@ import BacktestChart from '../components/Charts/BacktestChart.jsx';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
+import { timeHeldLabel } from '../lib/timeHeld.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
@@ -83,10 +84,15 @@ export default function Manager() {
     enabled: !!prevFiling && (isPro || visibleCusips.length > 0),
     staleTime: 6 * 60 * 60 * 1000,
   });
+  const prevByCusip = useMemo(
+    () => new Map((prevHoldings.data?.positions || []).map((p) => [p.cusip, p])),
+    [prevHoldings.data]
+  );
 
   const aumHist = useQuery({
     queryKey: ['aum', cik],
     queryFn: () => api.aumHistory(cik),
+    enabled: !!cik,
     staleTime: 6 * 60 * 60 * 1000,
   });
 
@@ -139,9 +145,21 @@ export default function Manager() {
     retry: 1,
   });
 
+  // precomputed 10-year history for curated gurus (404 for other filers)
+  const hist = useQuery({
+    queryKey: ['guru-history', cik],
+    queryFn: () => api.guruHistory(cik),
+    enabled: !!cik,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 0,
+  });
+  const hasHist = !!hist.data?.quarters?.length;
+  const guruSlug = mgr.data?.kind === 'guru' ? mgr.data.slug : null;
+
   const mstats = useQuery({
     queryKey: ['mstats', cik],
     queryFn: () => api.managerStats(cik),
+    enabled: !!cik,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
@@ -152,10 +170,7 @@ export default function Manager() {
 
   const positions = holdings.data?.positions || [];
   const history = aumHist.data?.history || [];
-  const prevByCusip = useMemo(
-    () => new Map((prevHoldings.data?.positions || []).map((p) => [p.cusip, p])),
-    [prevHoldings.data]
-  );
+
   const latest = history[history.length - 1];
 
   // 1D return, weighted by portfolio weight over resolved tickers
@@ -248,7 +263,7 @@ export default function Manager() {
       </div>
 
       <div className="tabs">
-        {['overview', 'portfolio', 'holdings'].map((k) => (
+        {['overview', 'portfolio', 'holdings', ...(hasHist ? ['history'] : [])].map((k) => (
           <button key={k} className={`tab${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>
             {t(`manager.${k}`)}
           </button>
@@ -338,6 +353,7 @@ export default function Manager() {
                     <th>{t('table.value')}</th>
                     <th>{t('table.shares')}</th>
                     <th>{t('table.delta')}</th>
+                    {hasHist && <th>{t('hist.timeHeld')}</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -362,6 +378,15 @@ export default function Manager() {
                         <td className={`num ${prevHoldings.data ? (q ? deltaClass(d) : 'delta-pos') : 'muted'}`}>
                           {!prevHoldings.data ? '—' : q ? fmtPct(d) : t('manager.newBadge')}
                         </td>
+                        {hasHist && (
+                          <td className="num">
+                            {guruSlug && p.ticker && hist.data.timeHeld[p.cusip] ? (
+                              <Link to={`/guru/${guruSlug}/${p.ticker}`}>{timeHeldLabel(hist.data.timeHeld[p.cusip].quarters, lang)}</Link>
+                            ) : (
+                              timeHeldLabel(hist.data.timeHeld[p.cusip]?.quarters, lang) || '—'
+                            )}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -522,6 +547,50 @@ export default function Manager() {
             </div>
           )}
         </>
+      )}
+
+      {tab === 'history' && hasHist && (
+        <div className="card">
+          <h3>{t('hist.title')} · {hist.data.lookback} {t('screen.quarter')}</h3>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('hist.quarter')}</th>
+                  <th className="l">{t('hist.filed')}</th>
+                  <th>{t('hist.count')}</th>
+                  <th>{t('hist.value')}</th>
+                  <th>{t('hist.turnover')}</th>
+                  <th className="l">{t('hist.top10')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...hist.data.quarters].reverse().map((q) => (
+                  <tr key={q.acc}>
+                    <td className="l"><b>{quarterLabel(q.reportDate)}</b></td>
+                    <td className="l muted">{q.filed}</td>
+                    <td className="num">{fmtNum(q.count)}</td>
+                    <td className="num">{fmtMoney(q.aum)}</td>
+                    <td className="num">{q.turnover != null ? fmtPct(q.turnover, { sign: false }) : '—'}</td>
+                    <td className="l small">
+                      {q.top10.map((tk, i) => (
+                        <span key={`${tk}-${i}`}>
+                          {i > 0 && ', '}
+                          {/^[A-Z0-9.\-]{1,6}$/.test(tk) ? (
+                            guruSlug ? <Link to={`/guru/${guruSlug}/${tk}`}>{tk}</Link> : <Link to={`/stock/${tk}`}>{tk}</Link>
+                          ) : (
+                            <span className="muted">{tk}</span>
+                          )}
+                        </span>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small mt8">{t('hist.splitNote')}</p>
+        </div>
       )}
 
       {!holdings.isLoading && !holdings.error && tab === 'holdings' && (

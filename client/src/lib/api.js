@@ -67,6 +67,8 @@ export const api = {
   stockOwnership: (cusip) => get(`/api/stock-ownership?cusip=${encodeURIComponent(cusip)}`),
   managerStats: (cik) => get(`/api/manager-stats/${cik}`),
   filings13dg: (ticker) => get(`/api/filings13dg/${encodeURIComponent(ticker)}`),
+  guruHistory: (cik) => get(`/api/guru-history/${cik}`),
+  guruTicker: (cik, ticker) => get(`/api/guru-history-ticker/${cik}/${encodeURIComponent(ticker)}`),
   slug: (slug) => get(`/api/slug-of/${encodeURIComponent(slug)}`),
   gurus: () => get('/api/slug?kind=guru'),
   filersByLetter: (letter) => get(`/api/slug?letter=${encodeURIComponent(letter)}`),

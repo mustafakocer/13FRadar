@@ -5,6 +5,7 @@ import holdingsHandler from '../../_handlers/holdings.js';
 import stockHandler from '../../_handlers/stock.js';
 import holdersHandler from '../../_handlers/holders.js';
 import slugHandler from '../../_handlers/slug.js';
+import guruHistoryHandler from '../../_handlers/guru-history.js';
 import { cikForSlug, filerPath } from '../slugs.js';
 
 const require = createRequire(import.meta.url);
@@ -80,6 +81,18 @@ async function loadManager({ cik, slug, kind }) {
   if (r) seeds.push([['static-returns'], r.returns || {}]);
   const c = staticConsensus();
   if (c) seeds.push([['consensus'], c]);
+  const h = await invoke(guruHistoryHandler, { cik });
+  if (h.status === 200) seeds.push([['guru-history', cik], h.body]);
+  return { seeds };
+}
+
+async function loadGuruTicker({ slug, ticker }) {
+  const e = cikForSlug(slug);
+  if (!e || e.kind !== 'guru') return { seeds: [], status: 404 };
+  const seeds = [[['slug', slug], { ...e, slug }]];
+  const p = await invoke(guruHistoryHandler, { cik: e.cik, ticker });
+  if (p.status !== 200) return { seeds, status: 404 };
+  seeds.push([['guru-ticker', e.cik, ticker], p.body]);
   return { seeds };
 }
 
@@ -133,6 +146,7 @@ export const ROUTES = [
   { kind: 'home', re: /^\/$/, load: loadHome, cache: 'hour' },
   { kind: 'manager', re: /^\/manager\/(\d{1,10})$/, params: (m) => ({ cik: m[1].padStart(10, '0') }), load: loadManager, cache: 'day' },
   { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'guru' }), load: loadManager, cache: 'day' },
+  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
   { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'filer' }), load: loadManager, cache: 'day' },
   { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
   { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },

@@ -1,7 +1,7 @@
 import { createRequire } from 'node:module';
 import { requirePro } from '../_lib/auth.js';
 import { cached, TTL } from '../_lib/cache.js';
-import { findClusters, sizeBucket, businessDaysBetween } from '../_lib/insiderModel.js';
+import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES } from '../_lib/insiderModel.js';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions (Pro only).
 //
@@ -15,6 +15,7 @@ import { findClusters, sizeBucket, businessDaysBetween } from '../_lib/insiderMo
 //   change   new | inc10 | inc50 | inc100   ownership change after the trade
 //   lagMin,lagMax          calendar days between trade and filing
 //   late     1 = include filings later than the 2-business-day deadline
+//   cls      comma list of conviction|liquidity|noise (default: conviction,liquidity)
 //   sort     date|value|return|shares|lag   dir asc|desc   page, perPage
 //
 // The dataset ships with the deployment (api/_data/insiders.json), built daily
@@ -59,7 +60,11 @@ function shape(r, meta, companies) {
     date: r.d,
     filed: r.f,
     lag: businessDaysBetween(r.d, r.f),
-    side: r.k === 'P' ? 'buy' : 'sell',
+    side: rowClass(r) === 'liquidity' ? 'sell' : 'buy',
+    code: r.k,
+    kind: CODES[r.k] || 'other',
+    cls: rowClass(r),
+    planned: Boolean(r.p5),
     shares: r.s,
     price: r.p,
     value: r.v,
@@ -167,6 +172,11 @@ export default async function handler(req, res) {
   const sector = String(req.query.sector || '');
   const change = String(req.query.change || '');
   const includeLate = req.query.late === '1';
+  const classes = new Set(
+    String(req.query.cls || 'conviction,liquidity')
+      .split(',')
+      .filter((c) => ['conviction', 'liquidity', 'noise'].includes(c))
+  );
   const sort = ['date', 'value', 'return', 'shares', 'lag'].includes(req.query.sort) ? req.query.sort : 'date';
   const dir = req.query.dir === 'asc' ? 1 : -1;
   const perPage = Math.min(Math.max(Number(req.query.perPage) || 50, 10), 200);
@@ -179,10 +189,16 @@ export default async function handler(req, res) {
   );
   const clusterMap = await clusters;
 
+  // Buy tabs show High-conviction acquisitions (P, C, exercise-and-hold);
+  // the sells tab shows Liquidity events (S, D, exercise cash-outs). Noise
+  // (grants, tax withholding, gifts…) only appears when cls includes it.
   const wantSells = tab === 'sells';
   let out = [];
   for (const r of rows) {
-    if (wantSells ? r.k !== 'S' : r.k !== 'P') continue;
+    const cl = rowClass(r);
+    if (!classes.has(cl)) continue;
+    if (wantSells ? cl === 'conviction' : cl === 'liquidity') continue;
+    if (tab !== 'latest' && tab !== 'sells' && r.k !== 'P') continue;
     if (r.d < from) continue;
     if (to && r.d > to) continue;
     if (tab === 'ceo' && r.r !== 'ceo') continue;

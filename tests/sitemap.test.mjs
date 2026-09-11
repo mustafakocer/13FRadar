@@ -18,12 +18,14 @@ test('sitemap-gurus / sitemap-filers contain every stored slug once per language
   const gurus = Object.values(t.bySlug).filter((v) => v.kind === 'guru').length;
   const filers = Object.values(t.bySlug).filter((v) => v.kind === 'filer').length;
   assert.ok(gurus >= 10 && filers > 5000, `have ${gurus} gurus, ${filers} filers`);
-  const g = locs(buildSitemap('gurus', SITE).body);
+  const gAll = locs(buildSitemap('gurus', SITE).body);
+  const g = gAll.filter((u) => /\/guru\/[a-z0-9-]+$/.test(u));
+  const pairs = gAll.filter((u) => /\/guru\/[a-z0-9-]+\/[A-Z0-9.\-]+$/.test(u));
   const f = locs(buildSitemap('filers', SITE).body);
   assert.equal(g.length, gurus * 2);
+  assert.equal(g.length + pairs.length, gAll.length, 'only guru and guru×ticker URLs');
   assert.equal(f.length, filers * 2);
-  assert.equal(new Set(g).size, g.length, 'no duplicate URLs');
-  assert.ok(g.every((u) => /^https:\/\/example\.test\/(en|tr)\/guru\/[a-z0-9-]+$/.test(u)));
+  assert.equal(new Set(gAll).size, gAll.length, 'no duplicate URLs');
   assert.ok(f.length < 50000, 'under the 50k per-file limit');
   assert.match(buildSitemap('gurus', SITE).body, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
   assert.match(buildSitemap('gurus', SITE).body, /hreflang="x-default"/);

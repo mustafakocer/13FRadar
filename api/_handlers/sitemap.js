@@ -1,6 +1,7 @@
 import { createRequire } from 'node:module';
 import { slugTable } from '../_lib/slugs.js';
 import { siteUrl } from '../_lib/site.js';
+import { historyTable } from '../_lib/history.js';
 
 // Sitemap index + per-entity sitemaps + robots.txt.
 //   /sitemap.xml            → index (type=index)
@@ -62,6 +63,18 @@ export function buildSitemap(type, site) {
         changefreq: 'weekly',
         priority: want === 'guru' ? '0.9' : '0.5',
       }));
+    if (want === 'guru') {
+      // guru × ticker trade-history pages for positions currently held
+      const hist = historyTable();
+      for (const [slug, v] of Object.entries(slugs.bySlug)) {
+        const g = v.kind === 'guru' && hist?.gurus?.[v.cik];
+        if (!g) continue;
+        const lastmod = day(g.quarters[g.quarters.length - 1]?.filed) || latestFiled;
+        for (const e of Object.values(g.positions)) {
+          if (e.ticker && e.heldQuarters > 0) entries.push({ path: `/guru/${slug}/${e.ticker}`, lastmod, changefreq: 'weekly', priority: '0.6' });
+        }
+      }
+    }
     return { contentType: 'application/xml', body: urlset(site, entries) };
   }
   if (type === 'stocks') {

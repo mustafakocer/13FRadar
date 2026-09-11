@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import path from 'node:path';
 import { root } from './helpers.mjs';
-import { timeHeldLabel, splitAdjust } from '../api/_lib/history.js';
+import { timeHeldLabel, splitAdjust, topRankedCusips } from '../api/_lib/history.js';
 import { invoke } from '../api/_lib/ssr/invoke.js';
 
 process.env.GURU_HISTORY_FILE = process.env.GURU_HISTORY_FILE || path.join(root, 'tests', 'fixtures', 'guru-history.fixture.json');
@@ -35,4 +35,15 @@ test('guru-history handler: quarters, time held map and pair series', async () =
   assert.deepEqual(exited.body.rows.map((r) => r.activity), ['new', 'exit']);
   const unknown = await invoke(handler, { cik: '0000000001' });
   assert.equal(unknown.status, 404);
+});
+
+test('topRankedCusips keeps a position that was ever in a quarter top N', () => {
+  const positions = {
+    A: { series: [['2025-12-31', 1, 900, 1], ['2026-03-31', 1, 900, 1]] },
+    B: { series: [['2025-12-31', 1, 500, 1], ['2026-03-31', 1, 100, 1]] },
+    C: { series: [['2025-12-31', 1, 10, 1], ['2026-03-31', 1, 800, 1]] },
+    D: { series: [['2025-12-31', 1, 5, 1], ['2026-03-31', 1, 5, 1]] },
+  };
+  const keep = topRankedCusips(positions, 2);
+  assert.deepEqual([...keep].sort(), ['A', 'B', 'C']); // B: top-2 in Q4, C: top-2 in Q1, D never
 });

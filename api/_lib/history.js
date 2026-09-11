@@ -27,6 +27,27 @@ export function historyTable() {
   return cache;
 }
 
+// Positions worth storing: anything that ranked in a quarter's top N by
+// value at least once. The pages only ever show top holdings (time held on
+// the top-10 table, guru × ticker pages, related managers), and the quant
+// shops carry 10–20k names that would otherwise dominate the file.
+export function topRankedCusips(positions, n) {
+  const byDate = new Map();
+  for (const [cusip, e] of Object.entries(positions)) {
+    for (const [d, , v] of e.series) {
+      let a = byDate.get(d);
+      if (!a) byDate.set(d, (a = []));
+      a.push([v, cusip]);
+    }
+  }
+  const keep = new Set();
+  for (const a of byDate.values()) {
+    a.sort((x, y) => y[0] - x[0]);
+    for (const [, c] of a.slice(0, n)) keep.add(c);
+  }
+  return keep;
+}
+
 export const guruHistory = (cik) => historyTable()?.gurus?.[String(cik).padStart(10, '0')] || null;
 
 // "Time held": consecutive quarters up to and including the latest, as text.

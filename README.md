@@ -108,7 +108,7 @@ Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, so
 | Dosya | Üreten | Sıklık | İçerik |
 |---|---|---|---|
 | `client/public/consensus.json`, `api/_data/consensus-pro.json` | `scripts/build-consensus.mjs` | günlük | en çok tutulanlar, alım/satımlar, yönetici güncelleme kartları |
-| `api/_data/guru-history.json` | `scripts/build-guru-history.mjs` | günlük | 40 çeyrek: çeyreklik geçmiş, elde tutma süresi, guru×hisse serileri |
+| `api/_data/guru-history.json` | `scripts/build-guru-history.mjs` | günlük | 40 çeyrek: çeyreklik geçmiş, elde tutma süresi, guru×hisse serileri. Yalnızca herhangi bir çeyrekte ilk 100'e giren pozisyonlar saklanır (`GURU_HISTORY_TOP`); EDGAR'dan eksik gelen guru bir önceki koşunun verisini korur |
 | `api/_data/splits.json` | `scripts/build-splits.mjs` | günlük | bölünme olayları (adetler split-adjusted) |
 | `client/public/insiders-teaser.json`, `api/_data/insiders.json` | `scripts/build-insiders.mjs` | günlük | Form 4 akışı; sınıflandırma: güçlü sinyal / likidite / gürültü, 10b5-1 bayrağı |
 | `client/public/universe.json`, `universe-summary.json`, `api/_data/slugs.json` | `scripts/build-universe.mjs` + `build-slugs.mjs` | haftalık | tüm 13F evreni ve slug tablosu |

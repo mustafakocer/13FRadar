@@ -14,9 +14,13 @@ import { mapLimit } from '../api/_lib/yahooClient.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { CONSENSUS_MANAGERS } from '../api/_lib/consensusList.js';
 import { POPULAR_MANAGERS } from '../client/src/data/popular.js';
-import { splitAdjust } from '../api/_lib/history.js';
+import { splitAdjust, topRankedCusips } from '../api/_lib/history.js';
 
 const QUARTERS = Number(process.env.GURU_HISTORY_QUARTERS || 40);
+// keep a position only if it ranked in some quarter's top N by value —
+// the quant shops file 10–20k names a quarter and nothing on the site
+// looks past the top holdings
+const TOP = Number(process.env.GURU_HISTORY_TOP || 100);
 const root = process.cwd();
 const OUT = path.join(root, 'api', '_data', 'guru-history.json');
 let splits = {};
@@ -112,9 +116,13 @@ for (const [cik, name] of gurus) {
       e.issuer = p.issuer;
       e.series.push([s.f.reportDate, Math.round(p.shares), Math.round(p.value), Number(p.weight.toFixed(3))]);
       positions[p.cusip] = e;
-      allCusips.add(p.cusip);
     }
     prev = { byCusip, aum: s.aum };
+  }
+  const keep = topRankedCusips(positions, TOP);
+  for (const c of Object.keys(positions)) {
+    if (keep.has(c)) allCusips.add(c);
+    else delete positions[c];
   }
   // held quarters: consecutive quarters ending at the newest snapshot
   const dates = quarters.map((q) => q.reportDate);

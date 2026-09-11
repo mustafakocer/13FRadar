@@ -12,6 +12,55 @@ const http = axios.create({
   headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip, deflate' },
 });
 
+// EDGAR fair-access policy: at most 10 requests per second per IP, and a
+// temporary block (429 or 403 "Request Rate Threshold Exceeded") once it is
+// exceeded. Every EDGAR call goes through one process-wide token clock, and
+// rate-limit / transient failures are retried with backoff. The batch
+// scripts (GitHub Actions) wait long enough to outlast a ten-minute block;
+// on Vercel a request can only afford a couple of short retries.
+//   SEC_RPS            requests per second (default 8)
+//   SEC_RETRY_BACKOFF  comma-separated seconds between retries
+const RPS = Math.max(1, Number(process.env.SEC_RPS) || 8);
+const BACKOFF = (
+  process.env.SEC_RETRY_BACKOFF ||
+  (process.env.VERCEL ? '1,2' : '5,15,30,60,120,300')
+)
+  .split(',')
+  .map(Number)
+  .filter((n) => n >= 0);
+let nextSlot = 0;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+async function slot() {
+  const now = Date.now();
+  const at = Math.max(now, nextSlot);
+  nextSlot = at + 1000 / RPS;
+  if (at > now) await sleep(at - now);
+}
+function retriable(e) {
+  const st = e.response?.status;
+  if (st === 429 || st === 403) return true;
+  if (st >= 500 && st < 600) return true;
+  return !st && /ECONNRESET|ETIMEDOUT|ECONNABORTED|EAI_AGAIN|timeout|socket hang up/i.test(e.message || '');
+}
+export async function secGet(url, opts) {
+  for (let attempt = 0; ; attempt++) {
+    await slot();
+    try {
+      return await http.get(url, opts);
+    } catch (e) {
+      if (!retriable(e) || attempt >= BACKOFF.length) throw e;
+      const ra = Number(e.response?.headers?.['retry-after']);
+      const wait = (ra > 0 ? ra : BACKOFF[attempt]) * 1000;
+      console.warn(
+        `EDGAR ${e.response?.status || e.code || 'error'} for ${url} — retry ${attempt + 1}/${BACKOFF.length} in ${wait / 1000}s`
+      );
+      await sleep(wait);
+    }
+  }
+}
+// Test hook: lets a test swap the transport without touching the network.
+export const secHttp = http;
+
 // Offline fixtures for tests and sandboxes without EDGAR access:
 //   $SEC_FIXTURE_DIR/submissions/CIK0001067983.json
 //   $SEC_FIXTURE_DIR/filings/<cik>/<accession-no-dashes>/infotable.xml
@@ -31,7 +80,7 @@ export function getSubmissions(cik) {
   return cached(`sub:${id}`, TTL.HOUR_1, async () => {
     const fx = fixture(`submissions/CIK${id}.json`);
     if (fx) return JSON.parse(fx);
-    const { data } = await http.get(`https://data.sec.gov/submissions/CIK${id}.json`);
+    const { data } = await secGet(`https://data.sec.gov/submissions/CIK${id}.json`);
     return data;
   });
 }
@@ -66,7 +115,7 @@ export async function fetchInfoTableXml(cik, acc) {
   const fx = fixture(`filings/${cikN}/${accNo}/infotable.xml`);
   if (fx) return fx;
   const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;
-  const { data: idx } = await http.get(`${base}/index.json`);
+  const { data: idx } = await secGet(`${base}/index.json`);
   let items = idx?.directory?.item || [];
   if (!Array.isArray(items)) items = [items];
   const xmls = items.filter(
@@ -76,7 +125,7 @@ export async function fetchInfoTableXml(cik, acc) {
   const pick =
     xmls.find((i) => /info/i.test(i.name)) ||
     xmls.sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0))[0];
-  const { data: xml } = await http.get(`${base}/${pick.name}`, {
+  const { data: xml } = await secGet(`${base}/${pick.name}`, {
     responseType: 'text',
     transformResponse: [(d) => d],
   });
@@ -144,7 +193,7 @@ export function getHoldings(cik, acc, filingDate) {
 
 // EDGAR full-text search (the backend behind efts.sec.gov/LATEST/search-index).
 export async function ftsSearch(q, forms = '13F-HR') {
-  const { data } = await http.get('https://efts.sec.gov/LATEST/search-index', {
+  const { data } = await secGet('https://efts.sec.gov/LATEST/search-index', {
     params: { q: `"${q}"`, forms },
   });
   return data;
@@ -152,7 +201,7 @@ export async function ftsSearch(q, forms = '13F-HR') {
 
 // Classic company search fallback — returns atom XML we walk generically.
 export async function companySearchAtom(q) {
-  const { data } = await http.get('https://www.sec.gov/cgi-bin/browse-edgar', {
+  const { data } = await secGet('https://www.sec.gov/cgi-bin/browse-edgar', {
     params: {
       action: 'getcompany',
       company: q,

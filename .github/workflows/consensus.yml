@@ -9,6 +9,7 @@ on:
     paths:
       - 'scripts/build-consensus.mjs'
       - 'api/_lib/consensusBuild.js'
+      - 'api/_lib/sec.js'
       - 'scripts/build-guru-history.mjs'
       - 'scripts/build-splits.mjs'
       - 'scripts/build-related.mjs'

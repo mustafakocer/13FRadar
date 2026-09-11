@@ -30,8 +30,30 @@ const gurus = new Map();
 for (const m of [...POPULAR_MANAGERS, ...CONSENSUS_MANAGERS]) gurus.set(m.cik, m.name);
 const only = process.env.GURU_HISTORY_CIKS ? new Set(process.env.GURU_HISTORY_CIKS.split(',')) : null;
 
+// Previous run, so a guru whose EDGAR fetch fails today keeps yesterday's
+// history instead of vanishing from the site. Carried-over entries are
+// reported at the end; a run that refreshes nothing exits non-zero.
+let previous = {};
+try {
+  previous = JSON.parse(fs.readFileSync(OUT, 'utf8')).gurus || {};
+} catch {
+  /* first run */
+}
+
 const out = { updatedAt: new Date().toISOString(), quarters: QUARTERS, gurus: {} };
 const allCusips = new Set();
+const carried = [];
+const failed = [];
+const carryOver = (cik, name, why) => {
+  if (previous[cik]) {
+    out.gurus[cik] = previous[cik];
+    carried.push(name);
+    console.warn(`${name}: ${why} — keeping the previous run's history`);
+  } else {
+    failed.push(name);
+    console.warn(`${name}: ${why} — no previous history to keep`);
+  }
+};
 
 for (const [cik, name] of gurus) {
   if (only && !only.has(cik)) continue;
@@ -39,7 +61,7 @@ for (const [cik, name] of gurus) {
   try {
     filings = list13F(await getSubmissions(cik)).slice(0, QUARTERS).reverse(); // oldest → newest
   } catch (e) {
-    console.warn(`${name}: submissions failed (${e.message})`);
+    carryOver(cik, name, `submissions failed (${e.message})`);
     continue;
   }
   const snaps = (
@@ -53,7 +75,16 @@ for (const [cik, name] of gurus) {
       }
     })
   ).filter(Boolean);
-  if (!snaps.length) continue;
+  // a partial fetch (rate-limited mid-way) would understate "time held" and
+  // turnover, so only a complete look-back replaces the stored history
+  if (snaps.length < filings.length) {
+    carryOver(cik, name, `${filings.length - snaps.length} of ${filings.length} filings failed`);
+    continue;
+  }
+  if (!snaps.length) {
+    carryOver(cik, name, 'no 13F filings');
+    continue;
+  }
 
   const positions = {};
   const quarters = [];
@@ -100,7 +131,8 @@ for (const [cik, name] of gurus) {
 
 // tickers (static map first, OpenFIGI for the rest) + split adjustment
 const tickers = await mapCusipsToTickers([...allCusips], { maxLive: 400 });
-for (const g of Object.values(out.gurus)) {
+for (const [cik, g] of Object.entries(out.gurus)) {
+  if (g === previous[cik]) continue; // carried over: already mapped and adjusted
   for (const [cusip, e] of Object.entries(g.positions)) {
     e.ticker = tickers[cusip] || null;
     const sp = e.ticker ? splits[e.ticker] : null;
@@ -115,6 +147,15 @@ for (const g of Object.values(out.gurus)) {
   for (const q of g.quarters) q.top10 = q.top10.map((c) => tickers[c] || c);
 }
 
+const refreshed = Object.keys(out.gurus).length - carried.length;
+if (!refreshed && Object.keys(previous).length) {
+  console.error('guru-history.json: nothing refreshed (EDGAR unreachable?) — keeping the existing file untouched');
+  process.exit(1);
+}
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(out));
-console.log(`guru-history.json: ${Object.keys(out.gurus).length} gurus, ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`);
+console.log(
+  `guru-history.json: ${Object.keys(out.gurus).length} gurus (${refreshed} refreshed, ${carried.length} carried over, ${failed.length} missing), ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`
+);
+if (carried.length) console.warn(`carried over: ${carried.join(', ')}`);
+if (failed.length) console.warn(`missing: ${failed.join(', ')}`);

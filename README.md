@@ -61,6 +61,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 |---|---|---|
 | `SITE_URL` | **Prod'da evet** (`scripts/check-env.mjs` build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://13fradar.com`. Preview'da `VERCEL_URL`'den türetilir. |
 | `SEC_USER_AGENT` | önerilir | SEC'in istediği iletişim bilgisi |
+| `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı (varsayılan 8/sn) ve 429/403 sonrası bekleme süreleri (sn, virgülle). Batch script'lerde 10 dakikalık SEC bloğunu aşacak kadar uzun, Vercel'de kısa (`1,2`). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
 | `FMP_API_KEY`, `TWELVEDATA_API_KEY` | opsiyonel | fiyat/rasyo sağlayıcıları |
 | Stripe / Supabase | ödeme için | bkz. docs/STRIPE-KURULUM.md |

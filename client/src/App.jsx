@@ -1,24 +1,33 @@
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Manager from './pages/Manager.jsx';
 import Stock from './pages/Stock.jsx';
-import Screen from './pages/Screen.jsx';
-import Compare from './pages/Compare.jsx';
-import Watchlist from './pages/Watchlist.jsx';
 import Consensus from './pages/Consensus.jsx';
-import Report from './pages/Report.jsx';
-import Insiders from './pages/Insiders.jsx';
-import Pricing from './pages/Pricing.jsx';
-import Account from './pages/Account.jsx';
 import Gurus from './pages/Gurus.jsx';
-import Filers from './pages/Filers.jsx';
 import InsiderSignal from './pages/InsiderSignal.jsx';
 import Rankings from './pages/Rankings.jsx';
-import GuruTicker from './pages/GuruTicker.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
+import { LAZY_PAGES } from './pages/lazyPages.js';
+
+const { Insiders, Screen, Compare, Report, Watchlist, Pricing, Account, Filers, GuruTicker } = Object.fromEntries(
+  Object.entries(LAZY_PAGES).map(([k, v]) => [k, v.component])
+);
+// Split pages get their own boundary: entity pages hydrate synchronously with
+// the root, so tab clicks and fast query updates never race hydration.
+const Lazy = ({ children }) => (
+  <Suspense
+    fallback={
+      <div className="loading">
+        <div className="spinner" />
+      </div>
+    }
+  >
+    {children}
+  </Suspense>
+);
 
 export default function App() {
   // 'light' on the server and for the first client render (hydration must
@@ -43,22 +52,22 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
           <Route path="/guru/:slug" element={<Manager />} />
-          <Route path="/guru/:slug/:ticker" element={<GuruTicker />} />
+          <Route path="/guru/:slug/:ticker" element={<Lazy><GuruTicker /></Lazy>} />
           <Route path="/filer/:slug" element={<Manager />} />
           <Route path="/gurus" element={<Gurus />} />
-          <Route path="/filers" element={<Filers />} />
-          <Route path="/filers/:letter" element={<Filers />} />
+          <Route path="/filers" element={<Lazy><Filers /></Lazy>} />
+          <Route path="/filers/:letter" element={<Lazy><Filers /></Lazy>} />
           <Route path="/insiders/:signal" element={<InsiderSignal />} />
           <Route path="/rankings/:kind" element={<Rankings />} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />
-          <Route path="/report" element={<Report />} />
-          <Route path="/insiders" element={<Insiders />} />
-          <Route path="/screen" element={<Screen />} />
-          <Route path="/compare" element={<Compare />} />
-          <Route path="/watchlist" element={<Watchlist />} />
-          <Route path="/pricing" element={<Pricing />} />
-          <Route path="/account" element={<Account />} />
+          <Route path="/report" element={<Lazy><Report /></Lazy>} />
+          <Route path="/insiders" element={<Lazy><Insiders /></Lazy>} />
+          <Route path="/screen" element={<Lazy><Screen /></Lazy>} />
+          <Route path="/compare" element={<Lazy><Compare /></Lazy>} />
+          <Route path="/watchlist" element={<Lazy><Watchlist /></Lazy>} />
+          <Route path="/pricing" element={<Lazy><Pricing /></Lazy>} />
+          <Route path="/account" element={<Lazy><Account /></Lazy>} />
         </Routes>
         <Footer />
       </main>

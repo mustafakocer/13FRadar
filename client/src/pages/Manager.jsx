@@ -6,14 +6,9 @@ import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/forma
 import { useI18n } from '../i18n.jsx';
 import FavoriteButton from '../components/FavoriteButton.jsx';
 import PositionCards from '../components/PositionCards.jsx';
+import ChartBox from '../components/ChartBox.jsx';
+import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, SparkBar, BacktestChart } from '../components/Charts/index.js';
 import HoldingsTable from '../components/HoldingsTable.jsx';
-import AumLineChart from '../components/Charts/AumLineChart.jsx';
-import FlowBarChart from '../components/Charts/FlowBarChart.jsx';
-import PortfolioPie from '../components/Charts/PortfolioPie.jsx';
-import SectorPie from '../components/Charts/SectorPie.jsx';
-import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
-import SparkBar from '../components/Charts/SparkBar.jsx';
-import BacktestChart from '../components/Charts/BacktestChart.jsx';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
@@ -288,12 +283,12 @@ export default function Manager() {
             <div className="card stat-card">
               <span className="stat-label">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
               <span className="stat-value">{fmtMoney(holdings.data?.aum)}</span>
-              <SparkBar values={history.map((h) => h.aum)} />
+              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.aum)} /></ChartBox>
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.positions')}</span>
               <span className="stat-value">{fmtNum(holdings.data?.count)}</span>
-              <SparkBar values={history.map((h) => h.positions)} color="--s2" />
+              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.positions)} color="--s2" /></ChartBox>
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>
@@ -309,6 +304,16 @@ export default function Manager() {
             </div>
           </div>
 
+          {mstats.isLoading && (
+            <div className="grid grid-3 mt16">
+              {[0, 1, 2].map((i) => (
+                <div className="card stat-card" key={i} style={{ minHeight: 118 }}>
+                  <div className="skel skel-row" style={{ width: '40%' }} />
+                  <div className="skel skel-row" style={{ height: 26, width: '30%' }} />
+                </div>
+              ))}
+            </div>
+          )}
           {mstats.data?.quarters >= 2 && (
             <div className="grid grid-3 mt16">
               <div className="card stat-card">
@@ -403,17 +408,21 @@ export default function Manager() {
 
           <div className="card mt16">
             <h3>{t('manager.aumHistory')}</h3>
-            {aumHist.isLoading ? <Loading t={t} /> : history.length > 1 ? (
-              <AumLineChart history={history} />
-            ) : (
-              <div className="muted small">{t('common.na')}</div>
-            )}
+            <ChartBox height={260}>
+              {aumHist.isLoading ? (
+                <div className="skel" style={{ height: 260, borderRadius: 10 }} />
+              ) : history.length > 1 ? (
+                <AumLineChart history={history} />
+              ) : (
+                <div className="muted small">{t('common.na')}</div>
+              )}
+            </ChartBox>
           </div>
 
           {history.some((h) => h.estFlow != null) && (
             <div className="card mt16">
               <h3>{t('manager.flowHistory')}</h3>
-              <FlowBarChart history={history} label={t('manager.estFlow')} />
+              <ChartBox height={200}><FlowBarChart history={history} label={t('manager.estFlow')} /></ChartBox>
               <p className="muted small mt8">{t('manager.flowNote')}</p>
             </div>
           )}
@@ -450,10 +459,10 @@ export default function Manager() {
                     </span>
                   )}
                 </div>
-                <BacktestChart
+                <ChartBox height={260}><BacktestChart
                   points={backtest.data.points}
                   labels={{ port: t('manager.portfolioSeries') }}
-                />
+                /></ChartBox>
                 <p className="muted small mt8">{t('manager.backtestNote')}</p>
               </>
             )}
@@ -477,21 +486,21 @@ export default function Manager() {
           <div className="grid grid-2 mt16">
             <div className="card">
               <h3>{t('manager.composition')}</h3>
-              <PortfolioPie positions={positions} />
+              <ChartBox height={300}><PortfolioPie positions={positions} /></ChartBox>
             </div>
             <div className="card">
               <h3>{t('manager.sectors')}</h3>
               {sectors.isLoading ? (
                 <Loading t={t} />
               ) : (
-                <SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} />
+                <ChartBox height={300}><SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} /></ChartBox>
               )}
             </div>
           </div>
           {benchSeries && (
             <div className="card mt16">
               <h3>{t('manager.benchmark')}</h3>
-              <BenchmarkBars series={benchSeries} />
+              <ChartBox height={240}><BenchmarkBars series={benchSeries} /></ChartBox>
               <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
             </div>
           )}

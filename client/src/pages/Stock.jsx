@@ -17,7 +17,8 @@ import {
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
-import PriceChart from '../components/Charts/PriceChart.jsx';
+import ChartBox from '../components/ChartBox.jsx';
+import { PriceChart } from '../components/Charts/index.js';
 import GuruSignal from '../components/GuruSignal.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
@@ -226,7 +227,7 @@ export default function Stock() {
 
       <div className="card mt16">
         <h3>{t('stock.priceChart')}</h3>
-        <PriceChart ticker={ticker} lang={lang} />
+        <ChartBox height={300}><PriceChart ticker={ticker} lang={lang} /></ChartBox>
       </div>
 
       <div className="grid grid-2 mt16">

@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { render } from '../client/dist/server/entry-server.js';
+import { render, preload } from '../client/dist/server/entry-server.js';
 import { matchRoute, CACHE } from './_lib/ssr/routes.js';
 import { siteUrl } from './_lib/site.js';
 import { splitLang, withLang, preferredLang } from '../client/src/lib/locale.js';
@@ -80,6 +80,7 @@ export default async function handler(req, res) {
 
   let rendered;
   try {
+    await preload();
     rendered = render({ lang, url: bare + cleanSearch, seeds, siteUrl: origin });
   } catch (e) {
     // never leave a crawler with a 500: fall back to the client-rendered shell

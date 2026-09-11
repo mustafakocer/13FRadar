@@ -6,7 +6,8 @@ import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/forma
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
-import SparkBar from './Charts/SparkBar.jsx';
+import { Suspense } from 'react';
+import { SparkBar } from './Charts/index.js';
 import Paywall from './Paywall.jsx';
 
 const COLS = [
@@ -44,7 +45,9 @@ function HistoryPanel({ cik, cusip, t }) {
         </div>
       </div>
       <div style={{ width: 220 }}>
-        <SparkBar values={hist.map((h) => h.weight)} />
+        <Suspense fallback={<div style={{ height: 44 }} />}>
+          <SparkBar values={hist.map((h) => h.weight)} />
+        </Suspense>
       </div>
     </div>
   );

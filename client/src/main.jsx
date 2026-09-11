@@ -4,6 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, hydrate } from '@tanstack/react-query';
 import Root, { queryDefaults } from './Root.jsx';
 import { splitLang, withLang, isLang } from './lib/locale.js';
+import { preloadPagesFor } from './pages/lazyPages.js';
+import { preloadCharts } from './components/Charts/index.js';
 import './styles/tokens.css';
 import './styles/app.css';
 
@@ -42,5 +44,12 @@ const tree = (
   </React.StrictMode>
 );
 const rootEl = document.getElementById('root');
-if (state && rootEl.hasChildNodes()) ReactDOM.hydrateRoot(rootEl, tree);
-else ReactDOM.createRoot(rootEl).render(tree);
+const { path: pagePath } = splitLang(window.location.pathname);
+// the current page's split chunk (and charts, when the server rendered any)
+// must be ready so the first client render matches the server HTML
+const warm = [preloadPagesFor(pagePath)];
+if (/^\/(manager|guru|filer|stock)\//.test(pagePath) || rootEl.querySelector('.recharts-responsive-container')) warm.push(preloadCharts());
+Promise.all(warm).then(() => {
+  if (state && rootEl.hasChildNodes()) ReactDOM.hydrateRoot(rootEl, tree);
+  else ReactDOM.createRoot(rootEl).render(tree);
+});

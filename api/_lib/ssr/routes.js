@@ -77,10 +77,8 @@ async function loadManager({ cik, slug, kind }) {
       }
     }
   }
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
-  const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  // returns/consensus are only used by the holdings tab and are fetched by
+  // the client — keeping them out trims ~40 KB from every guru page
   const h = await invoke(guruHistoryHandler, { cik });
   if (h.status === 200) seeds.push([['guru-history', cik], h.body]);
   return { seeds };

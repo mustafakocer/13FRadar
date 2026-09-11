@@ -26,6 +26,7 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 | Katman | Teknoloji |
 |---|---|
 | Frontend | React 18 + Vite + React Router v6 + TanStack Query v5 + Recharts |
+| Rendering | SSR: `api/ssr.js` her herkese açık sayfayı sunucuda render eder (aşağıya bakın) |
 | API (Prod) | Vercel Serverless Functions (`api/` dizini) |
 | API (Dev) | Express (`server.js`, Vercel routing emülasyonu) |
 | Veri | SEC EDGAR (submissions + full-text search + Archives), Yahoo Finance (v7/v8/v10, cookie+crumb), OpenFIGI |
@@ -42,17 +43,74 @@ api/
 client/          # Vite + React uygulaması
 ```
 
+## Rendering Stratejisi (SSR + CDN cache)
+
+Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıklar, tablolar, meta/JSON-LD) alır ve hydrate eder. Next.js'e geçilmedi: aynı Vite uygulaması `vite build --ssr` ile bir de sunucu paketi üretir, `api/ssr.js` bu paketi çağırır.
+
+- `vercel.json`: `/api/*` dışındaki her yol `api/ssr.js`'e yönlenir (statik dosyalar önce gelir).
+- `api/_lib/ssr/routes.js`: rota → veri yükleyici. Yükleyiciler API handler'larını **süreç içinde** çağırır (HTTP yok) ve TanStack Query önbelleğini sayfanın kullandığı anahtarlarla doldurur; istemci `window.__STATE__` üzerinden hydrate olur.
+- Ücretsiz katman sunucuda render edilir; Pro bölümler (tam tablolar, insider akışı, backtest) istemcide yüklenir.
+- **ISR eşdeğeri (CDN cache):** fon/hisse/guru×hisse sayfaları `s-maxage=86400, stale-while-revalidate=604800` (günlük tazelenir, 7 gün eskisi sunulabilir); ana sayfa, konsensüs, sıralamalar ve insider sinyal sayfaları `s-maxage=3600` + 1 gün SWR; hesap/izleme listesi `no-store`. Politika `CACHE` sabitinde (`routes.js`).
+- **Dil yolları:** her URL `/en/…` veya `/tr/…`. Öneksiz URL'ler 302 ile yönlenir: `lang` çerezi → Vercel ülke başlığı (`TR` → tr) → `Accept-Language` → en. `hreflang` en/tr/x-default her sayfada; canonical kendine işaret eder.
+- **Slug'lar:** `api/_data/slugs.json` (`npm run slugs`) her 13F dosyalayıcı için kalıcı, ASCII, benzersiz slug tutar; `/manager/<cik>` 301 ile `/guru/<slug>` (küratörlü) veya `/filer/<slug>`'a gider. Bir kez atanmış slug asla değişmez; yeni çakışmalar CIK sonekiyle çözülür.
+- `<head>`: `useSeo()` (client/src/seo.jsx) sunucuda toplanır, istemcide her gezinmede aynalanır. Şablonlar `client/src/lib/seoTemplates.js` (başlık/açıklama gerçek sayılarla, FAQ, breadcrumb, Organization/WebSite JSON-LD).
+
+### Gerekli ortam değişkenleri
+
+| Değişken | Zorunlu | Açıklama |
+|---|---|---|
+| `SITE_URL` | **Prod'da evet** (`scripts/check-env.mjs` build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://13fradar.com`. Preview'da `VERCEL_URL`'den türetilir. |
+| `SEC_USER_AGENT` | önerilir | SEC'in istediği iletişim bilgisi |
+| `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
+| `FMP_API_KEY`, `TWELVEDATA_API_KEY` | opsiyonel | fiyat/rasyo sağlayıcıları |
+| Stripe / Supabase | ödeme için | bkz. docs/STRIPE-KURULUM.md |
+| `SEC_FIXTURE_DIR`, `GURU_HISTORY_FILE` | yalnız test | çevrimdışı fixture'lar (`tests/fixtures`) |
+
+### Sitemap, robots, OG
+
+- `/sitemap.xml` indeks; `/sitemap-pages.xml`, `-gurus.xml` (guru + guru×hisse sayfaları), `-filers.xml`, `-stocks.xml`, `-insider.xml`. Hepsi `api/_handlers/sitemap.js` tarafından istek anında üretilir (6 saat CDN cache) — ayrıca "yeniden üretme" adımı yoktur; kaynak dosyalar (`slugs.json`, `universe.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`) Action'larla yenilendiğinde sitemap kendiliğinden güncellenir. `lastmod` en son bildirim tarihinden gelir.
+- `/robots.txt`: her şeye izin, `/api/` ve hesap/izleme listesi yolları hariç; sitemap indeksini gösterir.
+- `/api/og?type=guru&cik=…` ve `/api/og?type=stock&ticker=…` 1200×630 PNG üretir (resvg + paketlenmiş DejaVu Sans); diğer sayfalar varsayılan kartı kullanır.
+
+### Önceden hesaplanan veriler (Action'lar)
+
+| Dosya | Üreten | Sıklık | İçerik |
+|---|---|---|---|
+| `client/public/consensus.json`, `api/_data/consensus-pro.json` | `scripts/build-consensus.mjs` | günlük | en çok tutulanlar, alım/satımlar, yönetici güncelleme kartları |
+| `api/_data/guru-history.json` | `scripts/build-guru-history.mjs` | günlük | 40 çeyrek: çeyreklik geçmiş, elde tutma süresi, guru×hisse serileri |
+| `api/_data/splits.json` | `scripts/build-splits.mjs` | günlük | bölünme olayları (adetler split-adjusted) |
+| `client/public/insiders-teaser.json`, `api/_data/insiders.json` | `scripts/build-insiders.mjs` | günlük | Form 4 akışı; sınıflandırma: güçlü sinyal / likidite / gürültü, 10b5-1 bayrağı |
+| `client/public/universe.json`, `universe-summary.json`, `api/_data/slugs.json` | `scripts/build-universe.mjs` + `build-slugs.mjs` | haftalık | tüm 13F evreni ve slug tablosu |
+
+### Test ve kalite kapıları
+
+```bash
+npm run build      # client + SSR paketi
+npm test           # node:test — SSR çıktısı, meta/hreflang, FAQ JSON-LD, sitemap, slug, insider taksonomisi, geçmiş
+npm run fixtures   # tests/fixtures/sec fixture'larını yeniden üretir
+
+# Lighthouse (yerel SSR sunucusuna karşı; chromium yolu ortamınıza göre)
+SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev &
+npx lighthouse http://localhost:3001/en/guru/berkshire-hathaway-warren-buffett --only-categories=seo,performance --preset=desktop --view
+```
+
+Son ölçüm (bu depo, fixture verisi, 2026-09-11): SEO **100** (ana sayfa, guru, hisse); performans masaüstü **100 / 98 / 98**, mobil simülasyonu **88 / 88 / 90**. Kritik JS paketi 221 KB (58 KB gzip); grafikler (Recharts, 430 KB) ve Supabase SDK (377 KB) ilk boyamadan sonra, yalnız gerektiğinde yüklenir; Google Fonts render'ı engellemez.
+
 ## Yerel Geliştirme
 
 ```bash
 npm install
 npm install --prefix client
 
-# 1. terminal — API dev sunucusu (http://localhost:3001)
-npm run dev
+# SSR dahil tam uygulama (önce build gerekir): http://localhost:3001
+npm run build && npm run dev
 
-# 2. terminal — Vite (http://localhost:5173, /api -> 3001 proxy)
-npm run dev:client
+# Yalnız arayüz üzerinde çalışırken (HMR, client-only): http://localhost:5173, /api -> 3001 proxy
+npm run dev            # 1. terminal
+npm run dev:client     # 2. terminal
+
+# SEC erişimi olmayan ortamda sabit veriyle çalışmak için
+SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
 ```
 
 ## 🚀 Canlıya Alma (Vercel)
@@ -61,7 +119,7 @@ npm run dev:client
 2. [vercel.com](https://vercel.com) → **Add New → Project** → GitHub'dan `mustafakocer/13FRadar` reposunu import edin.
 3. Ayarlara dokunmanıza gerek yok — `vercel.json` her şeyi tanımlıyor (client build + `api/` fonksiyonları + SPA rewrites). Framework sorusuna **Other** deyin.
 4. **Deploy** butonuna basın. İlk build ~2 dk sürer.
-5. (Önerilen) Environment Variables:
+5. Environment Variables — **`SITE_URL` production'da zorunludur** (yoksa build kasıtlı olarak durur). Diğerleri:
    - `SEC_USER_AGENT` → `13FRadar/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
    - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.

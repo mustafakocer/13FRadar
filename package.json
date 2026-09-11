@@ -6,6 +6,7 @@
   "description": "13F Radar — SEC 13F filings intelligence platform",
   "scripts": {
     "dev": "node server.js",
+    "check-env": "node scripts/check-env.mjs",
     "dev:client": "npm run dev --prefix client",
     "build": "npm run build --prefix client"
   },

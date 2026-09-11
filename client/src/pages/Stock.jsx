@@ -1,7 +1,9 @@
+import { useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
+import { stockSeo } from '../lib/seoTemplates.js';
 import {
   fmtMoney,
   fmtNum,
@@ -74,7 +76,6 @@ export default function Stock() {
     queryFn: () => api.stock(ticker),
   });
 
-  usePageTitle(data?.price?.name ? `${data.price.symbol} · ${data.price.name} — 13F Radar` : null);
 
   // Who reports this security? CUSIP (exact) when we came from a holdings
   // table, otherwise the company name via EDGAR full-text search.
@@ -102,6 +103,13 @@ export default function Stock() {
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
+
+  useSeo(
+    useMemo(
+      () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data }),
+      [lang, ticker, cusip, data, holders.data]
+    )
+  );
 
   const filings13dg = useQuery({
     queryKey: ['13dg', ticker],
@@ -153,6 +161,36 @@ export default function Stock() {
       </div>
 
       <GuruSignal ticker={ticker} cusip={cusip} />
+
+      {holders.data?.holders?.length > 0 && (
+        <div className="card mt16">
+          <h3>🏦 {t('stock.holders')}</h3>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('table.rank')}</th>
+                  <th className="l">{t('screen.manager')}</th>
+                  <th>13F</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holders.data.holders.map((h, i) => (
+                  <tr key={h.cik}>
+                    <td className="l muted">{i + 1}</td>
+                    <td className="l">
+                      <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }}>{h.name}</Link>
+                    </td>
+                    <td className="num">{h.filings}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small mt8">{t('stock.holdersNote')}</p>
+        </div>
+      )}
+
 
       {data.source !== 'quoteSummary' && (
         <div
@@ -474,21 +512,6 @@ export default function Stock() {
             </table>
           </div>
           <p className="muted small mt8">{t('stock.filings13dgNote')}</p>
-        </div>
-      )}
-
-      {holders.data?.holders?.length > 0 && (
-        <div className="card mt16">
-          <h3>🏦 {t('stock.holders')}</h3>
-          <div className="row" style={{ gap: 8 }}>
-            {holders.data.holders.map((h) => (
-              <Link key={h.cik} to={`/manager/${h.cik}`} className="chip">
-                {h.name}
-                <span className="muted small"> · {h.filings}</span>
-              </Link>
-            ))}
-          </div>
-          <p className="muted small mt8">{t('stock.holdersNote')}</p>
         </div>
       )}
 

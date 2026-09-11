@@ -1,37 +1,46 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import App from './App.jsx';
-import { I18nProvider } from './i18n.jsx';
-import { AuthProvider } from './auth.jsx';
+import { QueryClient, hydrate } from '@tanstack/react-query';
+import Root, { queryDefaults } from './Root.jsx';
+import { splitLang, withLang, isLang } from './lib/locale.js';
 import './styles/tokens.css';
 import './styles/app.css';
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 30 * 60 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
+// apply persisted theme before first paint (the <html> element is outside
+// React, so this never causes a hydration mismatch)
+try {
+  document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+} catch {
+  /* storage blocked */
+}
 
-// apply persisted theme before first paint
-document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+// Language comes from the URL prefix. The server redirects bare URLs; when
+// the app is served without SSR (vite dev, static preview) do it here.
+let { lang } = splitLang(window.location.pathname);
+if (!lang) {
+  let pref = null;
+  try {
+    pref = localStorage.getItem('lang');
+  } catch {
+    /* ignore */
+  }
+  if (!isLang(pref)) pref = (navigator.language || '').toLowerCase().startsWith('tr') ? 'tr' : 'en';
+  lang = pref;
+  const { path } = splitLang(window.location.pathname);
+  window.history.replaceState(null, '', withLang(lang, path) + window.location.search + window.location.hash);
+}
+document.documentElement.lang = lang;
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const queryClient = new QueryClient(queryDefaults);
+const state = window.__STATE__;
+if (state) hydrate(queryClient, state);
+
+const tree = (
   <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <AuthProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </AuthProvider>
-      </I18nProvider>
-    </QueryClientProvider>
+    <Root queryClient={queryClient} lang={lang} router={BrowserRouter} />
   </React.StrictMode>
 );
+const rootEl = document.getElementById('root');
+if (state && rootEl.hasChildNodes()) ReactDOM.hydrateRoot(rootEl, tree);
+else ReactDOM.createRoot(rootEl).render(tree);

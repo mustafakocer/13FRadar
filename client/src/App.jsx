@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import Home from './pages/Home.jsx';
 import Manager from './pages/Manager.jsx';
@@ -16,7 +16,12 @@ import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
 
 export default function App() {
-  const [theme, setTheme] = useState(document.documentElement.dataset.theme);
+  // 'light' on the server and for the first client render (hydration must
+  // match); the persisted choice is applied right after mount.
+  const [theme, setTheme] = useState('light');
+  useEffect(() => {
+    setTheme(document.documentElement.dataset.theme || 'light');
+  }, []);
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark';

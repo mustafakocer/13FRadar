@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { useGeo } from './hooks/useGeo.js';
+import { createContext, useContext, useCallback, useMemo } from 'react';
+import { splitLang, withLang } from './lib/locale.js';
 
 const dict = {
   tr: {
@@ -1264,51 +1264,28 @@ const dict = {
 
 const I18nCtx = createContext(null);
 
-// Language resolution, in priority order:
-//   1. an explicit choice (the TR/EN switch) persisted in localStorage
-//   2. the visitor's country (Vercel geo header via /api/geo): Türkiye → TR,
-//      everywhere else → EN
-//   3. until geo answers: the browser language, so the first paint is close
-const readStored = () => {
-  try {
-    const v = localStorage.getItem('lang');
-    return v === 'tr' || v === 'en' ? v : null;
-  } catch {
-    return null;
-  }
-};
-const browserGuess = () =>
-  (typeof navigator !== 'undefined' && (navigator.language || '').toLowerCase().startsWith('tr')) ? 'tr' : 'en';
-
-export function I18nProvider({ children }) {
-  const [explicit, setExplicit] = useState(() => readStored());
-  const [lang, setLangState] = useState(() => explicit || browserGuess());
-  const geo = useGeo();
-
-  useEffect(() => {
-    if (explicit) return;
-    const country = geo.data?.country;
-    if (!country) return;
-    setLangState(country === 'TR' ? 'tr' : 'en');
-  }, [explicit, geo.data]);
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  const setLang = useCallback((next) => {
-    if (next !== 'tr' && next !== 'en') return;
-    try {
-      localStorage.setItem('lang', next);
-    } catch {
-      /* private mode — the choice lives for this session only */
-    }
-    setExplicit(next);
-    setLangState(next);
-  }, []);
-  const toggle = useCallback(() => setLang(lang === 'tr' ? 'en' : 'tr'), [lang, setLang]);
-
+// The language is part of the URL (/en/…, /tr/…) and is passed in by the
+// entry point, so server and client render the same text. Switching stores
+// the choice (cookie for the server redirect, localStorage for the client
+// fallback) and reloads on the other prefix.
+export function I18nProvider({ lang = 'en', children }) {
   const t = useCallback((key) => dict[lang][key] ?? dict.en[key] ?? key, [lang]);
+  const setLang = useCallback(
+    (next) => {
+      if ((next !== 'tr' && next !== 'en') || next === lang) return;
+      if (typeof window === 'undefined') return;
+      try {
+        localStorage.setItem('lang', next);
+        document.cookie = `lang=${next}; path=/; max-age=31536000; SameSite=Lax`;
+      } catch {
+        /* private mode */
+      }
+      const { path } = splitLang(window.location.pathname);
+      window.location.assign(withLang(next, path) + window.location.search + window.location.hash);
+    },
+    [lang]
+  );
+  const toggle = useCallback(() => setLang(lang === 'tr' ? 'en' : 'tr'), [lang, setLang]);
   const value = useMemo(() => ({ lang, t, toggle, setLang }), [lang, t, toggle, setLang]);
   return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
 }

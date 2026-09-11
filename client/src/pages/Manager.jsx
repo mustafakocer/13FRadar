@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -14,7 +14,8 @@ import SectorPie from '../components/Charts/SectorPie.jsx';
 import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
 import SparkBar from '../components/Charts/SparkBar.jsx';
 import BacktestChart from '../components/Charts/BacktestChart.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
+import { managerSeo } from '../lib/seoTemplates.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
@@ -36,7 +37,7 @@ function Loading({ t }) {
 
 export default function Manager() {
   const { cik } = useParams();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
@@ -100,10 +101,18 @@ export default function Manager() {
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  usePageTitle(mgr.data?.name ? `${mgr.data.name} — 13F Radar` : null);
+  useSeo(
+    useMemo(
+      () => managerSeo({ lang, cik, manager: mgr.data, filing, holdings: holdings.data }),
+      [lang, cik, mgr.data, filing, holdings.data]
+    )
+  );
 
   // mark the latest filing as "seen" for watchlist NEW badges
-  if (mgr.data && filings[0]) markFilingSeen(mgr.data.cik, filings[0].filingDate);
+  const latestFiled = filings[0]?.filingDate;
+  useEffect(() => {
+    if (mgr.data && latestFiled) markFilingSeen(mgr.data.cik, latestFiled);
+  }, [mgr.data, latestFiled]);
 
   const backtest = useQuery({
     queryKey: ['backtest', cik],
@@ -125,6 +134,10 @@ export default function Manager() {
 
   const positions = holdings.data?.positions || [];
   const history = aumHist.data?.history || [];
+  const prevByCusip = useMemo(
+    () => new Map((prevHoldings.data?.positions || []).map((p) => [p.cusip, p])),
+    [prevHoldings.data]
+  );
   const latest = history[history.length - 1];
 
   // 1D return, weighted by portfolio weight over resolved tickers
@@ -293,6 +306,57 @@ export default function Manager() {
               </div>
             </div>
           )}
+
+          <div className="card mt16">
+            <h3>{t('manager.topHoldings')} · {filing ? quarterLabel(filing.reportDate) : ''}</h3>
+            <div className="table-wrap">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th className="l">{t('table.rank')}</th>
+                    <th className="l">{t('table.symbol')}</th>
+                    <th className="l">{t('table.company')}</th>
+                    <th>{t('table.weight')}</th>
+                    <th>{t('table.value')}</th>
+                    <th>{t('table.shares')}</th>
+                    <th>{t('table.delta')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.slice(0, 10).map((p, i) => {
+                    const q = prevByCusip.get(p.cusip);
+                    const d = q && q.shares > 0 ? ((p.shares - q.shares) / q.shares) * 100 : null;
+                    return (
+                      <tr key={`${p.cusip}|${p.putCall}`}>
+                        <td className="l muted">{i + 1}</td>
+                        <td className="l">
+                          {p.ticker ? (
+                            <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
+                          ) : (
+                            <span className="muted small">{p.cusip}</span>
+                          )}
+                          {p.putCall && <span className="badge type" style={{ marginLeft: 6 }}>{p.putCall}</span>}
+                        </td>
+                        <td className="l">{p.issuer}</td>
+                        <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
+                        <td className="num">{fmtMoney(p.value)}</td>
+                        <td className="num">{fmtNum(p.shares)}</td>
+                        <td className={`num ${prevHoldings.data ? (q ? deltaClass(d) : 'delta-pos') : 'muted'}`}>
+                          {!prevHoldings.data ? '—' : q ? fmtPct(d) : t('manager.newBadge')}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {holdings.data?.count > 10 && (
+              <p className="muted small mt8">
+                10 {t('table.showing')} · {fmtNum(holdings.data.count)} {t('manager.positions').toLowerCase()} ·{' '}
+                <button className="linklike" onClick={() => setTab('holdings')}>{t('manager.holdings')} →</button>
+              </p>
+            )}
+          </div>
 
           <div className="card mt16">
             <h3>{t('manager.aumHistory')}</h3>

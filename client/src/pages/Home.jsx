@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -9,7 +9,8 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
+import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 
 // ---------------------------------------------------------------------------
@@ -99,13 +100,14 @@ function LangSwitch() {
 
 function PromoBanner() {
   const { t } = useI18n();
-  const [closed, setClosed] = useState(() => {
+  const [closed, setClosed] = useState(false);
+  useEffect(() => {
     try {
-      return localStorage.getItem(BANNER_KEY) === '1';
+      if (localStorage.getItem(BANNER_KEY) === '1') setClosed(true);
     } catch {
-      return false;
+      /* storage blocked */
     }
-  });
+  }, []);
   if (closed) return null;
   const close = () => {
     try {
@@ -649,7 +651,7 @@ export default function Home() {
   const { t, lang } = useI18n();
   const { favorites } = useFavorites();
   const qc = useQueryClient();
-  usePageTitle(lang === 'tr' ? '13F Radar — Akıllı Para Takibi' : '13F Radar — Track the Smart Money');
+  useSeo(useMemo(() => homeSeo({ lang }), [lang]));
 
   const consensus = useConsensusStatic();
   const returns = useStaticReturns();

@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { cached, TTL } from '../_lib/cache.js';
 import { padCik } from '../_lib/sec.js';
+import { readFixture } from '../_lib/fixtures.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 
@@ -10,6 +11,8 @@ const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
 export default async function handler(req, res) {
   const q = String(req.query.q || '').trim();
   if (q.length < 2) return res.status(400).json({ error: 'Query too short' });
+  const fx = readFixture(`holders/${q.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`);
+  if (fx) return res.status(200).json(fx);
 
   try {
     const payload = await cached(`holders:${q.toLowerCase()}`, TTL.HOUR_6, async () => {

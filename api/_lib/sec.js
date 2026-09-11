@@ -1,4 +1,6 @@
 import axios from 'axios';
+import fs from 'node:fs';
+import path from 'node:path';
 import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from './cache.js';
 
@@ -10,12 +12,25 @@ const http = axios.create({
   headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip, deflate' },
 });
 
+// Offline fixtures for tests and sandboxes without EDGAR access:
+//   $SEC_FIXTURE_DIR/submissions/CIK0001067983.json
+//   $SEC_FIXTURE_DIR/filings/<cik>/<accession-no-dashes>/infotable.xml
+// Never consulted unless the env var is set explicitly.
+const FIXTURES = process.env.SEC_FIXTURE_DIR || null;
+function fixture(rel) {
+  if (!FIXTURES) return null;
+  const file = path.join(FIXTURES, rel);
+  return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null;
+}
+
 export const padCik = (cik) => String(cik).replace(/\D/g, '').padStart(10, '0');
 export const numCik = (cik) => String(Number(String(cik).replace(/\D/g, '')));
 
 export function getSubmissions(cik) {
   const id = padCik(cik);
   return cached(`sub:${id}`, TTL.HOUR_1, async () => {
+    const fx = fixture(`submissions/CIK${id}.json`);
+    if (fx) return JSON.parse(fx);
     const { data } = await http.get(`https://data.sec.gov/submissions/CIK${id}.json`);
     return data;
   });
@@ -48,6 +63,8 @@ export function list13F(sub) {
 export async function fetchInfoTableXml(cik, acc) {
   const cikN = numCik(cik);
   const accNo = acc.replace(/-/g, '');
+  const fx = fixture(`filings/${cikN}/${accNo}/infotable.xml`);
+  if (fx) return fx;
   const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;
   const { data: idx } = await http.get(`${base}/index.json`);
   let items = idx?.directory?.item || [];

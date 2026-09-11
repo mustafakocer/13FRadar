@@ -1,4 +1,5 @@
 import { cached, TTL, remember, recall } from '../_lib/cache.js';
+import { readFixture } from '../_lib/fixtures.js';
 import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClient.js';
 import { stooqDaily } from '../_lib/stooq.js';
 import { hasFmp, hasTd, fmpStock, tdStock } from '../_lib/providers.js';
@@ -233,6 +234,11 @@ function shapeStooqFallback(symbol, prices) {
 export default async function handler(req, res) {
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
+  const fx = readFixture(`stock/${ticker}.json`);
+  if (fx) {
+    res.setHeader('Cache-Control', 'no-store');
+    return res.status(200).json(fx);
+  }
 
   try {
     const data = await cached(`stock:${ticker}`, TTL.MIN_5 * 2, async () => {

@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js';
 
 const KEY = 'favorites13f';
 const listeners = new Set();
+const EMPTY = [];
 let snapshot = load();
 
 function load() {
@@ -15,7 +16,11 @@ function load() {
 
 function save(next) {
   snapshot = next;
-  localStorage.setItem(KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    /* storage blocked */
+  }
   listeners.forEach((l) => l());
 }
 
@@ -48,7 +53,8 @@ export function useFavorites() {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => snapshot
+    () => snapshot,
+    () => EMPTY // server render + hydration: no favorites yet
   );
 
   const isFavorite = useCallback((cik) => favorites.some((f) => f.cik === cik), [favorites]);

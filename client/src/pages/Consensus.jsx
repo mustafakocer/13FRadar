@@ -5,7 +5,9 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { fmtMoney, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useMemo } from 'react';
+import { useSeo } from '../seo.jsx';
+import { consensusSeo } from '../lib/seoTemplates.js';
 import Paywall from '../components/Paywall.jsx';
 
 const Sym = ({ r }) =>
@@ -32,13 +34,13 @@ function HoldersCell({ holders }) {
 }
 
 export default function Consensus() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
-  usePageTitle(`${t('consensus.title')} — 13F Radar`);
 
   // public part from the static CDN file; buys/sells/new positions come from
   // the Pro-only API and are merged in for Pro users
   const { data, isLoading, error, proLoading, proError } = useConsensusStatic();
+  useSeo(useMemo(() => consensusSeo({ lang, data }), [lang, data]));
 
   // whole-universe most-held (static file produced by the GitHub Action)
   const uniStocks = useQuery({

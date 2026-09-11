@@ -6,3 +6,5 @@ client/dist/
 .env.local
 *.log
 .DS_Store
+geo-monitor/*.json
+geo-monitor/results.csv

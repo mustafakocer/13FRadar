@@ -1,0 +1,25 @@
+{
+  "domain": "13fradar.com",
+  "questions": [
+    { "lang": "en", "q": "What did Warren Buffett buy in Q2 2026?" },
+    { "lang": "en", "q": "What stocks does Michael Burry hold in 2026?" },
+    { "lang": "en", "q": "Which superinvestors own NVIDIA according to 13F filings?" },
+    { "lang": "en", "q": "What are the most bought stocks by hedge funds in Q2 2026 13F filings?" },
+    { "lang": "en", "q": "When is the next 13F filing deadline?" },
+    { "lang": "en", "q": "What did Bill Ackman's Pershing Square buy in its latest 13F?" },
+    { "lang": "en", "q": "Which stocks have cluster insider buying this month?" },
+    { "lang": "en", "q": "Best free 13F tracker website" },
+    { "lang": "en", "q": "How long has Berkshire Hathaway held Apple according to 13F filings?" },
+    { "lang": "en", "q": "What are the limitations of 13F data?" },
+    { "lang": "tr", "q": "Michael Burry portföyü 2026" },
+    { "lang": "tr", "q": "Warren Buffett 2026 ikinci çeyrekte hangi hisseleri aldı?" },
+    { "lang": "tr", "q": "13F bildirimi nedir ve ne zaman yapılır?" },
+    { "lang": "tr", "q": "Usta yatırımcıların en çok tuttuğu hisseler 2026" },
+    { "lang": "tr", "q": "Bill Ackman son 13F bildiriminde ne aldı?" },
+    { "lang": "tr", "q": "Form 4 insider alımları nasıl takip edilir?" },
+    { "lang": "tr", "q": "Amerikan hedge fonlarının portföylerini Türkçe takip edebileceğim site" },
+    { "lang": "tr", "q": "Berkshire Hathaway Apple hissesini ne kadar süredir tutuyor?" },
+    { "lang": "tr", "q": "Hangi süper yatırımcılar NVIDIA hissesi tutuyor?" },
+    { "lang": "tr", "q": "13F takip araçları karşılaştırması" }
+  ]
+}

@@ -2,6 +2,8 @@ import { createRequire } from 'node:module';
 import { slugTable } from '../_lib/slugs.js';
 import { siteUrl } from '../_lib/site.js';
 import { historyTable } from '../_lib/history.js';
+import { reportIndex } from './report.js';
+import { GUIDES, COMPARES } from '../../client/src/content/registry.js';
 
 // Sitemap index + per-entity sitemaps + robots.txt.
 //   /sitemap.xml            → index (type=index)
@@ -25,11 +27,15 @@ const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 function urlset(site, entries) {
   const body = entries
-    .flatMap(({ path, lastmod, changefreq, priority }) =>
+    .flatMap(({ path, paths, lastmod, changefreq, priority }) =>
       LANGS.map((lang) => {
-        const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(`${site}/${l}${path === '/' ? '' : path}`)}"/>`).join('');
-        const xdef = `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(`${site}/en${path === '/' ? '' : path}`)}"/>`;
-        return `<url><loc>${esc(`${site}/${lang}${path === '/' ? '' : path}`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}${changefreq ? `<changefreq>${changefreq}</changefreq>` : ''}${priority ? `<priority>${priority}</priority>` : ''}${alts}${xdef}</url>`;
+        const p = (l) => {
+          const x = paths?.[l] || path;
+          return x === '/' ? '' : x;
+        };
+        const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(`${site}/${l}${p(l)}`)}"/>`).join('');
+        const xdef = `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(`${site}/en${p('en')}`)}"/>`;
+        return `<url><loc>${esc(`${site}/${lang}${p(lang)}`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}${changefreq ? `<changefreq>${changefreq}</changefreq>` : ''}${priority ? `<priority>${priority}</priority>` : ''}${alts}${xdef}</url>`;
       })
     )
     .join('\n');
@@ -106,6 +112,11 @@ export function buildSitemap(type, site) {
       { path: '/rankings/most-sold', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/consensus', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/conviction', lastmod, changefreq: 'daily', priority: '0.8' },
+      { path: '/calendar', lastmod: latestFiled, changefreq: 'daily', priority: '0.8' },
+      { path: '/emerging-managers', lastmod: latestFiled, changefreq: 'weekly', priority: '0.7' },
+      { path: '/reports', lastmod, changefreq: 'weekly', priority: '0.7' },
+      ...reportIndex().map((id) => ({ path: `/reports/${id}`, lastmod, changefreq: 'monthly', priority: '0.8' })),
+      ...[...GUIDES, ...COMPARES].map((g) => ({ path: g.paths.en, paths: g.paths, changefreq: 'monthly', priority: '0.6' })),
       { path: '/screen', lastmod: latestFiled, changefreq: 'weekly', priority: '0.6' },
       { path: '/report', lastmod, changefreq: 'weekly', priority: '0.5' },
       { path: '/compare', changefreq: 'monthly', priority: '0.3' },

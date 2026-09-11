@@ -52,7 +52,7 @@ export default async function handler(req, res) {
   }
 
   const origin = siteUrl(req);
-  const matched = matchRoute(bare, cleanSearch);
+  const matched = matchRoute(bare, cleanSearch, lang);
   let seeds = [];
   let status = 200;
   let cache = CACHE.none;
@@ -73,7 +73,8 @@ export default async function handler(req, res) {
     } catch (e) {
       console.error('ssr loader failed', bare, e?.message || e);
     }
-    cache = CACHE[matched.route.cache] || CACHE.none;
+    const policy = typeof matched.route.cache === 'function' ? matched.route.cache() : matched.route.cache;
+    cache = CACHE[policy] || CACHE.none;
   } else {
     status = 404;
   }

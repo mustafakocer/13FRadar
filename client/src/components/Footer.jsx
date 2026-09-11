@@ -9,6 +9,12 @@ const EXPLORE = [
   ['/insiders/cluster', 'landing.ins.tab.cluster'],
   ['/insiders/csuite', 'landing.ins.tab.csuite'],
 ];
+const LEARN = [
+  ['/guides/what-is-13f', '/rehber/13f-nedir', 'guide.what'],
+  ['/guides/how-to-read-form-4', '/rehber/form-4-nasil-okunur', 'guide.form4'],
+  ['/guides/13f-limitations', '/rehber/13f-sinirlari', 'guide.limits'],
+  ['/guides/best-13f-trackers', '/rehber/en-iyi-13f-takip-araclari', 'guide.best'],
+];
 const RANKINGS = [
   ['/rankings/most-bought', 'rank.mostBought'],
   ['/rankings/most-sold', 'rank.mostSold'],
@@ -17,10 +23,18 @@ const RANKINGS = [
 ];
 
 export default function Footer() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   return (
     <footer className="site-footer no-print">
       <nav aria-label="Footer">
+        <div>
+          <b>{t('footer.learn')}</b>
+          {LEARN.map(([en, tr, k]) => (
+            <Link key={k} to={lang === 'tr' ? tr : en}>{t(k)}</Link>
+          ))}
+          <Link to="/calendar">{t('cal.title')}</Link>
+          <Link to="/reports">{t('rep.indexSub')}</Link>
+        </div>
         <div>
           <b>{t('footer.explore')}</b>
           {EXPLORE.map(([to, k]) => (

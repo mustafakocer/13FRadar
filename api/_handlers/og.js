@@ -7,6 +7,7 @@ import manager from './manager.js';
 import holdings from './holdings.js';
 import stock from './stock.js';
 import holders from './holders.js';
+import fsSync from 'node:fs';
 
 // GET /api/og                         → default brand card
 // GET /api/og?type=guru&cik=…         → name, portfolio value, top 3 holdings, quarter
@@ -96,6 +97,41 @@ async function stockCard(ticker) {
   });
 }
 
+// Report chart pack: horizontal bar chart of the top entries.
+function barChart({ title, sub, rows, color, valueOf, labelOf }) {
+  const max = Math.max(...rows.map((r) => Math.abs(valueOf(r))), 1);
+  const bars = rows
+    .slice(0, 10)
+    .map((r, i) => {
+      const y = 190 + i * 40;
+      const w = Math.max(4, (Math.abs(valueOf(r)) / max) * 620);
+      return `<text x="80" y="${y + 20}" font-size="22" font-weight="bold" fill="#ffffff">${esc(clip(labelOf(r), 14))}</text>
+  <rect x="320" y="${y}" width="${w.toFixed(0)}" height="26" rx="6" fill="${color}"/>
+  <text x="${(320 + w + 12).toFixed(0)}" y="${y + 20}" font-size="20" fill="#c3cbdd">${esc(money(Math.abs(valueOf(r))))}</text>`;
+    })
+    .join('\n');
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" font-family="DejaVu Sans">
+  <rect width="1200" height="630" fill="#0d1b3e"/><rect x="0" y="0" width="1200" height="8" fill="#ffd250"/>
+  <text x="80" y="80" font-size="30" font-weight="bold" fill="#ffffff">13F<tspan fill="#ffd250"> Radar</tspan></text>
+  <text x="80" y="128" font-size="38" font-weight="bold" fill="#ffffff">${esc(clip(title, 50))}</text>
+  <text x="80" y="160" font-size="22" fill="#c3cbdd">${esc(clip(sub, 90))}</text>
+  ${bars}
+  <text x="1120" y="608" font-size="18" fill="#8f9bb5" text-anchor="end">Source: SEC EDGAR 13F-HR · not investment advice</text>
+</svg>`;
+}
+
+function reportCard(id, chart) {
+  const file = path.join(process.cwd(), 'api', '_data', 'reports', `${id}.json`);
+  if (!/^\d{4}-q[1-4]$/.test(id) || !fsSync.existsSync(file)) return null;
+  const r = JSON.parse(fsSync.readFileSync(file, 'utf8'));
+  const q = `Q${r.quarter} ${r.year}`;
+  const sub = `${r.coverage.onQuarter} tracked superinvestors · 13F filings for ${r.quarterEnd}`;
+  const sym = (x) => x.ticker || clip(x.issuer, 12);
+  if (chart === 'sells') return barChart({ title: `${q} · Top net sells`, sub, rows: r.topSellsByValue, color: '#f2645f', valueOf: (x) => x.netValue, labelOf: sym });
+  if (chart === 'moves') return barChart({ title: `${q} · Notable moves (% change)`, sub, rows: r.notableMoves, color: '#7ea0ff', valueOf: (x) => x.change, labelOf: (x) => `${sym(x)} ${x.change > 0 ? '+' : ''}${x.change.toFixed(0)}%` });
+  return barChart({ title: `${q} · Top net buys`, sub, rows: r.topBuysByValue, color: '#2fbf8f', valueOf: (x) => x.netValue, labelOf: sym });
+}
+
 const defaultCard = () =>
   card({
     kicker: 'SEC 13F · FORM 4 · 13D/G',
@@ -114,6 +150,7 @@ export default async function handler(req, res) {
   try {
     if (type === 'guru' && /^\d{1,10}$/.test(String(req.query.cik || ''))) svg = await guruCard(String(req.query.cik).padStart(10, '0'));
     else if (type === 'stock' && /^[A-Za-z0-9.\-]{1,12}$/.test(String(req.query.ticker || ''))) svg = await stockCard(String(req.query.ticker).toUpperCase());
+    else if (type === 'report') svg = reportCard(String(req.query.id || '').toLowerCase(), String(req.query.chart || 'buys'));
   } catch (e) {
     console.error('og card failed', e?.message || e);
   }

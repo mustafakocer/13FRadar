@@ -6,6 +6,11 @@ import stockHandler from '../../_handlers/stock.js';
 import holdersHandler from '../../_handlers/holders.js';
 import slugHandler from '../../_handlers/slug.js';
 import guruHistoryHandler from '../../_handlers/guru-history.js';
+import calendarHandler from '../../_handlers/calendar.js';
+import emergingHandler from '../../_handlers/emerging.js';
+import reportHandler from '../../_handlers/report.js';
+import { inFilingSeason } from '../calendar.js';
+import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, filerPath } from '../slugs.js';
 
 const require = createRequire(import.meta.url);
@@ -133,6 +138,25 @@ async function loadRankings() {
   return seeds;
 }
 
+async function loadCalendar() {
+  const r = await invoke(calendarHandler, {});
+  return r.status === 200 ? [[['calendar'], r.body]] : [];
+}
+async function loadEmerging() {
+  const r = await invoke(emergingHandler, {});
+  return r.status === 200 ? [[['emerging'], r.body]] : [];
+}
+
+async function loadReports({ id }) {
+  if (!id) {
+    const r = await invoke(reportHandler, {});
+    return r.status === 200 ? [[['reports'], r.body]] : [];
+  }
+  const r = await invoke(reportHandler, { id });
+  if (r.status !== 200) return { seeds: [], status: 404 };
+  return { seeds: [[['report', id], r.body]] };
+}
+
 async function loadTeaserOnly() {
   const t = staticTeaser();
   return t ? [[['insiders-teaser'], t]] : [];
@@ -149,6 +173,9 @@ export const ROUTES = [
   { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
   { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },
   { kind: 'insider-signal', re: /^\/insiders\/(cluster|csuite|penny)$/, load: loadTeaserOnly, cache: 'hour' },
+  { kind: 'reports', re: /^\/reports(?:\/(\d{4}-q[1-4]))?$/, params: (m) => ({ id: m[1] || null }), load: loadReports, cache: 'day' },
+  { kind: 'calendar', re: /^\/calendar$/, load: loadCalendar, cache: () => (inFilingSeason() ? 'hour' : 'day') },
+  { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus$/, load: loadConsensus, cache: 'hour' },
@@ -161,7 +188,17 @@ export const ROUTES = [
   { kind: 'account', re: /^\/account$/, load: async () => [], cache: 'none' },
 ];
 
-export function matchRoute(pathname, search) {
+// static content: language-specific slugs; a slug from the other language
+// 301s to the right one (handled in ssr.js via `redirect`)
+function contentRoute(pathname, lang) {
+  const hit = contentByPath(pathname);
+  if (!hit) return null;
+  return { route: { kind: 'content', load: async () => (hit.lang === lang ? [] : { redirect: hit.entry.paths[lang], status: 301 }), cache: 'day' }, params: {} };
+}
+
+export function matchRoute(pathname, search, lang = 'en') {
+  const c = contentRoute(pathname, lang);
+  if (c) return c;
   const qs = new URLSearchParams(search || '');
   for (const r of ROUTES) {
     const m = r.re.exec(pathname);

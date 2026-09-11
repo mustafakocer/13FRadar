@@ -29,6 +29,9 @@ import sitemap from './_handlers/sitemap.js';
 import og from './_handlers/og.js';
 import guruHistoryH from './_handlers/guru-history.js';
 import exportH from './_handlers/export.js';
+import calendar from './_handlers/calendar.js';
+import emerging from './_handlers/emerging.js';
+import report from './_handlers/report.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
@@ -44,6 +47,10 @@ const ROUTES = {
   'guru-history': [guruHistoryH, 'cik'],
   'guru-history-ticker': [guruHistoryH, 'cik', 'ticker'],
   export: [exportH, 'kind', 'id'],
+  calendar: [calendar],
+  emerging: [emerging],
+  report: [report],
+  'report-id': [report, 'id'],
   'slug-of': [slug, 'slug'],
   search: [search],
   returns: [returns],

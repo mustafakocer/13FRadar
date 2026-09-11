@@ -12,7 +12,7 @@ import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
 import { LAZY_PAGES } from './pages/lazyPages.js';
 
-const { Insiders, Screen, Compare, Report, Watchlist, Pricing, Account, Filers, GuruTicker } = Object.fromEntries(
+const { Insiders, Screen, Compare, Report, Watchlist, Pricing, Account, Filers, GuruTicker, Calendar, Emerging, ReportPage, ContentPage } = Object.fromEntries(
   Object.entries(LAZY_PAGES).map(([k, v]) => [k, v.component])
 );
 // Split pages get their own boundary: entity pages hydrate synchronously with
@@ -59,6 +59,14 @@ export default function App() {
           <Route path="/filers/:letter" element={<Lazy><Filers /></Lazy>} />
           <Route path="/insiders/:signal" element={<InsiderSignal />} />
           <Route path="/rankings/:kind" element={<Rankings />} />
+          <Route path="/calendar" element={<Lazy><Calendar /></Lazy>} />
+          <Route path="/reports" element={<Lazy><ReportPage /></Lazy>} />
+          <Route path="/guides/:slug" element={<Lazy><ContentPage /></Lazy>} />
+          <Route path="/rehber/:slug" element={<Lazy><ContentPage /></Lazy>} />
+          <Route path="/compare/:slug" element={<Lazy><ContentPage /></Lazy>} />
+          <Route path="/karsilastir/:slug" element={<Lazy><ContentPage /></Lazy>} />
+          <Route path="/reports/:id" element={<Lazy><ReportPage /></Lazy>} />
+          <Route path="/emerging-managers" element={<Lazy><Emerging /></Lazy>} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />
           <Route path="/report" element={<Lazy><Report /></Lazy>} />

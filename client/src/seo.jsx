@@ -52,17 +52,19 @@ export const DEFAULT_DESC = {
 export function headTags(spec, { siteUrl }) {
   const lang = spec.lang || 'en';
   const path = spec.path || '/';
+  // per-language slugs (guides) override the shared path
+  const pathFor = (l) => spec.paths?.[l] || path;
   const title = spec.title || DEFAULT_TITLE[lang];
   const description = spec.description || DEFAULT_DESC[lang];
-  const url = `${siteUrl}${withLang(lang, path)}`;
+  const url = `${siteUrl}${withLang(lang, pathFor(lang))}`;
   const image = spec.image ? (spec.image.startsWith('http') ? spec.image : `${siteUrl}${spec.image}`) : `${siteUrl}/api/og`;
   const tags = [
     { tag: 'title', text: title },
     { tag: 'meta', name: 'description', content: description },
     { tag: 'link', rel: 'canonical', href: url },
-    { tag: 'link', rel: 'alternate', hreflang: 'en', href: `${siteUrl}${withLang('en', path)}` },
-    { tag: 'link', rel: 'alternate', hreflang: 'tr', href: `${siteUrl}${withLang('tr', path)}` },
-    { tag: 'link', rel: 'alternate', hreflang: 'x-default', href: `${siteUrl}${withLang('en', path)}` },
+    { tag: 'link', rel: 'alternate', hreflang: 'en', href: `${siteUrl}${withLang('en', pathFor('en'))}` },
+    { tag: 'link', rel: 'alternate', hreflang: 'tr', href: `${siteUrl}${withLang('tr', pathFor('tr'))}` },
+    { tag: 'link', rel: 'alternate', hreflang: 'x-default', href: `${siteUrl}${withLang('en', pathFor('en'))}` },
     { tag: 'meta', property: 'og:title', content: title },
     { tag: 'meta', property: 'og:description', content: description },
     { tag: 'meta', property: 'og:url', content: url },
@@ -79,6 +81,7 @@ export function headTags(spec, { siteUrl }) {
     { tag: 'meta', name: 'twitter:image', content: image },
   ];
   if (spec.noindex) tags.push({ tag: 'meta', name: 'robots', content: 'noindex' });
+  if (spec.dateModified) tags.push({ tag: 'meta', property: 'article:modified_time', content: spec.dateModified });
   for (const block of spec.jsonLd || [])
     tags.push({ tag: 'script', type: 'application/ld+json', text: JSON.stringify(block).split('__SITE__').join(siteUrl) });
   return tags;

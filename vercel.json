@@ -5,7 +5,8 @@
   "buildCommand": "node scripts/check-env.mjs && npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
   "outputDirectory": "client/dist",
   "functions": {
-    "api/ssr.js": { "includeFiles": "client/dist/**", "maxDuration": 30 }
+    "api/ssr.js": { "includeFiles": "client/dist/**", "maxDuration": 30 },
+    "api/index.js": { "includeFiles": "{api/_data/reports/**,reports/**,api/_assets/**}" }
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api?__path=:path*" },

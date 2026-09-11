@@ -115,9 +115,15 @@ export function buildSitemap(type, site) {
     return { contentType: 'application/xml', body: urlset(site, entries) };
   }
   if (type === 'robots') {
+    // AI crawlers are welcome (GEO): explicit Allow blocks so a future
+    // blanket rule can never shut them out by accident. Only private and
+    // machine endpoints are disallowed.
+    const AI_BOTS = ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-User', 'anthropic-ai', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Bingbot', 'Applebot', 'CCBot'];
+    const disallow = ['/api/', '/user/', '/account', '/auth/', '/en/account', '/tr/account', '/en/auth/', '/tr/auth/'];
+    const block = (ua) => `User-agent: ${ua}\nAllow: /\n${disallow.map((d) => `Disallow: ${d}`).join('\n')}\n`;
     return {
       contentType: 'text/plain',
-      body: `User-agent: *\nAllow: /\nDisallow: /api/\nDisallow: /en/account\nDisallow: /tr/account\nDisallow: /en/watchlist\nDisallow: /tr/watchlist\n\nSitemap: ${site}/sitemap.xml\n`,
+      body: `${block('*')}\n${AI_BOTS.map(block).join('\n')}\nSitemap: ${site}/sitemap.xml\n`,
     };
   }
   return null;

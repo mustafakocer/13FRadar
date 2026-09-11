@@ -1,6 +1,7 @@
 import { getSubmissions, list13F, padCik } from '../_lib/sec.js';
 import { slugForCik, filerPath } from '../_lib/slugs.js';
 import { createRequire } from 'node:module';
+import { reportIndex } from './report.js';
 
 const require = createRequire(import.meta.url);
 // the manager's quarter-over-quarter card from the daily consensus build
@@ -30,6 +31,7 @@ export default async function handler(req, res) {
       kind: entry?.kind || 'filer',
       path: filerPath(cik),
       update: updateCard(padCik(cik)),
+      latestReport: reportIndex()[0] || null,
       city: sub.addresses?.business?.city || null,
       state: sub.addresses?.business?.stateOrCountry || null,
       filings,

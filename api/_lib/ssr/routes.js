@@ -9,6 +9,7 @@ import guruHistoryHandler from '../../_handlers/guru-history.js';
 import calendarHandler from '../../_handlers/calendar.js';
 import emergingHandler from '../../_handlers/emerging.js';
 import reportHandler from '../../_handlers/report.js';
+import relatedHandler from '../../_handlers/related.js';
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, filerPath } from '../slugs.js';
@@ -86,6 +87,8 @@ async function loadManager({ cik, slug, kind }) {
   // the client — keeping them out trims ~40 KB from every guru page
   const h = await invoke(guruHistoryHandler, { cik });
   if (h.status === 200) seeds.push([['guru-history', cik], h.body]);
+  const rel = await invoke(relatedHandler, { cik });
+  if (rel.status === 200) seeds.push([['related', cik], rel.body]);
   return { seeds };
 }
 

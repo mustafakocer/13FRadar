@@ -72,3 +72,15 @@ test('guides and comparison pages: real copy in both languages, question H2s, pe
   const tr = await ssr('/tr/rehber/form-4-nasil-okunur');
   assert.match(tr.html, /Form 4 insider bildirimi nasıl okunur\?/);
 });
+
+test('Phase 5 linking: guru page has related managers, latest report and calendar links, dateModified', async () => {
+  const { html } = await ssr('/en/guru/berkshire-hathaway-warren-buffett');
+  assert.match(html, /Related managers/);
+  assert.match(html, /href="\/en\/reports\/2026-q2"/);
+  assert.match(html, /href="\/en\/calendar"/);
+  assert.match(html, /property="article:modified_time" content="2026-08-14"/);
+  const rank = await ssr('/tr/rankings/most-bought');
+  assert.match(rank.html, /href="\/tr\/calendar"/);
+  const guide = await ssr('/en/guides/13f-limitations');
+  assert.ok((guide.html.match(/href="\/en\/(guru|rankings|stock|calendar|guides)\//g) || []).length >= 3, 'guide links to entity pages');
+});

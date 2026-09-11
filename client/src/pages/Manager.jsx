@@ -14,6 +14,7 @@ import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
 import { timeHeldLabel } from '../lib/timeHeld.js';
+import { managerPath } from '../lib/paths.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
@@ -153,6 +154,15 @@ export default function Manager() {
     retry: 1,
   });
 
+
+  // related managers by holdings overlap (nightly precompute; 404 = none)
+  const related = useQuery({
+    queryKey: ['related', cik],
+    queryFn: () => api.related(cik),
+    enabled: !!cik,
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: 0,
+  });
 
   const mstats = useQuery({
     queryKey: ['mstats', cik],
@@ -617,6 +627,36 @@ export default function Manager() {
           locked={!!holdings.data?.locked}
           exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
         />
+      )}
+      {related.data?.related?.length > 0 && (
+        <div className="card mt16">
+          <h3>🔗 {t('related.title')}</h3>
+          <p className="muted small" style={{ marginBottom: 8 }}>{t('related.note')}</p>
+          <div className="table-wrap">
+            <table className="data">
+              <thead><tr><th className="l">{t('screen.manager')}</th><th>{t('related.overlap')}</th><th className="l">{t('related.shared')}</th></tr></thead>
+              <tbody>
+                {related.data.related.map((r) => (
+                  <tr key={r.cik}>
+                    <td className="l"><Link to={r.slug ? `/guru/${r.slug}` : managerPath(r.cik)} style={{ fontWeight: 700 }}>{r.name}</Link></td>
+                    <td className="num">{fmtPct(r.jaccard * 100, { sign: false })}</td>
+                    <td className="l small">
+                      {r.shared.map((tk, i) => (
+                        <span key={tk}>{i > 0 && ', '}{/^[A-Z0-9.\-]{1,6}$/.test(tk) ? <Link to={`/stock/${tk}`}>{tk}</Link> : <span className="muted">{tk}</span>}</span>
+                      ))}
+                      {r.sharedCount > r.shared.length && ` +${r.sharedCount - r.shared.length}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {mgr.data.latestReport && (
+        <p className="muted small mt16">
+          📰 <Link to={`/reports/${mgr.data.latestReport}`}>{t('related.report').replace('{q}', mgr.data.latestReport.toUpperCase())}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
+        </p>
       )}
       <Faq items={seo.faq} />
       <Disclaimer />

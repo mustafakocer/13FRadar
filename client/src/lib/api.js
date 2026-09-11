@@ -69,6 +69,7 @@ export const api = {
   filings13dg: (ticker) => get(`/api/filings13dg/${encodeURIComponent(ticker)}`),
   calendar: () => get('/api/calendar'),
   reports: () => get('/api/report'),
+  related: (cik) => get(`/api/related/${cik}`),
   report: (id) => get(`/api/report-id/${encodeURIComponent(id)}`),
   emerging: () => get('/api/emerging'),
   guruHistory: (cik) => get(`/api/guru-history/${cik}`),

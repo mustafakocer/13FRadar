@@ -108,7 +108,7 @@ export default function Rankings() {
             </tbody>
           </table>
         </div>
-        <p className="muted small mt8">{t('landing.act.note')}</p>
+        <p className="muted small mt8">{t('landing.act.note')} · <Link to="/calendar">{t('cal.title')}</Link> · <Link to="/reports">{t('rep.indexSub')}</Link></p>
         <Disclaimer />
       </div>
       <Faq items={ld.faq} />

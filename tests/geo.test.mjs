@@ -63,3 +63,16 @@ test('llms.txt follows the llmstxt.org shape and lists EN/TR URLs separately', (
   const full = fs.readFileSync(path.join(root, 'client', 'dist', 'llms-full.txt'), 'utf8');
   assert.ok(full.length > txt.length && full.includes('## Guru summaries (EN)'));
 });
+
+test('GPTBot and ClaudeBot get the answer box text and JSON-LD on five public pages', async () => {
+  const pages = ['/en/guru/berkshire-hathaway-warren-buffett', '/tr/stock/AAPL', '/en/rankings/consensus', '/en/calendar', '/tr/reports/2026-q2'];
+  for (const ua of ['GPTBot', 'ClaudeBot']) {
+    for (const page of pages) {
+      const { status, html } = await ssr(page, { 'user-agent': `Mozilla/5.0 (compatible; ${ua}/1.0)` });
+      assert.equal(status, 200, `${ua} ${page}`);
+      const box = /<p class="answer-box" data-answer-box[^>]*>([^<]{80,})<\/p>/.exec(html);
+      assert.ok(box, `${ua} ${page} answer box`);
+      assert.ok((html.match(/<script type="application\/ld\+json">/g) || []).length >= 1, `${ua} ${page} JSON-LD`);
+    }
+  }
+});

@@ -66,6 +66,36 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | Stripe / Supabase | ödeme için | bkz. docs/STRIPE-KURULUM.md |
 | `SEC_FIXTURE_DIR`, `GURU_HISTORY_FILE` | yalnız test | çevrimdışı fixture'lar (`tests/fixtures`) |
 
+### GEO (generative engine optimization) kontrol listesi
+
+| Öğe | Nerede | Durum |
+|---|---|---|
+| AI tarayıcılarına açık `robots.txt` (GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, Claude-User, anthropic-ai, PerplexityBot, Perplexity-User, Google-Extended, Bingbot, Applebot, CCBot) | `api/_handlers/sitemap.js` → `/robots.txt` | ✅ test: her UA ile 3 sayfa 200 + `<table>` |
+| UA'ya göre engelleme / JS challenge yok | `vercel.json`, `api/ssr.js` (UA okunmaz) — Vercel panelindeki "Bot Protection"/WAF ayarı **kapalı** kalmalı | ✅ kodda yok; panel ayarı manuel kontrol |
+| `/llms.txt`, `/llms-full.txt` | `scripts/build-llms.mjs`, build'de üretilir (`npm run llms` ile elle) | ✅ test: llmstxt.org yapısı |
+| Cevap kutusu (H1 altında 2–3 cümle, veri odaklı, EN+TR) | `client/src/lib/answerBox.js`, `<AnswerBox>` | ✅ guru, hisse, sıralama, takvim, rapor, rehber |
+| Meta description = cevap kutusu (≤155) · JSON-LD `description` = cevap kutusu | `seoTemplates.js`, `jsonld.js` | ✅ |
+| JSON-LD yığını: Person/Organization + Dataset + FAQPage + Breadcrumb (guru); Corporation + Dataset + FAQ + Breadcrumb (hisse); Article + ItemList + FAQ + Breadcrumb (sıralama, takvim, rapor); Organization(sameAs) + WebSite/SearchAction (ana sayfa) | `client/src/lib/jsonld.js` | ✅ `scripts/check-jsonld.mjs` build'i durdurur |
+| `dateModified` (son işlenen bildirim) her varlık sayfasında + sitemap `lastmod` | `useSeo({dateModified})`, `sitemap.js` | ✅ |
+| Benzer yöneticiler (Jaccard, gece hesaplı) | `scripts/build-related.mjs` → `api/_data/related.json` | ✅ |
+| İçerik motorları: `/calendar`, `/emerging-managers`, `/reports/{yyyy}-q{n}`, rehberler, karşılaştırmalar | `client/src/pages/*`, `client/src/content/*` | ✅ rakip hücreleri TODO (doğrulanmadan yazılmaz) |
+| AI atıf izleme | `scripts/geo-monitor.ts` | ✅ aylık elle çalıştırılır (CI'da değil) |
+
+Sosyal profiller (Organization `sameAs`): build ortamında `VITE_SOCIAL_LINKS="https://x.com/...,https://www.linkedin.com/company/..."` (virgülle ayrılmış). Boşsa alan yazılmaz.
+
+**llms.txt'yi yeniden üretme:** `SITE_URL=https://alanadi npm run llms` (build sırasında otomatik). İçerik şu dosyalardan gelir: `slugs.json`, `consensus.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`, `api/_data/reports/index.json`, `client/src/content/registry.js`.
+
+**Çeyrek raporu üretme:** `npm run report -- 2026 2` → `api/_data/reports/2026-q2.json` (sayfa: `/en/reports/2026-q2`, API: `/api/report-id/2026-q2`, markdown: `?format=md`, grafik paketi: `/api/og?type=report&id=2026-q2&chart=buys|sells|moves`) ve `reports/2026-q2.md`. Girdi: `api/_data/consensus-pro.json` (+ varsa `guru-history.json`). Çıktıyı commit'leyin; sitemap ve llms.txt indeksten otomatik güncellenir.
+
+**AI atıf izleme (aylık):**
+```bash
+export ANTHROPIC_API_KEY=…    # ve/veya
+export OPENAI_API_KEY=…       # eksik olan sağlayıcı atlanır
+npm run geo-monitor -- --dry-run   # soruları listeler, çağrı yapmaz
+npm run geo-monitor                # geo-monitor/results.csv'ye ekler, geo-monitor/<tarih>.json ham çıktı
+```
+Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, soru, dil, sağlayıcı, model, atıf yapılan alan adları, metinde geçen alan adları, bizim alan adımız var mı, cevap uzunluğu, hata. Her ayın ilk haftası çalıştırıp `our_domain_cited` oranını takip edin; CI'da çalıştırmayın (ücretli API çağrısı).
+
 ### Sitemap, robots, OG
 
 - `/sitemap.xml` indeks; `/sitemap-pages.xml`, `-gurus.xml` (guru + guru×hisse sayfaları), `-filers.xml`, `-stocks.xml`, `-insider.xml`. Hepsi `api/_handlers/sitemap.js` tarafından istek anında üretilir (6 saat CDN cache) — ayrıca "yeniden üretme" adımı yoktur; kaynak dosyalar (`slugs.json`, `universe.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`) Action'larla yenilendiğinde sitemap kendiliğinden güncellenir. `lastmod` en son bildirim tarihinden gelir.
@@ -94,7 +124,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev &
 npx lighthouse http://localhost:3001/en/guru/berkshire-hathaway-warren-buffett --only-categories=seo,performance --preset=desktop --view
 ```
 
-Son ölçüm (bu depo, fixture verisi, 2026-09-11): SEO **100** (ana sayfa, guru, hisse); performans masaüstü **100 / 98 / 98**, mobil simülasyonu **88 / 88 / 90**. Kritik JS paketi 221 KB (58 KB gzip); grafikler (Recharts, 430 KB) ve Supabase SDK (377 KB) ilk boyamadan sonra, yalnız gerektiğinde yüklenir; Google Fonts render'ı engellemez.
+Son ölçüm (bu depo, fixture verisi, 2026-09-11): SEO **100** (ana sayfa, guru, hisse, takvim, çeyrek raporu, rehber EN/TR); performans masaüstü **100 / 98 / 98**, mobil simülasyonu **88 / 88 / 90** (takvim 87, rapor 81, rehber 88/89). Kritik JS paketi 221 KB (58 KB gzip); grafikler (Recharts, 430 KB) ve Supabase SDK (377 KB) ilk boyamadan sonra, yalnız gerektiğinde yüklenir; Google Fonts render'ı engellemez.
 
 ## Yerel Geliştirme
 

@@ -113,6 +113,17 @@ export default function Manager() {
     staleTime: 24 * 60 * 60 * 1000,
   });
 
+  // precomputed 10-year history for curated gurus (404 for other filers)
+  const hist = useQuery({
+    queryKey: ['guru-history', cik],
+    queryFn: () => api.guruHistory(cik),
+    enabled: !!cik,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 0,
+  });
+  const hasHist = !!hist.data?.quarters?.length;
+  const guruSlug = mgr.data?.kind === 'guru' ? mgr.data.slug : null;
+
   const seo = useMemo(
     () =>
       managerSeo({
@@ -122,8 +133,9 @@ export default function Manager() {
         filing,
         holdings: holdings.data,
         prevPositions: prevHoldings.data?.positions ?? null,
+        history: hist.data || null,
       }),
-    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data]
+    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data, hist.data]
   );
   useSeo(seo);
 
@@ -141,16 +153,6 @@ export default function Manager() {
     retry: 1,
   });
 
-  // precomputed 10-year history for curated gurus (404 for other filers)
-  const hist = useQuery({
-    queryKey: ['guru-history', cik],
-    queryFn: () => api.guruHistory(cik),
-    enabled: !!cik,
-    staleTime: 6 * 60 * 60 * 1000,
-    retry: 0,
-  });
-  const hasHist = !!hist.data?.quarters?.length;
-  const guruSlug = mgr.data?.kind === 'guru' ? mgr.data.slug : null;
 
   const mstats = useQuery({
     queryKey: ['mstats', cik],

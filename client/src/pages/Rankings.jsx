@@ -5,8 +5,8 @@ import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
-import { breadcrumbs, quarterText } from '../lib/seoTemplates.js';
-import { Disclaimer } from '../components/Faq.jsx';
+import { quarterText, rankingJsonLd } from '../lib/seoTemplates.js';
+import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { rankingAnswer, truncate155 } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
@@ -33,6 +33,10 @@ export default function Rankings() {
   const qt = quarterText(latest, lang);
   const title = t(def.key);
   const answer = useMemo(() => rankingAnswer({ kind, reportDate: latest, first: rows[0], managers: data?.managers?.length }, lang), [kind, latest, rows, data, lang]);
+  const ld = useMemo(
+    () => rankingJsonLd({ lang, kind, title, path: `/rankings/${kind}`, answer, rows, reportDate: latest, updatedAt: data?.updatedAt, managers: data?.managers?.length }),
+    [lang, kind, title, answer, rows, latest, data]
+  );
   useSeo(
     useMemo(
       () => ({
@@ -44,9 +48,10 @@ export default function Rankings() {
             : `${title} across ${data?.managers?.length || ''} legendary funds, from ${qt} 13F filings.`,
         answer,
         path: `/rankings/${kind}`,
-        jsonLd: [breadcrumbs(lang, [[t('footer.rankings'), '/rankings/consensus'], [title, `/rankings/${kind}`]])],
+        dateModified: (data?.updatedAt || '').slice(0, 10) || null,
+        jsonLd: ld.jsonLd,
       }),
-      [lang, kind, title, qt, rows, data, t, answer]
+      [lang, kind, title, qt, data, answer, ld]
     )
   );
   return (
@@ -106,6 +111,7 @@ export default function Rankings() {
         <p className="muted small mt8">{t('landing.act.note')}</p>
         <Disclaimer />
       </div>
+      <Faq items={ld.faq} />
     </div>
   );
 }

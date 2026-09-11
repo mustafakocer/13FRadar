@@ -2,7 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "installCommand": "npm install && npm install --prefix client",
-  "buildCommand": "node scripts/check-env.mjs && npm run build --prefix client && node scripts/build-llms.mjs",
+  "buildCommand": "node scripts/check-env.mjs && npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
   "outputDirectory": "client/dist",
   "functions": {
     "api/ssr.js": { "includeFiles": "client/dist/**", "maxDuration": 30 }

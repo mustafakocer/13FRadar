@@ -1,5 +1,6 @@
 import { fmtMoney, quarterLabel } from './format.js';
-import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155 } from './answerBox.js';
+import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155, RANK_NAME } from './answerBox.js';
+import { organization, website, guruEntity, guruDataset, corporation, stockDataset, article, itemList } from './jsonld.js';
 
 // Title / description templates per entity type, TR and EN. Every
 // description carries real numbers from the data so no two pages read alike.
@@ -16,7 +17,7 @@ export const quarterText = (reportDate, lang) => {
 
 const num = (n, lang) => (n == null ? '—' : n.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US'));
 
-export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions }) {
+export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions, history = null }) {
   if (!cik) return { title: lang === 'tr' ? 'Yükleniyor… | 13F Radar' : 'Loading… | 13F Radar', path: '/gurus' };
   const name = manager?.displayName || manager?.name || `CIK ${cik}`;
   const qt = quarterText(filing?.reportDate, lang);
@@ -54,7 +55,17 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
     type: 'article',
     faq,
     answer,
-    jsonLd: [crumbs, ...(faq.length ? [faqJsonLd(faq)] : [])],
+    dateModified: filing?.filingDate || null,
+    jsonLd: [
+      ...(manager
+        ? [
+            guruEntity({ manager, lang, path, description: answer || description }),
+            guruDataset({ manager, lang, path, description: answer || description, filings: manager.filings || [], history }),
+          ]
+        : []),
+      crumbs,
+      ...(faq.length ? [faqJsonLd(faq)] : []),
+    ],
   };
 }
 
@@ -90,7 +101,17 @@ export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow, re
     image: `/api/og?type=stock&ticker=${encodeURIComponent(sym)}`,
     type: 'article',
     faq,
-    jsonLd: [breadcrumbs(lang, [[lang === 'tr' ? 'Hisseler' : 'Stocks', '/consensus'], [`${company} (${sym})`, path]]), faqJsonLd(faq)],
+    dateModified: reportDate || null,
+    jsonLd: [
+      ...(stock
+        ? [
+            corporation({ company, ticker: sym, lang, path, description: answer || description }),
+            stockDataset({ company, ticker: sym, lang, path, description: answer || description, reportDate, cusip: cusip || consensusRow?.cusip || null }),
+          ]
+        : []),
+      breadcrumbs(lang, [[lang === 'tr' ? 'Hisseler' : 'Stocks', '/consensus'], [`${company} (${sym})`, path]]),
+      faqJsonLd(faq),
+    ],
   };
 }
 
@@ -141,27 +162,35 @@ export function breadcrumbs(lang, items) {
 }
 
 export function siteJsonLd(lang) {
-  return [
-    {
-      '@context': 'https://schema.org',
-      '@type': 'Organization',
-      name: '13F Radar',
-      url: `__SITE__/${lang}`,
-      logo: '__SITE__/api/og',
-    },
-    {
-      '@context': 'https://schema.org',
-      '@type': 'WebSite',
-      name: '13F Radar',
-      url: `__SITE__/${lang}`,
-      inLanguage: lang,
-      potentialAction: {
-        '@type': 'SearchAction',
-        target: { '@type': 'EntryPoint', urlTemplate: `__SITE__/${lang}/?q={search_term_string}` },
-        'query-input': 'required name=search_term_string',
-      },
-    },
-  ];
+  return [organization(lang), website(lang)];
+}
+
+// Ranking pages: Article + ItemList (entity URLs) + FAQPage + BreadcrumbList
+export function rankingJsonLd({ lang, kind, title, path, answer, rows, reportDate, updatedAt, managers }) {
+  const items = rows.slice(0, 30).map((r) => ({ name: `${r.ticker || r.issuer} — ${r.issuer}`, path: r.ticker ? `/stock/${r.ticker}` : '/consensus' }));
+  const qt = quarterText(reportDate, lang);
+  const first = rows[0];
+  const sym = first ? first.ticker || first.issuer : '';
+  const faq = first
+    ? lang === 'tr'
+      ? [
+          [`${qt} çeyreğinde usta yatırımcıların ${RANK_NAME.tr[kind].toLowerCase()} listesinde 1. sırada hangi hisse var?`, `${sym} (${first.issuer}), ${managers || ''} fonun ${qt} 13F bildirimlerine göre listenin başında; ${first.holderCount} fon tutuyor.`],
+          [`Bu sıralama nasıl hesaplanır?`, `${RANK_NAME.tr[kind]} listesi ${answer ? answer.split('; ')[0].replace(/^.*?ve /, '') : 'takip edilen usta yatırımcı setinin çeyreklik 13F bildirimlerinden'} hesaplanır; veriler çeyrek sonunu 45 güne kadar geriden izler.`],
+        ]
+      : [
+          [`Which stock is #1 on the superinvestor ${RANK_NAME.en[kind].toLowerCase()} list for ${qt}?`, `${sym} (${first.issuer}) tops the list based on ${qt} 13F filings from ${managers || ''} tracked funds; ${first.holderCount} of them hold it.`],
+          [`How is this ranking computed?`, `${RANK_NAME.en[kind]} is ${answer ? answer.split('; ')[0].replace(/^.*?, ranked/, 'ranked') : 'computed from the quarterly 13F filings of the tracked superinvestor set'}; the data lags quarter end by up to 45 days.`],
+        ]
+    : [];
+  return {
+    faq,
+    jsonLd: [
+      article({ headline: title, description: answer || title, lang, path, datePublished: reportDate, dateModified: (updatedAt || '').slice(0, 10) || reportDate }),
+      ...(items.length ? [itemList({ name: title, lang, items })] : []),
+      ...(faq.length ? [faqJsonLd(faq)] : []),
+      breadcrumbs(lang, [[lang === 'tr' ? 'Sıralamalar' : 'Rankings', '/rankings/consensus'], [title, path]]),
+    ],
+  };
 }
 
 export function faqJsonLd(items) {

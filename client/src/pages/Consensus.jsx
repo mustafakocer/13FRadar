@@ -9,6 +9,7 @@ import { useMemo } from 'react';
 import { useSeo } from '../seo.jsx';
 import { consensusSeo } from '../lib/seoTemplates.js';
 import Paywall from '../components/Paywall.jsx';
+import { managerPath } from '../lib/paths.js';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -25,7 +26,7 @@ function HoldersCell({ holders }) {
       {holders.slice(0, 3).map((h, i) => (
         <span key={h.cik}>
           {i > 0 && ', '}
-          <Link to={`/manager/${h.cik}`}>{h.name}</Link>
+          <Link to={managerPath(h.cik, h.path)}>{h.name}</Link>
         </span>
       ))}
       {holders.length > 3 ? ` +${holders.length - 3}` : ''}
@@ -72,7 +73,7 @@ export default function Consensus() {
             {managers.map((m, i) => (
               <span key={m.cik}>
                 {i > 0 && ' · '}
-                <Link to={`/manager/${m.cik}`}>{m.name}</Link>
+                <Link to={managerPath(m.cik, m.path)}>{m.name}</Link>
               </span>
             ))}
           </div>
@@ -217,7 +218,7 @@ export default function Consensus() {
             <tbody>
               {newPositions.map((r, i) => (
                 <tr key={`${r.cik}-${r.cusip}-${i}`}>
-                  <td className="l"><Link to={`/manager/${r.cik}`}>{r.manager}</Link></td>
+                  <td className="l"><Link to={managerPath(r.cik, r.path)}>{r.manager}</Link></td>
                   <td className="l"><Sym r={r} /></td>
                   <td className="l">{r.issuer}</td>
                   <td className="num">{fmtPct(r.weight, { sign: false })}</td>

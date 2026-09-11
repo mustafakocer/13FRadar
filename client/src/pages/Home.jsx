@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import SearchBox from '../components/SearchBox.jsx';
@@ -12,6 +12,7 @@ import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
+import { managerPath } from '../lib/paths.js';
 
 // ---------------------------------------------------------------------------
 // Landing page. Every block reads a static CDN file written by the daily
@@ -132,6 +133,7 @@ function Hero({ summary }) {
   const { t, lang } = useI18n();
   const { configured } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
 
   const stats = [
@@ -153,7 +155,7 @@ function Hero({ summary }) {
         {t('landing.h1.post')}
       </h1>
       <p className="lead">{t('landing.sub')}</p>
-      <SearchBox onSelect={(m) => navigate(`/manager/${m.cik}`)} />
+      <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} />
       <div className="hero-ctas">
         <Link to={configured ? '/account?next=/pricing' : '/pricing'} className="btn">
           {t('landing.cta.start')}
@@ -527,7 +529,7 @@ function PortfolioUpdates({ updates }) {
             <div className="head">
               <div className="avatar">{initials(u.manager)}</div>
               <div className="who">
-                <Link to={`/manager/${u.cik}`} style={{ color: 'inherit' }}>
+                <Link to={managerPath(u.cik, u.path)} style={{ color: 'inherit' }}>
                   <b>{u.manager}</b>
                 </Link>
                 <span>CIK {u.cik}</span>
@@ -677,7 +679,7 @@ export default function Home() {
           <div className="section-title">⭐ {t('search.favorites')}</div>
           <div className="chip-grid">
             {favorites.map((f) => (
-              <Link key={f.cik} to={`/manager/${f.cik}`} className="chip">
+              <Link key={f.cik} to={managerPath(f.cik)} className="chip">
                 {f.name}
               </Link>
             ))}
@@ -688,7 +690,7 @@ export default function Home() {
       <div className="section-title">{t('search.popular')}</div>
       <div className="chip-grid">
         {POPULAR_MANAGERS.map((m) => (
-          <Link key={m.cik} to={`/manager/${m.cik}`} className="chip" onMouseEnter={() => prefetch(m.cik)}>
+          <Link key={m.cik} to={managerPath(m.cik)} className="chip" onMouseEnter={() => prefetch(m.cik)}>
             {m.name}
           </Link>
         ))}

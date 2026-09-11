@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useQueries } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtPct, fmtMoney, fmtNum, fmtRatio, fmtFracPct } from '../lib/format.js';
 import SearchBox from '../components/SearchBox.jsx';
 import { useI18n } from '../i18n.jsx';
+import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 
@@ -166,7 +167,17 @@ function List({ title, rows, t }) {
 }
 
 export default function Compare() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  useSeo(
+    useMemo(
+      () => ({
+        title: lang === 'tr' ? 'Fon ve Hisse Karşılaştırma | 13F Radar' : 'Compare Funds & Stocks | 13F Radar',
+        description: lang === 'tr' ? 'İki fonun portföyünü veya üç hissenin rasyolarını yan yana karşılaştırın.' : 'Compare two fund portfolios or three stocks side by side.',
+        path: '/compare',
+      }),
+      [lang]
+    )
+  );
   const { isPro } = useAuth();
   const [mode, setMode] = useState('managers');
   const [a, setA] = useState(null);

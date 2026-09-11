@@ -4,6 +4,8 @@ import managerHandler from '../../_handlers/manager.js';
 import holdingsHandler from '../../_handlers/holdings.js';
 import stockHandler from '../../_handlers/stock.js';
 import holdersHandler from '../../_handlers/holders.js';
+import slugHandler from '../../_handlers/slug.js';
+import { cikForSlug, filerPath } from '../slugs.js';
 
 const require = createRequire(import.meta.url);
 const json = (file) => {
@@ -42,8 +44,19 @@ async function loadHome() {
   return seeds;
 }
 
-async function loadManager({ cik }) {
+async function loadManager({ cik, slug, kind }) {
   const seeds = [];
+  if (slug) {
+    const e = cikForSlug(slug);
+    if (!e || (kind && e.kind !== kind && !(kind === 'filer' && e.kind === 'guru'))) return { seeds, status: 404 };
+    if (kind === 'filer' && e.kind === 'guru') return { redirect: `/guru/${slug}`, status: 301 };
+    cik = e.cik;
+    seeds.push([['slug', slug], { ...e, slug }]);
+  } else if (cik) {
+    // numeric route: 301 to the stored slug so one URL carries the ranking
+    const canonical = filerPath(cik);
+    if (!canonical.startsWith('/manager/')) return { redirect: canonical, status: 301 };
+  }
   const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 8000));
   if (!mgr) return { seeds, status: 404 };
   seeds.push([['manager', cik], mgr]);
@@ -94,6 +107,21 @@ async function loadConsensus() {
   return seeds;
 }
 
+async function loadGurus() {
+  const r = ok(await invoke(slugHandler, { kind: 'guru' }));
+  return r ? [[['gurus'], r]] : [];
+}
+async function loadFilers({ letter }) {
+  const r = ok(await invoke(slugHandler, { letter }));
+  return r ? [[['filers', letter], r]] : [];
+}
+async function loadRankings() {
+  const seeds = await loadConsensus();
+  const r = staticReturns();
+  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  return seeds;
+}
+
 async function loadTeaserOnly() {
   const t = staticTeaser();
   return t ? [[['insiders-teaser'], t]] : [];
@@ -103,7 +131,13 @@ async function loadTeaserOnly() {
 // (client-only pages) with a no-store header.
 export const ROUTES = [
   { kind: 'home', re: /^\/$/, load: loadHome, cache: 'hour' },
-  { kind: 'manager', re: /^\/manager\/(\d{1,10})$/, params: (m) => ({ cik: m[1] }), load: loadManager, cache: 'day' },
+  { kind: 'manager', re: /^\/manager\/(\d{1,10})$/, params: (m) => ({ cik: m[1].padStart(10, '0') }), load: loadManager, cache: 'day' },
+  { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'guru' }), load: loadManager, cache: 'day' },
+  { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'filer' }), load: loadManager, cache: 'day' },
+  { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
+  { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },
+  { kind: 'insider-signal', re: /^\/insiders\/(cluster|csuite|penny)$/, load: loadTeaserOnly, cache: 'hour' },
+  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus$/, load: loadConsensus, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },

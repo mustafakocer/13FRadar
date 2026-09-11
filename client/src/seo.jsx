@@ -27,10 +27,12 @@ export function useSeo(spec) {
   const { lang } = useI18n();
   if (isServer && collector && spec) collector.spec = { ...spec, lang };
 
+  // spec objects are memoized by the pages, so the identity changes exactly
+  // when the underlying data does
   useEffect(() => {
     if (!spec) return;
     applyToDocument({ ...spec, lang });
-  }, [spec?.title, spec?.description, spec?.path, spec?.image, lang]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [spec, lang]);
 }
 
 const esc = (s) =>
@@ -77,7 +79,8 @@ export function headTags(spec, { siteUrl }) {
     { tag: 'meta', name: 'twitter:image', content: image },
   ];
   if (spec.noindex) tags.push({ tag: 'meta', name: 'robots', content: 'noindex' });
-  for (const block of spec.jsonLd || []) tags.push({ tag: 'script', type: 'application/ld+json', text: JSON.stringify(block) });
+  for (const block of spec.jsonLd || [])
+    tags.push({ tag: 'script', type: 'application/ld+json', text: JSON.stringify(block).split('__SITE__').join(siteUrl) });
   return tags;
 }
 

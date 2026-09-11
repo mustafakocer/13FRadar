@@ -3,6 +3,8 @@ import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useSeo } from '../seo.jsx';
+import Faq, { Disclaimer } from '../components/Faq.jsx';
+import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { stockSeo } from '../lib/seoTemplates.js';
 import {
   fmtMoney,
@@ -18,6 +20,7 @@ import Paywall from '../components/Paywall.jsx';
 import PriceChart from '../components/Charts/PriceChart.jsx';
 import GuruSignal from '../components/GuruSignal.jsx';
 import InfoTip from '../components/InfoTip.jsx';
+import { managerPath } from '../lib/paths.js';
 
 function KV({ k, v, cls = '', tip }) {
   return (
@@ -104,12 +107,16 @@ export default function Stock() {
     retry: 1,
   });
 
-  useSeo(
-    useMemo(
-      () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data }),
-      [lang, ticker, cusip, data, holders.data]
-    )
+  const consensus = useConsensusStatic();
+  const consensusRow = useMemo(() => {
+    const rows = consensus.data?.mostHeld || [];
+    return rows.find((r) => (cusip && r.cusip === cusip) || (r.ticker && r.ticker === ticker)) || null;
+  }, [consensus.data, cusip, ticker]);
+  const seo = useMemo(
+    () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data, consensusRow }),
+    [lang, ticker, cusip, data, holders.data, consensusRow]
   );
+  useSeo(seo);
 
   const filings13dg = useQuery({
     queryKey: ['13dg', ticker],
@@ -179,7 +186,7 @@ export default function Stock() {
                   <tr key={h.cik}>
                     <td className="l muted">{i + 1}</td>
                     <td className="l">
-                      <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }}>{h.name}</Link>
+                      <Link to={managerPath(h.cik, h.path)} style={{ fontWeight: 700 }}>{h.name}</Link>
                     </td>
                     <td className="num">{h.filings}</td>
                   </tr>
@@ -454,7 +461,7 @@ export default function Stock() {
                     {ownership.data.holders.map((h) => (
                       <tr key={h.cik}>
                         <td className="l">
-                          <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }}>
+                          <Link to={managerPath(h.cik, h.path)} style={{ fontWeight: 700 }}>
                             {h.name}
                           </Link>
                         </td>
@@ -538,6 +545,8 @@ export default function Stock() {
           {pr.summary && <p className="about-text">{pr.summary}</p>}
         </div>
       )}
+      <Faq items={seo.faq} />
+      <Disclaimer />
     </div>
   );
 }

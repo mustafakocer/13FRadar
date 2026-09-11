@@ -15,6 +15,7 @@ import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
 import SparkBar from '../components/Charts/SparkBar.jsx';
 import BacktestChart from '../components/Charts/BacktestChart.jsx';
 import { useSeo } from '../seo.jsx';
+import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
@@ -36,14 +37,23 @@ function Loading({ t }) {
 }
 
 export default function Manager() {
-  const { cik } = useParams();
+  const { cik: cikParam, slug } = useParams();
   const { t, lang } = useI18n();
+  // /guru/:slug and /filer/:slug resolve to a CIK first (seeded on the server)
+  const slugQ = useQuery({
+    queryKey: ['slug', slug],
+    queryFn: () => api.slug(slug),
+    enabled: !!slug,
+    staleTime: Infinity,
+    retry: 0,
+  });
+  const cik = cikParam || slugQ.data?.cik || null;
   const { isPro } = useAuth();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
   const [btOn, setBtOn] = useState(false);
 
-  const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik) });
+  const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik), enabled: !!cik });
 
   const filings = mgr.data?.filings || [];
   const acc = selAcc || filings[0]?.acc;
@@ -101,12 +111,19 @@ export default function Manager() {
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  useSeo(
-    useMemo(
-      () => managerSeo({ lang, cik, manager: mgr.data, filing, holdings: holdings.data }),
-      [lang, cik, mgr.data, filing, holdings.data]
-    )
+  const seo = useMemo(
+    () =>
+      managerSeo({
+        lang,
+        cik,
+        manager: mgr.data,
+        filing,
+        holdings: holdings.data,
+        prevPositions: prevHoldings.data?.positions ?? null,
+      }),
+    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data]
   );
+  useSeo(seo);
 
   // mark the latest filing as "seen" for watchlist NEW badges
   const latestFiled = filings[0]?.filingDate;
@@ -129,7 +146,8 @@ export default function Manager() {
     retry: 1,
   });
 
-  if (mgr.isLoading) return <Loading t={t} />;
+  if (slug && slugQ.error) return <div className="error-box">{t('common.error')}: {t('manager.unknownSlug')}</div>;
+  if (!cik || mgr.isLoading) return <Loading t={t} />;
   if (mgr.error) return <div className="error-box">{t('common.error')}: {String(mgr.error.message)}</div>;
 
   const positions = holdings.data?.positions || [];
@@ -197,9 +215,9 @@ export default function Manager() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <FavoriteButton cik={mgr.data.cik} name={mgr.data.name} />
           <div>
-            <h1>{mgr.data.name}</h1>
+            <h1>{mgr.data.displayName || mgr.data.name}</h1>
             <div className="sub">
-              CIK {mgr.data.cik}
+              {mgr.data.displayName && mgr.data.displayName !== mgr.data.name ? `${mgr.data.name} · ` : ''}CIK {mgr.data.cik}
               {mgr.data.city ? ` · ${mgr.data.city}, ${mgr.data.state}` : ''}
               {filing ? ` · ${t('manager.quarterEnd')}: ${filing.reportDate} · ${t('manager.filedOn')}: ${filing.filingDate}` : ''}
             </div>
@@ -517,6 +535,8 @@ export default function Manager() {
           exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
         />
       )}
+      <Faq items={seo.faq} />
+      <Disclaimer />
     </div>
   );
 }

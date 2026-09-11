@@ -5,7 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import InfoTip from '../components/InfoTip.jsx';
@@ -119,9 +119,18 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
 }
 
 export default function Insiders() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
-  usePageTitle(`${t('ins.title')} — 13F Radar`);
+  useSeo(
+    useMemo(
+      () => ({
+        title: lang === 'tr' ? 'Insider İşlemleri: SEC Form 4 Alım-Satım Akışı | 13F Radar' : 'Insider Trading: SEC Form 4 Buy & Sell Feed | 13F Radar',
+        description: lang === 'tr' ? 'CEO, CFO ve yönetim kurulu üyelerinin kendi şirket hisselerindeki açık piyasa alım-satımları; küme alımları, filtreler ve getiri takibi.' : 'Open-market buys and sells by CEOs, CFOs and directors in their own companies; cluster buys, filters and return tracking.',
+        path: '/insiders',
+      }),
+      [lang, t]
+    )
+  );
 
   const [tab, setTab] = useState('latest');
   const [q, setQ] = useState('');

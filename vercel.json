@@ -9,6 +9,9 @@
   },
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api?__path=:path*" },
+    { "source": "/sitemap.xml", "destination": "/api?__path=sitemap&type=index" },
+    { "source": "/sitemap-:type.xml", "destination": "/api?__path=sitemap&type=:type" },
+    { "source": "/robots.txt", "destination": "/api?__path=sitemap&type=robots" },
     { "source": "/:path*", "destination": "/api/ssr?__path=:path*" }
   ]
 }

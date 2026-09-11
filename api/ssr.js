@@ -61,6 +61,12 @@ export default async function handler(req, res) {
       const out = await matched.route.load(matched.params);
       if (Array.isArray(out)) seeds = out;
       else {
+        if (out.redirect) {
+          res.setHeader('Cache-Control', CACHE.day);
+          res.statusCode = out.status || 301;
+          res.setHeader('Location', withLang(lang, out.redirect) + cleanSearch);
+          return res.end();
+        }
         seeds = out.seeds || [];
         if (out.status) status = out.status;
       }

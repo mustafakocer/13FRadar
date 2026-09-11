@@ -1,10 +1,12 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { fmtMoney, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
+import { managerPath } from '../lib/paths.js';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -17,9 +19,18 @@ const Sym = ({ r }) =>
 
 // Auto-generated quarterly season recap in plain language.
 export default function Report() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
-  usePageTitle(`${t('report.title')} — 13F Radar`);
+  useSeo(
+    useMemo(
+      () => ({
+        title: lang === 'tr' ? `${t('report.title')} — Usta Yatırımcıların Çeyrek Özeti | 13F Radar` : `${t('report.title')} — Superinvestor Quarter Recap | 13F Radar`,
+        description: lang === 'tr' ? 'Efsane fonların bu çeyrek en çok aldığı ve sattığı hisseler, yeni pozisyonlar ve yönetici bazlı özet.' : 'What legendary funds bought and sold this quarter, new positions and a per-manager recap.',
+        path: '/report',
+      }),
+      [lang, t]
+    )
+  );
   const { data, isLoading, error } = useConsensusStatic();
 
   if (isLoading)
@@ -118,7 +129,7 @@ export default function Report() {
         {managerRows.map((m) => (
           <div className="pos-row" key={m.cik} style={{ alignItems: 'flex-start' }}>
             <div style={{ minWidth: 0 }}>
-              <Link to={`/manager/${m.cik}`} style={{ fontWeight: 700 }}>
+              <Link to={managerPath(m.cik)} style={{ fontWeight: 700 }}>
                 {m.name}
               </Link>{' '}
               <span className="muted">

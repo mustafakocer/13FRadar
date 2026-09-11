@@ -12,6 +12,14 @@ const PORT = process.env.PORT || 3001;
 const dist = path.join(process.cwd(), 'client', 'dist');
 
 app.use(async (req, res, next) => {
+  // sitemap / robots live behind the API function in production (vercel.json)
+  const sm = /^\/(sitemap(?:-([a-z]+))?\.xml|robots\.txt)$/.exec(req.path);
+  if (sm) {
+    req.query.route = ['sitemap'];
+    req.query.type = sm[1] === 'robots.txt' ? 'robots' : sm[2] || 'index';
+    const mod = await import('./api/index.js');
+    return mod.default(req, res);
+  }
   const m = /^\/api(?:\/(.*))?$/.exec(req.path);
   if (!m) return next();
   req.query.route = (m[1] || '')

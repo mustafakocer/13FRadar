@@ -11,6 +11,10 @@ import Report from './pages/Report.jsx';
 import Insiders from './pages/Insiders.jsx';
 import Pricing from './pages/Pricing.jsx';
 import Account from './pages/Account.jsx';
+import Gurus from './pages/Gurus.jsx';
+import Filers from './pages/Filers.jsx';
+import InsiderSignal from './pages/InsiderSignal.jsx';
+import Rankings from './pages/Rankings.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
@@ -37,6 +41,13 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
+          <Route path="/guru/:slug" element={<Manager />} />
+          <Route path="/filer/:slug" element={<Manager />} />
+          <Route path="/gurus" element={<Gurus />} />
+          <Route path="/filers" element={<Filers />} />
+          <Route path="/filers/:letter" element={<Filers />} />
+          <Route path="/insiders/:signal" element={<InsiderSignal />} />
+          <Route path="/rankings/:kind" element={<Rankings />} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />
           <Route path="/report" element={<Report />} />

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -5,10 +6,13 @@ import { useFavorites } from '../hooks/useFavorites.js';
 import { getSeenFiling } from '../hooks/useSeenFilings.js';
 import { quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { useSeo } from '../seo.jsx';
+import { managerPath } from '../lib/paths.js';
 
 export default function Watchlist() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { favorites, toggleFavorite } = useFavorites();
+  useSeo(useMemo(() => ({ title: `${t('watchlist.title')} — 13F Radar`, path: '/watchlist', noindex: true }), [t, lang]));
 
   // check each favorite's latest filing for a NEW badge
   const infos = useQueries({
@@ -32,7 +36,7 @@ export default function Watchlist() {
         return (
           <div className="card row" key={f.cik} style={{ justifyContent: 'space-between', marginTop: 10 }}>
             <div className="row">
-              <Link to={`/manager/${f.cik}`} style={{ fontWeight: 700, fontSize: 16 }}>
+              <Link to={managerPath(f.cik)} style={{ fontWeight: 700, fontSize: 16 }}>
                 {f.name}
               </Link>
               {isNew && <span className="badge pos">🔔 {t('watchlist.newFiling')}</span>}

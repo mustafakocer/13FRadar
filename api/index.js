@@ -24,6 +24,9 @@ import checkout from './_handlers/checkout.js';
 import portal from './_handlers/portal.js';
 import insiderFeed from './_handlers/insider-feed.js';
 import geo from './_handlers/geo.js';
+import slug from './_handlers/slug.js';
+import sitemap from './_handlers/sitemap.js';
+import og from './_handlers/og.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
@@ -33,6 +36,10 @@ const ROUTES = {
   'insider-feed': [insiderFeed],
   portal: [portal],
   geo: [geo],
+  slug: [slug],
+  sitemap: [sitemap],
+  og: [og],
+  'slug-of': [slug, 'slug'],
   search: [search],
   returns: [returns],
   sectors: [sectors],

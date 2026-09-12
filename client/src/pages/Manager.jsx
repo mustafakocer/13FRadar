@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -6,15 +6,15 @@ import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/forma
 import { useI18n } from '../i18n.jsx';
 import FavoriteButton from '../components/FavoriteButton.jsx';
 import PositionCards from '../components/PositionCards.jsx';
+import ChartBox from '../components/ChartBox.jsx';
+import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, SparkBar, BacktestChart } from '../components/Charts/index.js';
 import HoldingsTable from '../components/HoldingsTable.jsx';
-import AumLineChart from '../components/Charts/AumLineChart.jsx';
-import FlowBarChart from '../components/Charts/FlowBarChart.jsx';
-import PortfolioPie from '../components/Charts/PortfolioPie.jsx';
-import SectorPie from '../components/Charts/SectorPie.jsx';
-import BenchmarkBars from '../components/Charts/BenchmarkBars.jsx';
-import SparkBar from '../components/Charts/SparkBar.jsx';
-import BacktestChart from '../components/Charts/BacktestChart.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
+import Faq, { Disclaimer } from '../components/Faq.jsx';
+import AnswerBox from '../components/AnswerBox.jsx';
+import { managerSeo } from '../lib/seoTemplates.js';
+import { timeHeldLabel } from '../lib/timeHeld.js';
+import { managerPath } from '../lib/paths.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
@@ -35,14 +35,23 @@ function Loading({ t }) {
 }
 
 export default function Manager() {
-  const { cik } = useParams();
-  const { t } = useI18n();
+  const { cik: cikParam, slug } = useParams();
+  const { t, lang } = useI18n();
+  // /guru/:slug and /filer/:slug resolve to a CIK first (seeded on the server)
+  const slugQ = useQuery({
+    queryKey: ['slug', slug],
+    queryFn: () => api.slug(slug),
+    enabled: !!slug,
+    staleTime: Infinity,
+    retry: 0,
+  });
+  const cik = cikParam || slugQ.data?.cik || null;
   const { isPro } = useAuth();
   const [tab, setTab] = useState('overview');
   const [selAcc, setSelAcc] = useState(null);
   const [btOn, setBtOn] = useState(false);
 
-  const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik) });
+  const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik), enabled: !!cik });
 
   const filings = mgr.data?.filings || [];
   const acc = selAcc || filings[0]?.acc;
@@ -72,10 +81,15 @@ export default function Manager() {
     enabled: !!prevFiling && (isPro || visibleCusips.length > 0),
     staleTime: 6 * 60 * 60 * 1000,
   });
+  const prevByCusip = useMemo(
+    () => new Map((prevHoldings.data?.positions || []).map((p) => [p.cusip, p])),
+    [prevHoldings.data]
+  );
 
   const aumHist = useQuery({
     queryKey: ['aum', cik],
     queryFn: () => api.aumHistory(cik),
+    enabled: !!cik,
     staleTime: 6 * 60 * 60 * 1000,
   });
 
@@ -100,10 +114,37 @@ export default function Manager() {
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  usePageTitle(mgr.data?.name ? `${mgr.data.name} — 13F Radar` : null);
+  // precomputed 10-year history for curated gurus (404 for other filers)
+  const hist = useQuery({
+    queryKey: ['guru-history', cik],
+    queryFn: () => api.guruHistory(cik),
+    enabled: !!cik,
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 0,
+  });
+  const hasHist = !!hist.data?.quarters?.length;
+  const guruSlug = mgr.data?.kind === 'guru' ? mgr.data.slug : null;
+
+  const seo = useMemo(
+    () =>
+      managerSeo({
+        lang,
+        cik,
+        manager: mgr.data,
+        filing,
+        holdings: holdings.data,
+        prevPositions: prevHoldings.data?.positions ?? null,
+        history: hist.data || null,
+      }),
+    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data, hist.data]
+  );
+  useSeo(seo);
 
   // mark the latest filing as "seen" for watchlist NEW badges
-  if (mgr.data && filings[0]) markFilingSeen(mgr.data.cik, filings[0].filingDate);
+  const latestFiled = filings[0]?.filingDate;
+  useEffect(() => {
+    if (mgr.data && latestFiled) markFilingSeen(mgr.data.cik, latestFiled);
+  }, [mgr.data, latestFiled]);
 
   const backtest = useQuery({
     queryKey: ['backtest', cik],
@@ -113,18 +154,31 @@ export default function Manager() {
     retry: 1,
   });
 
+
+  // related managers by holdings overlap (nightly precompute; 404 = none)
+  const related = useQuery({
+    queryKey: ['related', cik],
+    queryFn: () => api.related(cik),
+    enabled: !!cik,
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: 0,
+  });
+
   const mstats = useQuery({
     queryKey: ['mstats', cik],
     queryFn: () => api.managerStats(cik),
+    enabled: !!cik,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
 
-  if (mgr.isLoading) return <Loading t={t} />;
+  if (slug && slugQ.error) return <div className="error-box">{t('common.error')}: {t('manager.unknownSlug')}</div>;
+  if (!cik || mgr.isLoading) return <Loading t={t} />;
   if (mgr.error) return <div className="error-box">{t('common.error')}: {String(mgr.error.message)}</div>;
 
   const positions = holdings.data?.positions || [];
   const history = aumHist.data?.history || [];
+
   const latest = history[history.length - 1];
 
   // 1D return, weighted by portfolio weight over resolved tickers
@@ -184,9 +238,9 @@ export default function Manager() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           <FavoriteButton cik={mgr.data.cik} name={mgr.data.name} />
           <div>
-            <h1>{mgr.data.name}</h1>
+            <h1>{mgr.data.displayName || mgr.data.name}</h1>
             <div className="sub">
-              CIK {mgr.data.cik}
+              {mgr.data.displayName && mgr.data.displayName !== mgr.data.name ? `${mgr.data.name} · ` : ''}CIK {mgr.data.cik}
               {mgr.data.city ? ` · ${mgr.data.city}, ${mgr.data.state}` : ''}
               {filing ? ` · ${t('manager.quarterEnd')}: ${filing.reportDate} · ${t('manager.filedOn')}: ${filing.filingDate}` : ''}
             </div>
@@ -216,8 +270,10 @@ export default function Manager() {
         </div>
       </div>
 
+      <AnswerBox text={seo.answer} />
+
       <div className="tabs">
-        {['overview', 'portfolio', 'holdings'].map((k) => (
+        {['overview', 'portfolio', 'holdings', ...(hasHist ? ['history'] : [])].map((k) => (
           <button key={k} className={`tab${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>
             {t(`manager.${k}`)}
           </button>
@@ -242,12 +298,12 @@ export default function Manager() {
             <div className="card stat-card">
               <span className="stat-label">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
               <span className="stat-value">{fmtMoney(holdings.data?.aum)}</span>
-              <SparkBar values={history.map((h) => h.aum)} />
+              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.aum)} /></ChartBox>
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.positions')}</span>
               <span className="stat-value">{fmtNum(holdings.data?.count)}</span>
-              <SparkBar values={history.map((h) => h.positions)} color="--s2" />
+              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.positions)} color="--s2" /></ChartBox>
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>
@@ -263,6 +319,16 @@ export default function Manager() {
             </div>
           </div>
 
+          {mstats.isLoading && (
+            <div className="grid grid-3 mt16">
+              {[0, 1, 2].map((i) => (
+                <div className="card stat-card" key={i} style={{ minHeight: 118 }}>
+                  <div className="skel skel-row" style={{ width: '40%' }} />
+                  <div className="skel skel-row" style={{ height: 26, width: '30%' }} />
+                </div>
+              ))}
+            </div>
+          )}
           {mstats.data?.quarters >= 2 && (
             <div className="grid grid-3 mt16">
               <div className="card stat-card">
@@ -295,18 +361,83 @@ export default function Manager() {
           )}
 
           <div className="card mt16">
-            <h3>{t('manager.aumHistory')}</h3>
-            {aumHist.isLoading ? <Loading t={t} /> : history.length > 1 ? (
-              <AumLineChart history={history} />
-            ) : (
-              <div className="muted small">{t('common.na')}</div>
+            <h3>{t('manager.topHoldings')} · {filing ? quarterLabel(filing.reportDate) : ''}</h3>
+            <div className="table-wrap">
+              <table className="data">
+                <thead>
+                  <tr>
+                    <th className="l">{t('table.rank')}</th>
+                    <th className="l">{t('table.symbol')}</th>
+                    <th className="l">{t('table.company')}</th>
+                    <th>{t('table.weight')}</th>
+                    <th>{t('table.value')}</th>
+                    <th>{t('table.shares')}</th>
+                    <th>{t('table.delta')}</th>
+                    {hasHist && <th>{t('hist.timeHeld')}</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.slice(0, 10).map((p, i) => {
+                    const q = prevByCusip.get(p.cusip);
+                    const d = q && q.shares > 0 ? ((p.shares - q.shares) / q.shares) * 100 : null;
+                    return (
+                      <tr key={`${p.cusip}|${p.putCall}`}>
+                        <td className="l muted">{i + 1}</td>
+                        <td className="l">
+                          {p.ticker ? (
+                            <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
+                          ) : (
+                            <span className="muted small">{p.cusip}</span>
+                          )}
+                          {p.putCall && <span className="badge type" style={{ marginLeft: 6 }}>{p.putCall}</span>}
+                        </td>
+                        <td className="l">{p.issuer}</td>
+                        <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
+                        <td className="num">{fmtMoney(p.value)}</td>
+                        <td className="num">{fmtNum(p.shares)}</td>
+                        <td className={`num ${prevHoldings.data ? (q ? deltaClass(d) : 'delta-pos') : 'muted'}`}>
+                          {!prevHoldings.data ? '—' : q ? fmtPct(d) : t('manager.newBadge')}
+                        </td>
+                        {hasHist && (
+                          <td className="num">
+                            {guruSlug && p.ticker && hist.data.timeHeld[p.cusip] ? (
+                              <Link to={`/guru/${guruSlug}/${p.ticker}`}>{timeHeldLabel(hist.data.timeHeld[p.cusip].quarters, lang)}</Link>
+                            ) : (
+                              timeHeldLabel(hist.data.timeHeld[p.cusip]?.quarters, lang) || '—'
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {holdings.data?.count > 10 && (
+              <p className="muted small mt8">
+                10 {t('table.showing')} · {fmtNum(holdings.data.count)} {t('manager.positions').toLowerCase()} ·{' '}
+                <button className="linklike" onClick={() => setTab('holdings')}>{t('manager.holdings')} →</button>
+              </p>
             )}
+          </div>
+
+          <div className="card mt16">
+            <h3>{t('manager.aumHistory')}</h3>
+            <ChartBox height={260}>
+              {aumHist.isLoading ? (
+                <div className="skel" style={{ height: 260, borderRadius: 10 }} />
+              ) : history.length > 1 ? (
+                <AumLineChart history={history} />
+              ) : (
+                <div className="muted small">{t('common.na')}</div>
+              )}
+            </ChartBox>
           </div>
 
           {history.some((h) => h.estFlow != null) && (
             <div className="card mt16">
               <h3>{t('manager.flowHistory')}</h3>
-              <FlowBarChart history={history} label={t('manager.estFlow')} />
+              <ChartBox height={200}><FlowBarChart history={history} label={t('manager.estFlow')} /></ChartBox>
               <p className="muted small mt8">{t('manager.flowNote')}</p>
             </div>
           )}
@@ -343,10 +474,10 @@ export default function Manager() {
                     </span>
                   )}
                 </div>
-                <BacktestChart
+                <ChartBox height={260}><BacktestChart
                   points={backtest.data.points}
                   labels={{ port: t('manager.portfolioSeries') }}
-                />
+                /></ChartBox>
                 <p className="muted small mt8">{t('manager.backtestNote')}</p>
               </>
             )}
@@ -370,21 +501,21 @@ export default function Manager() {
           <div className="grid grid-2 mt16">
             <div className="card">
               <h3>{t('manager.composition')}</h3>
-              <PortfolioPie positions={positions} />
+              <ChartBox height={300}><PortfolioPie positions={positions} /></ChartBox>
             </div>
             <div className="card">
               <h3>{t('manager.sectors')}</h3>
               {sectors.isLoading ? (
                 <Loading t={t} />
               ) : (
-                <SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} />
+                <ChartBox height={300}><SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} /></ChartBox>
               )}
             </div>
           </div>
           {benchSeries && (
             <div className="card mt16">
               <h3>{t('manager.benchmark')}</h3>
-              <BenchmarkBars series={benchSeries} />
+              <ChartBox height={240}><BenchmarkBars series={benchSeries} /></ChartBox>
               <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
             </div>
           )}
@@ -442,6 +573,50 @@ export default function Manager() {
         </>
       )}
 
+      {tab === 'history' && hasHist && (
+        <div className="card">
+          <h3>{t('hist.title')} · {hist.data.lookback} {t('screen.quarter')}</h3>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('hist.quarter')}</th>
+                  <th className="l">{t('hist.filed')}</th>
+                  <th>{t('hist.count')}</th>
+                  <th>{t('hist.value')}</th>
+                  <th>{t('hist.turnover')}</th>
+                  <th className="l">{t('hist.top10')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...hist.data.quarters].reverse().map((q) => (
+                  <tr key={q.acc}>
+                    <td className="l"><b>{quarterLabel(q.reportDate)}</b></td>
+                    <td className="l muted">{q.filed}</td>
+                    <td className="num">{fmtNum(q.count)}</td>
+                    <td className="num">{fmtMoney(q.aum)}</td>
+                    <td className="num">{q.turnover != null ? fmtPct(q.turnover, { sign: false }) : '—'}</td>
+                    <td className="l small">
+                      {q.top10.map((tk, i) => (
+                        <span key={`${tk}-${i}`}>
+                          {i > 0 && ', '}
+                          {/^[A-Z0-9.\-]{1,6}$/.test(tk) ? (
+                            guruSlug ? <Link to={`/guru/${guruSlug}/${tk}`}>{tk}</Link> : <Link to={`/stock/${tk}`}>{tk}</Link>
+                          ) : (
+                            <span className="muted">{tk}</span>
+                          )}
+                        </span>
+                      ))}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small mt8">{t('hist.splitNote')}</p>
+        </div>
+      )}
+
       {!holdings.isLoading && !holdings.error && tab === 'holdings' && (
         <HoldingsTable
           positions={positions}
@@ -453,6 +628,38 @@ export default function Manager() {
           exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
         />
       )}
+      {related.data?.related?.length > 0 && (
+        <div className="card mt16">
+          <h3>🔗 {t('related.title')}</h3>
+          <p className="muted small" style={{ marginBottom: 8 }}>{t('related.note')}</p>
+          <div className="table-wrap">
+            <table className="data">
+              <thead><tr><th className="l">{t('screen.manager')}</th><th>{t('related.overlap')}</th><th className="l">{t('related.shared')}</th></tr></thead>
+              <tbody>
+                {related.data.related.map((r) => (
+                  <tr key={r.cik}>
+                    <td className="l"><Link to={r.slug ? `/guru/${r.slug}` : managerPath(r.cik)} style={{ fontWeight: 700 }}>{r.name}</Link></td>
+                    <td className="num">{fmtPct(r.jaccard * 100, { sign: false })}</td>
+                    <td className="l small">
+                      {r.shared.map((tk, i) => (
+                        <span key={tk}>{i > 0 && ', '}{/^[A-Z0-9.\-]{1,6}$/.test(tk) ? <Link to={`/stock/${tk}`}>{tk}</Link> : <span className="muted">{tk}</span>}</span>
+                      ))}
+                      {r.sharedCount > r.shared.length && ` +${r.sharedCount - r.shared.length}`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+      {mgr.data.latestReport && (
+        <p className="muted small mt16">
+          📰 <Link to={`/reports/${mgr.data.latestReport}`}>{t('related.report').replace('{q}', mgr.data.latestReport.toUpperCase())}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
+        </p>
+      )}
+      <Faq items={seo.faq} />
+      <Disclaimer />
     </div>
   );
 }

@@ -8,9 +8,35 @@
 //   a accession
 export const ROLES = ['ceo', 'cfo', 'officer', 'director', 'owner10'];
 
-// SEC transaction codes we keep. P/S are open-market trades — the only ones
-// that carry a real signal; A (grant) and M (option exercise) are compensation.
-export const CODES = { P: 'buy', S: 'sell', A: 'award', M: 'exercise' };
+// SEC Form 4 transaction codes and how they are classified:
+//   High conviction — P open-market buy · C conversion · M/X option exercise
+//                      when nothing was sold in the same filing (exercise-and-hold)
+//   Liquidity       — S open-market sale · D disposition to the issuer / tender
+//                      · M/X exercise with a same-filing sale (cash-out)
+//   Noise           — A grant/award · F tax withholding · G gift · W will/
+//                      inheritance · J other · I discretionary · L small
+// The feed hides Noise unless asked; rows carry `cl` (class) and `p5`
+// (Rule 10b5-1 planned trade) from the build script.
+export const CODES = { P: 'buy', S: 'sell', A: 'award', M: 'exercise', X: 'exercise', C: 'conversion', D: 'disposition', F: 'tax', G: 'gift', W: 'will', J: 'other', I: 'discretionary', L: 'small' };
+export const KEPT_CODES = new Set(Object.keys(CODES));
+export const CLASSES = ['conviction', 'liquidity', 'noise'];
+
+export function classifyTransaction(code, { sameFilingSale = false } = {}) {
+  switch (String(code || '').toUpperCase()) {
+    case 'P':
+    case 'C':
+      return 'conviction';
+    case 'M':
+    case 'X':
+      return sameFilingSale ? 'liquidity' : 'conviction';
+    case 'S':
+    case 'D':
+      return 'liquidity';
+    default:
+      return 'noise';
+  }
+}
+export const rowClass = (r) => r.cl || classifyTransaction(r.k);
 
 const CEO_RE = /\b(chief executive|ceo|president and chief executive|pres(ident)? & ceo)\b/i;
 const CFO_RE = /\b(chief financial|cfo|principal financial officer|treasurer)\b/i;
@@ -69,9 +95,10 @@ export function sizeBucket(marketCap) {
   return 'micro';
 }
 
-// Cluster buys: two or more distinct insiders buying the same issuer inside
-// `windowDays`. Returns a Map ticker -> {insiders, value, from, to}.
-export function findClusters(rows, windowDays = 30) {
+// Cluster buys: two or more distinct insiders with open-market purchases
+// (code P) of the same issuer inside a 7-day window.
+// Returns a Map ticker -> {insiders, value, from, to}.
+export function findClusters(rows, windowDays = 7) {
   const byTicker = new Map();
   for (const r of rows) {
     if (!isBuy(r) || !r.t) continue;

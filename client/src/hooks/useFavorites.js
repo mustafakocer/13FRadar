@@ -1,8 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react';
-import { supabase } from '../lib/supabase.js';
+import { getSupabase } from '../lib/supabase.js';
 
 const KEY = 'favorites13f';
 const listeners = new Set();
+const EMPTY = [];
 let snapshot = load();
 
 function load() {
@@ -15,7 +16,11 @@ function load() {
 
 function save(next) {
   snapshot = next;
-  localStorage.setItem(KEY, JSON.stringify(next));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    /* storage blocked */
+  }
   listeners.forEach((l) => l());
 }
 
@@ -30,8 +35,9 @@ export function mergeFavorites(remote) {
 }
 
 function cloudToggle(mgr, adding) {
-  if (!supabase) return;
-  supabase.auth.getSession().then(({ data }) => {
+  getSupabase().then((supabase) => {
+    if (!supabase) return;
+    return supabase.auth.getSession().then(({ data }) => {
     const uid = data.session?.user?.id;
     if (!uid) return;
     if (adding) {
@@ -39,6 +45,7 @@ function cloudToggle(mgr, adding) {
     } else {
       supabase.from('watchlists').delete().eq('user_id', uid).eq('cik', mgr.cik).then(() => {});
     }
+    });
   });
 }
 
@@ -48,7 +55,8 @@ export function useFavorites() {
       listeners.add(cb);
       return () => listeners.delete(cb);
     },
-    () => snapshot
+    () => snapshot,
+    () => EMPTY // server render + hydration: no favorites yet
   );
 
   const isFavorite = useCallback((cik) => favorites.some((f) => f.cik === cik), [favorites]);

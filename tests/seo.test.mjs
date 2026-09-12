@@ -1,0 +1,101 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { ssr, jsonLd, count, attr } from './helpers.mjs';
+
+const GURU = '/en/guru/berkshire-hathaway-warren-buffett';
+
+test('SSR: guru page returns table rows, H1 and metadata without JS', async () => {
+  const { status, html, headers } = await ssr(GURU);
+  assert.equal(status, 200);
+  assert.ok(count(html, /<table/g) >= 1, 'has a table');
+  assert.ok(count(html, /<tr/g) >= 11, 'has header + 10 rows');
+  assert.match(html, /<h1>Berkshire Hathaway \(Warren Buffett\)<\/h1>/);
+  assert.match(html, /<title>Berkshire Hathaway \(Warren Buffett\) Portfolio Q2 2026: Holdings, Buys &amp; Sells \| 13F Radar<\/title>/);
+  assert.match(html, /<meta name="description" content="[^"]*11 positions worth \$198\.16B[^"]*"/);
+  assert.match(headers['cache-control'], /s-maxage=86400/);
+  assert.ok(html.includes('window.__STATE__='), 'dehydrated query state present');
+});
+
+test('SSR: stock page carries holders table linking to guru pages', async () => {
+  const { status, html } = await ssr('/en/stock/AAPL');
+  assert.equal(status, 200);
+  assert.match(html, /<title>AAPL — Which Superinvestors Hold Apple Inc\.\? \| 13F Radar<\/title>/);
+  assert.ok(count(html, /<table/g) >= 1);
+  assert.match(html, /href="\/en\/guru\/berkshire-hathaway-warren-buffett"/);
+});
+
+test('SSR: home page renders content and site JSON-LD', async () => {
+  const { status, html } = await ssr('/tr');
+  assert.equal(status, 200);
+  assert.ok(count(html, /<table/g) >= 1);
+  const types = jsonLd(html).map((b) => b['@type']);
+  assert.ok(types.includes('Organization') && types.includes('WebSite'));
+  const site = jsonLd(html).find((b) => b['@type'] === 'WebSite');
+  assert.match(site.potentialAction.target.urlTemplate, /^https:\/\/example\.test\/tr\/\?q=\{search_term_string\}$/);
+});
+
+test('metadata: TR and EN render distinct titles for the same entity', async () => {
+  const en = await ssr(GURU);
+  const tr = await ssr(GURU.replace('/en/', '/tr/'));
+  assert.match(tr.html, /<title>Berkshire Hathaway \(Warren Buffett\) Portföyü 2026 Q2: Pozisyonlar, Alımlar ve Satışlar \| 13F Radar<\/title>/);
+  assert.notEqual(attr(en.html, /<title>([^<]*)/)[0], attr(tr.html, /<title>([^<]*)/)[0]);
+  assert.match(tr.html, /<html lang="tr">/);
+});
+
+test('FAQ JSON-LD validates on guru and stock pages', async () => {
+  for (const url of [GURU, '/en/stock/AAPL']) {
+    const { html } = await ssr(url);
+    const faq = jsonLd(html).find((b) => b['@type'] === 'FAQPage');
+    assert.ok(faq, `${url} has FAQPage`);
+    assert.equal(faq['@context'], 'https://schema.org');
+    assert.ok(faq.mainEntity.length >= 2);
+    for (const q of faq.mainEntity) {
+      assert.equal(q['@type'], 'Question');
+      assert.ok(q.name.endsWith('?'));
+      assert.equal(q.acceptedAnswer['@type'], 'Answer');
+      assert.ok(q.acceptedAnswer.text.length > 20);
+      assert.ok(html.includes(q.name.replace(/&/g, '&amp;')), 'question is visible in the page body');
+    }
+    const crumbs = jsonLd(html).find((b) => b['@type'] === 'BreadcrumbList');
+    assert.ok(crumbs && crumbs.itemListElement.length >= 3);
+    assert.match(crumbs.itemListElement[0].item['@id'], /^https:\/\/example\.test\/en$/);
+  }
+});
+
+test('hreflang pairs are symmetric and canonical is self-referencing', async () => {
+  const en = await ssr(GURU);
+  const tr = await ssr(GURU.replace('/en/', '/tr/'));
+  const alts = (html) => Object.fromEntries([...html.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)].map((m) => [m[1], m[2]]));
+  const a = alts(en.html);
+  const b = alts(tr.html);
+  assert.equal(a.en, `https://example.test${GURU}`);
+  assert.equal(a.tr, `https://example.test${GURU.replace('/en/', '/tr/')}`);
+  assert.deepEqual(a, b, 'both languages list the same alternates');
+  assert.equal(a['x-default'], a.en);
+  assert.equal(attr(en.html, /<link rel="canonical" href="([^"]+)"/)[0], a.en);
+  assert.equal(attr(tr.html, /<link rel="canonical" href="([^"]+)"/)[0], b.tr);
+});
+
+test('redirects: bare URL → locale by country; numeric CIK → stored slug', async () => {
+  const tr = await ssr('/manager/0001067983', { 'x-vercel-ip-country': 'TR' });
+  assert.equal(tr.status, 302);
+  assert.equal(tr.headers.location, '/tr/manager/0001067983');
+  const cookie = await ssr('/manager/0001067983', { 'x-vercel-ip-country': 'TR', cookie: 'lang=en' });
+  assert.equal(cookie.headers.location, '/en/manager/0001067983');
+  const slug = await ssr('/en/manager/0001067983');
+  assert.equal(slug.status, 301);
+  assert.equal(slug.headers.location, GURU);
+  const wrongKind = await ssr('/en/filer/berkshire-hathaway-warren-buffett');
+  assert.equal(wrongKind.status, 301);
+  assert.equal(wrongKind.headers.location, GURU);
+});
+
+test('noindex on account and watchlist; 404 on unknown routes', async () => {
+  const acc = await ssr('/en/account');
+  assert.match(acc.html, /<meta name="robots" content="noindex"/);
+  assert.equal(acc.headers['cache-control'], 'no-store');
+  const nope = await ssr('/en/does-not-exist');
+  assert.equal(nope.status, 404);
+  const badSlug = await ssr('/en/guru/no-such-guru');
+  assert.equal(badSlug.status, 404);
+});

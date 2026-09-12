@@ -8,7 +8,8 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
+import { managerPath } from '../lib/paths.js';
 
 const GURU_CIKS = new Set(POPULAR_MANAGERS.map((m) => m.cik));
 
@@ -46,9 +47,18 @@ const CONC = {
 const ADV_EMPTY = { minAum: '', maxAum: '', minPos: '', maxPos: '', minTop10: '', maxTop10: '' };
 
 export default function Screen() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
-  usePageTitle(`${t('screen.title')} — 13F Radar`);
+  useSeo(
+    useMemo(
+      () => ({
+        title: lang === 'tr' ? 'Fon Tarayıcı: 8.000+ 13F Dosyalayan Kurumu Filtreleyin | 13F Radar' : 'Fund Screener: Filter 8,000+ 13F Filers | 13F Radar',
+        description: lang === 'tr' ? 'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; odaklı fonları keşfedin.' : 'Filter the entire 13F universe by AUM, position count and concentration; discover focused funds.',
+        path: '/screen',
+      }),
+      [lang, t]
+    )
+  );
 
   const [q, setQ] = useState('');
   const [size, setSize] = useState('');
@@ -320,7 +330,7 @@ export default function Screen() {
                     <tr key={r.cik}>
                       <td className="l muted">{i + 1}</td>
                       <td className="l">
-                        <Link to={`/manager/${r.cik}`} style={{ fontWeight: 700 }}>
+                        <Link to={managerPath(r.cik)} style={{ fontWeight: 700 }}>
                           {r.name}
                         </Link>
                         {GURU_CIKS.has(r.cik) && ' ⭐'}

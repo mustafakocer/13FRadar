@@ -5,10 +5,10 @@ import { useI18n } from '../i18n.jsx';
 
 // Debounced EDGAR manager search with a results dropdown.
 // onSelect(manager) — manager: {cik, name}
-export default function SearchBox({ onSelect, placeholder, small = false, autoFocus = false }) {
+export default function SearchBox({ onSelect, placeholder, small = false, autoFocus = false, initialText = '' }) {
   const { t } = useI18n();
-  const [text, setText] = useState('');
-  const [q, setQ] = useState('');
+  const [text, setText] = useState(initialText);
+  const [q, setQ] = useState(initialText.trim());
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
 

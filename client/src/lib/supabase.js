@@ -1,5 +1,3 @@
-import { createClient } from '@supabase/supabase-js';
-
 // Public (publishable) credentials — safe to ship in the client bundle.
 // Filled in when the Supabase project is provisioned; env vars override.
 const FALLBACK_URL = 'https://rmisfrxsnhdpcxqzmicy.supabase.co';
@@ -10,4 +8,15 @@ const url = import.meta.env.VITE_SUPABASE_URL || FALLBACK_URL;
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || FALLBACK_ANON;
 
 export const supabaseConfigured = Boolean(url && anonKey);
-export const supabase = supabaseConfigured ? createClient(url, anonKey) : null;
+
+// The SDK (~120 KB) is loaded on demand after first paint: nothing on a
+// server-rendered page needs it before the user interacts or a session is
+// restored. Resolves to null when auth is not configured.
+let clientPromise = null;
+export function getSupabase() {
+  if (!supabaseConfigured || typeof window === 'undefined') return Promise.resolve(null);
+  if (!clientPromise) {
+    clientPromise = import('@supabase/supabase-js').then(({ createClient }) => createClient(url, anonKey));
+  }
+  return clientPromise;
+}

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable><nameOfIssuer>ALIBABA GROUP HLDG LTD</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>01609W102</cusip><value>160000000</value><shrsOrPrnAmt><sshPrnamt>2000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt><investmentDiscretion>SOLE</investmentDiscretion><votingAuthority><Sole>2000000</Sole><Shared>0</Shared><None>0</None></votingAuthority></infoTable>
+  <infoTable><nameOfIssuer>COCA COLA CO</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>191216100</cusip><value>20000000</value><shrsOrPrnAmt><sshPrnamt>300000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt><investmentDiscretion>SOLE</investmentDiscretion><votingAuthority><Sole>300000</Sole><Shared>0</Shared><None>0</None></votingAuthority></infoTable>
+</informationTable>

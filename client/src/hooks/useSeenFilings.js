@@ -14,7 +14,11 @@ export function markFilingSeen(cik, filingDate) {
   const seen = load();
   if (seen[cik] === filingDate) return;
   seen[cik] = filingDate;
-  localStorage.setItem(KEY, JSON.stringify(seen));
+  try {
+    localStorage.setItem(KEY, JSON.stringify(seen));
+  } catch {
+    /* storage blocked */
+  }
 }
 
 export function getSeenFiling(cik) {

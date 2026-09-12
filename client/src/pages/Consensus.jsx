@@ -5,8 +5,11 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { fmtMoney, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useMemo } from 'react';
+import { useSeo } from '../seo.jsx';
+import { consensusSeo } from '../lib/seoTemplates.js';
 import Paywall from '../components/Paywall.jsx';
+import { managerPath } from '../lib/paths.js';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -23,7 +26,7 @@ function HoldersCell({ holders }) {
       {holders.slice(0, 3).map((h, i) => (
         <span key={h.cik}>
           {i > 0 && ', '}
-          <Link to={`/manager/${h.cik}`}>{h.name}</Link>
+          <Link to={managerPath(h.cik, h.path)}>{h.name}</Link>
         </span>
       ))}
       {holders.length > 3 ? ` +${holders.length - 3}` : ''}
@@ -32,13 +35,13 @@ function HoldersCell({ holders }) {
 }
 
 export default function Consensus() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
-  usePageTitle(`${t('consensus.title')} — 13F Radar`);
 
   // public part from the static CDN file; buys/sells/new positions come from
   // the Pro-only API and are merged in for Pro users
   const { data, isLoading, error, proLoading, proError } = useConsensusStatic();
+  useSeo(useMemo(() => consensusSeo({ lang, data }), [lang, data]));
 
   // whole-universe most-held (static file produced by the GitHub Action)
   const uniStocks = useQuery({
@@ -70,7 +73,7 @@ export default function Consensus() {
             {managers.map((m, i) => (
               <span key={m.cik}>
                 {i > 0 && ' · '}
-                <Link to={`/manager/${m.cik}`}>{m.name}</Link>
+                <Link to={managerPath(m.cik, m.path)}>{m.name}</Link>
               </span>
             ))}
           </div>
@@ -215,7 +218,7 @@ export default function Consensus() {
             <tbody>
               {newPositions.map((r, i) => (
                 <tr key={`${r.cik}-${r.cusip}-${i}`}>
-                  <td className="l"><Link to={`/manager/${r.cik}`}>{r.manager}</Link></td>
+                  <td className="l"><Link to={managerPath(r.cik, r.path)}>{r.manager}</Link></td>
                   <td className="l"><Sym r={r} /></td>
                   <td className="l">{r.issuer}</td>
                   <td className="num">{fmtPct(r.weight, { sign: false })}</td>

@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { useGeo } from './hooks/useGeo.js';
+import { createContext, useContext, useCallback, useMemo } from 'react';
+import { splitLang, withLang } from './lib/locale.js';
 
 const dict = {
   tr: {
@@ -129,6 +129,119 @@ const dict = {
     'landing.act.note': 'Usta yatırımcı setindeki fonların son çeyrek net alım/satım tutarı (13F, hisse bazında).',
     'landing.lang.hint': 'Dil',
     'topnav.funds': 'Fonlar',
+    'nav.gurus': 'Usta Yatırımcı Rehberi',
+    'hist.tab': 'Geçmiş',
+    'related.title': 'Benzer portföyler',
+    'related.note': 'Son çeyrekte tutulan hisselerin Jaccard benzerliğine göre en yakın beş usta yatırımcı (gece hesaplanır).',
+    'related.overlap': 'Örtüşme',
+    'related.shared': 'Ortak hisseler',
+    'related.report': '{q} çeyrek raporunu oku',
+    'cal.title': '13F Bildirim Takvimi',
+    'rep.indexSub': 'Usta yatırımcıların çeyreklik 13F raporları',
+    'rep.open': 'Raporu aç →',
+    'rep.notFound': 'Bu çeyrek için rapor üretilmemiş.',
+    'rep.sub': '{m} takip edilen fondan {n} tanesinin {d} tarihli 13F bildirimleri',
+    'rep.generated': 'üretim',
+    'rep.chartPack': 'Grafik paketi (PNG)',
+    'rep.buysValue': 'En çok alınan 20 (dolar bazında)',
+    'rep.sellsValue': 'En çok satılan 20 (dolar bazında)',
+    'rep.buysCount': 'En çok alınan 20 (fon sayısına göre)',
+    'rep.sellsCount': 'En çok satılan 20 (fon sayısına göre)',
+    'rep.buyers': 'Alıcı',
+    'rep.sellers': 'Satıcı',
+    'rep.newConsensus': 'Yeni konsensüs pozisyonları (ilk kez ≥5 usta yatırımcı)',
+    'rep.needsHistory': 'Çeyreklik geçmiş verisi üretildiğinde hesaplanır (guru-history.json).',
+    'rep.holdersNow': 'Şimdi',
+    'rep.holdersPrev': 'Önceki çeyrek',
+    'rep.exits': 'En büyük çıkışlar',
+    'rep.valueSold': 'Satılan değer',
+    'rep.sector': 'Sektör akışı',
+    'rep.sectorTodo': 'Sektör akış tablosu, hisse → sektör kaynağı bağlandığında eklenecek (issue #2).',
+    'rep.notable': 'Dikkat çeken 10 hamle (adet değişimi en yüksek)',
+    'rep.newPositions': 'Yeni pozisyonlar',
+    'rep.managers': 'Kapsanan fonlar',
+    'cal.subtitle': 'Son tarihler, hangi usta yatırımcıların bildirim yaptığı ve son alınan 13F dosyalamaları',
+    'cal.next': 'Bir sonraki son tarihe',
+    'cal.d': 'g',
+    'cal.h': 's',
+    'cal.filedStatus': 'Bildirim durumu',
+    'cal.gurusFiled': 'usta yatırımcı bildirdi',
+    'cal.recent7d': 'Son 7 günde alınan bildirim',
+    'cal.last24h': 'son 24 saat',
+    'cal.asOf': 'veri tarihi',
+    'cal.deadlines': 'Yıllık son tarihler',
+    'cal.quarterEnd': 'Çeyrek sonu',
+    'cal.deadline': 'Son tarih',
+    'cal.status': 'Durum',
+    'cal.past': 'geçti',
+    'cal.upcoming': 'sıradaki',
+    'cal.future': 'ileride',
+    'cal.rule': 'Form 13F, çeyrek sonunu izleyen 45 gün içinde verilir; hafta sonuna denk gelen son tarih bir sonraki iş gününe kayar. SEC tatil kaymaları buraya yansıtılmaz.',
+    'cal.guruStatus': 'Usta yatırımcılar',
+    'cal.latestQuarter': 'Son çeyrek',
+    'cal.s.filed': 'bildirdi',
+    'cal.s.pending': 'bekleniyor',
+    'cal.s.unknown': 'bilinmiyor',
+    'cal.recentTitle': 'Son alınan bildirimler (tüm evren)',
+    'cal.recentNote': 'Evren dosyası haftalık yenilenir; pencereler dosyanın kendi tarihine göredir. Bildirim tarihine göre sıralı, en fazla 50 satır.',
+    'em.title': 'Yükselen Fon Yöneticileri',
+    'em.subtitle': 'Küçük ve yoğun 13F portföyleri: 100 milyon–1 milyar $ varlık, ilk 10 pozisyonda %50+',
+    'em.criteria': 'Ölçütler: 13F varlığı 100M–1B $ · ilk 10 yoğunlaşması ≥ %50 · küçük şirket payı ≥ %40 (5 milyar $ altı piyasa değeri)',
+    'em.smallCapTodo': 'Küçük şirket payı henüz hesaplanmıyor: pozisyon bazlı piyasa değeri kaynağı bağlanınca eklenecek (TODO).',
+    'em.smallCap': 'Küçük şirket payı',
+    'em.note': '{n} kurum ölçütleri karşılıyor; ilk {shown} tanesi gösteriliyor. Sütun başlığına tıklayarak sıralayın.',
+    'manager.history': 'Geçmiş',
+    'hist.title': 'Çeyreklik Geçmiş',
+    'hist.quarter': 'Çeyrek',
+    'hist.filed': 'Bildirim',
+    'hist.count': 'Pozisyon',
+    'hist.value': 'Toplam Değer',
+    'hist.turnover': 'Devir %',
+    'hist.top10': 'İlk 10',
+    'hist.timeHeld': 'Elde Tutma',
+    'hist.splitNote': 'Adetler bölünme düzeltmeli (split-adjusted). Elde tutma süresi, en son çeyrekle biten kesintisiz çeyrek sayısından hesaplanır; 10 yıl üstü ">10 Yıl" olarak gösterilir.',
+    'hist.none': 'Bu fon için önceden hesaplanmış geçmiş yok.',
+    'pair.title': '{name} — {ticker} İşlem Geçmişi',
+    'pair.sub': '{issuer} pozisyonunun çeyrek çeyrek değişimi',
+    'pair.shares': 'Adet',
+    'pair.delta': 'Δ Adet',
+    'pair.deltaPct': 'Δ %',
+    'pair.weight': '% Port.',
+    'pair.activity': 'İşlem',
+    'pair.act.new': 'Yeni',
+    'pair.act.add': 'Artırdı',
+    'pair.act.reduce': 'Azalttı',
+    'pair.act.hold': 'Tuttu',
+    'pair.act.exit': 'Çıktı',
+    'pair.act.none': '—',
+    'pair.heldSince': 'Elde tutuluyor',
+    'pair.firstSeen': 'İlk görüldüğü çeyrek',
+    'pair.backGuru': 'Fon sayfası',
+    'pair.backStock': 'Hisse sayfası',
+    'export.csv': 'CSV indir',
+    'gurus.title': 'Usta Yatırımcılar',
+    'gurus.subtitle': 'Efsane fon yöneticilerinin çeyreklik 13F portföyleri',
+    'gurus.allFilers': 'Tüm 13F dosyalayan kurumlar (A–Z)',
+    'filers.title': '13F Dosyalayan Kurumlar',
+    'filers.subtitle': "SEC'e Form 13F bildirimi yapan tüm kurumsal yatırımcılar, alfabetik",
+    'manager.unknownSlug': 'Bu adresle eşleşen bir fon bulunamadı.',
+    'insig.cluster.desc': 'Son 30 günde, 7 günlük pencere içinde aynı şirkette en az iki farklı insider tarafından yapılan açık piyasa alımları.',
+    'insig.csuite.desc': 'Son 30 günde CEO ve CFO seviyesindeki yöneticilerin kendi şirket hisselerinde yaptığı alımlar.',
+    'insig.penny.desc': "Son 30 günde 5 $'ın altındaki hisselerde 25 bin $ üzeri insider alımları.",
+    'seo.disclaimer': '13F verisi çeyrek sonu pozisyonlarını gösterir, 45 güne kadar gecikmelidir ve yalnızca ABD borsalarındaki uzun (long) pozisyonları kapsar; açığa satışlar, türevler ve ABD dışı varlıklar bildirilmez.',
+    'seo.faq': 'Sık Sorulan Sorular',
+    'footer.rankings': 'Sıralamalar',
+    'footer.explore': 'Keşfet',
+    'footer.learn': 'Öğren',
+    'guide.what': '13F nedir?',
+    'guide.form4': 'Form 4 nasıl okunur?',
+    'guide.limits': '13F verisinin sınırları',
+    'guide.best': 'En iyi 13F takip araçları',
+    'rank.mostBought': 'En Çok Alınanlar',
+    'rank.mostSold': 'En Çok Satılanlar',
+    'rank.consensus': 'Konsensüs (En Çok Tutulan)',
+    'rank.conviction': 'Yüksek Kanaat',
+    'rank.ownership': 'Sahiplik Oranı',
     'topnav.searchPh': 'Fon veya hisse ara…',
     'topnav.d.consensus': 'Efsane fonların ortak alım-satımları',
     'topnav.d.screen': '8.000+ fonu filtreleyin',
@@ -606,6 +719,11 @@ const dict = {
     'ins.change.inc100': 'Pozisyonu ikiye katladı',
     'ins.filingLag': 'Bildirim gecikmesi (iş günü)',
     'ins.includeLate': 'Geç bildirimleri de göster',
+    'ins.includeNoise': 'Gürültüyü de göster',
+    'ins.includeNoiseNote': 'hisse ödülleri, vergi stopajı, hediye ve miras işlemleri',
+    'ins.cls.conviction': 'Güçlü sinyal',
+    'ins.cls.liquidity': 'Likidite',
+    'ins.cls.noise': 'Gürültü',
     'ins.includeLateNote': '2 iş gününden geç bildirilen işlemler',
     'ins.applyFilters': 'Filtreleri Uygula',
     'ins.insider': 'Kişi',
@@ -624,7 +742,7 @@ const dict = {
     'ins.building': 'Veri seti ilk kez hazırlanıyor, birkaç saat içinde burada olacak.',
     'ins.note': 'Kaynak: SEC EDGAR Form 4. Yalnızca açık piyasa alım (P) ve satımları (S) gösterilir; hisse ödülleri ve opsiyon kullanımları hariçtir. Getiri, işlem fiyatı ile güncel fiyat arasındaki farktır ve yatırım tavsiyesi değildir.',
     'tips.insActivity': 'Son bildirim gününde yapılan açık piyasa alım ve satımlarının toplam tutarı. Satış payı yüksekse yöneticiler net satıcı demektir.',
-    'tips.insSignals': 'Küme alımı: aynı şirkette 30 gün içinde en az iki farklı yöneticinin alım yapması. Tarihsel olarak tek kişilik alımlardan daha güçlü bir sinyaldir.',
+    'tips.insSignals': 'Küme alımı: aynı şirkette 7 gün içinde en az iki farklı yöneticinin açık piyasa alımı yapması. Tarihsel olarak tek kişilik alımlardan daha güçlü bir sinyaldir.',
     'tips.insDates': 'İlk satır işlemin yapıldığı tarih, ikinci satır SEC bildiriminin tarihi. Yasal süre 2 iş günüdür; daha geç bildirimler kırmızı gösterilir.',
     'tips.insReturn': 'İşlem fiyatından bugüne kadarki fiyat değişimi. Yöneticinin aldığı fiyata göre kârda mı zararda mı olduğunu gösterir.',
     'common.close': 'Kapat',
@@ -760,6 +878,119 @@ const dict = {
     'landing.act.note': 'Net quarterly buy/sell value across the superinvestor set (13F, per stock).',
     'landing.lang.hint': 'Language',
     'topnav.funds': 'Funds',
+    'nav.gurus': 'Guru Directory',
+    'hist.tab': 'History',
+    'related.title': 'Related managers',
+    'related.note': 'Five closest superinvestors by Jaccard overlap of tickers held in the latest quarter (computed nightly).',
+    'related.overlap': 'Overlap',
+    'related.shared': 'Shared holdings',
+    'related.report': 'Read the {q} quarterly report',
+    'cal.title': '13F Filing Calendar',
+    'rep.indexSub': 'Quarterly 13F reports on the tracked superinvestors',
+    'rep.open': 'Open report →',
+    'rep.notFound': 'No report has been generated for this quarter.',
+    'rep.sub': '{n} of {m} tracked funds with 13F filings for {d}',
+    'rep.generated': 'generated',
+    'rep.chartPack': 'Chart pack (PNG)',
+    'rep.buysValue': 'Top 20 net buys by $',
+    'rep.sellsValue': 'Top 20 net sells by $',
+    'rep.buysCount': 'Top 20 buys by number of gurus',
+    'rep.sellsCount': 'Top 20 sells by number of gurus',
+    'rep.buyers': 'Buyers',
+    'rep.sellers': 'Sellers',
+    'rep.newConsensus': 'New consensus positions (≥5 gurus for the first time)',
+    'rep.needsHistory': 'Computed once the quarterly history precompute (guru-history.json) exists.',
+    'rep.holdersNow': 'Now',
+    'rep.holdersPrev': 'Previous quarter',
+    'rep.exits': 'Biggest exits',
+    'rep.valueSold': 'Value sold',
+    'rep.sector': 'Sector flow',
+    'rep.sectorTodo': 'The sector flow table is added once a ticker → sector source is wired in (issue #2).',
+    'rep.notable': '10 notable moves (largest % change in shares)',
+    'rep.newPositions': 'New positions',
+    'rep.managers': 'Funds covered',
+    'cal.subtitle': 'Deadlines, which superinvestors have filed, and the latest 13F filings received',
+    'cal.next': 'Next deadline in',
+    'cal.d': 'd',
+    'cal.h': 'h',
+    'cal.filedStatus': 'Filing status',
+    'cal.gurusFiled': 'superinvestors filed',
+    'cal.recent7d': 'Filings in the last 7 days',
+    'cal.last24h': 'last 24h',
+    'cal.asOf': 'as of',
+    'cal.deadlines': 'Annual deadlines',
+    'cal.quarterEnd': 'Quarter end',
+    'cal.deadline': 'Deadline',
+    'cal.status': 'Status',
+    'cal.past': 'past',
+    'cal.upcoming': 'next',
+    'cal.future': 'future',
+    'cal.rule': 'Form 13F is due within 45 days after quarter end; a weekend deadline rolls to the next business day. SEC holiday shifts are not reflected here.',
+    'cal.guruStatus': 'Superinvestors',
+    'cal.latestQuarter': 'Latest quarter',
+    'cal.s.filed': 'filed',
+    'cal.s.pending': 'pending',
+    'cal.s.unknown': 'unknown',
+    'cal.recentTitle': 'Recently received filings (whole universe)',
+    'cal.recentNote': 'The universe file refreshes weekly; windows are relative to its own timestamp. Sorted by filing date, 50 rows max.',
+    'em.title': 'Emerging Managers',
+    'em.subtitle': 'Small, concentrated 13F portfolios: $100M–$1B in assets, 50%+ in the top 10',
+    'em.criteria': 'Screen: 13F assets $100M–$1B · top-10 concentration ≥ 50% · small-cap share ≥ 40% (market cap under $5B)',
+    'em.smallCapTodo': 'Small-cap share is not computed yet: it is added once a per-position market-cap source is wired in (TODO).',
+    'em.smallCap': 'Small-cap share',
+    'em.note': '{n} filers meet the screen; the first {shown} are shown. Click a column header to sort.',
+    'manager.history': 'History',
+    'hist.title': 'Quarterly History',
+    'hist.quarter': 'Quarter',
+    'hist.filed': 'Filed',
+    'hist.count': 'Holdings',
+    'hist.value': 'Total Value',
+    'hist.turnover': 'Turnover %',
+    'hist.top10': 'Top 10',
+    'hist.timeHeld': 'Time Held',
+    'hist.splitNote': 'Share counts are split-adjusted. Time held counts consecutive quarters ending with the latest filing; more than ten years shows as ">10 Years".',
+    'hist.none': 'No precomputed history for this fund.',
+    'pair.title': '{name} — {ticker} Trade History',
+    'pair.sub': 'Quarter-by-quarter changes in the {issuer} position',
+    'pair.shares': 'Shares',
+    'pair.delta': 'Δ Shares',
+    'pair.deltaPct': 'Δ %',
+    'pair.weight': '% Port.',
+    'pair.activity': 'Activity',
+    'pair.act.new': 'New',
+    'pair.act.add': 'Add',
+    'pair.act.reduce': 'Reduce',
+    'pair.act.hold': 'Hold',
+    'pair.act.exit': 'Sold out',
+    'pair.act.none': '—',
+    'pair.heldSince': 'Currently held',
+    'pair.firstSeen': 'First seen',
+    'pair.backGuru': 'Fund page',
+    'pair.backStock': 'Stock page',
+    'export.csv': 'Download CSV',
+    'gurus.title': 'Superinvestors',
+    'gurus.subtitle': 'Quarterly 13F portfolios of legendary fund managers',
+    'gurus.allFilers': 'All 13F filers (A–Z)',
+    'filers.title': '13F Filers',
+    'filers.subtitle': 'Every institutional investor filing Form 13F with the SEC, alphabetically',
+    'manager.unknownSlug': 'No fund matches this address.',
+    'insig.cluster.desc': 'Open-market purchases by at least two different insiders of the same company inside a 7-day window, over the last 30 days.',
+    'insig.csuite.desc': 'Purchases of their own company stock by CEOs and CFOs in the last 30 days.',
+    'insig.penny.desc': 'Insider purchases above $25K in stocks trading under $5 in the last 30 days.',
+    'seo.disclaimer': '13F data shows quarter-end positions, is delayed by up to 45 days and covers only long positions in US-listed securities; short positions, most derivatives and non-US assets are not reported.',
+    'seo.faq': 'Frequently Asked Questions',
+    'footer.rankings': 'Rankings',
+    'footer.explore': 'Explore',
+    'footer.learn': 'Learn',
+    'guide.what': 'What is a 13F?',
+    'guide.form4': 'How to read Form 4',
+    'guide.limits': '13F limitations',
+    'guide.best': 'Best 13F trackers',
+    'rank.mostBought': 'Most Bought',
+    'rank.mostSold': 'Most Sold',
+    'rank.consensus': 'Consensus (Most Owned)',
+    'rank.conviction': 'High Conviction',
+    'rank.ownership': 'Ownership',
     'topnav.searchPh': 'Search funds, stocks…',
     'topnav.d.consensus': 'What legendary funds buy and sell together',
     'topnav.d.screen': 'Filter 8,000+ funds',
@@ -1233,6 +1464,11 @@ const dict = {
     'ins.change.inc100': 'Doubled the position',
     'ins.filingLag': 'Filing lag (business days)',
     'ins.includeLate': 'Include late filings',
+    'ins.includeNoise': 'Include noise',
+    'ins.includeNoiseNote': 'stock awards, tax withholding, gifts and inheritance',
+    'ins.cls.conviction': 'High conviction',
+    'ins.cls.liquidity': 'Liquidity',
+    'ins.cls.noise': 'Noise',
     'ins.includeLateNote': 'trades reported more than 2 business days late',
     'ins.applyFilters': 'Apply Filters',
     'ins.insider': 'Insider',
@@ -1251,7 +1487,7 @@ const dict = {
     'ins.building': 'The dataset is being built for the first time; it will appear here within a few hours.',
     'ins.note': 'Source: SEC EDGAR Form 4. Only open-market purchases (P) and sales (S) are shown; stock awards and option exercises are excluded. Return compares the transaction price with the current price and is not investment advice.',
     'tips.insActivity': 'Total value of open-market buys and sells filed on the most recent reporting day. A high sell share means insiders were net sellers.',
-    'tips.insSignals': 'Cluster buy: at least two different insiders buying the same company within 30 days. Historically a stronger signal than a single purchase.',
+    'tips.insSignals': 'Cluster buy: at least two different insiders buying the same company on the open market within 7 days. Historically a stronger signal than a single purchase.',
     'tips.insDates': 'First line is the trade date, second is the SEC filing date. The legal deadline is 2 business days; later filings are shown in red.',
     'tips.insReturn': 'Price change from the transaction price to today — whether the insider is up or down on the trade.',
     'common.close': 'Close',
@@ -1264,51 +1500,28 @@ const dict = {
 
 const I18nCtx = createContext(null);
 
-// Language resolution, in priority order:
-//   1. an explicit choice (the TR/EN switch) persisted in localStorage
-//   2. the visitor's country (Vercel geo header via /api/geo): Türkiye → TR,
-//      everywhere else → EN
-//   3. until geo answers: the browser language, so the first paint is close
-const readStored = () => {
-  try {
-    const v = localStorage.getItem('lang');
-    return v === 'tr' || v === 'en' ? v : null;
-  } catch {
-    return null;
-  }
-};
-const browserGuess = () =>
-  (typeof navigator !== 'undefined' && (navigator.language || '').toLowerCase().startsWith('tr')) ? 'tr' : 'en';
-
-export function I18nProvider({ children }) {
-  const [explicit, setExplicit] = useState(() => readStored());
-  const [lang, setLangState] = useState(() => explicit || browserGuess());
-  const geo = useGeo();
-
-  useEffect(() => {
-    if (explicit) return;
-    const country = geo.data?.country;
-    if (!country) return;
-    setLangState(country === 'TR' ? 'tr' : 'en');
-  }, [explicit, geo.data]);
-
-  useEffect(() => {
-    document.documentElement.lang = lang;
-  }, [lang]);
-
-  const setLang = useCallback((next) => {
-    if (next !== 'tr' && next !== 'en') return;
-    try {
-      localStorage.setItem('lang', next);
-    } catch {
-      /* private mode — the choice lives for this session only */
-    }
-    setExplicit(next);
-    setLangState(next);
-  }, []);
-  const toggle = useCallback(() => setLang(lang === 'tr' ? 'en' : 'tr'), [lang, setLang]);
-
+// The language is part of the URL (/en/…, /tr/…) and is passed in by the
+// entry point, so server and client render the same text. Switching stores
+// the choice (cookie for the server redirect, localStorage for the client
+// fallback) and reloads on the other prefix.
+export function I18nProvider({ lang = 'en', children }) {
   const t = useCallback((key) => dict[lang][key] ?? dict.en[key] ?? key, [lang]);
+  const setLang = useCallback(
+    (next) => {
+      if ((next !== 'tr' && next !== 'en') || next === lang) return;
+      if (typeof window === 'undefined') return;
+      try {
+        localStorage.setItem('lang', next);
+        document.cookie = `lang=${next}; path=/; max-age=31536000; SameSite=Lax`;
+      } catch {
+        /* private mode */
+      }
+      const { path } = splitLang(window.location.pathname);
+      window.location.assign(withLang(next, path) + window.location.search + window.location.hash);
+    },
+    [lang]
+  );
+  const toggle = useCallback(() => setLang(lang === 'tr' ? 'en' : 'tr'), [lang, setLang]);
   const value = useMemo(() => ({ lang, t, toggle, setLang }), [lang, t, toggle, setLang]);
   return <I18nCtx.Provider value={value}>{children}</I18nCtx.Provider>;
 }

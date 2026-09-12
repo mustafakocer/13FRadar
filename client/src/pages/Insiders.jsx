@@ -5,7 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import InfoTip from '../components/InfoTip.jsx';
@@ -20,7 +20,7 @@ const VALUE_PRESETS = [
   { v: '10000000', k: 'whale' },
 ];
 
-const DEFAULT_ADV = { size: '', sector: '', minPrice: '', maxPrice: '', change: '', lagMin: '', lagMax: '', late: false };
+const DEFAULT_ADV = { size: '', sector: '', minPrice: '', maxPrice: '', change: '', lagMin: '', lagMax: '', late: false, noise: false };
 
 function Stat({ label, children, tip }) {
   return (
@@ -107,6 +107,13 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
                 <span className="muted small"> — {t('ins.includeLateNote')}</span>
               </span>
             </label>
+            <label className="check-row">
+              <input type="checkbox" checked={draft.noise} onChange={(e) => set('noise', e.target.checked)} />
+              <span>
+                <b>{t('ins.includeNoise')}</b>
+                <span className="muted small"> — {t('ins.includeNoiseNote')}</span>
+              </span>
+            </label>
           </div>
         </div>
         <div className="row mt16" style={{ justifyContent: 'flex-end' }}>
@@ -119,9 +126,18 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
 }
 
 export default function Insiders() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
-  usePageTitle(`${t('ins.title')} — 13F Radar`);
+  useSeo(
+    useMemo(
+      () => ({
+        title: lang === 'tr' ? 'Insider İşlemleri: SEC Form 4 Alım-Satım Akışı | 13F Radar' : 'Insider Trading: SEC Form 4 Buy & Sell Feed | 13F Radar',
+        description: lang === 'tr' ? 'CEO, CFO ve yönetim kurulu üyelerinin kendi şirket hisselerindeki açık piyasa alım-satımları; küme alımları, filtreler ve getiri takibi.' : 'Open-market buys and sells by CEOs, CFOs and directors in their own companies; cluster buys, filters and return tracking.',
+        path: '/insiders',
+      }),
+      [lang, t]
+    )
+  );
 
   const [tab, setTab] = useState('latest');
   const [q, setQ] = useState('');
@@ -157,6 +173,7 @@ export default function Insiders() {
       ...(adv.lagMin ? { lagMin: adv.lagMin } : {}),
       ...(adv.lagMax ? { lagMax: adv.lagMax } : {}),
       ...(adv.late ? { late: '1' } : {}),
+      ...(adv.noise ? { cls: 'conviction,liquidity,noise' } : {}),
     }),
     [tab, period, page, sort, search, minValue, adv]
   );
@@ -373,6 +390,12 @@ export default function Insiders() {
                     <td className="l">
                       <div>{r.insider}</div>
                       {r.title && <div className="muted small">{r.title}</div>}
+                      <div className="small">
+                        <span className={`badge sm ${r.cls === 'conviction' ? 'pos' : r.cls === 'liquidity' ? 'neg' : 'plain'}`} title={r.code}>
+                          {t(`ins.cls.${r.cls}`)}{r.code && r.code !== 'P' && r.code !== 'S' ? ` · ${r.code}` : ''}
+                        </span>
+                        {r.planned && <span className="badge sm plain" style={{ marginLeft: 4 }}>10b5-1</span>}
+                      </div>
                     </td>
                     <td className="l">
                       <div>{r.date}</div>

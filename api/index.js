@@ -24,6 +24,15 @@ import checkout from './_handlers/checkout.js';
 import portal from './_handlers/portal.js';
 import insiderFeed from './_handlers/insider-feed.js';
 import geo from './_handlers/geo.js';
+import slug from './_handlers/slug.js';
+import sitemap from './_handlers/sitemap.js';
+import og from './_handlers/og.js';
+import guruHistoryH from './_handlers/guru-history.js';
+import exportH from './_handlers/export.js';
+import calendar from './_handlers/calendar.js';
+import emerging from './_handlers/emerging.js';
+import report from './_handlers/report.js';
+import related from './_handlers/related.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
@@ -33,6 +42,18 @@ const ROUTES = {
   'insider-feed': [insiderFeed],
   portal: [portal],
   geo: [geo],
+  slug: [slug],
+  sitemap: [sitemap],
+  og: [og],
+  'guru-history': [guruHistoryH, 'cik'],
+  'guru-history-ticker': [guruHistoryH, 'cik', 'ticker'],
+  export: [exportH, 'kind', 'id'],
+  calendar: [calendar],
+  emerging: [emerging],
+  report: [report],
+  related: [related, 'cik'],
+  'report-id': [report, 'id'],
+  'slug-of': [slug, 'slug'],
   search: [search],
   returns: [returns],
   sectors: [sectors],

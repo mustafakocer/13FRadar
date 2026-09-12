@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useI18n } from '../i18n.jsx';
+import { managerPath } from '../lib/paths.js';
 
 // One-glance superinvestor signal for a stock: how many gurus bought/sold it
 // this quarter and who holds it. Free feature — it is the discovery hook.
@@ -48,7 +49,7 @@ export default function GuruSignal({ ticker, cusip }) {
                 {' '}· ✨ {fresh.map((f, i) => (
                   <span key={f.cik}>
                     {i > 0 && ', '}
-                    <Link to={`/manager/${f.cik}`}>{f.manager}</Link>
+                    <Link to={managerPath(f.cik, f.path)}>{f.manager}</Link>
                   </span>
                 ))}{' '}
                 {t('guru.freshEntry')}
@@ -61,7 +62,7 @@ export default function GuruSignal({ ticker, cusip }) {
               {holders.slice(0, 4).map((h, i) => (
                 <span key={h.cik}>
                   {i > 0 && ', '}
-                  <Link to={`/manager/${h.cik}`}>{h.name}</Link>
+                  <Link to={managerPath(h.cik, h.path)}>{h.name}</Link>
                 </span>
               ))}
               {held.holderCount > 4 && ` +${held.holderCount - 4}`}

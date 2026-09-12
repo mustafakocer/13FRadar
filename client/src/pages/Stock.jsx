@@ -1,7 +1,12 @@
+import { useMemo } from 'react';
 import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
+import Faq, { Disclaimer } from '../components/Faq.jsx';
+import AnswerBox from '../components/AnswerBox.jsx';
+import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
+import { stockSeo } from '../lib/seoTemplates.js';
 import {
   fmtMoney,
   fmtNum,
@@ -13,9 +18,11 @@ import {
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
-import PriceChart from '../components/Charts/PriceChart.jsx';
+import ChartBox from '../components/ChartBox.jsx';
+import { PriceChart } from '../components/Charts/index.js';
 import GuruSignal from '../components/GuruSignal.jsx';
 import InfoTip from '../components/InfoTip.jsx';
+import { managerPath } from '../lib/paths.js';
 
 function KV({ k, v, cls = '', tip }) {
   return (
@@ -74,7 +81,6 @@ export default function Stock() {
     queryFn: () => api.stock(ticker),
   });
 
-  usePageTitle(data?.price?.name ? `${data.price.symbol} · ${data.price.name} — 13F Radar` : null);
 
   // Who reports this security? CUSIP (exact) when we came from a holdings
   // table, otherwise the company name via EDGAR full-text search.
@@ -102,6 +108,18 @@ export default function Stock() {
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
+
+  const consensus = useConsensusStatic();
+  const consensusRow = useMemo(() => {
+    const rows = consensus.data?.mostHeld || [];
+    return rows.find((r) => (cusip && r.cusip === cusip) || (r.ticker && r.ticker === ticker)) || null;
+  }, [consensus.data, cusip, ticker]);
+  const reportDate = useMemo(() => (consensus.data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), ''), [consensus.data]);
+  const seo = useMemo(
+    () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data, consensusRow, reportDate }),
+    [lang, ticker, cusip, data, holders.data, consensusRow, reportDate]
+  );
+  useSeo(seo);
 
   const filings13dg = useQuery({
     queryKey: ['13dg', ticker],
@@ -152,7 +170,39 @@ export default function Stock() {
         </div>
       </div>
 
+      <AnswerBox text={seo.answer} />
+
       <GuruSignal ticker={ticker} cusip={cusip} />
+
+      {holders.data?.holders?.length > 0 && (
+        <div className="card mt16">
+          <h3>🏦 {t('stock.holders')}</h3>
+          <div className="table-wrap">
+            <table className="data">
+              <thead>
+                <tr>
+                  <th className="l">{t('table.rank')}</th>
+                  <th className="l">{t('screen.manager')}</th>
+                  <th>13F</th>
+                </tr>
+              </thead>
+              <tbody>
+                {holders.data.holders.map((h, i) => (
+                  <tr key={h.cik}>
+                    <td className="l muted">{i + 1}</td>
+                    <td className="l">
+                      <Link to={managerPath(h.cik, h.path)} style={{ fontWeight: 700 }}>{h.name}</Link>
+                    </td>
+                    <td className="num">{h.filings}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="muted small mt8">{t('stock.holdersNote')}</p>
+        </div>
+      )}
+
 
       {data.source !== 'quoteSummary' && (
         <div
@@ -181,7 +231,7 @@ export default function Stock() {
 
       <div className="card mt16">
         <h3>{t('stock.priceChart')}</h3>
-        <PriceChart ticker={ticker} lang={lang} />
+        <ChartBox height={300}><PriceChart ticker={ticker} lang={lang} /></ChartBox>
       </div>
 
       <div className="grid grid-2 mt16">
@@ -416,7 +466,7 @@ export default function Stock() {
                     {ownership.data.holders.map((h) => (
                       <tr key={h.cik}>
                         <td className="l">
-                          <Link to={`/manager/${h.cik}`} style={{ fontWeight: 700 }}>
+                          <Link to={managerPath(h.cik, h.path)} style={{ fontWeight: 700 }}>
                             {h.name}
                           </Link>
                         </td>
@@ -477,21 +527,6 @@ export default function Stock() {
         </div>
       )}
 
-      {holders.data?.holders?.length > 0 && (
-        <div className="card mt16">
-          <h3>🏦 {t('stock.holders')}</h3>
-          <div className="row" style={{ gap: 8 }}>
-            {holders.data.holders.map((h) => (
-              <Link key={h.cik} to={`/manager/${h.cik}`} className="chip">
-                {h.name}
-                <span className="muted small"> · {h.filings}</span>
-              </Link>
-            ))}
-          </div>
-          <p className="muted small mt8">{t('stock.holdersNote')}</p>
-        </div>
-      )}
-
       {(pr.summary || pr.sector) && (
         <div className="card mt16">
           <h3>{t('stock.about')}</h3>
@@ -515,6 +550,8 @@ export default function Stock() {
           {pr.summary && <p className="about-text">{pr.summary}</p>}
         </div>
       )}
+      <Faq items={seo.faq} />
+      <Disclaimer />
     </div>
   );
 }

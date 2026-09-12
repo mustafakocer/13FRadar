@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { supabase, supabaseConfigured } from './lib/supabase.js';
+import { getSupabase, supabaseConfigured } from './lib/supabase.js';
 import { setAuthToken } from './lib/api.js';
 import { mergeFavorites } from './hooks/useFavorites.js';
 
@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
+    const supabase = await getSupabase();
     try {
       const { data } = await supabase
         .from('profiles')
@@ -49,54 +50,70 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     if (!supabaseConfigured) return;
-    supabase.auth.getSession().then(({ data }) => loadProfile(data.session));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) =>
-      loadProfile(session)
-    );
-    return () => sub.subscription.unsubscribe();
+    let sub = null;
+    let cancelled = false;
+    getSupabase().then((supabase) => {
+      if (cancelled || !supabase) return;
+      supabase.auth.getSession().then(({ data }) => loadProfile(data.session));
+      sub = supabase.auth.onAuthStateChange((_e, session) => loadProfile(session)).data;
+    });
+    return () => {
+      cancelled = true;
+      sub?.subscription.unsubscribe();
+    };
   }, [loadProfile]);
 
+  // every auth action loads the SDK first (no-op once cached)
+  const withSb = (fn) => async (...args) => fn(await getSupabase(), ...args);
+
   const signInEmail = useCallback(
-    (email) =>
+    withSb((supabase, email) =>
       supabase.auth.signInWithOtp({
         email,
         options: { emailRedirectTo: window.location.origin + '/account' },
-      }),
+      })
+    ),
     []
   );
 
   const signInPassword = useCallback(
-    (email, password) => supabase.auth.signInWithPassword({ email, password }),
+    withSb((supabase, email, password) => supabase.auth.signInWithPassword({ email, password })),
     []
   );
 
   const signUpPassword = useCallback(
-    (email, password) =>
+    withSb((supabase, email, password) =>
       supabase.auth.signUp({
         email,
         password,
         options: { emailRedirectTo: window.location.origin + '/account' },
-      }),
+      })
+    ),
     []
   );
 
   const resetPassword = useCallback(
-    (email) =>
+    withSb((supabase, email) =>
       supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/account',
-      }),
+      })
+    ),
     []
   );
 
   const updatePassword = useCallback(
-    (password) => supabase.auth.updateUser({ password }),
+    withSb((supabase, password) => supabase.auth.updateUser({ password })),
     []
   );
 
-  const signOut = useCallback(() => supabase.auth.signOut(), []);
+  const signOut = useCallback(
+    withSb((supabase) => supabase.auth.signOut()),
+    []
+  );
 
   // Re-read the plan (after returning from Stripe Checkout).
   const refreshPlan = useCallback(async () => {
+    const supabase = await getSupabase();
     const { data } = await supabase.auth.getSession();
     await loadProfile(data.session);
   }, [loadProfile]);

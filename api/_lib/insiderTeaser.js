@@ -3,7 +3,7 @@ import { findClusters, isBuy, isSell } from './insiderModel.js';
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
 //   highlight the single largest open-market buy filed that day
-//   signals   cluster buys · C-suite buys · penny-stock buys (last 30 days)
+//   signals   cluster buys (≥2 insiders, 7-day window) · C-suite buys · penny-stock buys (last 30 days)
 //   rows      the 20 newest buys
 // The full, filterable feed stays Pro (/api/insider-feed).
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
@@ -49,7 +49,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
   const anchor = lastDay ? new Date(`${lastDay}T00:00:00Z`).getTime() : now;
   const since = iso(anchor - 30 * 86400000);
   const recentBuys = rows.filter((r) => isBuy(r) && r.d >= since);
-  const clusters = findClusters(recentBuys, 30);
+  const clusters = findClusters(recentBuys, 7);
 
   const cluster = [...clusters.entries()]
     .map(([t, c]) => {

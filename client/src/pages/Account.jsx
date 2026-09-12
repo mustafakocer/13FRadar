@@ -1,13 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useMemo, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
 import { api } from '../lib/api.js';
 import AuthForm from '../components/AuthForm.jsx';
 
 export default function Account() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const {
     configured,
     user,
@@ -23,7 +23,17 @@ export default function Account() {
   const next = params.get('next') && params.get('next').startsWith('/') ? params.get('next') : null;
   const [billingBusy, setBillingBusy] = useState(false);
   const [billingErr, setBillingErr] = useState(null);
-  usePageTitle(`${t('account.title')} — 13F Radar`);
+  useSeo(
+    useMemo(
+      () => ({
+        title: `${t('account.title')} — 13F Radar`,
+        description: '',
+        path: '/account',
+        noindex: true,
+      }),
+      [lang, t]
+    )
+  );
 
   // Signed in (e.g. via emailed link) with a pending destination → go there.
   useEffect(() => {

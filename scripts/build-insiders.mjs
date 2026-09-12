@@ -24,7 +24,7 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import axios from 'axios';
 import { parseStringPromise, processors } from 'xml2js';
-import { classifyRole, businessDaysBetween } from '../api/_lib/insiderModel.js';
+import { classifyRole, businessDaysBetween, classifyTransaction, KEPT_CODES } from '../api/_lib/insiderModel.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
@@ -69,6 +69,9 @@ const readJson = (p, fallback) => {
 
 const cutoff = iso(new Date(Date.now() - MONTHS * 31 * 86400000));
 const sellCutoff = iso(new Date(Date.now() - KEEP_SELLS_DAYS * 86400000));
+// Noise (grants, tax withholding, gifts…) is kept for 90 days only: it is
+// hidden by default and exists so the feed can show it on request.
+const noiseCutoff = iso(new Date(Date.now() - 90 * 86400000));
 
 // ---------------------------------------------------------------- quarterly
 function quarterOf(d) {
@@ -178,6 +181,7 @@ async function fromQuarterlyDatasets() {
       if (!filed || filed < cutoff) continue;
       subByAcc.set(s.ACCESSION_NUMBER, {
         filed,
+        aff10b5: s.AFF10B5ONE ?? null,
         issuer: s.ISSUERNAME || '',
         cik: String(s.ISSUERCIK || '').padStart(10, '0'),
         ticker: String(s.ISSUERTRADINGSYMBOL || '').trim().toUpperCase() || null,
@@ -200,21 +204,26 @@ async function fromQuarterlyDatasets() {
       });
     }
 
+    // filings that also contain a sale: an option exercise there is a cash-out
+    const saleAccs = new Set(trans.filter((tr) => String(tr.TRANS_CODE || '').trim().toUpperCase() === 'S').map((tr) => tr.ACCESSION_NUMBER));
     let kept = 0;
     for (const tr of trans) {
       const s = subByAcc.get(tr.ACCESSION_NUMBER);
       if (!s) continue;
       const code = String(tr.TRANS_CODE || '').trim().toUpperCase();
-      if (code !== 'P' && code !== 'S') continue;
+      if (!KEPT_CODES.has(code)) continue;
+      const cl = classifyTransaction(code, { sameFilingSale: saleAccs.has(tr.ACCESSION_NUMBER) });
       const d = normDate(tr.TRANS_DATE);
       if (!d || d < cutoff) continue;
-      if (code === 'S' && d < sellCutoff) continue;
+      if (cl === 'liquidity' && d < sellCutoff) continue;
+      if (cl === 'noise' && d < noiseCutoff) continue;
       const shares = num(tr.TRANS_SHARES);
       const price = num(tr.TRANS_PRICEPERSHARE);
       if (!shares || shares <= 0) continue;
       const o = ownByAcc.get(tr.ACCESSION_NUMBER) || { name: '—' };
       const owned = num(tr.SHRS_OWND_FOLWNG_TRANS);
-      rows.push(makeRow({ s, o, code, d, shares, price, owned, acc: tr.ACCESSION_NUMBER }));
+      const p5 = truthy(tr.TRANS_10B5_1 ?? tr.AFF10B5ONE ?? s.aff10b5);
+      rows.push(makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc: tr.ACCESSION_NUMBER }));
       kept++;
     }
     console.log(`  ${qt.y}Q${qt.q}: ${kept} transactions kept`);
@@ -223,9 +232,10 @@ async function fromQuarterlyDatasets() {
   return { rows, newest };
 }
 
-function makeRow({ s, o, code, d, shares, price, owned, acc }) {
+function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc }) {
   const value = price != null ? shares * price : null;
-  const prev = owned != null ? owned - (code === 'P' ? shares : -shares) : null;
+  const acquired = ['P', 'M', 'X', 'C', 'A', 'G', 'W', 'J', 'I', 'L'].includes(code) && code !== 'G';
+  const prev = owned != null ? owned - (acquired ? shares : -shares) : null;
   const oc = prev && prev > 0 ? ((owned - prev) / prev) * 100 : null;
   return {
     t: s.ticker,
@@ -237,6 +247,8 @@ function makeRow({ s, o, code, d, shares, price, owned, acc }) {
     d,
     f: s.filed,
     k: code,
+    cl: cl || classifyTransaction(code),
+    ...(p5 ? { p5: 1 } : {}),
     s: Math.round(shares),
     p: price != null ? Number(price.toFixed(4)) : null,
     v: value != null ? Math.round(value) : null,
@@ -321,17 +333,21 @@ async function parseForm4(pathname, filedFallback) {
   const acc = /(\d{10}-\d{2}-\d{6})/.exec(pathname)?.[1] || pathname;
 
   const rows = [];
-  for (const tx of arr(od.nonDerivativeTable?.nonDerivativeTransaction)) {
-    const code = String(val(tx.transactionCoding?.transactionCode) || tx.transactionCoding?.transactionCode || '')
-      .trim()
-      .toUpperCase();
-    if (code !== 'P' && code !== 'S') continue;
+  const txs = arr(od.nonDerivativeTable?.nonDerivativeTransaction);
+  const codeOf = (tx) => String(val(tx.transactionCoding?.transactionCode) || tx.transactionCoding?.transactionCode || '').trim().toUpperCase();
+  const sameFilingSale = txs.some((tx) => codeOf(tx) === 'S');
+  // Rule 10b5-1 checkbox (Form 4 amendments, 2023)
+  const p5 = truthy(val(od.aff10b5One));
+  for (const tx of txs) {
+    const code = codeOf(tx);
+    if (!KEPT_CODES.has(code)) continue;
+    const cl = classifyTransaction(code, { sameFilingSale });
     const d = normDate(val(tx.transactionDate));
     const shares = num(val(tx.transactionAmounts?.transactionShares));
     const price = num(val(tx.transactionAmounts?.transactionPricePerShare));
     const owned = num(val(tx.postTransactionAmounts?.sharesOwnedFollowingTransaction));
     if (!d || !shares || shares <= 0) continue;
-    rows.push(makeRow({ s, o, code, d, shares, price, owned, acc }));
+    rows.push(makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc }));
   }
   return rows;
 }
@@ -384,7 +400,9 @@ async function fromDailyIndex(fromDay) {
             const parsed = await parseForm4(f, day);
             for (const r of parsed) {
               if (r.d < cutoff) continue;
-              if (r.k === 'S' && r.d < sellCutoff) continue;
+              const rcl = r.cl || classifyTransaction(r.k);
+              if (rcl === 'liquidity' && r.d < sellCutoff) continue;
+              if (rcl === 'noise' && r.d < noiseCutoff) continue;
               rows.push(r);
               kept++;
             }
@@ -487,7 +505,10 @@ const seen = new Set();
 const all = [];
 for (const r of [...prevRows, ...fresh]) {
   if (!r?.d || r.d < cutoff) continue;
-  if (r.k === 'S' && r.d < sellCutoff) continue;
+  const cl = r.cl || classifyTransaction(r.k);
+  if (cl === 'liquidity' && r.d < sellCutoff) continue;
+  if (cl === 'noise' && r.d < noiseCutoff) continue;
+  if (!r.cl) r.cl = cl;
   const id = `${r.a}|${r.n}|${r.d}|${r.k}|${r.s}`;
   if (seen.has(id)) continue;
   seen.add(id);

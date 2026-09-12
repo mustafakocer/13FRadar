@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
-import { usePageTitle } from '../hooks/usePageTitle.js';
+import { useSeo } from '../seo.jsx';
 import { useGeo } from '../hooks/useGeo.js';
 import { api } from '../lib/api.js';
 
@@ -10,13 +10,22 @@ const FREE_FEATURES = ['pf1', 'pf2', 'pf3', 'pf4'];
 const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
 
 export default function Pricing() {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const { user, isPro, configured } = useAuth();
   const geo = useGeo();
   const [cycle, setCycle] = useState('m'); // m | y
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(null);
-  usePageTitle(`${t('pricing.title')} — 13F Radar`);
+  useSeo(
+    useMemo(
+      () => ({
+        title: lang === 'tr' ? 'Fiyatlandırma: Ücretsiz ve Pro Planlar | 13F Radar' : 'Pricing: Free and Pro Plans | 13F Radar',
+        description: lang === 'tr' ? 'Ücretsiz planla fon arama ve ilk 10 pozisyon; Pro ile tam portföyler, alım-satımlar, insider akışı ve dışa aktarma.' : 'Free: fund search and top-10 positions. Pro: full portfolios, buys and sells, the insider feed and exports.',
+        path: '/pricing',
+      }),
+      [lang, t]
+    )
+  );
 
   // Stripe Checkout session is created on the server (it also decides the
   // regional price from the visitor's IP), then we redirect to Stripe.

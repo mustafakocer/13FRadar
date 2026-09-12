@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import Ico from './Ico.jsx';
+import { Check } from 'lucide-react';
 
 // Fintables-style dropdown filter: pill button + popover option list.
 // options: [{ v, label }] — v '' means "all".
@@ -38,7 +40,7 @@ export default function FilterSelect({ label, value, options, onChange }) {
               }}
             >
               <span>{o.label}</span>
-              {o.v === value && <span>✓</span>}
+              {o.v === value && <Ico icon={Check} />}
             </button>
           ))}
         </div>

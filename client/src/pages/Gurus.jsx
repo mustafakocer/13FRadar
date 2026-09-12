@@ -6,6 +6,8 @@ import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { managerStyle } from '../data/popular.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
+import Ico from '../components/Ico.jsx';
+import { Compass } from 'lucide-react';
 
 // Index of curated superinvestors — every guru page is one click from here.
 export default function Gurus() {
@@ -30,7 +32,7 @@ export default function Gurus() {
     <div>
       <div className="page-head">
         <div>
-          <h1>🧭 {t('gurus.title')}</h1>
+          <h1><Ico icon={Compass} size={22} /> {t('gurus.title')}</h1>
           <div className="sub">{t('gurus.subtitle')}</div>
         </div>
       </div>

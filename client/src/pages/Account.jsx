@@ -93,7 +93,7 @@ export default function Account() {
     <div className="card" style={{ maxWidth: 560, margin: '40px auto' }}>
       <h3>{t('account.title')}</h3>
       {justPaid && plan !== 'pro' && (
-        <div className="badge pos" style={{ marginBottom: 12 }}>{t('account.paymentReceived')}</div>
+        <div className="badge info" style={{ marginBottom: 12 }}>{t('account.paymentReceived')}</div>
       )}
       <div className="kv">
         <span className="k">{t('account.email')}</span>
@@ -103,7 +103,7 @@ export default function Account() {
         <span className="k">{t('account.plan')}</span>
         <span className="v">
           {plan === 'pro' ? (
-            <span className="badge pos">PRO</span>
+            <span className="badge pro">PRO</span>
           ) : (
             <span className="badge plain">{t('pricing.free').toUpperCase()}</span>
           )}

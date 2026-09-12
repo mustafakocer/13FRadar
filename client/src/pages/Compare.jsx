@@ -8,6 +8,8 @@ import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
+import Ico from '../components/Ico.jsx';
+import { X, TriangleAlert, Handshake, Plus } from 'lucide-react';
 
 const STOCK_ROWS = [
   ['price', 'stock.prevClose', (s) => fmtNum(s.price?.price, 2)],
@@ -58,8 +60,8 @@ function StockCompare({ t }) {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && add()}
           />
-          <button className="btn" onClick={add} disabled={tickers.length >= 3}>
-            +
+          <button className="btn ghost" onClick={add} disabled={tickers.length >= 3} aria-label={t('compare.tickerPlaceholder')}>
+            <Ico icon={Plus} />
           </button>
           {tickers.map((tk) => (
             <span key={tk} className="badge plain">
@@ -67,8 +69,9 @@ function StockCompare({ t }) {
               <button
                 style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'inherit' }}
                 onClick={() => setTickers(tickers.filter((x) => x !== tk))}
+                aria-label={t('common.close')}
               >
-                ✕
+                <Ico icon={X} size={14} />
               </button>
             </span>
           ))}
@@ -95,7 +98,7 @@ function StockCompare({ t }) {
                     <td className="l muted">{t(label)}</td>
                     {tickers.map((tk, i) => (
                       <td key={tk} className="num">
-                        {queries[i].data ? fn(queries[i].data) : queries[i].error ? '⚠' : '…'}
+                        {queries[i].data ? fn(queries[i].data) : queries[i].error ? <Ico icon={TriangleAlert} /> : '…'}
                       </td>
                     ))}
                   </tr>
@@ -132,8 +135,8 @@ function Picker({ label, mgr, setMgr, t }) {
       {mgr ? (
         <div className="row" style={{ justifyContent: 'space-between', width: '100%' }}>
           <b>{mgr.name}</b>
-          <button className="btn ghost" onClick={() => setMgr(null)}>
-            ✕
+          <button className="btn ghost" onClick={() => setMgr(null)} aria-label={t('common.close')}>
+            <Ico icon={X} />
           </button>
         </div>
       ) : (
@@ -250,7 +253,7 @@ export default function Compare() {
 
       {mode === 'managers' && A.holdings.data && B.holdings.data && (
         <div className="grid grid-3 mt24">
-          <List title={`🤝 ${t('compare.common')} (${common.length})`} rows={common} t={t} />
+          <List title={<><Ico icon={Handshake} /> {t('compare.common')} ({common.length})</>} rows={common} t={t} />
           <List title={`🅰️ ${t('compare.onlyA')} (${onlyA.length})`} rows={onlyA} t={t} />
           <List title={`🅱️ ${t('compare.onlyB')} (${onlyB.length})`} rows={onlyB} t={t} />
         </div>

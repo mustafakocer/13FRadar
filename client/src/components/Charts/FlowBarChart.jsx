@@ -17,21 +17,21 @@ export default function FlowBarChart({ history, label }) {
     .filter((h) => h.estFlow != null)
     .map((h) => ({ q: quarterLabel(h.reportDate), flow: h.estFlow }));
   if (!data.length) return null;
-  const pos = getVar('--pos');
-  const neg = getVar('--neg');
+  const pos = getVar('--buy');
+  const neg = getVar('--sell');
   return (
     <ResponsiveContainer width="100%" height={200}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-        <CartesianGrid stroke={getVar('--grid')} vertical={false} />
+        <CartesianGrid stroke={getVar('--border')} vertical={false} />
         <XAxis
           dataKey="q"
-          tick={{ fill: getVar('--muted'), fontSize: 12 }}
+          tick={{ fill: getVar('--text-2'), fontSize: 12 }}
           axisLine={{ stroke: getVar('--border') }}
           tickLine={false}
         />
         <YAxis
           tickFormatter={(v) => fmtMoney(v)}
-          tick={{ fill: getVar('--muted'), fontSize: 12 }}
+          tick={{ fill: getVar('--text-2'), fontSize: 12 }}
           axisLine={false}
           tickLine={false}
           width={62}
@@ -40,7 +40,7 @@ export default function FlowBarChart({ history, label }) {
         <Tooltip
           contentStyle={tooltipStyle()}
           formatter={(v) => [fmtMoney(v), label]}
-          cursor={{ fill: getVar('--surface-2') }}
+          cursor={{ fill: getVar('--popover') }}
         />
         <Bar dataKey="flow" radius={[4, 4, 0, 0]} maxBarSize={34}>
           {data.map((d, i) => (

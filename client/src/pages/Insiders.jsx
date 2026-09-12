@@ -10,6 +10,8 @@ import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { SkeletonRows } from '../components/Skeleton.jsx';
+import Ico from '../components/Ico.jsx';
+import { X, UserSearch, SlidersHorizontal } from 'lucide-react';
 
 const TABS = ['latest', 'ceo', 'cfo', 'cluster', 'penny', 'sells'];
 const PERIODS = ['1d', '3d', '1w', '1m', '3m', '1y'];
@@ -47,7 +49,7 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
       <div className="card modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
         <div className="row" style={{ justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0 }}>{t('ins.advanced')}</h3>
-          <button className="btn ghost" onClick={onClose} aria-label={t('common.close')}>✕</button>
+          <button className="btn ghost" onClick={onClose} aria-label={t('common.close')}><Ico icon={X} /></button>
         </div>
         <div className="grid grid-2 mt16 modal-cols">
           <div>
@@ -207,7 +209,7 @@ export default function Insiders() {
     <div className="page-head">
       <div>
         <h1>
-          🕵️ {t('ins.title')} <span className="badge plain">BETA</span>
+          <Ico icon={UserSearch} size={22} /> {t('ins.title')} <span className="badge plain">BETA</span>
         </h1>
         <div className="sub">
           {t('ins.subtitle')}
@@ -241,9 +243,9 @@ export default function Insiders() {
                 <span className="sell" style={{ width: `${stats.sellShare ?? 50}%` }} />
               </div>
               <div className="row ins-bar-legend">
-                <span className="delta-pos">● {t('ins.purchases')}: {fmtMoney(stats.buyValue)}</span>
+                <span className="delta-pos">{t('ins.purchases')}: {fmtMoney(stats.buyValue)}</span>
                 <span className="delta-neg" style={{ marginLeft: 'auto' }}>
-                  {t('ins.sells')}: {fmtMoney(stats.sellValue)} ●
+                  {t('ins.sells')}: {fmtMoney(stats.sellValue)}
                 </span>
               </div>
               <div className="ins-counts">
@@ -338,7 +340,7 @@ export default function Insiders() {
             ]}
           />
           <button className={`chip${advCount ? ' fsel-active' : ''}`} onClick={() => setAdvOpen(true)}>
-            {t('ins.moreFilters')} {advCount ? `(${advCount})` : '⚙'}
+            <Ico icon={SlidersHorizontal} /> {t('ins.moreFilters')}{advCount ? ` (${advCount})` : ''}
           </button>
           <span className="muted small" style={{ marginLeft: 'auto' }}>
             {fmtNum(total)} {t('ins.results')}
@@ -402,7 +404,7 @@ export default function Insiders() {
                       <div className="muted small">
                         {t('ins.filed')}: {r.filed}{' '}
                         {r.lag != null && (
-                          <span className={r.lag > 2 ? 'delta-neg' : 'muted'}>(+{r.lag}{t('ins.dayShort')})</span>
+                          <span className="muted">(+{r.lag}{t('ins.dayShort')})</span>
                         )}
                       </div>
                     </td>

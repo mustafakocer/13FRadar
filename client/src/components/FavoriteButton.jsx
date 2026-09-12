@@ -1,4 +1,6 @@
 import { useFavorites } from '../hooks/useFavorites.js';
+import Ico from './Ico.jsx';
+import { Star } from 'lucide-react';
 
 export default function FavoriteButton({ cik, name }) {
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -10,7 +12,7 @@ export default function FavoriteButton({ cik, name }) {
       title={fav ? 'Remove from watchlist' : 'Add to watchlist'}
       aria-pressed={fav}
     >
-      {fav ? '⭐' : '☆'}
+      <Ico icon={Star} size={18} fill={fav ? 'currentColor' : 'none'} />
     </button>
   );
 }

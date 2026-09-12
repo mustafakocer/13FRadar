@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
+import Ico from './Ico.jsx';
+import { Radar, Search, Landmark, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
 
 // Top navigation: brand · tabs (one of them a drop-down group) · search
 // (opens the ⌘K palette) · theme · TR/EN · account. Below 900px the tabs
@@ -45,7 +47,7 @@ function Dropdown({ label, icon, items, active }) {
         aria-haspopup="menu"
         aria-expanded={open}
       >
-        <span className="ico">{icon}</span> {label} <span className="caret">▾</span>
+        <span className="ico"><Ico icon={icon} size={18} /></span> {label} <Ico icon={ChevronDown} size={14} className="caret" />
       </button>
       {open && (
         <div className="nav-menu" role="menu">
@@ -57,7 +59,7 @@ function Dropdown({ label, icon, items, active }) {
               className={({ isActive }) => `nav-menu-item${isActive ? ' active' : ''}`}
               onClick={() => setOpen(false)}
             >
-              <span className="ico">{n.icon}</span>
+              <span className="ico"><Ico icon={n.icon} size={18} /></span>
               <span>
                 <b>{n.label}</b>
                 {n.desc && <small>{n.desc}</small>}
@@ -82,27 +84,27 @@ export default function TopBar({ theme, onToggleTheme }) {
   }, [location.pathname]);
 
   const funds = [
-    { to: '/consensus', label: t('nav.consensus'), icon: '🧭', desc: t('topnav.d.consensus') },
-    { to: '/screen', label: t('nav.screen'), icon: '📊', desc: t('topnav.d.screen') },
-    { to: '/compare', label: t('nav.compare'), icon: '⚖️', desc: t('topnav.d.compare') },
-    { to: '/report', label: t('nav.report'), icon: '📰', desc: t('topnav.d.report') },
+    { to: '/consensus', label: t('nav.consensus'), icon: Compass, desc: t('topnav.d.consensus') },
+    { to: '/screen', label: t('nav.screen'), icon: ChartColumn, desc: t('topnav.d.screen') },
+    { to: '/compare', label: t('nav.compare'), icon: Scale, desc: t('topnav.d.compare') },
+    { to: '/report', label: t('nav.report'), icon: Newspaper, desc: t('topnav.d.report') },
   ];
   const fundsActive = funds.some((n) => location.pathname.startsWith(n.to)) || location.pathname.startsWith('/manager/');
 
   const tabs = [
-    { to: '/', label: t('nav.search'), icon: '🔍', end: true },
-    { group: true, label: t('topnav.funds'), icon: '🏦', items: funds, active: fundsActive },
-    { to: '/insiders', label: t('nav.insiders'), icon: '🕵️' },
-    { to: '/watchlist', label: t('nav.watchlist'), icon: '⭐' },
-    { to: '/pricing', label: t('nav.pricing'), icon: '💎' },
+    { to: '/', label: t('nav.search'), icon: Search, end: true },
+    { group: true, label: t('topnav.funds'), icon: Landmark, items: funds, active: fundsActive },
+    { to: '/insiders', label: t('nav.insiders'), icon: UserSearch },
+    { to: '/watchlist', label: t('nav.watchlist'), icon: Star },
+    { to: '/pricing', label: t('nav.pricing'), icon: Gem },
   ];
 
   const accountLink = configured ? (
-    <NavLink to="/account" className={`btn ${user ? 'ghost' : ''} topbar-account`}>
+    <NavLink to="/account" className="btn ghost topbar-account">
       {user ? (
         <>
-          👤 {t('nav.account')}
-          {plan === 'pro' && <span className="badge pos">PRO</span>}
+          <Ico icon={UserRound} /> {t('nav.account')}
+          {plan === 'pro' && <span className="badge pro">PRO</span>}
         </>
       ) : (
         t('account.signIn')
@@ -114,7 +116,7 @@ export default function TopBar({ theme, onToggleTheme }) {
     <header className="topbar no-print">
       <div className="topbar-inner">
         <Link to="/" className="brand">
-          📡 13F<span className="dot">Radar</span>
+          <Ico icon={Radar} size={22} /> 13F<span className="dot">Radar</span>
         </Link>
 
         <nav className="nav-tabs" aria-label="Main">
@@ -123,7 +125,7 @@ export default function TopBar({ theme, onToggleTheme }) {
               <Dropdown key={n.label} label={n.label} icon={n.icon} items={n.items} active={n.active} />
             ) : (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-tab${isActive ? ' active' : ''}`}>
-                <span className="ico">{n.icon}</span> {n.label}
+                <span className="ico"><Ico icon={n.icon} size={18} /></span> {n.label}
               </NavLink>
             )
           )}
@@ -131,12 +133,12 @@ export default function TopBar({ theme, onToggleTheme }) {
 
         <div className="topbar-tools">
           <button className="topbar-search" onClick={openPalette} title="⌘K / Ctrl+K">
-            <span>🔍</span>
+            <Ico icon={Search} />
             <span className="ph">{t('topnav.searchPh')}</span>
             <kbd>⌘K</kbd>
           </button>
-          <button className="toggle-btn" onClick={onToggleTheme} title="Theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
+          <button className="toggle-btn" onClick={onToggleTheme} title="Theme" aria-label="Theme">
+            <Ico icon={theme === 'dark' ? Sun : Moon} />
           </button>
           <button className="toggle-btn" onClick={toggle} title="Language">
             {lang === 'tr' ? 'EN' : 'TR'}
@@ -158,28 +160,28 @@ export default function TopBar({ theme, onToggleTheme }) {
           {tabs.map((n) =>
             n.group ? (
               <div key={n.label} className="mobile-group">
-                <div className="mobile-group-title">{n.icon} {n.label}</div>
+                <div className="mobile-group-title"><Ico icon={n.icon} /> {n.label}</div>
                 {n.items.map((m) => (
                   <NavLink key={m.to} to={m.to} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                    <span>{m.icon}</span> {m.label}
+                    <Ico icon={m.icon} size={18} /> {m.label}
                   </NavLink>
                 ))}
               </div>
             ) : (
               <NavLink key={n.to} to={n.to} end={n.end} className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-                <span>{n.icon}</span> {n.label}
+                <Ico icon={n.icon} size={18} /> {n.label}
               </NavLink>
             )
           )}
           {configured && (
             <NavLink to="/account" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
-              <span>👤</span> {user ? t('nav.account') : t('account.signIn')}
+              <Ico icon={UserRound} size={18} /> {user ? t('nav.account') : t('account.signIn')}
             </NavLink>
           )}
           <div className="row" style={{ padding: '10px 12px', gap: 8 }}>
-            <button className="toggle-btn" onClick={onToggleTheme}>{theme === 'dark' ? '☀️' : '🌙'}</button>
+            <button className="toggle-btn" onClick={onToggleTheme} aria-label="Theme"><Ico icon={theme === 'dark' ? Sun : Moon} /></button>
             <button className="toggle-btn" onClick={toggle}>{lang === 'tr' ? 'EN' : 'TR'}</button>
-            <button className="toggle-btn" onClick={openPalette}>🔍 ⌘K</button>
+            <button className="toggle-btn" onClick={openPalette}><Ico icon={Search} /> ⌘K</button>
           </div>
         </div>
       )}

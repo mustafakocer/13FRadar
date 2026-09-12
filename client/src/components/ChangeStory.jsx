@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { fmtPct } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import Ico from './Ico.jsx';
+import { Plus, Minus, BookOpen } from 'lucide-react';
 
 const Tick = ({ p }) =>
   p.ticker ? (
@@ -35,7 +37,7 @@ export default function ChangeStory({ positions, prevPositions }) {
   if (fresh.length)
     lines.push(
       <span key="new">
-        🟢 <b>{fresh.length}</b> {t('story.boughtNew')}{' '}
+        <b className="delta-pos">{fresh.length}</b> {t('story.boughtNew')}{' '}
         {fresh.slice(0, 3).map((p, i) => (
           <span key={p.cusip}>
             {i > 0 && ', '}
@@ -48,7 +50,7 @@ export default function ChangeStory({ positions, prevPositions }) {
   if (exited.length)
     lines.push(
       <span key="exit">
-        🔴 <b>{exited.length}</b> {t('story.exitedAll')}{' '}
+        <b className="delta-neg">{exited.length}</b> {t('story.exitedAll')}{' '}
         {exited.slice(0, 3).map((p, i) => (
           <span key={p.cusip}>
             {i > 0 && ', '}
@@ -61,21 +63,21 @@ export default function ChangeStory({ positions, prevPositions }) {
   if (inc && inc.delta > 0.2)
     lines.push(
       <span key="inc">
-        ➕ {t('story.mostInc')} <Tick p={inc} />{' '}
+        <Ico icon={Plus} /> {t('story.mostInc')} <Tick p={inc} />{' '}
         <b className="delta-pos">{fmtPct(inc.delta, { digits: 1 })} pp</b>
       </span>
     );
   if (dec && dec.delta < -0.2)
     lines.push(
       <span key="dec">
-        ➖ {t('story.mostDec')} <Tick p={dec} />{' '}
+        <Ico icon={Minus} /> {t('story.mostDec')} <Tick p={dec} />{' '}
         <b className="delta-neg">{fmtPct(dec.delta, { digits: 1 })} pp</b>
       </span>
     );
 
   return (
-    <div className="card" style={{ marginBottom: 16, background: 'var(--accent-soft)', borderColor: 'var(--accent)' }}>
-      <h3>📖 {t('story.title')}</h3>
+    <div className="card" style={{ marginBottom: 16, background: 'var(--popover)', borderColor: 'var(--border-strong)' }}>
+      <h3><Ico icon={BookOpen} /> {t('story.title')}</h3>
       {lines.length ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>{lines}</div>
       ) : (

@@ -11,6 +11,8 @@ import { reportAnswer } from '../lib/reportText.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Newspaper, Download, Image } from 'lucide-react';
 
 const Sym = ({ r }) => (r.ticker ? <Link to={`/stock/${r.ticker}${r.cusip ? `?cusip=${r.cusip}` : ''}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <b>{r.issuer}</b>);
 
@@ -73,7 +75,7 @@ export default function ReportPage() {
     const ids = index.data?.reports || [];
     return (
       <div>
-        <div className="page-head"><div><h1>📰 {title}</h1><div className="sub">{t('rep.indexSub')}</div></div></div>
+        <div className="page-head"><div><h1><Ico icon={Newspaper} size={22} /> {title}</h1><div className="sub">{t('rep.indexSub')}</div></div></div>
         <div className="grid grid-3">
           {ids.map((x) => (
             <Link key={x} to={`/reports/${x}`} className="card feature-card"><h3>{x.toUpperCase()}</h3><p className="muted small">{t('rep.open')}</p></Link>
@@ -91,12 +93,12 @@ export default function ReportPage() {
     <div>
       <div className="page-head">
         <div>
-          <h1>📰 {title}</h1>
+          <h1><Ico icon={Newspaper} size={22} /> {title}</h1>
           <div className="sub">{t('rep.sub').replace('{n}', r.coverage.onQuarter).replace('{m}', r.coverage.tracked).replace('{d}', r.quarterEnd)} · {t('rep.generated')} {r.generatedAt.slice(0, 10)}</div>
         </div>
         <div className="row">
-          <a className="btn ghost" href={`/api/report-id/${id}?format=md`}>⬇ Markdown</a>
-          <a className="btn ghost" href={`/api/og?type=report&id=${id}&chart=buys`} target="_blank" rel="noreferrer">🖼 {t('rep.chartPack')}</a>
+          <a className="btn ghost" href={`/api/report-id/${id}?format=md`}><Ico icon={Download} /> Markdown</a>
+          <a className="btn ghost" href={`/api/og?type=report&id=${id}&chart=buys`} target="_blank" rel="noreferrer"><Ico icon={Image} /> {t('rep.chartPack')}</a>
         </div>
       </div>
       <AnswerBox text={answer} />

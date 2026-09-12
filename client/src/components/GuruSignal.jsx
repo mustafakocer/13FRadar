@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useI18n } from '../i18n.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from './Ico.jsx';
+import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
 
 // One-glance superinvestor signal for a stock: how many gurus bought/sold it
 // this quarter and who holds it. Free feature — it is the discovery hook.
@@ -25,13 +27,14 @@ export default function GuruSignal({ ticker, cusip }) {
   if (!held && !bought && !sold && !fresh.length) return null;
 
   const tone = buyers > sellers ? 'pos' : sellers > buyers ? 'neg' : 'plain';
-  const icon = buyers > sellers ? '🟢' : sellers > buyers ? '🔴' : '⚪';
+  const Icon = buyers > sellers ? TrendingUp : sellers > buyers ? TrendingDown : Minus;
+  const iconCls = tone === 'pos' ? 'text-buy' : tone === 'neg' ? 'text-sell' : 'text-text-2';
 
   return (
-    <div className="card" style={{ marginBottom: 16, borderColor: 'var(--accent)' }}>
+    <div className="card" style={{ marginBottom: 16, borderColor: 'var(--border-strong)' }}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
         <div>
-          <b>{icon} {t('guru.title')}</b>
+          <b><Ico icon={Icon} className={iconCls} /> {t('guru.title')}</b>
           <div className="small muted" style={{ marginTop: 2 }}>
             {buyers > 0 || sellers > 0 ? (
               <>
@@ -46,7 +49,7 @@ export default function GuruSignal({ ticker, cusip }) {
             )}
             {fresh.length > 0 && (
               <>
-                {' '}· ✨ {fresh.map((f, i) => (
+                {' '}· <Ico icon={Sparkles} size={14} /> {fresh.map((f, i) => (
                   <span key={f.cik}>
                     {i > 0 && ', '}
                     <Link to={managerPath(f.cik, f.path)}>{f.manager}</Link>
@@ -69,7 +72,7 @@ export default function GuruSignal({ ticker, cusip }) {
             </div>
           )}
         </div>
-        <span className={`badge ${tone}`} style={{ flexShrink: 0 }}>
+        <span className="badge plain" style={{ flexShrink: 0 }}>
           <Link to="/consensus" style={{ color: 'inherit', textDecoration: 'none' }}>
             {t('guru.seeAll')} →
           </Link>

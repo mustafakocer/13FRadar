@@ -5,6 +5,8 @@ import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { useGeo } from '../hooks/useGeo.js';
 import { api } from '../lib/api.js';
+import Ico from '../components/Ico.jsx';
+import { Gift, Check } from 'lucide-react';
 
 const FREE_FEATURES = ['pf1', 'pf2', 'pf3', 'pf4'];
 const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
@@ -61,7 +63,7 @@ export default function Pricing() {
             onClick={() => setCycle(c)}
           >
             {c === 'm' ? t('pricing.billMonthly') : t('pricing.billYearly')}
-            {c === 'y' && ` · 🎁 ${t('pricing.twoFree')}`}
+            {c === 'y' && <> · <Ico icon={Gift} size={14} /> {t('pricing.twoFree')}</>}
           </button>
         ))}
       </div>
@@ -72,12 +74,12 @@ export default function Pricing() {
           <div className="price-big">₺0</div>
           <div className="muted small" style={{ marginBottom: 14 }}>{t('pricing.forever')}</div>
           {FREE_FEATURES.map((k) => (
-            <div key={k} className="kv"><span className="k">✓ {t(`pricing.${k}`)}</span></div>
+            <div key={k} className="kv"><span className="k"><Ico icon={Check} /> {t(`pricing.${k}`)}</span></div>
           ))}
         </div>
-        <div className="card" style={{ borderColor: 'var(--accent)', borderWidth: 2 }}>
+        <div className="card" style={{ borderColor: 'var(--pro)', borderWidth: 2 }}>
           <h3>
-            {t('pricing.pro')} <span className="badge pos">{t('pricing.popular')}</span>
+            {t('pricing.pro')} <span className="badge pro">{t('pricing.popular')}</span>
           </h3>
           <div className="price-big">
             {price}
@@ -93,15 +95,15 @@ export default function Pricing() {
           <div className="muted small" style={{ marginBottom: 14 }}>
             {cycle === 'm' ? t('pricing.monthly') : t('pricing.yearlySub')}
             {cycle === 'y' && (
-              <div className="badge pos" style={{ marginTop: 6 }}>🎁 {t('pricing.twoFree')}</div>
+              <div className="badge info" style={{ marginTop: 6 }}><Ico icon={Gift} size={14} /> {t('pricing.twoFree')}</div>
             )}
           </div>
           {PRO_FEATURES.map((k) => (
-            <div key={k} className="kv"><span className="k">✓ {t(`pricing.${k}`)}</span></div>
+            <div key={k} className="kv"><span className="k"><Ico icon={Check} /> {t(`pricing.${k}`)}</span></div>
           ))}
           <div className="mt16">
             {isPro && configured ? (
-              <span className="badge pos">{t('pricing.current')}</span>
+              <span className="badge pro">{t('pricing.current')}</span>
             ) : !user && configured ? (
               <Link to="/account?next=/pricing" className="btn" style={{ textDecoration: 'none' }}>
                 {t('pricing.signInFirst')}

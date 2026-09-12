@@ -13,6 +13,8 @@ import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Landing page. Every block reads a static CDN file written by the daily
@@ -21,12 +23,12 @@ import { managerPath } from '../lib/paths.js';
 // ---------------------------------------------------------------------------
 
 const FEATURES = [
-  ['📁', 'f1', '/manager/0001067983'],
-  ['🧭', 'f2', '/consensus'],
-  ['🐋', 'f3', '/stock/AAPL'],
-  ['📊', 'f4', '/screen'],
-  ['⚖️', 'f5', '/compare'],
-  ['⬇️', 'f6', '/watchlist'],
+  [Folder, 'f1', '/manager/0001067983'],
+  [Compass, 'f2', '/consensus'],
+  [Waves, 'f3', '/stock/AAPL'],
+  [ChartColumn, 'f4', '/screen'],
+  [Scale, 'f5', '/compare'],
+  [Download, 'f6', '/watchlist'],
 ];
 
 const INDEXES = [
@@ -120,10 +122,11 @@ function PromoBanner() {
   };
   return (
     <div className="promo-banner">
+      <Ico icon={Gift} />
       <span>{t('landing.banner')}</span>
       <Link to="/pricing">{t('landing.banner.cta')}</Link>
       <button className="close" onClick={close} aria-label={t('common.close')}>
-        ✕
+        <Ico icon={X} />
       </button>
     </div>
   );
@@ -137,10 +140,10 @@ function Hero({ summary }) {
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
 
   const stats = [
-    ['🏦', compact(summary?.count, locale) || '7.800+', t('landing.stat.funds2')],
-    ['💰', summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '$50T+', t('landing.stat.aum')],
-    ['🧾', compact(summary?.totalPositions, locale) || '1M+', t('landing.stat.positions')],
-    ['📡', t('landing.stat.live.v'), t('landing.stat.live')],
+    [Landmark, compact(summary?.count, locale) || '7.800+', t('landing.stat.funds2')],
+    [Coins, summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '$50T+', t('landing.stat.aum')],
+    [Receipt, compact(summary?.totalPositions, locale) || '1M+', t('landing.stat.positions')],
+    [Radar, t('landing.stat.live.v'), t('landing.stat.live')],
   ];
 
   return (
@@ -167,7 +170,7 @@ function Hero({ summary }) {
       <div className="hero-stats">
         {stats.map(([ico, v, label]) => (
           <div className="hero-stat" key={label}>
-            <div className="ico">{ico}</div>
+            <div className="ico"><Ico icon={ico} size={20} /></div>
             <b>{v}</b>
             <span>{label}</span>
           </div>
@@ -232,7 +235,7 @@ function InsiderSignals({ teaser }) {
       <div className="ins-grid">
         <div className="card">
           <div className="pulse-head">
-            <div className="ico">📈</div>
+            <div className="ico"><Ico icon={TrendingUp} size={18} /></div>
             <b>{t('landing.ins.pulse')}</b>
           </div>
           <div className="pulse-label">
@@ -290,11 +293,11 @@ function InsiderSignals({ teaser }) {
 
         <div className="card">
           <div className="sig-head">
-            <b>⚡ {t('landing.ins.curated')}</b>
+            <b><Ico icon={Zap} /> {t('landing.ins.curated')}</b>
             <div className="seg">
               {['cluster', 'csuite', 'penny'].map((k) => (
                 <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-                  {k === 'cluster' ? '🔥 ' : k === 'csuite' ? '👔 ' : '💎 '}
+                  <Ico icon={k === 'cluster' ? Flame : k === 'csuite' ? Briefcase : Gem} size={14} />
                   {t(`landing.ins.tab.${k}`)}
                 </button>
               ))}
@@ -401,7 +404,7 @@ function ConvictionCard({ icon, title, rows, value, sub }) {
   return (
     <div className="card conv-card">
       <h3>
-        <span className="ico">{icon}</span>
+        <span className="ico"><Ico icon={icon} size={18} /></span>
         {title}
       </h3>
       {rows.map((r) => (
@@ -455,21 +458,21 @@ function GuruConviction({ mostHeld }) {
       </div>
       <div className="grid grid-3">
         <ConvictionCard
-          icon="🏆"
+          icon={Trophy}
           title={t('landing.guru.mostOwned')}
           rows={lists.owned}
           value={lists.gurus}
           sub={(r) => fmtMoney(r.totalValue)}
         />
         <ConvictionCard
-          icon="➕"
+          icon={Plus}
           title={t('landing.guru.byPct')}
           rows={lists.byPct}
           value={(r) => fmtPct(r.maxWeight, { sign: false, digits: 2 })}
           sub={lists.gurus}
         />
         <ConvictionCard
-          icon="🔥"
+          icon={Flame}
           title={t('landing.guru.conviction')}
           rows={lists.conviction}
           value={(r) => fmtPct(r.avgWeight, { sign: false, digits: 2 })}
@@ -483,10 +486,10 @@ function GuruConviction({ mostHeld }) {
 // ---- guru portfolio updates -----------------------------------------------
 
 const UPDATE_ROWS = [
-  ['newBuys', 'new', '+'],
-  ['adds', 'add', '●'],
-  ['reduces', 'reduce', '●'],
-  ['exits', 'exit', '✕'],
+  ['newBuys', 'new', '▲'],
+  ['adds', 'add', '▲'],
+  ['reduces', 'reduce', '▼'],
+  ['exits', 'exit', '▼'],
 ];
 
 function Chip({ r, kind }) {
@@ -676,7 +679,7 @@ export default function Home() {
 
       {favorites.length > 0 && (
         <>
-          <div className="section-title">⭐ {t('search.favorites')}</div>
+          <div className="section-title"><Ico icon={Star} /> {t('search.favorites')}</div>
           <div className="chip-grid">
             {favorites.map((f) => (
               <Link key={f.cik} to={managerPath(f.cik)} className="chip">
@@ -705,7 +708,7 @@ export default function Home() {
       <div className="grid grid-3 mt16">
         {FEATURES.map(([icon, key, to]) => (
           <Link key={key} to={to} className="card feature-card">
-            <div className="feature-icon">{icon}</div>
+            <div className="feature-icon"><Ico icon={icon} size={28} /></div>
             <h3>{t(`landing.${key}.t`)}</h3>
             <p className="muted small">{t(`landing.${key}.d`)}</p>
           </Link>

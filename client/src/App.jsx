@@ -30,11 +30,11 @@ const Lazy = ({ children }) => (
 );
 
 export default function App() {
-  // 'light' on the server and for the first client render (hydration must
-  // match); the persisted choice is applied right after mount.
-  const [theme, setTheme] = useState('light');
+  // 'dark' (the default theme) on the server and for the first client render
+  // (hydration must match); the persisted choice is applied right after mount.
+  const [theme, setTheme] = useState('dark');
   useEffect(() => {
-    setTheme(document.documentElement.dataset.theme || 'light');
+    setTheme(document.documentElement.dataset.theme || 'dark');
   }, []);
 
   const toggleTheme = () => {

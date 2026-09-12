@@ -24,6 +24,8 @@ import { SkeletonRows, SkeletonStats } from '../components/Skeleton.jsx';
 import { managerStyle } from '../data/popular.js';
 import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
+import Ico from '../components/Ico.jsx';
+import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper } from 'lucide-react';
 
 function Loading({ t }) {
   return (
@@ -258,7 +260,7 @@ export default function Manager() {
         </div>
         <div className="row">
           <button className="btn ghost no-print" onClick={() => window.print()}>
-            🖨 {t('manager.print')}
+            <Ico icon={Printer} /> {t('manager.print')}
           </button>
           <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)}>
             {filings.map((f) => (
@@ -303,7 +305,7 @@ export default function Manager() {
             <div className="card stat-card">
               <span className="stat-label">{t('manager.positions')}</span>
               <span className="stat-value">{fmtNum(holdings.data?.count)}</span>
-              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.positions)} color="--s2" /></ChartBox>
+              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.positions)} color="--chart-2" /></ChartBox>
             </div>
             <div className="card stat-card">
               <span className="stat-label">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>
@@ -352,8 +354,8 @@ export default function Manager() {
               <div className="card stat-card">
                 <span className="stat-label">{t('manager.newExit')}</span>
                 <span className="stat-value">
-                  <span className="delta-pos">+{mstats.data.newCount ?? 0}</span>{' '}
-                  <span className="delta-neg">−{mstats.data.exitCount ?? 0}</span>
+                  <span className="delta-pos">{mstats.data.newCount ?? 0}</span>{' '}
+                  <span className="delta-neg">{mstats.data.exitCount ?? 0}</span>
                 </span>
                 <span className="stat-sub">{t('manager.newExitSub')}</span>
               </div>
@@ -443,7 +445,7 @@ export default function Manager() {
           )}
 
           <div className="card mt16 no-print">
-            <h3>🧪 {t('manager.backtest')}</h3>
+            <h3><Ico icon={FlaskConical} /> {t('manager.backtest')}</h3>
             {!isPro && <Paywall compact />}
             {isPro && !btOn && (
               <>
@@ -522,12 +524,12 @@ export default function Manager() {
 
           {positions.some((p) => p.putCall) && (
             <div className="card mt16">
-              <h3>🎯 {t('manager.options')}</h3>
+              <h3><Ico icon={Target} /> {t('manager.options')}</h3>
               <div className="head-badges" style={{ marginBottom: 12 }}>
-                <span className="badge neg">
+                <span className="badge plain">
                   PUT {fmtPct(positions.filter((p) => /put/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
                 </span>
-                <span className="badge pos">
+                <span className="badge plain">
                   CALL {fmtPct(positions.filter((p) => /call/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
                 </span>
               </div>
@@ -630,7 +632,7 @@ export default function Manager() {
       )}
       {related.data?.related?.length > 0 && (
         <div className="card mt16">
-          <h3>🔗 {t('related.title')}</h3>
+          <h3><Ico icon={LinkIcon} /> {t('related.title')}</h3>
           <p className="muted small" style={{ marginBottom: 8 }}>{t('related.note')}</p>
           <div className="table-wrap">
             <table className="data">
@@ -655,7 +657,7 @@ export default function Manager() {
       )}
       {mgr.data.latestReport && (
         <p className="muted small mt16">
-          📰 <Link to={`/reports/${mgr.data.latestReport}`}>{t('related.report').replace('{q}', mgr.data.latestReport.toUpperCase())}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
+          <Ico icon={Newspaper} /> <Link to={`/reports/${mgr.data.latestReport}`}>{t('related.report').replace('{q}', mgr.data.latestReport.toUpperCase())}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
         </p>
       )}
       <Faq items={seo.faq} />

@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
+import Ico from './Ico.jsx';
+import { Mail } from 'lucide-react';
 
 // Sign-in / sign-up / magic-link / reset form with readable error messages
 // and a clear "check your inbox" state. `next` is where to go after auth.
@@ -132,7 +134,7 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
     return (
       <div className="card auth-card">
         <div className="auth-success">
-          <div className="auth-icon">✉️</div>
+          <div className="auth-icon"><Ico icon={Mail} size={36} /></div>
           <h2>{t('account.checkInbox')}</h2>
           <p>
             {t(`account.sent.${sent.kind}`)} <b>{sent.email}</b>

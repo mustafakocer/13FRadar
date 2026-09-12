@@ -5,6 +5,8 @@ import { api } from '../lib/api.js';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { breadcrumbs } from '../lib/seoTemplates.js';
+import Ico from '../components/Ico.jsx';
+import { Landmark } from 'lucide-react';
 
 const LETTERS = ['0', ...'abcdefghijklmnopqrstuvwxyz'];
 
@@ -35,7 +37,7 @@ export default function Filers() {
     <div>
       <div className="page-head">
         <div>
-          <h1>🏦 {t('filers.title')}</h1>
+          <h1><Ico icon={Landmark} size={22} /> {t('filers.title')}</h1>
           <div className="sub">{t('filers.subtitle')}</div>
         </div>
       </div>

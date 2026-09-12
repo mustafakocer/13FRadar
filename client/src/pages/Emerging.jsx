@@ -10,6 +10,8 @@ import { article, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { Disclaimer } from '../components/Faq.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Sprout } from 'lucide-react';
 
 // /emerging-managers — small, concentrated 13F filers ($100M–$1B, top-10 ≥ 50%).
 export default function Emerging() {
@@ -63,7 +65,7 @@ export default function Emerging() {
     <div>
       <div className="page-head">
         <div>
-          <h1>🌱 {t('em.title')}</h1>
+          <h1><Ico icon={Sprout} size={22} /> {t('em.title')}</h1>
           <div className="sub">{t('em.subtitle')}</div>
         </div>
       </div>

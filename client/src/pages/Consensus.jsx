@@ -10,6 +10,8 @@ import { useSeo } from '../seo.jsx';
 import { consensusSeo } from '../lib/seoTemplates.js';
 import Paywall from '../components/Paywall.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Compass, Trophy, TrendingUp, TrendingDown, Globe, Siren } from 'lucide-react';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -67,7 +69,7 @@ export default function Consensus() {
     <div>
       <div className="page-head">
         <div>
-          <h1>🧭 {t('consensus.title')}</h1>
+          <h1><Ico icon={Compass} size={22} /> {t('consensus.title')}</h1>
           <div className="sub">
             {t('consensus.subtitle')} ({managers.length}):{' '}
             {managers.map((m, i) => (
@@ -81,7 +83,7 @@ export default function Consensus() {
       </div>
 
       <div className="card">
-        <h3>🏆 {t('consensus.mostHeld')}</h3>
+        <h3><Ico icon={Trophy} /> {t('consensus.mostHeld')}</h3>
         <div className="table-wrap">
           <table className="data">
             <thead>
@@ -136,11 +138,11 @@ export default function Consensus() {
       <>
       <div className="grid grid-2 mt16">
         {[
-          { key: 'topBought', rows: topBought, icon: '📈', field: (r) => fmtMoney(r.netValue), cls: 'delta-pos' },
-          { key: 'topSold', rows: topSold, icon: '📉', field: (r) => fmtMoney(r.netValue), cls: 'delta-neg' },
+          { key: 'topBought', rows: topBought, icon: TrendingUp, field: (r) => fmtMoney(r.netValue), cls: 'delta-pos' },
+          { key: 'topSold', rows: topSold, icon: TrendingDown, field: (r) => fmtMoney(r.netValue), cls: 'delta-neg' },
         ].map((sec) => (
           <div className="card" key={sec.key}>
-            <h3>{sec.icon} {t(`consensus.${sec.key}`)}</h3>
+            <h3><Ico icon={sec.icon} className={sec.cls === 'delta-pos' ? 'text-buy' : 'text-sell'} /> {t(`consensus.${sec.key}`)}</h3>
             <div className="table-wrap">
               <table className="data">
                 <thead>
@@ -169,7 +171,7 @@ export default function Consensus() {
 
       {uniStocks.data?.rows?.length > 0 && (
         <div className="card mt16">
-          <h3>🌍 {t('consensus.universeTop')}</h3>
+          <h3><Ico icon={Globe} /> {t('consensus.universeTop')}</h3>
           <p className="muted small" style={{ marginBottom: 10 }}>
             {t('consensus.universeNote')} · {uniStocks.data.updatedAt?.slice(0, 10)}
           </p>
@@ -201,7 +203,7 @@ export default function Consensus() {
       )}
 
       <div className="card mt16">
-        <h3>🚨 {t('consensus.newRadar')}</h3>
+        <h3><Ico icon={Siren} /> {t('consensus.newRadar')}</h3>
         <p className="muted small" style={{ marginBottom: 10 }}>{t('consensus.newRadarNote')}</p>
         <div className="table-wrap">
           <table className="data">

@@ -5,6 +5,8 @@ import { api } from '../lib/api.js';
 import { POPULAR_MANAGERS } from '../data/popular.js';
 import { useI18n } from '../i18n.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from './Ico.jsx';
+import { ChartCandlestick, Landmark } from 'lucide-react';
 
 // Global ⌘K / Ctrl+K quick-search: managers via EDGAR + direct ticker jump.
 export default function CommandPalette() {
@@ -72,14 +74,14 @@ export default function CommandPalette() {
         <div className="palette-results">
           {tickerish && q && (
             <button className="search-result-item" onClick={() => go(`/stock/${q.toUpperCase()}`)}>
-              <span>💹 {t('palette.goStock')} <b>{q.toUpperCase()}</b></span>
+              <span><Ico icon={ChartCandlestick} /> {t('palette.goStock')} <b>{q.toUpperCase()}</b></span>
               <span className="cik">Enter ↵</span>
             </button>
           )}
           {isFetching && <div className="search-result-item muted">{t('common.loading')}</div>}
           {results.map((r) => (
             <button key={r.cik} className="search-result-item" onClick={() => go(managerPath(r.cik))}>
-              <span>🏦 {r.name}</span>
+              <span><Ico icon={Landmark} /> {r.name}</span>
               <span className="cik">CIK {r.cik}</span>
             </button>
           ))}

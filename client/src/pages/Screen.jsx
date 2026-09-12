@@ -10,6 +10,8 @@ import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import { useSeo } from '../seo.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { SlidersHorizontal, Download, Star } from 'lucide-react';
 
 const GURU_CIKS = new Set(POPULAR_MANAGERS.map((m) => m.cik));
 
@@ -229,12 +231,12 @@ export default function Screen() {
             setAdvOpen((o) => !o);
           }}
         >
-          ⚙️ {t('screen.advanced')}
+          <Ico icon={SlidersHorizontal} /> {t('screen.advanced')}
           {advCount > 0 && ` (${advCount})`}
         </button>
         {isPro && (
-          <button className="btn" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting || !rows.length}>
-            {exporting ? '…' : `⬇ ${t('table.export')}`}
+          <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting || !rows.length}>
+            {exporting ? '…' : <><Ico icon={Download} /> {t('table.export')}</>}
           </button>
         )}
       </div>
@@ -333,7 +335,7 @@ export default function Screen() {
                         <Link to={managerPath(r.cik)} style={{ fontWeight: 700 }}>
                           {r.name}
                         </Link>
-                        {GURU_CIKS.has(r.cik) && ' ⭐'}
+                        {GURU_CIKS.has(r.cik) && <> <Ico icon={Star} size={14} className="text-accent" fill="currentColor" /></>}
                       </td>
                       <td className="l">
                         <span className="badge plain" style={{ fontSize: 11 }}>
@@ -351,7 +353,7 @@ export default function Screen() {
             </div>
             {!isPro && rows.length > 50 && (
               <div className="mt16">
-                <Paywall compact />
+                <Paywall compact secondary />
               </div>
             )}
             {isPro && rows.length > shown && (

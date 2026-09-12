@@ -27,7 +27,8 @@ export const fmtFracPct = (v, opts) => (v == null ? '—' : fmtPct(v * 100, { si
 export const fmtRatio = (v, digits = 2) =>
   v == null || Number.isNaN(v) ? '—' : Number(v).toFixed(digits);
 
-export const deltaClass = (v) => (v == null ? '' : v >= 0 ? 'delta-pos' : 'delta-neg');
+// buy = increase, sell = decrease; zero is neither, so it stays uncoloured
+export const deltaClass = (v) => (v == null || v === 0 ? '' : v > 0 ? 'delta-pos' : 'delta-neg');
 
 export function quarterLabel(dateStr) {
   if (!dateStr) return '—';

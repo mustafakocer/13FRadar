@@ -5,6 +5,8 @@ import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { fmtMoney } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
+import Ico from '../components/Ico.jsx';
+import { Zap } from 'lucide-react';
 
 const SIGNALS = ['cluster', 'csuite', 'penny'];
 const ROLE_LABEL = { ceo: 'CEO', cfo: 'CFO', director: 'DIR', officer: 'OFF', owner10: '10%' };
@@ -43,7 +45,7 @@ export default function InsiderSignal() {
     <div>
       <div className="page-head">
         <div>
-          <h1>⚡ {title}</h1>
+          <h1><Ico icon={Zap} size={22} /> {title}</h1>
           <div className="sub">{t(`insig.${kind}.desc`)}</div>
         </div>
       </div>

@@ -9,6 +9,8 @@ import { useAuth } from '../auth.jsx';
 import { Suspense } from 'react';
 import { SparkBar } from './Charts/index.js';
 import Paywall from './Paywall.jsx';
+import Ico from './Ico.jsx';
+import { Download } from 'lucide-react';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -133,8 +135,8 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
             : `${rows.length} ${t('table.showing')}`}
         </span>
         {isPro && (
-          <button className="btn" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting}>
-            {exporting ? '…' : `⬇ ${t('table.export')}`}
+          <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={onExport} disabled={exporting}>
+            {exporting ? '…' : <><Ico icon={Download} /> {t('table.export')}</>}
           </button>
         )}
       </div>
@@ -208,7 +210,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                 </tr>,
                 cik && expanded === rowKey ? (
                   <tr key={`${rowKey}-hist`}>
-                    <td colSpan={cols.length} className="l" style={{ background: 'var(--surface-2)' }}>
+                    <td colSpan={cols.length} className="l" style={{ background: 'var(--popover)' }}>
                       <HistoryPanel cik={cik} cusip={p.cusip} t={t} />
                     </td>
                   </tr>

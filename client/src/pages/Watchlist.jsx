@@ -8,6 +8,8 @@ import { quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Star, Bell } from 'lucide-react';
 
 export default function Watchlist() {
   const { t, lang } = useI18n();
@@ -26,7 +28,7 @@ export default function Watchlist() {
   return (
     <div>
       <div className="page-head">
-        <h1>⭐ {t('watchlist.title')}</h1>
+        <h1><Ico icon={Star} size={22} /> {t('watchlist.title')}</h1>
       </div>
       {!favorites.length && <div className="card muted">{t('watchlist.empty')}</div>}
       {favorites.map((f, i) => {
@@ -39,7 +41,7 @@ export default function Watchlist() {
               <Link to={managerPath(f.cik)} style={{ fontWeight: 700, fontSize: 16 }}>
                 {f.name}
               </Link>
-              {isNew && <span className="badge pos">🔔 {t('watchlist.newFiling')}</span>}
+              {isNew && <span className="badge info"><Ico icon={Bell} size={14} /> {t('watchlist.newFiling')}</span>}
               {latest && (
                 <span className="muted small">
                   {quarterLabel(latest.reportDate)} · {latest.filingDate}

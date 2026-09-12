@@ -10,6 +10,8 @@ import { article, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Calendar as CalendarIcon } from 'lucide-react';
 
 const longDate = (iso, lang) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }) : '—');
 
@@ -76,7 +78,7 @@ export default function Calendar() {
     <div>
       <div className="page-head">
         <div>
-          <h1>📅 {t('cal.title')}</h1>
+          <h1><Ico icon={CalendarIcon} size={22} /> {t('cal.title')}</h1>
           <div className="sub">{t('cal.subtitle')}</div>
         </div>
       </div>
@@ -112,7 +114,7 @@ export default function Calendar() {
                     <td className="l"><b>{x.quarter}</b></td>
                     <td className="l">{x.quarterEnd}</td>
                     <td className="l">{x.deadline}</td>
-                    <td className="num">{x.deadline < d.today ? <span className="badge plain">{t('cal.past')}</span> : x.quarterEnd === d.next.quarterEnd ? <span className="badge pos">{t('cal.upcoming')}</span> : <span className="badge plain">{t('cal.future')}</span>}</td>
+                    <td className="num">{x.deadline < d.today ? <span className="badge plain">{t('cal.past')}</span> : x.quarterEnd === d.next.quarterEnd ? <span className="badge info">{t('cal.upcoming')}</span> : <span className="badge plain">{t('cal.future')}</span>}</td>
                   </tr>
                 ))}
               </tbody>
@@ -131,7 +133,7 @@ export default function Calendar() {
                     <td className="l"><Link to={g.path} style={{ fontWeight: 700 }}>{g.name}</Link></td>
                     <td className="l">{g.reportDate ? quarterLabel(g.reportDate) : '—'}</td>
                     <td className="l muted">{g.filed || '—'}</td>
-                    <td className="num"><span className={`badge ${g.status === 'filed' ? 'pos' : g.status === 'pending' ? 'neg' : 'plain'}`}>{t(`cal.s.${g.status}`)}</span></td>
+                    <td className="num"><span className={`badge ${g.status === 'filed' ? 'info' : 'plain'}`}>{t(`cal.s.${g.status}`)}</span></td>
                   </tr>
                 ))}
               </tbody>

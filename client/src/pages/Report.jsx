@@ -7,6 +7,8 @@ import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Newspaper, ShoppingCart, Banknote, Crown } from 'lucide-react';
 
 const Sym = ({ r }) =>
   r.ticker ? (
@@ -65,7 +67,7 @@ export default function Report() {
     <div>
       <div className="page-head">
         <div>
-          <h1>📰 {t('report.title')}</h1>
+          <h1><Ico icon={Newspaper} size={22} /> {t('report.title')}</h1>
           <div className="sub">
             <b>{quarter}</b> {t('report.subtitle')} · {managers.length} {t('report.funds')}
           </div>
@@ -77,7 +79,7 @@ export default function Report() {
       {isPro && (
       <div className="grid grid-2">
         <div className="card">
-          <h3>🛒 {t('report.bought')}</h3>
+          <h3><Ico icon={ShoppingCart} /> {t('report.bought')}</h3>
           {topBought.slice(0, 5).map((r, i) => (
             <div className="pos-row" key={r.cusip}>
               <div>
@@ -92,7 +94,7 @@ export default function Report() {
           ))}
         </div>
         <div className="card">
-          <h3>💸 {t('report.sold')}</h3>
+          <h3><Ico icon={Banknote} /> {t('report.sold')}</h3>
           {topSold.slice(0, 5).map((r, i) => (
             <div className="pos-row" key={r.cusip}>
               <div>
@@ -110,7 +112,7 @@ export default function Report() {
       )}
 
       <div className="card mt16">
-        <h3>👑 {t('report.kings')}</h3>
+        <h3><Ico icon={Crown} /> {t('report.kings')}</h3>
         <p className="muted small" style={{ marginBottom: 8 }}>{t('report.kingsNote')}</p>
         <div className="row" style={{ gap: 8 }}>
           {mostHeld.slice(0, 8).map((r) => (
@@ -124,7 +126,7 @@ export default function Report() {
 
       {isPro && (
       <div className="card mt16">
-        <h3>🗞️ {t('report.byManager')}</h3>
+        <h3><Ico icon={Newspaper} /> {t('report.byManager')}</h3>
         {managerRows.length === 0 && <div className="muted small">{t('common.na')}</div>}
         {managerRows.map((m) => (
           <div className="pos-row" key={m.cik} style={{ alignItems: 'flex-start' }}>

@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
+import Ico from './Ico.jsx';
+import { Radar } from 'lucide-react';
 
 const EXPLORE = [
   ['/gurus', 'nav.gurus'],
@@ -55,7 +57,7 @@ export default function Footer() {
         </div>
       </nav>
       <div className="footer-brand">
-        📡 13F<span className="dot">Radar</span>
+        <Ico icon={Radar} size={18} /> 13F<span className="dot">Radar</span>
       </div>
       <p className="muted small">{t('footer.disclaimer')}</p>
       <p className="muted small">{t('footer.sources')}</p>

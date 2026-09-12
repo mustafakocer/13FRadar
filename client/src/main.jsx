@@ -12,7 +12,7 @@ import './styles/app.css';
 // apply persisted theme before first paint (the <html> element is outside
 // React, so this never causes a hydration mismatch)
 try {
-  document.documentElement.dataset.theme = localStorage.getItem('theme') || 'light';
+  document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark';
 } catch {
   /* storage blocked */
 }

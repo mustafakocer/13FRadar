@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import Ico from './Ico.jsx';
+import { Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 
 function Row({ p, badge, delta }) {
   const name = p.ticker || p.cusip;
@@ -67,13 +69,13 @@ export default function PositionCards({ positions, prevPositions }) {
   return (
     <div className="grid grid-3">
       <div className="card pos-col">
-        <h3>🏆 {t('manager.topHoldings')}</h3>
+        <h3><Ico icon={Trophy} /> {t('manager.topHoldings')}</h3>
         {top.map((p) => (
           <Row key={`${p.cusip}|${p.putCall}`} p={p} delta={hasPrev ? p.delta : null} />
         ))}
       </div>
       <div className="card pos-col">
-        <h3>📈 {t('manager.increased')}</h3>
+        <h3><Ico icon={TrendingUp} className="text-buy" /> {t('manager.increased')}</h3>
         {!hasPrev && <div className="muted small">{t('manager.noPrev')}</div>}
         {increased.map((p) => (
           <Row
@@ -85,7 +87,7 @@ export default function PositionCards({ positions, prevPositions }) {
         ))}
       </div>
       <div className="card pos-col">
-        <h3>📉 {t('manager.decreased')}</h3>
+        <h3><Ico icon={TrendingDown} className="text-sell" /> {t('manager.decreased')}</h3>
         {!hasPrev && <div className="muted small">{t('manager.noPrev')}</div>}
         {decreased.map((p) => (
           <Row

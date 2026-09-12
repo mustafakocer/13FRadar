@@ -2,7 +2,7 @@ import { ResponsiveContainer, BarChart, Bar } from 'recharts';
 import { getVar } from './chartUtils.js';
 
 // Tiny trend bars for stat cards (decorative trend; values live in the card).
-export default function SparkBar({ values, color = '--s1' }) {
+export default function SparkBar({ values, color = '--chart-1' }) {
   const data = values.map((v, i) => ({ i, v }));
   if (!data.length) return null;
   return (

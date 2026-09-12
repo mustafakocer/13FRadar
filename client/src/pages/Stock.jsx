@@ -23,6 +23,8 @@ import { PriceChart } from '../components/Charts/index.js';
 import GuruSignal from '../components/GuruSignal.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Landmark, TriangleAlert, UserRound, Waves, Megaphone, ArrowUpRight } from 'lucide-react';
 
 function KV({ k, v, cls = '', tip }) {
   return (
@@ -176,7 +178,7 @@ export default function Stock() {
 
       {holders.data?.holders?.length > 0 && (
         <div className="card mt16">
-          <h3>🏦 {t('stock.holders')}</h3>
+          <h3><Ico icon={Landmark} /> {t('stock.holders')}</h3>
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -207,9 +209,9 @@ export default function Stock() {
       {data.source !== 'quoteSummary' && (
         <div
           className="card"
-          style={{ background: 'var(--accent-soft)', borderColor: 'var(--accent)', marginBottom: 16 }}
+          style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}
         >
-          <span className="small">⚠️ {t('stock.limitedData')}</span>
+          <span className="small"><Ico icon={TriangleAlert} size={14} /> {t('stock.limitedData')}</span>
         </div>
       )}
 
@@ -386,7 +388,7 @@ export default function Stock() {
 
       {insiders.data?.transactions?.length > 0 && (
         <div className="card mt16">
-          <h3>👤 {t('stock.insiders')}</h3>
+          <h3><Ico icon={UserRound} /> {t('stock.insiders')}</h3>
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -436,7 +438,7 @@ export default function Stock() {
 
       {cusip && isPro && (ownership.isLoading || ownership.data?.holders?.length > 0) && (
         <div className="card mt16">
-          <h3>🐋 {t('stock.ownership')}</h3>
+          <h3><Ico icon={Waves} /> {t('stock.ownership')}</h3>
           {ownership.isLoading && (
             <div className="muted small">{t('stock.ownershipLoading')}</div>
           )}
@@ -496,7 +498,7 @@ export default function Stock() {
 
       {filings13dg.data?.filings?.length > 0 && (
         <div className="card mt16">
-          <h3>📢 {t('stock.filings13dg')}</h3>
+          <h3><Ico icon={Megaphone} /> {t('stock.filings13dg')}</h3>
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -511,11 +513,11 @@ export default function Stock() {
                   <tr key={f.acc}>
                     <td className="l muted">{f.filingDate}</td>
                     <td className="l">
-                      <span className={`badge ${/13D/i.test(f.form) ? 'neg' : 'plain'}`}>{f.form}</span>
+                      <span className={`badge ${/13D/i.test(f.form) ? 'info' : 'plain'}`}>{f.form}</span>
                     </td>
                     <td className="l">
                       <a href={f.url} target="_blank" rel="noreferrer">
-                        {t('stock.view')} ↗
+                        {t('stock.view')} <Ico icon={ArrowUpRight} size={14} />
                       </a>
                     </td>
                   </tr>

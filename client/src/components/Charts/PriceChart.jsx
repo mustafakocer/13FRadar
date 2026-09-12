@@ -29,7 +29,7 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
   const first = prices[0]?.close;
   const last = prices[prices.length - 1]?.close;
   const up = first != null && last != null ? last >= first : true;
-  const c = getVar(up ? '--pos' : '--neg');
+  const c = getVar(up ? '--buy' : '--sell');
   const changePct = first ? ((last - first) / first) * 100 : null;
 
   return (
@@ -39,8 +39,7 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
           {RANGES.map((r) => (
             <button
               key={r}
-              className={`chip${r === range ? ' active-chip' : ''}`}
-              style={r === range ? { background: 'var(--accent)', borderColor: 'var(--accent)', color: 'var(--accent-ink)' } : {}}
+              className={`chip${r === range ? ' fsel-active' : ''}`}
               onClick={() => setRange(r)}
             >
               {LABELS[lang]?.[r] || r}
@@ -58,23 +57,17 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
       ) : (
         <ResponsiveContainer width="100%" height={260}>
           <AreaChart data={prices} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
-            <defs>
-              <linearGradient id={`pxFill-${up}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={c} stopOpacity={0.22} />
-                <stop offset="100%" stopColor={c} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke={getVar('--grid')} vertical={false} />
+            <CartesianGrid stroke={getVar('--border')} vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fill: getVar('--muted'), fontSize: 11 }}
+              tick={{ fill: getVar('--text-2'), fontSize: 11 }}
               axisLine={{ stroke: getVar('--border') }}
               tickLine={false}
               minTickGap={48}
             />
             <YAxis
               domain={['auto', 'auto']}
-              tick={{ fill: getVar('--muted'), fontSize: 11 }}
+              tick={{ fill: getVar('--text-2'), fontSize: 11 }}
               tickFormatter={(v) => fmtNum(v, 0)}
               axisLine={false}
               tickLine={false}
@@ -83,14 +76,15 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
             <Tooltip
               contentStyle={tooltipStyle()}
               formatter={(v) => [fmtNum(v, 2), ticker]}
-              cursor={{ stroke: getVar('--muted'), strokeDasharray: '3 3' }}
+              cursor={{ stroke: getVar('--text-2'), strokeDasharray: '3 3' }}
             />
             <Area
               type="monotone"
               dataKey="close"
               stroke={c}
               strokeWidth={2}
-              fill={`url(#pxFill-${up})`}
+              fill={c}
+              fillOpacity={0.12}
               dot={false}
               activeDot={{ r: 4 }}
             />

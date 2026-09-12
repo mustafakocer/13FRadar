@@ -24,18 +24,18 @@ export default function PortfolioPie({ positions }) {
           innerRadius="55%"
           outerRadius="85%"
           paddingAngle={2}
-          stroke={getVar('--surface')}
+          stroke={getVar('--card')}
           strokeWidth={2}
         >
           {data.map((d, i) => (
-            <Cell key={i} fill={i < 8 ? colors[i] : getVar('--faint')} />
+            <Cell key={i} fill={i < 8 ? colors[i % colors.length] : getVar('--chart-6')} />
           ))}
         </Pie>
         <Tooltip contentStyle={tooltipStyle()} formatter={(v) => fmtPct(v, { sign: false })} />
         <Legend
           formatter={(value, entry) => (
-            <span style={{ color: getVar('--ink'), fontSize: 13 }}>
-              {value} <span style={{ color: getVar('--muted') }}>{fmtPct(entry.payload.value, { sign: false })}</span>
+            <span style={{ color: getVar('--text'), fontSize: 13 }}>
+              {value} <span style={{ color: getVar('--text-2') }}>{fmtPct(entry.payload.value, { sign: false })}</span>
             </span>
           )}
         />

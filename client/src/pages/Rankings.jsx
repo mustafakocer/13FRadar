@@ -10,6 +10,8 @@ import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { rankingAnswer, truncate155 } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
+import Ico from '../components/Ico.jsx';
+import { Trophy } from 'lucide-react';
 
 // Indexable ranking pages computed from the public consensus file
 // (30 most-held stocks of the superinvestor set, with buyer/seller counts
@@ -58,7 +60,7 @@ export default function Rankings() {
     <div>
       <div className="page-head">
         <div>
-          <h1>🏆 {title}</h1>
+          <h1><Ico icon={Trophy} size={22} /> {title}</h1>
           <div className="sub">{lang === 'tr' ? `Usta yatırımcı seti · ${latest ? quarterLabel(latest) : ''}` : `Superinvestor set · ${latest ? quarterLabel(latest) : ''}`}</div>
         </div>
       </div>

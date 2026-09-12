@@ -59,7 +59,7 @@ export default function GuruTicker() {
           <div className="sub">{fill(t('pair.sub'), { issuer: d.issuer })} · CUSIP {d.cusip}</div>
           <div className="head-badges">
             {d.heldQuarters > 0 ? (
-              <span className="badge pos">{t('pair.heldSince')} · {timeHeldLabel(d.heldQuarters, lang)}</span>
+              <span className="badge plain">{t('pair.heldSince')} · {timeHeldLabel(d.heldQuarters, lang)}</span>
             ) : (
               <span className="badge neg">{t('pair.act.exit')}</span>
             )}
@@ -93,7 +93,7 @@ export default function GuruTicker() {
                   <td className="l"><b>{quarterLabel(r.reportDate)}</b></td>
                   <td className="l muted">{r.filed}</td>
                   <td className="l">
-                    <span className={`tk ${r.activity === 'new' ? 'new' : r.activity === 'add' ? 'add' : r.activity === 'reduce' ? 'reduce' : r.activity === 'exit' ? 'exit' : ''}`} style={r.activity === 'hold' || r.activity === 'none' ? { background: 'var(--surface-2)', color: 'var(--muted)' } : {}}>
+                    <span className={`tk ${r.activity === 'new' ? 'new' : r.activity === 'add' ? 'add' : r.activity === 'reduce' ? 'reduce' : r.activity === 'exit' ? 'exit' : ''}`} style={r.activity === 'hold' || r.activity === 'none' ? { color: 'var(--text-2)' } : {}}>
                       {t(`pair.act.${r.activity}`)}
                     </span>
                   </td>

@@ -3,7 +3,6 @@ import { invoke, withBudget } from './invoke.js';
 import managerHandler from '../../_handlers/manager.js';
 import holdingsHandler from '../../_handlers/holdings.js';
 import stockHandler from '../../_handlers/stock.js';
-import holdersHandler from '../../_handlers/holders.js';
 import slugHandler from '../../_handlers/slug.js';
 import guruHistoryHandler from '../../_handlers/guru-history.js';
 import calendarHandler from '../../_handlers/calendar.js';
@@ -108,11 +107,6 @@ async function loadStock({ ticker, cusip }) {
   const stock = ok(await withBudget(invoke(stockHandler, { ticker }), 8000));
   if (!stock) return { seeds, status: 404 };
   seeds.push([['stock', ticker], stock]);
-  const holdersQ = cusip || stock?.price?.name?.replace(/\.$/, '') || null;
-  if (holdersQ) {
-    const h = ok(await withBudget(invoke(holdersHandler, { q: holdersQ }), 8000));
-    if (h) seeds.push([['holders', holdersQ], h]);
-  }
   const c = staticConsensus();
   if (c) seeds.push([['consensus'], c]);
   return { seeds };

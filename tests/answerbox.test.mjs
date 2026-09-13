@@ -44,8 +44,11 @@ test('stock answer box: consensus row and fallback both carry real numbers', () 
   const tr = stockAnswerFromPage({ ticker: row.ticker, company: 'Amazon.com, Inc.', consensusRow: row, reportDate: '2026-06-30' }, 'tr');
   assert.match(en, new RegExp(`^Amazon\\.com, Inc\\. \\(${row.ticker}\\) is held by ${row.holderCount} tracked superinvestors worth \\$[\\d.]+[MB] as of Q2 2026\\. ${row.buyers} increased, ${row.sellers} reduced; net flow -?\\$[\\d.]+[KMB]\\. Largest holder: .+ \\([\\d.]+% of their portfolio\\)\\.$`));
   assert.match(tr, /takip edilen \d+ usta yatırımcı tarafından toplam \$[\d.]+[MB] değerinde tutuluyor\. \d+ fon artırdı, \d+ fon azalttı; net akış/);
-  const fb = stockAnswerFromPage({ ticker: 'ZZZ', company: 'Zeta Corp', consensusRow: null, holders: { total: 137 } }, 'en');
-  assert.match(fb, /^Zeta Corp \(ZZZ\) is reported by 137 institutional 13F filers\./);
+  const fb = stockAnswerFromPage(
+    { ticker: 'ZZZ', company: 'Zeta Corp', consensusRow: null, quote: { price: 12.5, currency: 'USD', marketCap: 4.2e9 } },
+    'en'
+  );
+  assert.match(fb, /^Zeta Corp \(ZZZ\) is not among the 30 most-held stocks of the tracked superinvestor set\. Price 12\.50 USD; market cap \$4\.20B\.$/);
   for (const s of [en, tr, fb]) assert.doesNotMatch(s, NO_PLACEHOLDER);
 });
 

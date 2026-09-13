@@ -24,7 +24,7 @@ import GuruSignal from '../components/GuruSignal.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
-import { Landmark, TriangleAlert, UserRound, Waves } from 'lucide-react';
+import { TriangleAlert, UserRound, Waves } from 'lucide-react';
 
 function KV({ k, v, cls = '', tip }) {
   return (
@@ -84,16 +84,6 @@ export default function Stock() {
   });
 
 
-  // Who reports this security? CUSIP (exact) when we came from a holdings
-  // table, otherwise the company name via EDGAR full-text search.
-  const holdersQ = cusip || data?.price?.name?.replace(/\.$/, '') || null;
-  const holders = useQuery({
-    queryKey: ['holders', holdersQ],
-    queryFn: () => api.holders(holdersQ),
-    enabled: !!holdersQ,
-    staleTime: 6 * 60 * 60 * 1000,
-  });
-
   const insiders = useQuery({
     queryKey: ['insiders', ticker],
     queryFn: () => api.insiders(ticker),
@@ -118,8 +108,8 @@ export default function Stock() {
   }, [consensus.data, cusip, ticker]);
   const reportDate = useMemo(() => (consensus.data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), ''), [consensus.data]);
   const seo = useMemo(
-    () => stockSeo({ lang, ticker, cusip, stock: data, holders: holders.data, consensusRow, reportDate }),
-    [lang, ticker, cusip, data, holders.data, consensusRow, reportDate]
+    () => stockSeo({ lang, ticker, cusip, stock: data, consensusRow, reportDate }),
+    [lang, ticker, cusip, data, consensusRow, reportDate]
   );
   useSeo(seo);
 
@@ -195,36 +185,6 @@ export default function Stock() {
           <KV k={t('stock.divYield')} tip="tips.divYield" v={fmtFracPct(f.dividendYield, { digits: 2 })} />
         </div>
       </div>
-
-      {holders.data?.holders?.length > 0 && (
-        <div className="card mt16">
-          <h3><Ico icon={Landmark} /> {t('stock.holders')}</h3>
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th className="l">{t('table.rank')}</th>
-                  <th className="l">{t('screen.manager')}</th>
-                  <th>13F</th>
-                </tr>
-              </thead>
-              <tbody>
-                {holders.data.holders.map((h, i) => (
-                  <tr key={h.cik}>
-                    <td className="l muted">{i + 1}</td>
-                    <td className="l">
-                      <Link to={managerPath(h.cik, h.path)} style={{ fontWeight: 700 }}>{h.name}</Link>
-                    </td>
-                    <td className="num">{h.filings}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="muted small mt8">{t('stock.holdersNote')}</p>
-        </div>
-      )}
-
 
       {data.source !== 'quoteSummary' && (
         <div

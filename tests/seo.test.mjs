@@ -16,12 +16,16 @@ test('SSR: guru page returns table rows, H1 and metadata without JS', async () =
   assert.ok(html.includes('window.__STATE__='), 'dehydrated query state present');
 });
 
-test('SSR: stock page carries holders table linking to guru pages', async () => {
+test('SSR: stock page carries the quote board and links the gurus that hold it', async () => {
   const { status, html } = await ssr('/en/stock/AAPL');
   assert.equal(status, 200);
   assert.match(html, /<title>AAPL — Which Superinvestors Hold Apple Inc\.\? \| 13F Radar<\/title>/);
-  assert.ok(count(html, /<table/g) >= 1);
-  assert.match(html, /href="\/en\/guru\/berkshire-hathaway-warren-buffett"/);
+  assert.match(html, /class="kv-grid quote-grid/, 'quote board is server-rendered');
+  assert.match(html, /Prev Close/, 'with its numbers, not an empty shell');
+  // the funds a stock links to now come from the superinvestor set, not from
+  // counting EDGAR full-text search hits
+  const { html: amzn } = await ssr('/en/stock/AMZN');
+  assert.match(amzn, /href="\/en\/guru\//, 'a held stock links to the gurus holding it');
 });
 
 test('SSR: home page renders content and site JSON-LD', async () => {

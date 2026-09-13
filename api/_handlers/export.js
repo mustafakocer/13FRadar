@@ -2,12 +2,10 @@ import { requirePro } from '../_lib/auth.js';
 import { invoke } from '../_lib/ssr/invoke.js';
 import manager from './manager.js';
 import holdings from './holdings.js';
-import holders from './holders.js';
 
 // CSV export (Pro). Excel opens CSV natively; the client keeps its own
 // SheetJS export for .xlsx.
 //   GET /api/export/holdings/:cik            latest quarter (or ?acc=…)
-//   GET /api/export/holders/:q               13F holders of a CUSIP / company
 const csvCell = (v) => {
   const s = v == null ? '' : String(v);
   return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -42,21 +40,7 @@ export default async function handler(req, res) {
       res.setHeader('Cache-Control', 'private, no-store');
       return res.status(200).send(body);
     }
-    if (kind === 'holders') {
-      const h = await invoke(holders, { q: id }, { authorization: req.headers.authorization });
-      if (h.status !== 200) return res.status(h.status).json(h.body);
-      const body = csv(h.body.holders, [
-        { h: 'CIK', v: (r) => r.cik },
-        { h: 'Filer', v: (r) => r.name },
-        { h: '13F filings matched', v: (r) => r.filings },
-        { h: 'Path', v: (r) => r.path || '' },
-      ]);
-      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="13fradar-holders-${id.replace(/[^A-Za-z0-9]+/g, '-')}.csv"`);
-      res.setHeader('Cache-Control', 'private, no-store');
-      return res.status(200).send(body);
-    }
-    return res.status(400).json({ error: 'kind must be holdings or holders' });
+    return res.status(400).json({ error: 'kind must be holdings' });
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });
   }

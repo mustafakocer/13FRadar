@@ -663,9 +663,13 @@ all.sort((a, b) => (a.f === b.f ? (a.d < b.d ? -1 : 1) : a.f < b.f ? -1 : 1));
 const companies = { ...(existing.companies || {}) };
 for (const r of [...prevRows, ...fresh]) if (r.t && r.c) companies[r.t] = r.c;
 for (const r of all) delete r.c;
-for (const k of Object.keys(companies)) if (!all.some((r) => r.t === k)) delete companies[k];
+// One pass over the rows instead of a scan per company name: the dataset is
+// 78k rows and 4.5k names now, and the nested version was doing 350M
+// comparisons on every daily build.
+const live = new Set(all.filter((r) => r.t).map((r) => r.t));
+for (const k of Object.keys(companies)) if (!live.has(k)) delete companies[k];
 
-const tickers = [...new Set(all.filter((r) => r.t).map((r) => r.t))];
+const tickers = [...live];
 const meta = await enrich(tickers.slice(0, 3000));
 fs.writeFileSync(META, JSON.stringify(meta));
 

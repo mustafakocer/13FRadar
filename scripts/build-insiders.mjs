@@ -24,7 +24,7 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import axios from 'axios';
 import { parseStringPromise, processors } from 'xml2js';
-import { classifyRole, businessDaysBetween, classifyTransaction, KEPT_CODES } from '../api/_lib/insiderModel.js';
+import { classifyRole, businessDaysBetween, classifyTransaction, KEPT_CODES, selectScanDays } from '../api/_lib/insiderModel.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
@@ -259,9 +259,47 @@ function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc }) {
 }
 
 // ------------------------------------------------------------- daily index
+const quarterNum = (day) => Math.floor(Number(day.slice(5, 7) - 1) / 3) + 1;
+
+// Which daily-index files EDGAR actually published for a quarter.
+//
+// EDGAR answers 403 — not 404 — for a daily-index file that does not exist,
+// and every federal holiday is such a day. That is indistinguishable from the
+// 403 it returns when it is refusing an automated client, so asking for a
+// holiday looks exactly like being banned and stalls the crawl on that date
+// forever (this is what froze the dataset on Memorial Day 2026-05-25). One
+// listing per quarter tells us which days exist, so we never ask for one that
+// does not.
+const quarterListings = new Map();
+async function publishedDays(day) {
+  const y = day.slice(0, 4);
+  const q = quarterNum(day);
+  const key = `${y}Q${q}`;
+  if (quarterListings.has(key)) return quarterListings.get(key);
+  const url = `https://www.sec.gov/Archives/edgar/daily-index/${y}/QTR${q}/index.json`;
+  let days = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const { data, status } = await paced(() => http.get(url, { validateStatus: () => true }));
+    if (status === 200 && Array.isArray(data?.directory?.item)) {
+      days = new Set(
+        data.directory.item
+          .map((it) => /^form\.(\d{4})(\d{2})(\d{2})\.idx$/.exec(it?.name || ''))
+          .filter(Boolean)
+          .map((m) => `${m[1]}-${m[2]}-${m[3]}`)
+      );
+      break;
+    }
+    if (status !== 403 && status !== 429) break;
+    await sleep(5000 * (attempt + 1));
+  }
+  if (!days) console.warn(`  ${key}: index listing unavailable — falling back to probing each day`);
+  quarterListings.set(key, days);
+  return days;
+}
+
 async function dailyIndex(day) {
   const y = day.slice(0, 4);
-  const q = Math.floor(Number(day.slice(5, 7) - 1) / 3) + 1;
+  const q = quarterNum(day);
   const url = `https://www.sec.gov/Archives/edgar/daily-index/${y}/QTR${q}/form.${day.replace(/-/g, '')}.idx`;
   let status = 0;
   let data = null;
@@ -354,26 +392,31 @@ async function parseForm4(pathname, filedFallback) {
 
 async function fromDailyIndex(fromDay) {
   const rows = [];
-  const today = new Date();
-  const all = [];
-  for (let i = 0; i < 400; i++) {
-    const d = new Date(today.getTime() - i * 86400000);
+  const today = iso(new Date());
+
+  // Ask EDGAR which days it published before planning the scan, so a holiday
+  // is never requested. Listings are fetched once per quarter in the range.
+  // every quarter the backlog touches, not just its ends
+  const listings = new Map();
+  for (let d = new Date(`${fromDay}T00:00:00Z`); iso(d) <= today; d.setUTCMonth(d.getUTCMonth() + 1)) {
     const day = iso(d);
-    if (day <= fromDay) break;
-    const dow = d.getUTCDay();
-    if (dow === 0 || dow === 6) continue;
-    all.push(day);
+    const key = `${day.slice(0, 4)}Q${quarterNum(day)}`;
+    if (!listings.has(key)) listings.set(key, await publishedDays(day));
   }
-  all.reverse();
+  const published = (day) => listings.get(`${day.slice(0, 4)}Q${quarterNum(day)}`) ?? null;
+
   // Oldest first, capped per run: a full day is ~1900 filings ≈ 4 minutes at
   // SEC's rate limit, so the backlog is worked off over consecutive nights.
-  const days = all.slice(0, MAX_DAYS);
-  if (!days.length) return { rows, scannedThrough: fromDay, remaining: 0 };
+  const { days, skipped, checkpoint, remaining } = selectScanDays({ fromDay, today, published, maxDays: MAX_DAYS });
+  if (skipped.length) console.log(`  EDGAR published no index for ${skipped.length} day(s): ${skipped.join(', ')}`);
+  if (!days.length) return { rows, scannedThrough: checkpoint, remaining };
   console.log(
-    `Daily index: ${all.length} day(s) behind (after ${fromDay}); scanning ${days.length} this run…`
+    `Daily index: ${days.length + remaining} day(s) behind (after ${fromDay}); scanning ${days.length} this run…`
   );
 
-  let scannedThrough = fromDay;
+  // Everything before the first day we are about to scan is settled: either
+  // already stored or a day EDGAR never published.
+  let scannedThrough = checkpoint;
   for (const day of days) {
     let files = [];
     let status = 0;
@@ -419,7 +462,7 @@ async function fromDailyIndex(fromDay) {
     scannedThrough = day;
     console.log(`  ${day}: ${files.length} form 4s → ${kept} transactions${failed ? ` (${failed} unreadable)` : ''}`);
   }
-  return { rows, scannedThrough, remaining: all.length - days.length };
+  return { rows, scannedThrough, remaining };
 }
 
 // --------------------------------------------------------------- enrichment
@@ -503,12 +546,18 @@ if (!prevRows.length) {
   console.log(`Quarterly datasets: ${fresh.length} rows through ${lastDay}`);
 }
 
+const startedFrom = lastDay;
 const daily = await fromDailyIndex(lastDay || iso(new Date(Date.now() - 7 * 86400000)));
 fresh = fresh.concat(daily.rows);
-// The checkpoint only moves over days we actually read. A throttled or failed
-// day is left behind so the next run picks it up again.
+// The checkpoint only moves over days we actually read, plus the days EDGAR
+// never published. A throttled or failed day is left behind for the next run.
 if (daily.scannedThrough && daily.scannedThrough > (lastDay || '')) lastDay = daily.scannedThrough;
 if (daily.remaining > 0) console.log(`${daily.remaining} day(s) still to backfill — the next run continues.`);
+
+// A run that is behind and moved the checkpoint nowhere has achieved nothing,
+// and would otherwise report success and rot silently — which is how the
+// dataset sat four months stale behind a green workflow. Fail loudly instead.
+const stalled = daily.remaining > 0 && lastDay === startedFrom;
 
 // merge, de-duplicate (accession + insider + date + shares), trim the window
 const seen = new Set();
@@ -548,3 +597,13 @@ const buys = all.filter((r) => r.k === 'P');
 console.log(
   `insiders.json: ${all.length} rows (${buys.length} buys), ${tickers.length} tickers, through ${lastDay}`
 );
+
+// Everything is written before this check so a stalled run still ships the
+// data it has; the non-zero exit is what turns the workflow red.
+if (stalled) {
+  console.error(
+    `\nStalled: ${daily.remaining + 1} day(s) behind and the checkpoint did not move past ${startedFrom}. ` +
+      `EDGAR refused every attempt — check the 403s above and re-run.`
+  );
+  process.exit(1);
+}

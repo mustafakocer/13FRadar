@@ -36,6 +36,16 @@ jobs:
           SEC_USER_AGENT: '13FRadar insider bot (kocergpt@gmail.com)'
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           INSIDER_MONTHS: '12'
+      - name: Report dataset freshness
+        if: always()
+        run: |
+          node -e "
+            const d = require('./api/_data/insiders.json');
+            const days = Math.round((Date.now() - Date.parse(d.lastDay + 'T00:00:00Z')) / 86400000);
+            console.log('last filing day ' + d.lastDay + ' (' + days + ' days old), ' + d.rows.length + ' rows');
+            if (days > 10) { console.error('::warning::insider dataset is ' + days + ' days behind'); }
+          "
+
       - name: Commit if changed
         run: |
           git config user.name 'insider-bot'

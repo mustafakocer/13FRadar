@@ -1,0 +1,42 @@
+name: EDGAR probe (temporary)
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Ask EDGAR what it publishes
+        run: |
+          node --input-type=module -e "
+          const UA = '13FRadar insider bot (kocergpt@gmail.com)';
+          const get = async (url, json) => {
+            const r = await fetch(url, { headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip, deflate' } });
+            const body = await r.text();
+            return { status: r.status, ct: r.headers.get('content-type'), body };
+          };
+          const idx = await get('https://www.sec.gov/Archives/edgar/daily-index/2026/QTR2/index.json');
+          console.log('index.json status', idx.status, idx.ct, 'bytes', idx.body.length);
+          let names = [];
+          try {
+            const j = JSON.parse(idx.body);
+            names = (j.directory?.item || []).map((i) => i.name);
+          } catch (e) { console.log('parse failed:', e.message, idx.body.slice(0, 300)); }
+          console.log('items', names.length);
+          console.log('sample', names.slice(0, 6).join(' '));
+          const forms = names.filter((n) => /^form\.\d{8}\.idx\$/.test(n));
+          console.log('form.*.idx count', forms.length);
+          console.log('late May:', forms.filter((n) => n >= 'form.20260518' && n <= 'form.20260603').join(' '));
+          console.log('has form.20260525.idx ?', names.includes('form.20260525.idx'));
+          for (const d of ['20260522', '20260525', '20260526', '20260527']) {
+            const r = await get('https://www.sec.gov/Archives/edgar/daily-index/2026/QTR2/form.' + d + '.idx');
+            console.log('form.' + d + '.idx ->', r.status, r.ct, 'bytes', r.body.length, JSON.stringify(r.body.slice(0, 120)));
+            await new Promise((s) => setTimeout(s, 800));
+          }
+          "

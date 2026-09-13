@@ -39,6 +39,7 @@ const CHECKS = [
   { file: 'client/public/consensus.json', label: 'consensus (public)', maxWrittenDays: 2 },
   { file: 'api/_data/consensus-pro.json', label: 'consensus (pro)', maxWrittenDays: 2 },
   { file: 'client/public/returns.json', label: 'price returns', maxWrittenDays: 2 },
+  { file: 'client/public/guru-activity.json', label: 'guru activity (/report)', maxWrittenDays: 2 },
   { file: 'api/_data/related.json', label: 'related managers', maxWrittenDays: 2 },
   { file: 'api/_data/splits.json', label: 'share splits', maxWrittenDays: 2 },
   // The universe build rewrites updatedAt on every success, so a daily job

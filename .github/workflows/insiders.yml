@@ -3,9 +3,11 @@ name: Build insider trading data
 on:
   workflow_dispatch: {}
   schedule:
-    # 05:30 UTC — after the consensus job, before the US pre-market. Form 4s
-    # are filed through the evening, so this picks up the previous session.
-    - cron: '30 5 * * 1-6'
+    # 05:30 UTC daily — after the consensus job, before the US pre-market.
+    # Form 4s are filed through the evening, so this picks up the previous
+    # session. Sunday finds nothing new and exits in seconds, but keeping it
+    # daily means a backlog is never a day older than it has to be.
+    - cron: '30 5 * * *'
   push:
     paths:
       - 'scripts/build-insiders.mjs'

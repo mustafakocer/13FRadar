@@ -1,0 +1,34 @@
+name: Data freshness
+
+# One alarm covering every dataset the site serves.
+#
+# The build jobs each guard their own output, but a job can also stop
+# committing, get reverted by hand, or succeed while fetching nothing — which
+# is how the insider dataset sat four months stale behind green workflows. This
+# reads the committed data and fails if anything is past its allowed age, so
+# the rot surfaces the next morning instead of the next time someone looks.
+on:
+  workflow_dispatch: {}
+  schedule:
+    # 07:00 UTC — after the consensus (04:30), insider (05:30) and universe
+    # (03:00) builds have had time to finish and push.
+    - cron: '0 7 * * *'
+  push:
+    paths:
+      - 'scripts/check-freshness.mjs'
+      - '.github/workflows/freshness.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check every dataset
+        run: node scripts/check-freshness.mjs

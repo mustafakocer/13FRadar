@@ -24,7 +24,7 @@ import GuruSignal from '../components/GuruSignal.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
-import { Landmark, TriangleAlert, UserRound, Waves, Megaphone, ArrowUpRight } from 'lucide-react';
+import { Landmark, TriangleAlert, UserRound, Waves } from 'lucide-react';
 
 function KV({ k, v, cls = '', tip }) {
   return (
@@ -123,14 +123,6 @@ export default function Stock() {
   );
   useSeo(seo);
 
-  const filings13dg = useQuery({
-    queryKey: ['13dg', ticker],
-    queryFn: () => api.filings13dg(ticker),
-    enabled: isPro,
-    staleTime: 6 * 60 * 60 * 1000,
-    retry: 1,
-  });
-
   if (isLoading)
     return (
       <div className="loading">
@@ -176,6 +168,34 @@ export default function Stock() {
 
       <GuruSignal ticker={ticker} cusip={cusip} />
 
+      {/* The quote board reads like the one on a finance portal: the chart
+          with its own range tabs, then the numbers a reader checks against it.
+          It sits directly under the guru signal because that is the order the
+          question comes in — who is buying this, and what has the price done. */}
+      <div className="card mt16">
+        <ChartBox height={300}><PriceChart ticker={ticker} lang={lang} /></ChartBox>
+        <div className="kv-grid quote-grid mt16">
+          <KV k={t('stock.prevClose')} v={fmtNum(p.prevClose, 2)} />
+          <KV k={t('stock.open')} v={fmtNum(p.open, 2)} />
+          <KV
+            k={t('stock.dayRange')}
+            v={p.low != null && p.high != null ? `${fmtNum(p.low, 2)} – ${fmtNum(p.high, 2)}` : '—'}
+          />
+          <KV
+            k={t('stock.range52')}
+            v={p.low52 != null && p.high52 != null ? `${fmtNum(p.low52, 2)} – ${fmtNum(p.high52, 2)}` : '—'}
+          />
+          <KV k={t('stock.volume')} v={fmtNum(p.volume)} />
+          <KV k={t('stock.avgVolume')} v={fmtNum(tr.avgVolume)} />
+          <KV k={t('stock.mktCap')} v={fmtMoney(p.marketCap)} />
+          <KV k={t('stock.beta')} tip="tips.beta" v={fmtRatio(tr.beta)} />
+          <KV k={t('stock.trailingPE')} tip="tips.pe" v={fmtRatio(v.trailingPE)} />
+          <KV k={t('stock.eps')} tip="tips.eps" v={fmtRatio(f.eps)} />
+          <KV k={t('stock.targetMean')} v={fmtNum(an.targetMean, 2)} />
+          <KV k={t('stock.divYield')} tip="tips.divYield" v={fmtFracPct(f.dividendYield, { digits: 2 })} />
+        </div>
+      </div>
+
       {holders.data?.holders?.length > 0 && (
         <div className="card mt16">
           <h3><Ico icon={Landmark} /> {t('stock.holders')}</h3>
@@ -214,27 +234,6 @@ export default function Stock() {
           <span className="small"><Ico icon={TriangleAlert} size={14} /> {t('stock.limitedData')}</span>
         </div>
       )}
-
-      <div className="card">
-        <div className="kv-grid">
-          <KV k={t('stock.open')} v={fmtNum(p.open, 2)} />
-          <KV k={t('stock.high')} v={fmtNum(p.high, 2)} />
-          <KV k={t('stock.low')} v={fmtNum(p.low, 2)} />
-          <KV k={t('stock.prevClose')} v={fmtNum(p.prevClose, 2)} />
-          <KV k={t('stock.volume')} v={fmtNum(p.volume)} />
-          <KV k={t('stock.mktCap')} v={fmtMoney(p.marketCap)} />
-          <KV
-            k={t('stock.range52')}
-            v={p.low52 != null ? `${fmtNum(p.low52, 2)} – ${fmtNum(p.high52, 2)}` : '—'}
-          />
-          <KV k={t('stock.eps')} tip="tips.eps" v={fmtRatio(f.eps)} />
-        </div>
-      </div>
-
-      <div className="card mt16">
-        <h3>{t('stock.priceChart')}</h3>
-        <ChartBox height={300}><PriceChart ticker={ticker} lang={lang} /></ChartBox>
-      </div>
 
       <div className="grid grid-2 mt16">
         <div className="card">
@@ -493,39 +492,6 @@ export default function Stock() {
               <p className="muted small mt8">{t('stock.ownershipNote')}</p>
             </>
           )}
-        </div>
-      )}
-
-      {filings13dg.data?.filings?.length > 0 && (
-        <div className="card mt16">
-          <h3><Ico icon={Megaphone} /> {t('stock.filings13dg')}</h3>
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th className="l">{t('stock.insDate')}</th>
-                  <th className="l">Form</th>
-                  <th className="l">EDGAR</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filings13dg.data.filings.map((f) => (
-                  <tr key={f.acc}>
-                    <td className="l muted">{f.filingDate}</td>
-                    <td className="l">
-                      <span className={`badge ${/13D/i.test(f.form) ? 'info' : 'plain'}`}>{f.form}</span>
-                    </td>
-                    <td className="l">
-                      <a href={f.url} target="_blank" rel="noreferrer">
-                        {t('stock.view')} <Ico icon={ArrowUpRight} size={14} />
-                      </a>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="muted small mt8">{t('stock.filings13dgNote')}</p>
         </div>
       )}
 

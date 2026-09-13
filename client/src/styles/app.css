@@ -294,6 +294,8 @@ table.data .num { font-weight: 600; }
 /* ---------- stock page ---------- */
 .price-big { font-size: 40px; font-weight: 800; letter-spacing: -0.03em; }
 .kv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 2px 24px; }
+/* the quote board: wider columns so a range value stays on one line */
+.quote-grid { grid-template-columns: repeat(auto-fill, minmax(232px, 1fr)); }
 .kv { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13.5px; }
 .kv .k { color: var(--text-2); font-weight: 500; }
 .kv .v { font-weight: 700; font-variant-numeric: tabular-nums; }

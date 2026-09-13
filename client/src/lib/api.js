@@ -66,7 +66,6 @@ export const api = {
   },
   stockOwnership: (cusip) => get(`/api/stock-ownership?cusip=${encodeURIComponent(cusip)}`),
   managerStats: (cik) => get(`/api/manager-stats/${cik}`),
-  filings13dg: (ticker) => get(`/api/filings13dg/${encodeURIComponent(ticker)}`),
   calendar: () => get('/api/calendar'),
   reports: () => get('/api/report'),
   related: (cik) => get(`/api/related/${cik}`),

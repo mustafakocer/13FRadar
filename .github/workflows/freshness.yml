@@ -14,6 +14,12 @@ on:
     # (03:00) builds have had time to finish and push.
     - cron: '0 7 * * *'
   push:
+    # Only the deployment branch. A feature-branch push used to start a full
+    # crawl on that branch: hours of CI, a data commit on a throwaway ref, and
+    # — through the shared concurrency group — the real run on the deployment
+    # branch left queued behind it.
+    branches:
+      - claude/13f-intelligence-features-nejb1h
     paths:
       - 'scripts/check-freshness.mjs'
       - '.github/workflows/freshness.yml'

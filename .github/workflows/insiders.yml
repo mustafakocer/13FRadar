@@ -9,6 +9,12 @@ on:
     # daily means a backlog is never a day older than it has to be.
     - cron: '30 5 * * *'
   push:
+    # Only the deployment branch. A feature-branch push used to start a full
+    # crawl on that branch: hours of CI, a data commit on a throwaway ref, and
+    # — through the shared concurrency group — the real run on the deployment
+    # branch left queued behind it.
+    branches:
+      - claude/13f-intelligence-features-nejb1h
     paths:
       - 'scripts/build-insiders.mjs'
       - '.github/workflows/insiders.yml'

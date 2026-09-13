@@ -11,6 +11,7 @@
     "build": "npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
     "check:jsonld": "node scripts/check-jsonld.mjs",
     "check:freshness": "node scripts/check-freshness.mjs",
+    "activity": "node scripts/build-guru-activity.mjs",
     "llms": "node scripts/build-llms.mjs",
     "teaser": "node scripts/build-teaser.mjs",
     "report": "node scripts/build-report.mjs",

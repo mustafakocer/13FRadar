@@ -24,6 +24,7 @@ const json = (file) => {
 };
 // Static files written by the GitHub Actions (same files the client fetches).
 const staticConsensus = () => json('../../../client/public/consensus.json');
+const staticActivity = () => json('../../../client/public/guru-activity.json');
 const staticTeaser = () => json('../../../client/public/insiders-teaser.json');
 const staticReturns = () => json('../../../client/public/returns.json');
 const staticSummary = () => json('../../../client/public/universe-summary.json');
@@ -126,6 +127,16 @@ async function loadConsensus() {
   return seeds;
 }
 
+// /report renders its whole table from the activity pivot, so that file has to
+// be seeded or the page ships empty to crawlers.
+async function loadReport() {
+  const seeds = await loadConsensus();
+  // the index alone: it carries the newest quarter, which is what renders
+  const a = staticActivity();
+  if (a) seeds.push([['guru-activity'], a]);
+  return seeds;
+}
+
 async function loadGurus() {
   const r = ok(await invoke(slugHandler, { kind: 'guru' }));
   return r ? [[['gurus'], r]] : [];
@@ -184,7 +195,7 @@ export const ROUTES = [
   { kind: 'consensus', re: /^\/consensus$/, load: loadConsensus, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: async () => [], cache: 'day' },
-  { kind: 'report', re: /^\/report$/, load: loadConsensus, cache: 'hour' },
+  { kind: 'report', re: /^\/report$/, load: loadReport, cache: 'hour' },
   { kind: 'screen', re: /^\/screen$/, load: async () => [], cache: 'hour' },
   { kind: 'compare', re: /^\/compare$/, load: async () => [], cache: 'hour' },
   { kind: 'watchlist', re: /^\/watchlist$/, load: async () => [], cache: 'none' },

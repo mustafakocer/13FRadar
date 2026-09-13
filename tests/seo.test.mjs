@@ -122,3 +122,25 @@ test('SSR: penny board is translated and keeps its sibling signal pages', async 
   assert.equal(cluster.status, 200);
   assert.ok(count(cluster.html, /<table/g) >= 1);
 });
+
+test('SSR: the report table, its filters and JSON-LD render without JS', async () => {
+  const { status, html, headers } = await ssr('/en/report');
+  assert.equal(status, 200);
+  assert.match(html, /<title>What Superinvestors Bought and Sold — \d{4} Q[1-4] \| 13F Radar<\/title>/);
+  assert.ok(count(html, /<tr/g) >= 10, 'header plus rows');
+  assert.match(html, /data-answer-box/);
+  assert.match(html, /spark-bars/, 'the quarterly activity column is server-rendered');
+  const types = jsonLd(html).map((b) => b['@type']);
+  for (const type of ['Article', 'ItemList', 'FAQPage', 'BreadcrumbList']) assert.ok(types.includes(type), type);
+  assert.match(headers['cache-control'], /s-maxage=3600/);
+});
+
+test('SSR: an older quarter is addressable and the page stays translated', async () => {
+  const tr = await ssr('/tr/report');
+  assert.equal(tr.status, 200);
+  assert.match(tr.html, /Usta Alımları/);
+  assert.match(tr.html, /Usta Satışları/);
+  // the quarter selector drives ?q= and the page must still answer
+  const older = await ssr('/en/report?q=2025-12-31');
+  assert.equal(older.status, 200);
+});

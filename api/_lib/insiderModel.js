@@ -130,6 +130,23 @@ export function findClusters(rows, windowDays = 7) {
   return out;
 }
 
+// ------------------------------------------------------------------ symbols
+// EDGAR's issuerTradingSymbol is free text a filer types, so it arrives as
+// "OMEX", [ENTX], (SIRI), NYSE:XYF, NONE, or the issuer's CIK. Anything that
+// is not a symbol a reader can click through to is better stored as null than
+// rendered as a dead ticker.
+const SYMBOL_RE = /^[A-Z][A-Z.\-]{0,6}$/;
+const NOT_A_SYMBOL = new Set(['NONE', 'N/A', 'NA', 'NULL', 'NOTAPPLICABLE', 'NOTLISTED', 'PRIVATE', 'NIL']);
+export function cleanSymbol(raw) {
+  let v = String(raw ?? '').trim().toUpperCase();
+  if (v.includes(':')) v = v.slice(v.lastIndexOf(':') + 1); // NYSE:XYF, NASDAQ: AAPL
+  v = v.replace(/[^A-Z0-9.\-]/g, ''); // quotes, brackets, parentheses, spaces
+  v = v.replace(/^[.\-]+|[.\-]+$/g, '');
+  if (!v || NOT_A_SYMBOL.has(v)) return null;
+  if (!SYMBOL_RE.test(v)) return null; // all-digit CIKs and long prose both fail here
+  return v;
+}
+
 // ---------------------------------------------------------------- crawl plan
 export const prevDay = (day) =>
   new Date(new Date(`${day}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
@@ -143,10 +160,21 @@ export const prevDay = (day) =>
 // actually listed for that day's quarter (or null when the listing could not
 // be read, in which case the day is kept and probed as before).
 //
+// `exhausted(day)` marks a day the crawl has already failed on often enough to
+// give up on: a listed file that keeps answering 403 would otherwise block
+// every later day forever, and the quarterly dataset backfills it anyway.
+//
 // The checkpoint moves past every settled day — already stored, or never
 // published — even when the fetch fails. Without that, a single holiday
 // stalls the crawl on the same date forever.
-export function selectScanDays({ fromDay, today, published = () => null, maxDays = 25, lookback = 400 }) {
+export function selectScanDays({
+  fromDay,
+  today,
+  published = () => null,
+  exhausted = () => false,
+  maxDays = 25,
+  lookback = 400,
+}) {
   const all = [];
   const start = new Date(`${today}T00:00:00Z`).getTime();
   for (let i = 0; i < lookback; i++) {
@@ -161,13 +189,70 @@ export function selectScanDays({ fromDay, today, published = () => null, maxDays
 
   const candidates = [];
   const skipped = [];
+  const abandoned = [];
   for (const day of all) {
     const set = published(day);
-    if (!set || set.has(day)) candidates.push(day);
-    else skipped.push(day);
+    if (set && !set.has(day)) skipped.push(day);
+    else if (exhausted(day)) abandoned.push(day);
+    else candidates.push(day);
   }
 
   const days = candidates.slice(0, maxDays);
   const checkpoint = days.length ? prevDay(days[0]) : all.length ? all[all.length - 1] : fromDay;
-  return { days, skipped, checkpoint, remaining: candidates.length - days.length };
+  return { days, skipped, abandoned, checkpoint, remaining: candidates.length - days.length };
+}
+
+// Bookkeeping for one crawl run: which days failed, where the checkpoint may
+// land, and whether EDGAR is refusing us rather than simply missing a file.
+//
+// Two failure shapes have to be told apart, because the first froze this
+// dataset for four months:
+//   · one day failing is a gap. Retry it for a few runs, then leave it behind
+//     (the quarterly dataset backfills it) so it cannot block every later day.
+//   · several days failing in a row is EDGAR turning us away. Stop the run,
+//     and hand those days their attempts back — a ban must not spend the
+//     retry budget of days that were never really tried.
+//
+// The checkpoint never moves past a day still owed a retry, so that day is
+// read again next run. Rows already collected beyond it are still kept: the
+// merge de-duplicates by accession, so re-reading a day costs nothing.
+export function crawlLedger({ badDays = {}, maxAttempts = 3, banStreak = 3, checkpoint = null } = {}) {
+  const attempts = { ...badDays };
+  let streak = [];
+  let held = null;
+  let lastGood = checkpoint;
+  let banned = false;
+
+  return {
+    get banned() {
+      return banned;
+    },
+    fail(day) {
+      const n = (attempts[day] || 0) + 1;
+      attempts[day] = n;
+      streak.push(day);
+      if (n < maxAttempts && !held) held = day;
+      if (streak.length >= banStreak) banned = true;
+      return { attempts: n, banned };
+    },
+    ok(day) {
+      streak = [];
+      if (!held) lastGood = day;
+    },
+    // `floor`: days older than the crawl's lookback are never scanned again,
+    // so remembering their failures would grow the file forever.
+    finish(floor = null) {
+      if (banned) {
+        for (const day of streak) {
+          attempts[day] -= 1;
+          if (attempts[day] <= 0) delete attempts[day];
+        }
+        held = held || streak[0];
+      }
+      let scannedThrough = lastGood;
+      if (held) scannedThrough = checkpoint && prevDay(held) < checkpoint ? checkpoint : prevDay(held);
+      if (floor) for (const day of Object.keys(attempts)) if (day < floor) delete attempts[day];
+      return { scannedThrough, badDays: attempts, banned, streak: [...streak] };
+    },
+  };
 }

@@ -38,6 +38,11 @@ jobs:
           SEC_USER_AGENT: '13FRadar insider bot (kocergpt@gmail.com)'
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           INSIDER_MONTHS: '12'
+          # Only binds while the crawl is behind: a run that is current scans
+          # the one new day. 45 days is ~3 hours at SEC's rate limit, well
+          # inside the job timeout, and clears a months-long backlog in two
+          # nights instead of four.
+          INSIDER_MAX_DAYS: '45'
       - name: Report dataset freshness
         if: always()
         run: |

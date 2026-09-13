@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
@@ -141,7 +141,20 @@ export default function Insiders() {
     )
   );
 
-  const [tab, setTab] = useState('latest');
+  // The tab lives in the URL so /insiders?tab=penny is linkable — the penny
+  // board at /insiders/penny hands its readers straight to the live feed.
+  const [sp, setSp] = useSearchParams();
+  const tab = TABS.includes(sp.get('tab')) ? sp.get('tab') : 'latest';
+  const setTab = (k) =>
+    setSp(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (k === 'latest') next.delete('tab');
+        else next.set('tab', k);
+        return next;
+      },
+      { replace: true }
+    );
   const [q, setQ] = useState('');
   const [search, setSearch] = useState('');
   const [period, setPeriod] = useState('1y');
@@ -299,7 +312,9 @@ export default function Insiders() {
                 </div>
               </div>
               <div className="right">
-                <span className={`badge ${r.ret >= 0 ? 'pos' : 'neg'}`}>{r.ret != null ? fmtPct(r.ret) : '—'}</span>
+                <span className={`badge ${r.ret == null ? 'plain' : r.ret >= 0 ? 'pos' : 'neg'}`}>
+                  {r.ret != null ? fmtPct(r.ret) : '—'}
+                </span>
               </div>
             </div>
           )) || <div className="muted small">{t('common.na')}</div>}
@@ -422,7 +437,7 @@ export default function Insiders() {
                       <div className="muted small">{t('ins.held')}: {fmtNum(r.owned)}</div>
                     </td>
                     <td className="num">
-                      <b className={deltaClass(r.ret)}>{r.ret != null ? fmtPct(r.ret) : '0.0%'}</b>
+                      <b className={deltaClass(r.ret)}>{r.ret != null ? fmtPct(r.ret) : '—'}</b>
                       <div className="muted small">{t('ins.curr')}: {r.current != null ? `$${fmtNum(r.current, 2)}` : '—'}</div>
                     </td>
                   </tr>

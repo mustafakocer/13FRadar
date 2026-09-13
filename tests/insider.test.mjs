@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { classifyTransaction, findClusters, rowClass } from '../api/_lib/insiderModel.js';
-import { buildTeaser } from '../api/_lib/insiderTeaser.js';
+import { buildTeaser, buildPennyBoard, isPenny } from '../api/_lib/insiderTeaser.js';
 
 test('transaction taxonomy: conviction / liquidity / noise', () => {
   assert.equal(classifyTransaction('P'), 'conviction');
@@ -46,4 +46,70 @@ test('teaser: pulse, highlight and signals from a dataset', () => {
   assert.deepEqual(t.signals.cluster[0].roles, ['ceo']);
   assert.equal(t.signals.csuite[0].n, 'Alice');
   assert.equal(t.signals.penny.length, 1, 'one row per ticker');
+});
+
+test('penny threshold: the transaction price, strictly under $5 and above zero', () => {
+  assert.equal(isPenny({ p: 4.99 }), true);
+  assert.equal(isPenny({ p: 5 }), false, '$5 is not a penny stock');
+  assert.equal(isPenny({ p: 0 }), false, 'a $0 price means the field is missing');
+  assert.equal(isPenny({ p: null }), false);
+  assert.equal(isPenny({}), false);
+});
+
+test('penny board: window, floor, open-market only, one row per ticker', () => {
+  const rows = [
+    // two insiders in ABC inside 7 days -> a cluster, biggest buy takes the slot
+    { t: 'ABC', k: 'P', n: 'Alice', r: 'ceo', ti: 'CEO', d: '2026-05-01', f: '2026-05-04', v: 50000, p: 4.5, s: 1000, o: 4000, oc: 33.3 },
+    { t: 'ABC', k: 'P', n: 'Bob', r: 'director', d: '2026-05-05', f: '2026-05-06', v: 90000, p: 4.6, s: 500, o: 500 },
+    { t: 'DEF', k: 'S', n: 'Carol', r: 'cfo', d: '2026-05-03', f: '2026-05-04', v: 40000, p: 2, s: 20000, o: 0 },
+    { t: 'GHI', k: 'P', n: 'Dan', r: 'ceo', d: '2026-05-03', f: '2026-05-04', v: 9000, p: 1, s: 9000 }, // under the floor
+    { t: 'JKL', k: 'P', n: 'Erin', r: 'ceo', d: '2026-05-03', f: '2026-05-04', v: 80000, p: 40, s: 2000 }, // not a penny stock
+    { t: 'MNO', k: 'A', n: 'Fay', r: 'ceo', d: '2026-05-03', f: '2026-05-04', v: 80000, p: 1, s: 80000 }, // a grant, not open market
+    { t: 'PQR', k: 'P', n: 'Gil', r: 'ceo', d: '2026-01-02', f: '2026-01-03', v: 80000, p: 1, s: 80000 }, // before the window
+  ];
+  const b = buildPennyBoard(rows, { ABC: 'Abc Corp' }, {}, '2026-05-06');
+
+  assert.deepEqual(b.rows.map((r) => r.t), ['ABC'], 'buys only, one row per ticker, above the floor');
+  assert.equal(b.rows[0].n, 'Bob', 'the biggest buy takes the ticker slot');
+  assert.equal(b.rows[0].ins, 2, 'the row reports the cluster size');
+  assert.equal(b.rows[0].c, 'Abc Corp');
+  assert.equal(b.rows[0].nw, true, 'owned after == shares bought is a new position');
+  assert.equal(b.rows[0].lag, 1, 'business days between trade and filing');
+
+  assert.equal(b.stats.buyCount, 2, 'both ABC buys count');
+  assert.equal(b.stats.buyValue, 140000);
+  assert.equal(b.stats.sellCount, 1, 'the penny sale counts');
+  assert.equal(b.stats.sellValue, 40000);
+  assert.equal(b.stats.companies, 2, 'ABC and DEF');
+  assert.equal(b.stats.insiders, 2, 'distinct buyers');
+  assert.equal(b.stats.clusterCount, 1);
+  assert.equal(b.signals[0].kind, 'cluster');
+  assert.equal(b.top.sells[0].t, 'DEF');
+  assert.equal(b.since, '2026-04-06', 'the window trails the newest filing day');
+});
+
+test('penny board: price enrichment is optional and additive', () => {
+  const rows = [{ t: 'ABC', k: 'P', n: 'Alice', r: 'ceo', d: '2026-05-01', f: '2026-05-04', v: 50000, p: 2, s: 25000, o: 30000, oc: 20 }];
+  const bare = buildPennyBoard(rows, {}, {}, '2026-05-06').rows[0];
+  for (const k of ['px', 'ret', 'off', 'vol', 'sz']) assert.equal(k in bare, false, `${k} is absent without meta`);
+  assert.equal(bare.p, 2, 'the transaction price always survives');
+
+  const rich = buildPennyBoard(rows, {}, { ABC: { px: 3, lo: 1.5, vol: 100000, mcap: 50e6, sector: 'Energy' } }, '2026-05-06').rows[0];
+  assert.equal(rich.px, 3);
+  assert.equal(rich.ret, 50, 'return from the transaction price');
+  assert.equal(rich.off, 100, 'distance above the 52-week low');
+  assert.equal(rich.vol, 300000, 'dollar volume = price x average shares');
+  assert.equal(rich.sz, 'micro');
+});
+
+test('teaser still carries the landing-page keys alongside the penny board', () => {
+  const rows = [
+    { t: 'ABC', k: 'P', n: 'Alice', r: 'ceo', d: '2026-05-01', f: '2026-05-02', v: 50000, p: 4.5, s: 1000 },
+    { t: 'DEF', k: 'S', n: 'Carol', r: 'cfo', d: '2026-05-03', f: '2026-05-04', v: 900000, p: 40, s: 100 },
+  ];
+  const t = buildTeaser(rows, {}, {}, Date.parse('2026-05-05'));
+  for (const k of ['pulse', 'highlight', 'signals', 'rows', 'penny']) assert.ok(k in t, k);
+  assert.ok(Array.isArray(t.signals.penny), 'the landing page still reads signals.penny');
+  assert.equal(t.penny.rows[0].t, 'ABC');
+  assert.equal(t.penny.maxPrice, 5);
 });

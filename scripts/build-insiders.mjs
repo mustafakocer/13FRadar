@@ -467,7 +467,17 @@ async function enrich(tickers) {
       for (const qd of Array.isArray(data) ? data : []) {
         const sym = String(qd.symbol || '').toUpperCase();
         if (!sym) continue;
-        meta[sym] = { ...(meta[sym] || {}), px: num(qd.price), mcap: num(qd.marketCap) ?? meta[sym]?.mcap };
+        // vol/lo/hi drive the liquidity and off-the-low columns on the penny
+        // board; every consumer treats them as optional, so a provider that
+        // stops returning them degrades to "—" instead of breaking the page.
+        meta[sym] = {
+          ...(meta[sym] || {}),
+          px: num(qd.price),
+          mcap: num(qd.marketCap) ?? meta[sym]?.mcap,
+          vol: num(qd.avgVolume) ?? num(qd.volume) ?? meta[sym]?.vol,
+          lo: num(qd.yearLow) ?? meta[sym]?.lo,
+          hi: num(qd.yearHigh) ?? meta[sym]?.hi,
+        };
       }
     } catch {
       /* optional */

@@ -10,6 +10,7 @@ const EXPLORE = [
   ['/screen', 'nav.screen'],
   ['/insiders/cluster', 'landing.ins.tab.cluster'],
   ['/insiders/csuite', 'landing.ins.tab.csuite'],
+  ['/insiders/penny', 'landing.ins.tab.penny'],
 ];
 const LEARN = [
   ['/guides/what-is-13f', '/rehber/13f-nedir', 'guide.what'],

@@ -1,12 +1,19 @@
-import { findClusters, isBuy, isSell } from './insiderModel.js';
+import { businessDaysBetween, findClusters, isBuy, isSell, sizeBucket } from './insiderModel.js';
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
 //   highlight the single largest open-market buy filed that day
 //   signals   cluster buys (≥2 insiders, 7-day window) · C-suite buys · penny-stock buys (last 30 days)
+//   penny     the full free board behind /insiders/penny (see buildPennyBoard)
 //   rows      the 20 newest buys
 // The full, filterable feed stays Pro (/api/insider-feed).
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+// "Penny" is the transaction price, not the current quote: it is what the
+// insider actually paid and it is present on every Form 4 row, while the
+// current quote depends on the optional ticker-meta enrichment.
+export const PENNY = { maxPrice: 5, minValue: 10000, windowDays: 30, rows: 50 };
+export const isPenny = (r) => r.p > 0 && r.p < PENNY.maxPrice;
 // "NONE" is what EDGAR reports for issuers without a listed ticker (private
 // funds, debt vehicles) — nothing a reader can act on.
 const listed = (r) => r?.t && r.t !== 'NONE' && r?.d;
@@ -25,6 +32,106 @@ function brief(r, companies, meta) {
     v: Math.round(r.v || 0),
     p: r.p,
     ...(ret != null ? { ret: round(ret) } : {}),
+  };
+}
+
+// A penny row carries everything the free board renders, so /insiders/penny
+// needs no API call. Price-derived fields (px/ret/sz/vol/off) come from the
+// optional ticker-meta enrichment and are simply omitted when it is empty.
+function pennyRow(r, companies, meta, clusters) {
+  const m = (r.t && meta?.[r.t]) || {};
+  const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+  const off = m.px != null && m.lo > 0 ? ((m.px - m.lo) / m.lo) * 100 : null;
+  const vol = m.px != null && m.vol > 0 ? m.px * m.vol : null;
+  const cl = clusters?.get(r.t);
+  return {
+    t: r.t,
+    c: companies[r.t] || m.name || null,
+    n: r.n,
+    r: r.r,
+    ti: r.ti || null,
+    d: r.d,
+    f: r.f,
+    lag: businessDaysBetween(r.d, r.f),
+    s: r.s ?? null,
+    p: r.p,
+    v: Math.round(r.v || 0),
+    o: r.o ?? null,
+    oc: round(r.oc),
+    side: isSell(r) ? 'sell' : 'buy',
+    ...(r.o != null && r.s != null && r.o === r.s ? { nw: true } : {}),
+    ...(r.p5 ? { plan: true } : {}),
+    ...(m.px != null ? { px: round(m.px, 4) } : {}),
+    ...(ret != null ? { ret: round(ret) } : {}),
+    ...(off != null ? { off: round(off) } : {}),
+    ...(vol != null ? { vol: Math.round(vol) } : {}),
+    ...(sizeBucket(m.mcap) ? { sz: sizeBucket(m.mcap) } : {}),
+    ...(m.sector ? { sec: m.sector } : {}),
+    ...(cl ? { ins: cl.insiders } : {}),
+  };
+}
+
+// The free board behind /insiders/penny: sub-$5 open-market activity over the
+// trailing window, ranked by transaction value. Buys are the "gems"; the sell
+// side ships too so the page can show both without a second dataset.
+export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()) {
+  const anchor = lastDay ? new Date(`${lastDay}T00:00:00Z`).getTime() : now;
+  const since = iso(anchor - PENNY.windowDays * 86400000);
+  // Open-market trades only: grants, tax withholding and gifts say nothing
+  // about conviction and would inflate every count on the page.
+  const window = rows.filter(
+    (r) => isPenny(r) && r.d >= since && (r.v || 0) >= PENNY.minValue && (isBuy(r) || isSell(r))
+  );
+  const buys = window.filter(isBuy);
+  const sells = window.filter(isSell);
+  const clusters = findClusters(buys, 7);
+  const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
+  const buyValue = sum(buys);
+  const sellValue = sum(sells);
+  const byValue = (a, b) => (b.v || 0) - (a.v || 0);
+  const shape = (r) => pennyRow(r, companies, meta, clusters);
+
+  // One row per ticker, so every slot on the board is a different company; the
+  // biggest buy takes the slot and the cluster count says there were more.
+  const dedupe = (list) => {
+    const seen = new Set();
+    return list.filter((r) => !seen.has(r.t) && seen.add(r.t));
+  };
+
+  // "High conviction" ranks the signal, not the size: several insiders buying
+  // beats one, and an executive beats a 10% owner (usually a fund).
+  const rank = { cluster: 0, ceo: 1, cfo: 2, director: 3 };
+  const signals = dedupe([...buys].sort(byValue))
+    .map((r) => {
+      const kind = clusters.has(r.t) ? 'cluster' : rank[r.r] != null ? r.r : null;
+      return kind ? { ...shape(r), kind } : null;
+    })
+    .filter(Boolean)
+    .sort((a, b) => rank[a.kind] - rank[b.kind] || byValue(a, b))
+    .slice(0, 3);
+
+  return {
+    since,
+    through: lastDay || null,
+    maxPrice: PENNY.maxPrice,
+    minValue: PENNY.minValue,
+    windowDays: PENNY.windowDays,
+    stats: {
+      companies: new Set(window.map((r) => r.t)).size,
+      insiders: new Set(buys.map((r) => r.n)).size,
+      buyCount: buys.length,
+      sellCount: sells.length,
+      buyValue: Math.round(buyValue),
+      sellValue: Math.round(sellValue),
+      sellShare: buyValue + sellValue > 0 ? round((sellValue / (buyValue + sellValue)) * 100) : null,
+      clusterCount: clusters.size,
+    },
+    signals,
+    top: {
+      buys: dedupe([...buys].sort(byValue)).slice(0, 3).map(shape),
+      sells: dedupe([...sells].sort(byValue)).slice(0, 3).map(shape),
+    },
+    rows: dedupe([...buys].sort(byValue)).slice(0, PENNY.rows).map(shape),
   };
 }
 
@@ -96,6 +203,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
     pulse,
     highlight,
     signals: { cluster, csuite, penny },
+    penny: buildPennyBoard(rows, companies, meta, lastDay, now),
     rows: buys.slice(0, 20).map((r) => brief(r, companies, meta)),
   };
 }

@@ -2,6 +2,7 @@ import { createRequire } from 'node:module';
 import { requirePro } from '../_lib/auth.js';
 import { cached, TTL } from '../_lib/cache.js';
 import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES } from '../_lib/insiderModel.js';
+import { isPenny } from '../_lib/insiderTeaser.js';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions (Pro only).
 //
@@ -72,6 +73,10 @@ function shape(r, meta, companies) {
     ownChange: r.oc,
     current: m.px ?? null,
     ret: ret != null ? Number(ret.toFixed(1)) : null,
+    // dollar volume and distance above the 52-week low — thin liquidity and a
+    // price already far off the low are the two ways a penny "gem" bites back
+    volume: m.px != null && m.vol > 0 ? Math.round(m.px * m.vol) : null,
+    offLow: m.px != null && m.lo > 0 ? Number((((m.px - m.lo) / m.lo) * 100).toFixed(1)) : null,
     sector: m.sector || null,
     size: sizeBucket(m.mcap),
     url: r.ci && r.a ? `https://www.sec.gov/Archives/edgar/data/${Number(r.ci)}/${String(r.a).replace(/-/g, '')}/` : null,
@@ -80,7 +85,8 @@ function shape(r, meta, companies) {
 
 // Market activity + signal cards for the header, computed over the newest day
 // that actually has filings.
-function buildStats(rows, meta) {
+function buildStats(all, meta, scope = null) {
+  const rows = scope ? all.filter(scope) : all;
   const latestDay = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
   const today = rows.filter((r) => r.f === latestDay);
   const buys = today.filter((r) => r.k === 'P');
@@ -204,7 +210,7 @@ export default async function handler(req, res) {
     if (tab === 'ceo' && r.r !== 'ceo') continue;
     if (tab === 'cfo' && r.r !== 'cfo') continue;
     if (tab === 'cluster' && !clusterMap.has(r.t)) continue;
-    if (tab === 'penny' && !(r.p != null && r.p < 5)) continue;
+    if (tab === 'penny' && !isPenny(r)) continue;
     if (minValue != null && !(r.v != null && r.v >= minValue)) continue;
     if (maxValue != null && !(r.v != null && r.v <= maxValue)) continue;
     if (minPrice != null && !(r.p != null && r.p >= minPrice)) continue;
@@ -257,7 +263,7 @@ export default async function handler(req, res) {
     perPage,
     updatedAt: db.updatedAt,
     lastDay: db.lastDay,
-    stats: page === 1 ? buildStats(rows, meta) : null,
+    stats: page === 1 ? buildStats(rows, meta, tab === 'penny' ? isPenny : null) : null,
     sectors: page === 1 ? sectors : undefined,
     clusterCount: clusterMap.size,
   });

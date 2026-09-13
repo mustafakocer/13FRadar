@@ -99,3 +99,26 @@ test('noindex on account and watchlist; 404 on unknown routes', async () => {
   const badSlug = await ssr('/en/guru/no-such-guru');
   assert.equal(badSlug.status, 404);
 });
+
+test('SSR: penny board renders the full table, answer box and JSON-LD without JS', async () => {
+  const { status, html, headers } = await ssr('/en/insiders/penny');
+  assert.equal(status, 200);
+  assert.match(html, /<title>Penny Stock Insider Buys: Form 4 Signals Under \$5 \| 13F Radar<\/title>/);
+  // the board ships inside the teaser, so every row is server-rendered
+  assert.ok(count(html, /<tr/g) >= 20, 'header plus board rows');
+  assert.match(html, /data-answer-box/);
+  assert.match(html, /<meta name="description" content="[^"]*stocks trading under \$5[^"]*"/);
+  const types = jsonLd(html).map((b) => b['@type']);
+  for (const type of ['Article', 'ItemList', 'FAQPage', 'BreadcrumbList']) assert.ok(types.includes(type), type);
+  assert.match(headers['cache-control'], /s-maxage=3600/);
+});
+
+test('SSR: penny board is translated and keeps its sibling signal pages', async () => {
+  const tr = await ssr('/tr/insiders/penny');
+  assert.match(tr.html, /Kuruş Hisse Insider Fırsatları/);
+  assert.match(tr.html, /href="\/tr\/insiders\/cluster"/);
+  // /insiders/:signal still serves the other two boards
+  const cluster = await ssr('/en/insiders/cluster');
+  assert.equal(cluster.status, 200);
+  assert.ok(count(cluster.html, /<table/g) >= 1);
+});

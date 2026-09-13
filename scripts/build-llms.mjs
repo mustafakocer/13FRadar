@@ -95,7 +95,7 @@ function sections(lang, full) {
   H('Insider', 'Insider');
   L.push(link(lang, '/insiders/cluster', t ? 'Küme alımları' : 'Cluster buys', t ? '7 gün içinde ≥2 insider, açık piyasa' : '≥2 insiders within 7 days, open market'));
   L.push(link(lang, '/insiders/csuite', t ? 'CEO / CFO alımları' : 'CEO / CFO buys'));
-  L.push(link(lang, '/insiders/penny', t ? 'Kuruş hisse alımları' : 'Penny-stock buys'));
+  L.push(link(lang, '/insiders/penny', t ? 'Kuruş hisse alımları' : 'Penny-stock buys', t ? "5 $ altı hisselerde, son 30 günde 10 bin $ üzeri açık piyasa alımları" : 'open-market buys above $10,000 in stocks under $5, last 30 days'));
   L.push(link(lang, '/insiders', t ? 'Form 4 akışı' : 'Form 4 feed', teaser?.lastDay ? (t ? `son dosyalama günü ${teaser.lastDay}` : `latest filing day ${teaser.lastDay}`) : ''));
   L.push('');
   H('Calendar', 'Takvim');
@@ -126,7 +126,7 @@ function document(full) {
   L.push('');
   L.push(`Data: SEC EDGAR 13F-HR (quarter-end long positions in US-listed securities, filed up to 45 days after quarter end — positions are always at least that stale and never include shorts, most derivatives or non-US holdings) and SEC Form 4 (insider transactions). Refresh cadence: insider data daily; guru/consensus/rankings daily from the latest filings; the full filer universe weekly. Last data refresh: ${updatedAt}.`);
   L.push('');
-  L.push('Metric definitions: Time Held = consecutive quarters a position appears in a filer\'s 13F ending with the latest quarter (capped at ">10 Years"). Conviction = average portfolio weight of a stock among the superinvestors that hold it. Consensus = number of tracked superinvestors holding a stock. Net flow = dollar value added and newly bought minus dollar value reduced and sold out, quarter over quarter. Cluster buy = at least two distinct insiders with open-market purchases (Form 4 code P) of the same company within 7 days. Share counts are split-adjusted where a splits table exists.');
+  L.push('Metric definitions: Time Held = consecutive quarters a position appears in a filer\'s 13F ending with the latest quarter (capped at ">10 Years"). Conviction = average portfolio weight of a stock among the superinvestors that hold it. Consensus = number of tracked superinvestors holding a stock. Net flow = dollar value added and newly bought minus dollar value reduced and sold out, quarter over quarter. Cluster buy = at least two distinct insiders with open-market purchases (Form 4 code P) of the same company within 7 days. Penny-stock buy = an open-market purchase (code P) at a transaction price below $5 per share. Share counts are split-adjusted where a splits table exists.');
   L.push('');
   L.push('Attribution: cite pages as "13F Radar" with the page URL. Data is not investment advice.');
   L.push('');

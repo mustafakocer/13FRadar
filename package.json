@@ -11,6 +11,7 @@
     "build": "npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
     "check:jsonld": "node scripts/check-jsonld.mjs",
     "llms": "node scripts/build-llms.mjs",
+    "teaser": "node scripts/build-teaser.mjs",
     "report": "node scripts/build-report.mjs",
     "related": "node scripts/build-related.mjs",
     "geo-monitor": "node --experimental-strip-types scripts/geo-monitor.ts",

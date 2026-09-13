@@ -2,6 +2,9 @@ name: EDGAR probe (temporary)
 
 on:
   workflow_dispatch: {}
+  push:
+    paths:
+      - '.github/workflows/edgar-probe.yml'
 
 jobs:
   probe:

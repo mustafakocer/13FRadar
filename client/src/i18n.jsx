@@ -299,6 +299,7 @@ const dict = {
     'stock.prevClose': 'Önceki Kapanış',
     'stock.volume': 'Hacim',
     'stock.mktCap': 'Piyasa Değeri',
+    'stock.dayRange': 'Gün Aralığı',
     'stock.range52': '52 Hafta Aralığı',
     'stock.valuation': 'Değerleme Oranları',
     'stock.trailingPE': 'F/K (Son 12 Ay)',
@@ -437,10 +438,6 @@ const dict = {
     'stock.ownershipFilings': 'Eşleşen dosyalama',
     'stock.ownershipNote':
       'EDGAR tam metin aramasında bu CUSIP\'i bildiren fonlardan en büyükleri; tüm sahiplerin tam listesi değildir.',
-    'stock.filings13dg': 'Büyük Ortak Hamleleri (13D/13G)',
-    'stock.filings13dgNote':
-      '13D = aktivist niyetli %5+ ortaklık, 13G = pasif %5+ ortaklık. Detay için EDGAR bağlantısına tıklayın.',
-    'stock.view': 'Görüntüle',
 
     'manager.print': 'PDF / Yazdır',
     'manager.options': 'Opsiyon Bahisleri (PUT/CALL)',
@@ -1108,6 +1105,7 @@ const dict = {
     'stock.prevClose': 'Prev Close',
     'stock.volume': 'Volume',
     'stock.mktCap': 'Market Cap',
+    'stock.dayRange': 'Day Range',
     'stock.range52': '52 Week Range',
     'stock.valuation': 'Valuation Ratios',
     'stock.trailingPE': 'P/E (TTM)',
@@ -1243,10 +1241,6 @@ const dict = {
     'stock.ownershipFilings': 'Matching filings',
     'stock.ownershipNote':
       'The largest funds reporting this CUSIP via EDGAR full-text search; not an exhaustive list of all holders.',
-    'stock.filings13dg': 'Major Stakeholder Moves (13D/13G)',
-    'stock.filings13dgNote':
-      '13D = activist 5%+ stake, 13G = passive 5%+ stake. Click the EDGAR link for details.',
-    'stock.view': 'View',
 
     'manager.print': 'PDF / Print',
     'manager.options': 'Option Positions',

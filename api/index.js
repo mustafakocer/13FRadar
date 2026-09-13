@@ -17,7 +17,6 @@ import insiders from './_handlers/insiders.js';
 import backtest from './_handlers/backtest.js';
 import positionHistory from './_handlers/position-history.js';
 import managerStats from './_handlers/manager-stats.js';
-import filings13dg from './_handlers/filings13dg.js';
 import diag from './_handlers/diag.js';
 import stripeWebhook from './_handlers/stripe-webhook.js';
 import checkout from './_handlers/checkout.js';
@@ -67,7 +66,6 @@ const ROUTES = {
   insiders: [insiders, 'ticker'],
   backtest: [backtest, 'cik'],
   'manager-stats': [managerStats, 'cik'],
-  filings13dg: [filings13dg, 'ticker'],
   holdings: [holdings, 'cik', 'acc'],
   'position-history': [positionHistory, 'cik', 'cusip'],
 };

@@ -24,12 +24,22 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import axios from 'axios';
 import { parseStringPromise, processors } from 'xml2js';
-import { classifyRole, businessDaysBetween, classifyTransaction, KEPT_CODES, selectScanDays } from '../api/_lib/insiderModel.js';
+import {
+  classifyRole,
+  businessDaysBetween,
+  classifyTransaction,
+  cleanSymbol,
+  crawlLedger,
+  KEPT_CODES,
+  selectScanDays,
+} from '../api/_lib/insiderModel.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 
 const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
 const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 25); // days scanned per run
+const MAX_DAY_ATTEMPTS = 3; // failures before a single day is left behind
+const BAN_STREAK = 3; // consecutive failures that mean EDGAR is refusing us
 const KEEP_SELLS_DAYS = 120; // sells are only needed for the activity stats
 
 const http = axios.create({
@@ -184,7 +194,7 @@ async function fromQuarterlyDatasets() {
         aff10b5: s.AFF10B5ONE ?? null,
         issuer: s.ISSUERNAME || '',
         cik: String(s.ISSUERCIK || '').padStart(10, '0'),
-        ticker: String(s.ISSUERTRADINGSYMBOL || '').trim().toUpperCase() || null,
+        ticker: cleanSymbol(s.ISSUERTRADINGSYMBOL),
       });
       if (!newest || filed > newest) newest = filed;
     }
@@ -279,7 +289,16 @@ async function publishedDays(day) {
   const url = `https://www.sec.gov/Archives/edgar/daily-index/${y}/QTR${q}/index.json`;
   let days = null;
   for (let attempt = 0; attempt < 3; attempt++) {
-    const { data, status } = await paced(() => http.get(url, { validateStatus: () => true }));
+    // A listing that cannot be read is not fatal: the crawl falls back to
+    // probing each day, exactly as it did before listings existed.
+    let data = null;
+    let status = 0;
+    try {
+      ({ data, status } = await paced(() => http.get(url, { validateStatus: () => true })));
+    } catch (e) {
+      console.warn(`  ${key}: index listing failed (${e.message})`);
+      break;
+    }
     if (status === 200 && Array.isArray(data?.directory?.item)) {
       days = new Set(
         data.directory.item
@@ -354,7 +373,7 @@ async function parseForm4(pathname, filedFallback) {
 
   const issuer = od.issuer || {};
   const s = {
-    ticker: String(issuer.issuerTradingSymbol || '').trim().toUpperCase() || null,
+    ticker: cleanSymbol(issuer.issuerTradingSymbol),
     issuer: issuer.issuerName || '',
     cik: String(issuer.issuerCik || '').padStart(10, '0'),
     filed: filedFallback,
@@ -390,9 +409,12 @@ async function parseForm4(pathname, filedFallback) {
   return rows;
 }
 
-async function fromDailyIndex(fromDay) {
+async function fromDailyIndex(fromDay, prevBadDays = {}) {
   const rows = [];
   const today = iso(new Date());
+  // day -> how many runs have failed on it; a day that has used up its
+  // attempts is left behind so it cannot hold back every day after it
+  const attempts = { ...prevBadDays };
 
   // Ask EDGAR which days it published before planning the scan, so a holiday
   // is never requested. Listings are fetched once per quarter in the range.
@@ -407,29 +429,52 @@ async function fromDailyIndex(fromDay) {
 
   // Oldest first, capped per run: a full day is ~1900 filings ≈ 4 minutes at
   // SEC's rate limit, so the backlog is worked off over consecutive nights.
-  const { days, skipped, checkpoint, remaining } = selectScanDays({ fromDay, today, published, maxDays: MAX_DAYS });
+  const { days, skipped, abandoned, checkpoint, remaining } = selectScanDays({
+    fromDay,
+    today,
+    published,
+    exhausted: (day) => (attempts[day] || 0) >= MAX_DAY_ATTEMPTS,
+    maxDays: MAX_DAYS,
+  });
   if (skipped.length) console.log(`  EDGAR published no index for ${skipped.length} day(s): ${skipped.join(', ')}`);
-  if (!days.length) return { rows, scannedThrough: checkpoint, remaining };
+  if (abandoned.length)
+    console.log(`  giving up on ${abandoned.length} day(s) EDGAR kept refusing: ${abandoned.join(', ')}`);
+
+  // Everything before the first day we are about to scan is settled: either
+  // already stored, never published, or given up on.
+  const ledger = crawlLedger({
+    badDays: attempts,
+    maxAttempts: MAX_DAY_ATTEMPTS,
+    banStreak: BAN_STREAK,
+    checkpoint,
+  });
+  // days older than the crawl's own lookback will never be scanned again
+  const floor = iso(new Date(Date.now() - 400 * 86400000));
+
+  if (!days.length) return { rows, remaining, ...ledger.finish(floor) };
   console.log(
     `Daily index: ${days.length + remaining} day(s) behind (after ${fromDay}); scanning ${days.length} this run…`
   );
+  const fail = (day, why) => {
+    const { attempts: n, banned } = ledger.fail(day);
+    console.warn(`  ${day}: ${why} — attempt ${n} of ${MAX_DAY_ATTEMPTS}`);
+    return banned;
+  };
 
-  // Everything before the first day we are about to scan is settled: either
-  // already stored or a day EDGAR never published.
-  let scannedThrough = checkpoint;
   for (const day of days) {
     let files = [];
     let status = 0;
     try {
       ({ files, status } = await dailyIndex(day));
     } catch (e) {
-      console.warn(`  ${day}: index failed (${e.message}) — stopping here`);
-      break;
+      if (fail(day, `index failed (${e.message})`)) break;
+      continue;
     }
-    // 403/429 means EDGAR is refusing us; stopping keeps the checkpoint honest
+    // 403/429 means EDGAR refused this file. One day is skipped and retried;
+    // several in a row means it is refusing us, so the run stops.
     if (status !== 200 && status !== 404) {
-      console.warn(`  ${day}: index HTTP ${status} — stopping so the day is retried next run`);
-      break;
+      if (fail(day, `index HTTP ${status}`)) break;
+      continue;
     }
     let kept = 0;
     let failed = 0;
@@ -456,13 +501,17 @@ async function fromDailyIndex(fromDay) {
       })
     );
     if (files.length && failed > files.length * 0.5) {
-      console.warn(`  ${day}: ${failed}/${files.length} filings unreadable — stopping, will retry`);
-      break;
+      if (fail(day, `${failed}/${files.length} filings unreadable`)) break;
+      continue;
     }
-    scannedThrough = day;
+    ledger.ok(day);
     console.log(`  ${day}: ${files.length} form 4s → ${kept} transactions${failed ? ` (${failed} unreadable)` : ''}`);
   }
-  return { rows, scannedThrough, remaining };
+
+  const { scannedThrough, badDays, banned, streak } = ledger.finish(floor);
+  if (banned) console.warn(`  EDGAR refused ${streak.length} days in a row — stopping this run.`);
+
+  return { rows, scannedThrough, remaining, badDays, banned };
 }
 
 // --------------------------------------------------------------- enrichment
@@ -547,7 +596,10 @@ if (!prevRows.length) {
 }
 
 const startedFrom = lastDay;
-const daily = await fromDailyIndex(lastDay || iso(new Date(Date.now() - 7 * 86400000)));
+const daily = await fromDailyIndex(
+  lastDay || iso(new Date(Date.now() - 7 * 86400000)),
+  existing.badDays || {}
+);
 fresh = fresh.concat(daily.rows);
 // The checkpoint only moves over days we actually read, plus the days EDGAR
 // never published. A throttled or failed day is left behind for the next run.
@@ -557,13 +609,16 @@ if (daily.remaining > 0) console.log(`${daily.remaining} day(s) still to backfil
 // A run that is behind and moved the checkpoint nowhere has achieved nothing,
 // and would otherwise report success and rot silently — which is how the
 // dataset sat four months stale behind a green workflow. Fail loudly instead.
-const stalled = daily.remaining > 0 && lastDay === startedFrom;
+const stalled = daily.banned || (daily.remaining > 0 && daily.scannedThrough === startedFrom);
 
 // merge, de-duplicate (accession + insider + date + shares), trim the window
 const seen = new Set();
 const all = [];
 for (const r of [...prevRows, ...fresh]) {
   if (!r?.d || r.d < cutoff) continue;
+  // rows stored before the symbol cleaner existed still carry "OMEX", (SIRI)
+  // and the odd CIK; normalise on the way through so they heal in one build
+  if (r.t) r.t = cleanSymbol(r.t);
   const cl = r.cl || classifyTransaction(r.k);
   if (cl === 'liquidity' && r.d < sellCutoff) continue;
   if (cl === 'noise' && r.d < noiseCutoff) continue;
@@ -588,7 +643,14 @@ fs.writeFileSync(META, JSON.stringify(meta));
 
 fs.writeFileSync(
   OUT,
-  JSON.stringify({ updatedAt: new Date().toISOString(), lastDay, count: all.length, companies, rows: all })
+  JSON.stringify({
+    updatedAt: new Date().toISOString(),
+    lastDay,
+    count: all.length,
+    ...(Object.keys(daily.badDays || {}).length ? { badDays: daily.badDays } : {}),
+    companies,
+    rows: all,
+  })
 );
 const teaser = buildTeaser(all, companies, meta);
 fs.writeFileSync(path.join(pubDir, 'insiders-teaser.json'), JSON.stringify(teaser));

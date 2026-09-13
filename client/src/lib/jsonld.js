@@ -115,7 +115,7 @@ export function corporation({ company, ticker, lang, path, description }) {
   };
 }
 
-export function stockDataset({ company, ticker, lang, path, description, reportDate, cusip }) {
+export function stockDataset({ company, ticker, lang, path, description, reportDate }) {
   return {
     '@context': CTX,
     '@type': 'Dataset',
@@ -127,14 +127,6 @@ export function stockDataset({ company, ticker, lang, path, description, reportD
     isBasedOn: 'https://www.sec.gov/cgi-bin/srch-edgar',
     ...(reportDate ? { temporalCoverage: reportDate, dateModified: reportDate } : {}),
     keywords: ['13F', ticker, company, 'institutional ownership'],
-    distribution: [
-      {
-        '@type': 'DataDownload',
-        encodingFormat: 'text/csv',
-        contentUrl: `__SITE__/api/export/holders/${encodeURIComponent(cusip || company)}`,
-        name: 'Holders CSV (Pro)',
-      },
-    ],
   };
 }
 

@@ -6,7 +6,7 @@ import { invoke, withBudget } from '../_lib/ssr/invoke.js';
 import manager from './manager.js';
 import holdings from './holdings.js';
 import stock from './stock.js';
-import holders from './holders.js';
+import { createRequire } from 'node:module';
 import fsSync from 'node:fs';
 
 // GET /api/og                         → default brand card
@@ -77,19 +77,32 @@ async function guruCard(cik) {
   });
 }
 
+// The superinvestors that actually hold the stock, from the same consensus
+// file the page renders — not a count of EDGAR full-text search hits.
+const ogRequire = createRequire(import.meta.url);
+function consensusRowFor(ticker) {
+  try {
+    const c = ogRequire('../../client/public/consensus.json');
+    return (c?.mostHeld || []).find((r) => r.ticker === ticker) || null;
+  } catch {
+    return null;
+  }
+}
+
 async function stockCard(ticker) {
   const s = await withBudget(invoke(stock, { ticker }), 8000);
   if (!s || s.status !== 200) return null;
   const p = s.body.price || {};
-  const q = p.name ? p.name.replace(/\.$/, '') : null;
-  const h = q ? await withBudget(invoke(holders, { q }), 8000) : null;
-  const top = (h?.body?.holders || []).slice(0, 3).map((x) => [clip(x.name, 28), `${x.filings} filings`]);
+  const row = consensusRowFor((p.symbol || ticker || '').toUpperCase());
+  const top = (row?.holders || [])
+    .slice(0, 3)
+    .map((x) => [clip(x.name, 28), x.weight != null ? `${x.weight.toFixed(1)}% of portfolio` : '']);
   return card({
     kicker: 'WHO OWNS IT · FORM 13F',
     title: `${p.symbol || ticker} · ${p.name || ''}`,
     sub: p.price != null ? `${p.price.toFixed(2)} ${p.currency || 'USD'}${p.changePercent != null ? ` (${p.changePercent >= 0 ? '+' : ''}${p.changePercent.toFixed(2)}%)` : ''}` : '',
     stats: [
-      ['13F holders', h?.body?.total != null ? String(h.body.total) : '—'],
+      ['Superinvestors', row?.holderCount != null ? String(row.holderCount) : '—'],
       ['Market cap', money(p.marketCap)],
       ['P/E', s.body.valuation?.trailingPE != null ? s.body.valuation.trailingPE.toFixed(1) : '—'],
     ],

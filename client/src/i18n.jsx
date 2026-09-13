@@ -35,7 +35,7 @@ const dict = {
       "Buffett'tan Burry'ye efsane yatırımcıların birleşik görünümü: en çok tuttukları, bu çeyrek aldıkları ve sattıkları.",
     'landing.f3.t': 'Hisseyi Kimler Tutuyor?',
     'landing.f3.d':
-      'Herhangi bir hisse için en büyük kurumsal sahipler, adet değişimleri, 13D/G aktivist bildirimleri ve içeriden işlemler.',
+      'Herhangi bir hisse için usta yatırımcı sinyali, çeyreklik adet değişimleri, içeriden işlemler ve değerleme rasyoları.',
     'landing.f4.t': 'Fon Bul',
     'landing.f4.d':
       'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; gizli kalmış odaklı fonları keşfedin.',
@@ -379,9 +379,6 @@ const dict = {
     'reco.hold': 'Tut',
     'reco.underperform': 'Zayıf Performans',
     'reco.sell': 'Sat',
-    'stock.holders': 'Bu Hisseye Yatırım Yapan Fonlar',
-    'stock.holdersNote':
-      'EDGAR 13F tam metin aramasındaki ilk sonuçlar; sayı, eşleşen dosyalama adedidir.',
 
     'compare.title': 'Portföy Karşılaştırma',
     'compare.subtitle': 'İki fon yöneticisinin son çeyrek portföylerini yan yana inceleyin.',
@@ -492,7 +489,7 @@ const dict = {
     'pricing.pf4': 'Ustaların en çok tuttuğu hisseler',
     'pricing.pp1': 'Tüm pozisyon tabloları + Δ değişim kolonu',
     'pricing.pp2': 'Ustaların alım-satımları + portföye yeni girenler',
-    'pricing.pp3': 'Kurumsal sahiplik, 13D/G ve insider işlemleri',
+    'pricing.pp3': 'Hisse bazında kurumsal sahiplik detayı ve insider işlemleri',
     'pricing.pp4': 'Pozisyon ağırlık geçmişi',
     'pricing.pp5': 'Kopyalama backtesti',
     'pricing.pp6': "Tam evren tarayıcı (8.000+ fon)",
@@ -841,7 +838,7 @@ const dict = {
       'A merged view of elite funds: most held stocks, top buys and sells this quarter, and a new-position radar.',
     'landing.f3.t': 'Who Owns This Stock?',
     'landing.f3.d':
-      'For any ticker: the largest institutional holders, share-count changes, 13D/G activist filings and insider trades.',
+      'For any ticker: the superinvestor signal, quarterly share changes, insider trades and valuation ratios.',
     'landing.f4.t': 'Fund Screener',
     'landing.f4.d':
       'Filter the entire 13F universe by AUM, position count and concentration; surface under-the-radar focused funds.',
@@ -1185,9 +1182,6 @@ const dict = {
     'reco.hold': 'Hold',
     'reco.underperform': 'Underperform',
     'reco.sell': 'Sell',
-    'stock.holders': 'Funds Reporting This Security',
-    'stock.holdersNote':
-      'Top results from EDGAR 13F full-text search; the count is matching filings.',
 
     'compare.title': 'Portfolio Comparison',
     'compare.subtitle': 'Compare the latest quarterly portfolios of two fund managers side by side.',
@@ -1295,7 +1289,7 @@ const dict = {
     'pricing.pf4': 'Consensus: most held stocks',
     'pricing.pp1': 'Full holdings tables + Δ change column',
     'pricing.pp2': 'Consensus buys/sells + new position radar',
-    'pricing.pp3': 'Institutional ownership, 13D/G and insider trades',
+    'pricing.pp3': 'Per-stock institutional ownership detail and insider trades',
     'pricing.pp4': 'Position weight history',
     'pricing.pp5': 'Copy-the-13F backtest',
     'pricing.pp6': 'Full-universe screener (8,000+ funds)',

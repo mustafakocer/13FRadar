@@ -124,13 +124,19 @@ export function guruAnswerFromHistory({ name, firm, history, update, tickerOf = 
 // Stock ---------------------------------------------------------------------
 // input: { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder: {name, weight}, filers }
 export function stockAnswer(input, lang = 'en') {
-  const { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder, filers } = input;
+  const { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder, price, currency, marketCap } = input;
   if (!company || !ticker) return null;
+  // Outside the tracked set there is no ownership number worth stating, so the
+  // answer says that plainly and falls back to the quote rather than counting
+  // EDGAR search hits, which said more about who files often than who owns it.
   if (holderCount == null) {
-    if (filers == null) return null;
+    const quote = [
+      price != null ? `${lang === 'tr' ? 'Fiyat' : 'Price'} ${price.toFixed(2)} ${currency || 'USD'}` : null,
+      marketCap ? `${lang === 'tr' ? 'piyasa değeri' : 'market cap'} ${fmtMoney(marketCap)}` : null,
+    ].filter(Boolean).join('; ');
     return lang === 'tr'
-      ? `${company} (${ticker}) hissesi, SEC Form 13F bildirimlerinde ${num(filers, lang)} kurumsal yatırımcı tarafından raporlanıyor. Takip edilen usta yatırımcı setinin en çok tutulan 30 hissesi arasında değil.`
-      : `${company} (${ticker}) is reported by ${num(filers, lang)} institutional 13F filers. It is not among the 30 most-held stocks of the tracked superinvestor set.`;
+      ? `${company} (${ticker}) hissesi, takip edilen usta yatırımcı setinin en çok tutulan 30 hissesi arasında değil.${quote ? ` ${quote}.` : ''}`
+      : `${company} (${ticker}) is not among the 30 most-held stocks of the tracked superinvestor set.${quote ? ` ${quote}.` : ''}`;
   }
   const q = quarterOf(reportDate, lang);
   if (lang === 'tr') {
@@ -145,9 +151,13 @@ export function stockAnswer(input, lang = 'en') {
   return s;
 }
 
-export function stockAnswerFromPage({ ticker, company, consensusRow, reportDate, holders }, lang) {
+export function stockAnswerFromPage({ ticker, company, consensusRow, reportDate, quote }, lang) {
   if (!company || !ticker) return null;
-  if (!consensusRow) return stockAnswer({ company, ticker, filers: holders?.total ?? holders?.holders?.length ?? null }, lang);
+  if (!consensusRow)
+    return stockAnswer(
+      { company, ticker, price: quote?.price, currency: quote?.currency, marketCap: quote?.marketCap },
+      lang
+    );
   const top = consensusRow.holders?.[0];
   return stockAnswer(
     {

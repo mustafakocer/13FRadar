@@ -1,5 +1,5 @@
 // Deterministic offline fixtures for SSR tests: three filers with two
-// quarters each, three tickers, holders for the matching names/CUSIPs.
+// quarters each, three tickers.
 // Values are synthetic (rounded, clearly not real filings) — they exercise
 // the rendering path, not the data.
 import fs from 'node:fs';
@@ -80,9 +80,6 @@ for (const [sym, [cusip, issuer, name, px]] of Object.entries(STOCKS)) {
     income: [], balance: [], cashflow: [], earnings: [],
     history: { ret1y: 20.1, retYtd: 8.4, ret1d: 0.53 },
   });
-  const holders = FILERS.filter((f) => f.cur.some((r) => r[0] === sym)).map((f) => ({ cik: f.cik, name: f.name, filings: 8 }));
-  const payload = { total: holders.length * 137, holders };
-  w(`holders/${cusip}.json`, payload);
-  w(`holders/${name.replace(/\.$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-')}.json`, payload);
+
 }
 console.log('fixtures written to', out);

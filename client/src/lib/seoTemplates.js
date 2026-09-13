@@ -69,10 +69,10 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
   };
 }
 
-export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow, reportDate }) {
+export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate }) {
   const sym = (stock?.price?.symbol || ticker || '').toUpperCase();
   const company = stock?.price?.name || sym;
-  const n = holders?.total ?? holders?.holders?.length;
+  const n = consensusRow?.holderCount;
   const price = stock?.price?.price;
   const title =
     lang === 'tr'
@@ -80,18 +80,20 @@ export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow, re
       : `${sym} — Which Superinvestors Hold ${company}? | 13F Radar`;
   let description;
   if (lang === 'tr') {
-    description = n != null ? `${num(n, lang)} kurumsal yatırımcı ${company} (${sym}) hissesini 13F bildiriminde raporluyor.` : `${company} (${sym}) hissesinin kurumsal sahipleri.`;
+    description = n ? `${num(n, lang)} usta yatırımcı ${company} (${sym}) hissesini 13F bildiriminde raporluyor.` : `${company} (${sym}) hissesinin kurumsal sahipliği.`;
     if (price != null) description += ` Fiyat ${price.toFixed(2)} ${stock?.price?.currency || 'USD'}.`;
-    description += ' En büyük sahipler, çeyreklik adet değişimleri, usta yatırımcı sinyali ve rasyolar.';
+    description += ' Usta yatırımcı sinyali, çeyreklik adet değişimleri, içeriden işlemler ve rasyolar.';
   } else {
-    description = n != null ? `${num(n, lang)} institutional filers report ${company} (${sym}) on Form 13F.` : `Institutional owners of ${company} (${sym}).`;
+    description = n ? `${num(n, lang)} tracked superinvestors report ${company} (${sym}) on Form 13F.` : `Institutional ownership of ${company} (${sym}).`;
     if (price != null) description += ` Price ${price.toFixed(2)} ${stock?.price?.currency || 'USD'}.`;
-    description += ' Largest holders, quarterly share changes, superinvestor signal and valuation ratios.';
+    description += ' Superinvestor signal, quarterly share changes, insider trades and valuation ratios.';
   }
   const path = `/stock/${sym}`;
-  const answer = stock ? stockAnswerFromPage({ ticker: sym, company, consensusRow, reportDate, holders }, lang) : null;
+  const answer = stock
+    ? stockAnswerFromPage({ ticker: sym, company, consensusRow, reportDate, quote: stock.price }, lang)
+    : null;
   if (answer) description = truncate155(answer);
-  const faq = stockFaq({ lang, ticker: sym, company, holders, consensusRow });
+  const faq = stockFaq({ lang, ticker: sym, company, consensusRow });
   return {
     title,
     description,
@@ -106,7 +108,7 @@ export function stockSeo({ lang, ticker, cusip, stock, holders, consensusRow, re
       ...(stock
         ? [
             corporation({ company, ticker: sym, lang, path, description: answer || description }),
-            stockDataset({ company, ticker: sym, lang, path, description: answer || description, reportDate, cusip: cusip || consensusRow?.cusip || null }),
+            stockDataset({ company, ticker: sym, lang, path, description: answer || description, reportDate }),
           ]
         : []),
       breadcrumbs(lang, [[lang === 'tr' ? 'Hisseler' : 'Stocks', '/consensus'], [`${company} (${sym})`, path]]),
@@ -273,11 +275,11 @@ export function managerFaq({ lang, name, filing, holdings, prevPositions }) {
   ];
 }
 
-// Programmatic FAQ for a stock page — holders from EDGAR full-text search and
-// buyer/seller counts from the superinvestor consensus file.
-export function stockFaq({ lang, ticker, company, holders, consensusRow }) {
-  const names = (holders?.holders || []).slice(0, 5).map((h) => h.name);
-  const total = holders?.total ?? holders?.holders?.length ?? 0;
+// Programmatic FAQ for a stock page. Both answers come from the superinvestor
+// consensus file: who holds the stock, and how the group moved last quarter.
+export function stockFaq({ lang, ticker, company, consensusRow }) {
+  const names = (consensusRow?.holders || []).slice(0, 5).map((h) => h.name);
+  const total = consensusRow?.holderCount ?? names.length;
   const buyers = consensusRow?.buyers ?? 0;
   const sellers = consensusRow?.sellers ?? 0;
   const tone = buyers > sellers ? 'bullish' : sellers > buyers ? 'bearish' : 'neutral';
@@ -287,8 +289,8 @@ export function stockFaq({ lang, ticker, company, holders, consensusRow }) {
       [
         `${ticker} hissesini hangi usta yatırımcılar tutuyor?`,
         names.length
-          ? `${company} (${ticker}) hissesini 13F bildiriminde raporlayan ${total} kurum var. Öne çıkan sahipler: ${list(names, lang)}.`
-          : `${company} (${ticker}) için henüz 13F sahiplik verisi yok.`,
+          ? `${company} (${ticker}) hissesini takip edilen ${total} usta yatırımcı 13F bildiriminde raporluyor. Öne çıkan sahipler: ${list(names, lang)}.`
+          : `${company} (${ticker}) takip edilen usta yatırımcı setinin en çok tutulan 30 hissesi arasında değil.`,
       ],
       [
         `${ticker} için kurumsal duyarlılık boğa mı ayı mı?`,
@@ -302,8 +304,8 @@ export function stockFaq({ lang, ticker, company, holders, consensusRow }) {
     [
       `Which superinvestors own ${ticker}?`,
       names.length
-        ? `${total} institutional filers report ${company} (${ticker}) on Form 13F. Notable holders include ${list(names, lang)}.`
-        : `No 13F ownership data is available for ${company} (${ticker}) yet.`,
+        ? `${total} tracked superinvestors report ${company} (${ticker}) on Form 13F. Notable holders include ${list(names, lang)}.`
+        : `${company} (${ticker}) is not among the 30 most-held stocks of the tracked superinvestor set.`,
     ],
     [
       `Is institutional sentiment on ${ticker} bullish or bearish?`,

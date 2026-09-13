@@ -5,7 +5,6 @@
 import search from './_handlers/search.js';
 import returns from './_handlers/returns.js';
 import sectors from './_handlers/sectors.js';
-import holders from './_handlers/holders.js';
 import consensus from './_handlers/consensus.js';
 import stockOwnership from './_handlers/stock-ownership.js';
 import manager from './_handlers/manager.js';
@@ -56,7 +55,6 @@ const ROUTES = {
   search: [search],
   returns: [returns],
   sectors: [sectors],
-  holders: [holders],
   consensus: [consensus],
   'stock-ownership': [stockOwnership],
   manager: [manager, 'cik'],

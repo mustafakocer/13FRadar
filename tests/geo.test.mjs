@@ -7,7 +7,14 @@ import { ssr, root } from './helpers.mjs';
 import { buildSitemap } from '../api/_handlers/sitemap.js';
 
 const AI_BOTS = ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude-User', 'anthropic-ai', 'PerplexityBot', 'Perplexity-User', 'Google-Extended', 'Bingbot', 'Applebot', 'CCBot'];
-const PAGES = ['/en/guru/berkshire-hathaway-warren-buffett', '/en/stock/AAPL', '/tr/rankings/most-bought'];
+// What a crawler must find on each page. A stock page is only tabular when
+// the quote provider returns financial statements, so its marker is the quote
+// board, which every ticker has.
+const PAGES = [
+  { path: '/en/guru/berkshire-hathaway-warren-buffett', marker: /<table/ },
+  { path: '/en/stock/AAPL', marker: /class="kv-grid quote-grid/ },
+  { path: '/tr/rankings/most-bought', marker: /<table/ },
+];
 
 test('robots.txt allows every AI crawler explicitly and blocks only private/machine paths', () => {
   const { body } = buildSitemap('robots', 'https://example.test');
@@ -24,13 +31,13 @@ test('robots.txt allows every AI crawler explicitly and blocks only private/mach
   assert.match(body, /Sitemap: https:\/\/example\.test\/sitemap\.xml/);
 });
 
-test('every AI crawler UA gets full HTML (200 + <table>) on public pages — no challenge, no gating', async () => {
+test('every AI crawler UA gets full HTML with the page data — no challenge, no gating', async () => {
   for (const ua of AI_BOTS) {
-    for (const page of PAGES) {
+    for (const { path: page, marker } of PAGES) {
       const { status, html, headers } = await ssr(page, { 'user-agent': `Mozilla/5.0 (compatible; ${ua}/1.0; +https://example.org/bot)` });
       assert.equal(status, 200, `${ua} ${page}`);
       assert.match(headers['content-type'], /text\/html/);
-      assert.ok(html.includes('<table'), `${ua} ${page} has a table`);
+      assert.match(html, marker, `${ua} ${page} carries its data`);
       assert.doesNotMatch(html, /captcha|challenge-platform|cf-chl/i);
     }
   }

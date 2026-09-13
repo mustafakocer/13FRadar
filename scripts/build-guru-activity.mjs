@@ -118,14 +118,28 @@ async function profiles(symbols) {
   const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
   const unknown = symbols.filter((s) => meta[s]?.sector == null && meta[s]?.etf == null);
   console.log(`Profiles: ${unknown.length} unknown of ${symbols.length} tickers`);
+  // A refusal used to fall through the array check and leave the sector /
+  // market-cap / ETF columns silently empty, exactly as an unset key does.
+  let refusals = 0;
   for (const group of chunk(unknown, 50).slice(0, 30)) {
+    if (refusals >= 3) break;
+    let data = null;
+    let status = 0;
     try {
-      const { data } = await axios.get('https://financialmodelingprep.com/stable/profile', {
+      ({ data, status } = await axios.get('https://financialmodelingprep.com/stable/profile', {
         params: { symbol: group.join(','), apikey: key },
         timeout: 20000,
         validateStatus: () => true,
-      });
-      for (const p of Array.isArray(data) ? data : []) {
+      }));
+    } catch (e) {
+      refusals++;
+      console.warn(`  FMP profile: ${String(e.message).split(key).join('***')}`);
+      await new Promise((r) => setTimeout(r, 400));
+      continue;
+    }
+    if (status === 200 && Array.isArray(data)) {
+      refusals = 0;
+      for (const p of data) {
         const sym = String(p.symbol || '').toUpperCase();
         if (!sym) continue;
         meta[sym] = {
@@ -135,8 +149,11 @@ async function profiles(symbols) {
           etf: Boolean(p.isEtf),
         };
       }
-    } catch {
-      /* enrichment is optional */
+    } else {
+      refusals++;
+      const body = typeof data === 'object' && data ? JSON.stringify(data) : String(data ?? '');
+      console.warn(`  FMP profile: HTTP ${status} ${body.split(key).join('***').slice(0, 200)}`);
+      if (refusals >= 3) console.warn('  FMP refused three times — skipping the rest of the enrichment.');
     }
     await new Promise((r) => setTimeout(r, 400));
   }

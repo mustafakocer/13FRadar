@@ -520,20 +520,53 @@ async function fromDailyIndex(fromDay, prevBadDays = {}) {
 // for tickers we have never seen.
 async function enrich(tickers) {
   const meta = readJson(META, {});
+  const before = Object.keys(meta).length;
   const key = process.env.FMP_API_KEY;
-  if (!key) return meta;
+  if (!key) {
+    console.log('FMP_API_KEY unset — price, market cap and sector columns stay empty.');
+    return meta;
+  }
   const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+
+  // FMP answers a plan or key problem with 401/403/429, and sometimes with a
+  // 200 carrying {"Error Message": …}. Both used to fall through the array
+  // check into an empty result, so a run with the key set looked identical to
+  // one without it — which is how ticker-meta.json stayed empty behind a green
+  // workflow. Say what came back, and stop asking once it is clearly refusing.
+  let refusals = 0;
+  const fmp = async (endpoint, symbols) => {
+    if (refusals >= 3) return null;
+    let data;
+    let status = 0;
+    try {
+      ({ data, status } = await axios.get(`https://financialmodelingprep.com/stable/${endpoint}`, {
+        params: { symbol: symbols.join(','), apikey: key },
+        timeout: 20000,
+        validateStatus: () => true,
+      }));
+    } catch (e) {
+      refusals++;
+      console.warn(`  FMP ${endpoint}: ${String(e.message).split(key).join('***')}`);
+      return null;
+    }
+    if (status === 200 && Array.isArray(data)) {
+      refusals = 0;
+      return data;
+    }
+    refusals++;
+    const body = typeof data === 'object' && data ? JSON.stringify(data) : String(data ?? '');
+    const why = body.split(key).join('***').slice(0, 200);
+    console.warn(`  FMP ${endpoint}: HTTP ${status} ${why}`);
+    if (refusals >= 3) console.warn('  FMP refused three times — skipping the rest of the enrichment.');
+    return null;
+  };
 
   const unknown = tickers.filter((t) => !meta[t]?.sector);
   console.log(`Enriching: ${unknown.length} new tickers, ${tickers.length} price refreshes`);
   for (const group of chunk(unknown, 50).slice(0, 40)) {
-    try {
-      const { data } = await axios.get('https://financialmodelingprep.com/stable/profile', {
-        params: { symbol: group.join(','), apikey: key },
-        timeout: 20000,
-        validateStatus: () => true,
-      });
-      for (const p of Array.isArray(data) ? data : []) {
+    const data = await fmp('profile', group);
+    if (data) {
+      for (const p of data) {
         const sym = String(p.symbol || '').toUpperCase();
         if (!sym) continue;
         meta[sym] = {
@@ -544,19 +577,13 @@ async function enrich(tickers) {
           name: p.companyName || meta[sym]?.name || null,
         };
       }
-    } catch {
-      /* enrichment is optional */
     }
     await sleep(400);
   }
   for (const group of chunk(tickers, 50).slice(0, 60)) {
-    try {
-      const { data } = await axios.get('https://financialmodelingprep.com/stable/quote', {
-        params: { symbol: group.join(','), apikey: key },
-        timeout: 20000,
-        validateStatus: () => true,
-      });
-      for (const qd of Array.isArray(data) ? data : []) {
+    const data = await fmp('quote', group);
+    if (data) {
+      for (const qd of data) {
         const sym = String(qd.symbol || '').toUpperCase();
         if (!sym) continue;
         // vol/lo/hi drive the liquidity and off-the-low columns on the penny
@@ -571,11 +598,12 @@ async function enrich(tickers) {
           hi: num(qd.yearHigh) ?? meta[sym]?.hi,
         };
       }
-    } catch {
-      /* optional */
     }
     await sleep(400);
   }
+  const after = Object.keys(meta).length;
+  console.log(`Enriched: ${after} tickers in ticker-meta.json (was ${before})`);
+  if (!after) console.error('::warning::FMP_API_KEY is set but no ticker metadata came back — see the FMP lines above');
   return meta;
 }
 

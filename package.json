@@ -10,6 +10,7 @@
     "dev:client": "npm run dev --prefix client",
     "build": "npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
     "check:jsonld": "node scripts/check-jsonld.mjs",
+    "check:freshness": "node scripts/check-freshness.mjs",
     "llms": "node scripts/build-llms.mjs",
     "teaser": "node scripts/build-teaser.mjs",
     "report": "node scripts/build-report.mjs",

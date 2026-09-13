@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { classifyTransaction, findClusters, rowClass } from '../api/_lib/insiderModel.js';
+import { classifyTransaction, findClusters, rowClass, selectScanDays } from '../api/_lib/insiderModel.js';
 import { buildTeaser, buildPennyBoard, isPenny } from '../api/_lib/insiderTeaser.js';
 
 test('transaction taxonomy: conviction / liquidity / noise', () => {
@@ -112,4 +112,45 @@ test('teaser still carries the landing-page keys alongside the penny board', () 
   assert.ok(Array.isArray(t.signals.penny), 'the landing page still reads signals.penny');
   assert.equal(t.penny.rows[0].t, 'ABC');
   assert.equal(t.penny.maxPrice, 5);
+});
+
+test('crawl plan: a holiday EDGAR never published does not stall the checkpoint', () => {
+  // 2026-05-22 Fri stored; 2026-05-25 Mon is Memorial Day, so EDGAR published
+  // no daily index for it. Asking for it returns 403, which the crawler used
+  // to read as a ban and stop — freezing the dataset on that date.
+  const q2 = new Set(['2026-05-26', '2026-05-27', '2026-05-28', '2026-05-29']); // no 05-25
+  const plan = selectScanDays({
+    fromDay: '2026-05-22',
+    today: '2026-05-29',
+    published: () => q2,
+    maxDays: 25,
+  });
+  assert.deepEqual(plan.skipped, ['2026-05-25'], 'the holiday is dropped, not requested');
+  assert.equal(plan.days[0], '2026-05-26', 'the scan starts the day after');
+  assert.equal(plan.checkpoint, '2026-05-25', 'the checkpoint clears the holiday even if every fetch fails');
+  assert.equal(plan.remaining, 0);
+});
+
+test('crawl plan: weekends skipped, backlog capped, remainder reported', () => {
+  const plan = selectScanDays({ fromDay: '2026-05-22', today: '2026-06-30', published: () => null, maxDays: 5 });
+  assert.equal(plan.days.length, 5);
+  assert.equal(plan.days[0], '2026-05-25', 'an unreadable listing keeps every candidate day');
+  assert.ok(plan.remaining > 0, 'the rest is left for the next run');
+  for (const d of [...plan.days, ...plan.skipped]) {
+    const dow = new Date(`${d}T00:00:00Z`).getUTCDay();
+    assert.ok(dow !== 0 && dow !== 6, `${d} is a weekday`);
+  }
+});
+
+test('crawl plan: nothing to do when the checkpoint is current', () => {
+  const plan = selectScanDays({ fromDay: '2026-05-29', today: '2026-05-29', published: () => null });
+  assert.deepEqual(plan.days, []);
+  assert.equal(plan.checkpoint, '2026-05-29', 'the checkpoint holds');
+  assert.equal(plan.remaining, 0);
+});
+
+test('crawl plan: a run of holidays still advances the checkpoint', () => {
+  const plan = selectScanDays({ fromDay: '2026-05-22', today: '2026-05-26', published: () => new Set(), maxDays: 25 });
+  assert.deepEqual(plan.days, [], 'nothing to fetch');
+  assert.equal(plan.checkpoint, '2026-05-26', 'moves past every unpublished day');
 });

@@ -129,3 +129,45 @@ export function findClusters(rows, windowDays = 7) {
   }
   return out;
 }
+
+// ---------------------------------------------------------------- crawl plan
+export const prevDay = (day) =>
+  new Date(new Date(`${day}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
+
+// Which days the daily-index crawl should fetch next, and where the checkpoint
+// lands if it fetches none of them.
+//
+// EDGAR answers 403 — not 404 — for a daily-index file that does not exist,
+// and every federal holiday is such a day, so a holiday is indistinguishable
+// from a rate-limit refusal. `published(day)` returns the set of days EDGAR
+// actually listed for that day's quarter (or null when the listing could not
+// be read, in which case the day is kept and probed as before).
+//
+// The checkpoint moves past every settled day — already stored, or never
+// published — even when the fetch fails. Without that, a single holiday
+// stalls the crawl on the same date forever.
+export function selectScanDays({ fromDay, today, published = () => null, maxDays = 25, lookback = 400 }) {
+  const all = [];
+  const start = new Date(`${today}T00:00:00Z`).getTime();
+  for (let i = 0; i < lookback; i++) {
+    const d = new Date(start - i * 86400000);
+    const day = d.toISOString().slice(0, 10);
+    if (day <= fromDay) break;
+    const dow = d.getUTCDay();
+    if (dow === 0 || dow === 6) continue;
+    all.push(day);
+  }
+  all.reverse();
+
+  const candidates = [];
+  const skipped = [];
+  for (const day of all) {
+    const set = published(day);
+    if (!set || set.has(day)) candidates.push(day);
+    else skipped.push(day);
+  }
+
+  const days = candidates.slice(0, maxDays);
+  const checkpoint = days.length ? prevDay(days[0]) : all.length ? all[all.length - 1] : fromDay;
+  return { days, skipped, checkpoint, remaining: candidates.length - days.length };
+}

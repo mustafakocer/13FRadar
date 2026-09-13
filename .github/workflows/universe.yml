@@ -3,9 +3,10 @@ name: Build 13F universe
 on:
   workflow_dispatch: {}
   schedule:
-    # Mondays 03:00 UTC — 13F data only changes around quarterly deadlines,
-    # weekly keeps the file fresh without hammering EDGAR.
-    - cron: '0 3 * * 1'
+    # 03:00 UTC daily. The universe only really moves around quarterly
+    # deadlines, so most runs commit nothing — but when a deadline passes the
+    # file is current the next morning instead of the next Monday.
+    - cron: '0 3 * * *'
 
 permissions:
   contents: write

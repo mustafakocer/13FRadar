@@ -42,7 +42,7 @@ const esc = (s) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-export const DEFAULT_TITLE = { en: '13F Radar — Track the Smart Money & Insiders', tr: '13F Radar — Akıllı Parayı ve İçeriden Alımları Takip Edin' };
+export const DEFAULT_TITLE = { en: 'Fundocap — Track the Smart Money & Insiders', tr: 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' };
 export const DEFAULT_DESC = {
   en: "Follow the real money flows of Wall Street's top funds and corporate insiders with SEC 13F and Form 4 data.",
   tr: "Wall Street'in en büyük fonlarının ve şirket yöneticilerinin gerçek para akışını SEC 13F ve Form 4 verisiyle izleyin.",
@@ -69,7 +69,7 @@ export function headTags(spec, { siteUrl }) {
     { tag: 'meta', property: 'og:description', content: description },
     { tag: 'meta', property: 'og:url', content: url },
     { tag: 'meta', property: 'og:type', content: spec.type || 'website' },
-    { tag: 'meta', property: 'og:site_name', content: '13F Radar' },
+    { tag: 'meta', property: 'og:site_name', content: 'Fundocap' },
     { tag: 'meta', property: 'og:locale', content: lang === 'tr' ? 'tr_TR' : 'en_US' },
     { tag: 'meta', property: 'og:locale:alternate', content: lang === 'tr' ? 'en_US' : 'tr_TR' },
     { tag: 'meta', property: 'og:image', content: image },

@@ -1,4 +1,4 @@
-# 📡 13F Radar
+# 📡 Fundocap
 
 SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden, Finimize esintili tasarıma sahip web uygulaması.
 
@@ -147,11 +147,11 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
 ## 🚀 Canlıya Alma (Vercel)
 
 1. Bu branch'i `main`'e merge edin (veya doğrudan bu branch'i deploy edin).
-2. [vercel.com](https://vercel.com) → **Add New → Project** → GitHub'dan `mustafakocer/13FRadar` reposunu import edin.
+2. [vercel.com](https://vercel.com) → **Add New → Project** → GitHub'dan `mustafakocer/Fundocap` reposunu import edin.
 3. Ayarlara dokunmanıza gerek yok — `vercel.json` her şeyi tanımlıyor (client build + `api/` fonksiyonları + SPA rewrites). Framework sorusuna **Other** deyin.
 4. **Deploy** butonuna basın. İlk build ~2 dk sürer.
 5. Environment Variables — **`SITE_URL` production'da zorunludur** (yoksa build kasıtlı olarak durur). Diğerleri:
-   - `SEC_USER_AGENT` → `13FRadar/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
+   - `SEC_USER_AGENT` → `Fundocap/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
    - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.
    - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).

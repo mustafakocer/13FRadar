@@ -9,7 +9,7 @@ test('validator catches missing fields, placeholders and relative URLs', () => {
   assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Dataset', name: 'x' }).length >= 3);
   assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Person', name: 'A', url: '/en/x' }).some((e) => /absolute/.test(e)));
   assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Organization', name: '__SITE__' }).some((e) => /placeholder/.test(e)));
-  assert.deepEqual(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Organization', name: '13F Radar', url: 'https://x.test/en' }), []);
+  assert.deepEqual(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Fundocap', url: 'https://x.test/en' }), []);
 });
 
 test('guru page stacks Person + Dataset + FAQPage + BreadcrumbList and validates', async () => {

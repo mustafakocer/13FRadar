@@ -35,7 +35,7 @@ import {
 } from '../api/_lib/insiderModel.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 
-const UA = process.env.SEC_USER_AGENT || '13FRadar insider bot (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap insider bot (kocergpt@gmail.com)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
 const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || 25); // days scanned per run
 const MAX_DAY_ATTEMPTS = 3; // failures before a single day is left behind

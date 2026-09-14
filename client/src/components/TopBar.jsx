@@ -116,7 +116,7 @@ export default function TopBar({ theme, onToggleTheme }) {
     <header className="topbar no-print">
       <div className="topbar-inner">
         <Link to="/" className="brand">
-          <Ico icon={Radar} size={22} /> 13F<span className="dot">Radar</span>
+          <Ico icon={Radar} size={22} /> <span>Fundo<span className="dot">cap</span></span>
         </Link>
 
         <nav className="nav-tabs" aria-label="Main">

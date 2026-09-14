@@ -133,7 +133,7 @@ export default function Insiders() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Insider İşlemleri: SEC Form 4 Alım-Satım Akışı | 13F Radar' : 'Insider Trading: SEC Form 4 Buy & Sell Feed | 13F Radar',
+        title: lang === 'tr' ? 'Insider İşlemleri: SEC Form 4 Alım-Satım Akışı | Fundocap' : 'Insider Trading: SEC Form 4 Buy & Sell Feed | Fundocap',
         description: lang === 'tr' ? 'CEO, CFO ve yönetim kurulu üyelerinin kendi şirket hisselerindeki açık piyasa alım-satımları; küme alımları, filtreler ve getiri takibi.' : 'Open-market buys and sells by CEOs, CFOs and directors in their own companies; cluster buys, filters and return tracking.',
         path: '/insiders',
       }),

@@ -26,7 +26,7 @@ export default function Account() {
   useSeo(
     useMemo(
       () => ({
-        title: `${t('account.title')} — 13F Radar`,
+        title: `${t('account.title')} — Fundocap`,
         description: '',
         path: '/account',
         noindex: true,

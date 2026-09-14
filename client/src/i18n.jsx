@@ -47,7 +47,7 @@ const dict = {
       "Portföyleri Excel'e aktarın, sayfaları PDF raporuna çevirin, izleme listenizle yeni dosyalamaları kaçırmayın.",
     'landing.how': 'Nasıl Çalışır?',
     'landing.how1': "ABD'de 100 milyon $ üzeri varlık yöneten her kurum, portföyünü her çeyrek SEC'e bildirmek zorundadır (Form 13F).",
-    'landing.how2': '13F Radar bu dosyalamaları anında çeker, ayrıştırır ve anlaşılır portföy görünümlerine çevirir.',
+    'landing.how2': 'Fundocap bu dosyalamaları anında çeker, ayrıştırır ve anlaşılır portföy görünümlerine çevirir.',
     'landing.how3': 'Siz de kurumsal yatırımcıların ne alıp sattığını herkesle aynı anda, ücretsiz görürsünüz.',
     'footer.disclaimer':
       'Bu sitedeki hiçbir içerik yatırım tavsiyesi değildir. Veriler SEC EDGAR ve halka açık kaynaklardan otomatik derlenir; doğruluğu garanti edilmez. 13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır ve geçmişe dönüktür.',
@@ -431,7 +431,7 @@ const dict = {
     'nav.account': 'Hesabım',
     'paywall.title': 'Pro Özellik',
     'paywall.desc':
-      'Bu bölüm 13F Radar Pro abonelerine özeldir. Tam pozisyon tabloları, ustaların alım-satımları, sahiplik analizi ve dışa aktarma Pro ile açılır.',
+      'Bu bölüm Fundocap Pro abonelerine özeldir. Tam pozisyon tabloları, ustaların alım-satımları, sahiplik analizi ve dışa aktarma Pro ile açılır.',
     'paywall.cta': "Pro'ya Geç",
     'pricing.title': 'Fiyatlandırma',
     'pricing.subtitle': 'Kurumsal yatırımcı verisi, bireysel yatırımcı fiyatına.',
@@ -796,7 +796,7 @@ const dict = {
       'Export portfolios to Excel, print clean PDF reports, and never miss a new filing with your watchlist.',
     'landing.how': 'How It Works',
     'landing.how1': 'Every institution managing over $100M in the US must disclose its portfolio to the SEC each quarter (Form 13F).',
-    'landing.how2': '13F Radar fetches and parses these filings instantly, turning them into readable portfolio views.',
+    'landing.how2': 'Fundocap fetches and parses these filings instantly, turning them into readable portfolio views.',
     'landing.how3': 'You see what institutional investors bought and sold — at the same moment as everyone else, for free.',
     'footer.disclaimer':
       'Nothing on this site is investment advice. Data is compiled automatically from SEC EDGAR and public sources; accuracy is not guaranteed. 13F filings are disclosed up to 45 days after quarter end and are backward-looking.',
@@ -1177,7 +1177,7 @@ const dict = {
     'nav.account': 'Account',
     'paywall.title': 'Pro Feature',
     'paywall.desc':
-      'This section is exclusive to 13F Radar Pro. Full holdings tables, consensus trades, ownership analysis, backtests and exports unlock with Pro.',
+      'This section is exclusive to Fundocap Pro. Full holdings tables, consensus trades, ownership analysis, backtests and exports unlock with Pro.',
     'paywall.cta': 'Upgrade to Pro',
     'pricing.title': 'Pricing',
     'pricing.subtitle': 'Institutional-grade data at a retail price.',

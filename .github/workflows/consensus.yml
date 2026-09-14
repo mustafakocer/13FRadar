@@ -38,13 +38,13 @@ jobs:
       - name: Build consensus.json & returns.json
         run: node scripts/build-consensus.mjs
         env:
-          SEC_USER_AGENT: '13FRadar bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
       - name: Build guru-history.json (10 years, curated gurus) & splits.json
         run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs
         env:
-          SEC_USER_AGENT: '13FRadar bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
       # pivots guru-history by quarter for /report, and fills in sector,
       # market cap and the ETF flag when an FMP key is configured

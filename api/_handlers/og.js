@@ -45,7 +45,7 @@ function card({ kicker, title, sub, stats = [], rows = [] }) {
   <defs><radialGradient id="g" cx="85%" cy="15%" r="70%"><stop offset="0" stop-color="#12264f"/><stop offset="1" stop-color="#0d1b3e"/></radialGradient></defs>
   <rect width="1200" height="630" fill="url(#g)"/>
   <rect x="0" y="0" width="1200" height="8" fill="#ffd250"/>
-  <text x="80" y="90" font-size="30" font-weight="bold" fill="#ffffff">13F<tspan fill="#ffd250"> Radar</tspan></text>
+  <text x="80" y="90" font-size="30" font-weight="bold" fill="#ffffff">Fundo<tspan fill="#ffd250">cap</tspan></text>
   <text x="80" y="160" font-size="22" fill="#ffd250" letter-spacing="3">${esc(kicker)}</text>
   <text x="80" y="235" font-size="${title.length > 34 ? 44 : 56}" font-weight="bold" fill="#ffffff">${esc(clip(title, 46))}</text>
   <text x="80" y="290" font-size="26" fill="#c3cbdd">${esc(clip(sub, 80))}</text>
@@ -125,7 +125,7 @@ function barChart({ title, sub, rows, color, valueOf, labelOf }) {
     .join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" font-family="DejaVu Sans">
   <rect width="1200" height="630" fill="#0d1b3e"/><rect x="0" y="0" width="1200" height="8" fill="#ffd250"/>
-  <text x="80" y="80" font-size="30" font-weight="bold" fill="#ffffff">13F<tspan fill="#ffd250"> Radar</tspan></text>
+  <text x="80" y="80" font-size="30" font-weight="bold" fill="#ffffff">Fundo<tspan fill="#ffd250">cap</tspan></text>
   <text x="80" y="128" font-size="38" font-weight="bold" fill="#ffffff">${esc(clip(title, 50))}</text>
   <text x="80" y="160" font-size="22" fill="#c3cbdd">${esc(clip(sub, 90))}</text>
   ${bars}

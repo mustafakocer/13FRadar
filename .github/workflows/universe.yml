@@ -26,7 +26,7 @@ jobs:
       - name: Build universe.json
         run: node scripts/build-universe.mjs
         env:
-          SEC_USER_AGENT: '13FRadar universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
       - name: Commit if changed
         run: |

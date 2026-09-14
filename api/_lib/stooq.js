@@ -5,7 +5,7 @@ import { cached, TTL } from './cache.js';
 // IPs — used as the fallback when Yahoo rate-limits the serverless region.
 const http = axios.create({
   timeout: 15000,
-  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; 13FRadar/1.0)' },
+  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Fundocap/1.0)' },
 });
 
 export function stooqDaily(symbol) {

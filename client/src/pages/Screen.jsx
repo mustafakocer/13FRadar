@@ -54,7 +54,7 @@ export default function Screen() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Fon Tarayıcı: 8.000+ 13F Dosyalayan Kurumu Filtreleyin | 13F Radar' : 'Fund Screener: Filter 8,000+ 13F Filers | 13F Radar',
+        title: lang === 'tr' ? 'Fon Tarayıcı: 8.000+ 13F Dosyalayan Kurumu Filtreleyin | Fundocap' : 'Fund Screener: Filter 8,000+ 13F Filers | Fundocap',
         description: lang === 'tr' ? 'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; odaklı fonları keşfedin.' : 'Filter the entire 13F universe by AUM, position count and concentration; discover focused funds.',
         path: '/screen',
       }),

@@ -14,7 +14,7 @@ import { Star, Bell } from 'lucide-react';
 export default function Watchlist() {
   const { t, lang } = useI18n();
   const { favorites, toggleFavorite } = useFavorites();
-  useSeo(useMemo(() => ({ title: `${t('watchlist.title')} — 13F Radar`, path: '/watchlist', noindex: true }), [t, lang]));
+  useSeo(useMemo(() => ({ title: `${t('watchlist.title')} — Fundocap`, path: '/watchlist', noindex: true }), [t, lang]));
 
   // check each favorite's latest filing for a NEW badge
   const infos = useQueries({

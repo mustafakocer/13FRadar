@@ -1,9 +1,9 @@
 {
-  "name": "13fradar",
+  "name": "fundocap",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "13F Radar — SEC 13F filings intelligence platform",
+  "description": "Fundocap — SEC 13F filings intelligence platform",
   "scripts": {
     "dev": "node server.js",
     "check-env": "node scripts/check-env.mjs",

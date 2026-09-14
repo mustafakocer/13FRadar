@@ -5,7 +5,7 @@ import { getSubmissions, numCik } from '../_lib/sec.js';
 import { tickerToCik } from '../_lib/tickers.js';
 import { requirePro } from '../_lib/auth.js';
 
-const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
 const http = axios.create({ timeout: 20000, headers: { 'User-Agent': UA } });
 
 const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);

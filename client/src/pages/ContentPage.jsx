@@ -46,7 +46,7 @@ export default function ContentPage() {
   useSeo(
     useMemo(
       () => ({
-        title: `${content.title} | 13F Radar`,
+        title: `${content.title} | Fundocap`,
         description: content.lead.slice(0, 155),
         answer: content.lead,
         path,
@@ -64,7 +64,7 @@ export default function ContentPage() {
   );
 
   const matrixCells = kind === 'compare' ? [US[lang], content.matrix] : entry.id === 'best-13f-trackers' ? [US[lang], ...content.columns.slice(1).map(() => Object.fromEntries(MATRIX_ROWS.map((r) => [r, 'TODO'])))] : null;
-  const columns = kind === 'compare' ? ['13F Radar', content.them] : content.columns;
+  const columns = kind === 'compare' ? ['Fundocap', content.them] : content.columns;
 
   return (
     <article>

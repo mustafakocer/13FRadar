@@ -41,7 +41,7 @@ jobs:
       - name: Build insiders.json
         run: node scripts/build-insiders.mjs
         env:
-          SEC_USER_AGENT: '13FRadar insider bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           INSIDER_MONTHS: '12'
           # Only binds while the crawl is behind: a run that is current scans

@@ -21,7 +21,7 @@ export default function Filers() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? `13F Dosyalayan Kurumlar — ${label} | 13F Radar` : `13F Filers Directory — ${label} | 13F Radar`,
+        title: lang === 'tr' ? `13F Dosyalayan Kurumlar — ${label} | Fundocap` : `13F Filers Directory — ${label} | Fundocap`,
         description:
           lang === 'tr'
             ? `SEC'e 13F bildirimi yapan kurumsal yatırımcılar (${label} harfi). Her fonun portföyü, AUM ve çeyreklik değişimleri.`

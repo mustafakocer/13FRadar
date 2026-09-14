@@ -30,7 +30,7 @@ export default function InsiderSignal() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? `${title} — Son 30 Günün Insider Sinyalleri | 13F Radar` : `${title} — Insider Signals, Last 30 Days | 13F Radar`,
+        title: lang === 'tr' ? `${title} — Son 30 Günün Insider Sinyalleri | Fundocap` : `${title} — Insider Signals, Last 30 Days | Fundocap`,
         description:
           lang === 'tr'
             ? `${rows.length} ${title.toLowerCase()} sinyali (SEC Form 4). ${rows[0] ? `Öne çıkan: ${rows[0].t}${rows[0].insiders ? `, ${rows[0].insiders} insider` : ''}, ${fmtMoney(rows[0].v)}.` : ''} Günlük güncellenir.`

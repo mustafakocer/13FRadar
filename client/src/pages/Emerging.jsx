@@ -38,7 +38,7 @@ export default function Emerging() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Yükselen Fon Yöneticileri: Küçük ve Yoğun 13F Portföyleri | 13F Radar' : 'Emerging Managers: Small, Concentrated 13F Portfolios | 13F Radar',
+        title: lang === 'tr' ? 'Yükselen Fon Yöneticileri: Küçük ve Yoğun 13F Portföyleri | Fundocap' : 'Emerging Managers: Small, Concentrated 13F Portfolios | Fundocap',
         description: answer ? answer.slice(0, 155) : undefined,
         answer,
         path: '/emerging-managers',

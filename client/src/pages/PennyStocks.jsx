@@ -214,8 +214,8 @@ export default function PennyStocks() {
       () => ({
         title:
           lang === 'tr'
-            ? `Kuruş Hisse Insider Alımları: 5 $ Altı Form 4 Sinyalleri | 13F Radar`
-            : `Penny Stock Insider Buys: Form 4 Signals Under $5 | 13F Radar`,
+            ? `Kuruş Hisse Insider Alımları: 5 $ Altı Form 4 Sinyalleri | Fundocap`
+            : `Penny Stock Insider Buys: Form 4 Signals Under $5 | Fundocap`,
         description: answer ? answer.slice(0, 155) : undefined,
         answer,
         path: '/insiders/penny',

@@ -115,7 +115,7 @@ fs.writeFileSync(path.join(dir, 'index.json'), JSON.stringify({ reports: ids }))
 // markdown for distribution
 const md = [];
 const money = (v) => fmtMoney(v);
-md.push(`# 13F Radar — Q${q} ${year} Superinvestor Report`);
+md.push(`# Fundocap — Q${q} ${year} Superinvestor Report`);
 md.push('');
 md.push(`> ${report.answer.en}`);
 md.push('');
@@ -133,7 +133,11 @@ else md.push('', '## New consensus positions', '', '_Requires guru-history.json 
 table('Biggest exits', biggestExits, [['Manager', (r) => r.manager], ['Ticker', (r) => r.ticker || r.issuer], ['Value sold', (r) => money(r.value)]]);
 md.push('', '## Sector flow', '', '_TODO: ticker → sector source not wired yet (see issue #2)._');
 table('Notable moves (largest % change in shares)', notableMoves, [['Manager', (r) => r.manager], ['Move', (r) => r.kind], ['Ticker', (r) => r.ticker || r.issuer], ['Change', (r) => `${r.change > 0 ? '+' : ''}${r.change.toFixed(1)}%`], ['Value', (r) => money(r.value)]]);
-md.push('', `---`, `Source: 13F Radar · https://13fradar.com/en/reports/${id}`);
+// The domain was hard-coded here, so every generated report pointed at one
+// host no matter where the site was deployed. SITE_URL is what the rest of
+// the build uses.
+const site = (process.env.SITE_URL || '').replace(/\/$/, '');
+md.push('', `---`, `Source: Fundocap${site ? ` · ${site}/en/reports/${id}` : ''}`);
 fs.mkdirSync(path.join(root, 'reports'), { recursive: true });
 fs.writeFileSync(path.join(root, 'reports', `${id}.md`), md.join('\n') + '\n');
 console.log(`report ${id}: ${managers.length}/${pro.managers.length} managers, ${topBuysByValue.length} buys, ${biggestExits.length} exits, ${notableMoves.length} notable moves${newConsensus ? `, ${newConsensus.length} new consensus` : ' (no history yet)'} → api/_data/reports/${id}.json, reports/${id}.md`);

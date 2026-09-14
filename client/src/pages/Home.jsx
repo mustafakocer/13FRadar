@@ -493,12 +493,14 @@ const UPDATE_ROWS = [
 ];
 
 function Chip({ r, kind }) {
-  const label = r.ticker || niceName(r.issuer).split(' ').slice(0, 2).join(' ');
+  // Four sections of three chips each fit one line per section — and every
+  // card is then the same height — only if a chip stays narrow. Two decimals
+  // on a +1082.53% move and a two-word issuer name are what pushed rows onto
+  // a second line and left the shorter cards with a gap at the bottom.
+  const label = r.ticker || niceName(r.issuer).split(' ')[0].slice(0, 12);
   const delta =
-    kind === 'add' || kind === 'reduce'
-      ? r.change != null
-        ? fmtPct(r.change, { digits: 2 })
-        : null
+    (kind === 'add' || kind === 'reduce') && r.change != null
+      ? fmtPct(r.change, { digits: Math.abs(r.change) >= 100 ? 0 : Math.abs(r.change) >= 10 ? 1 : 2 })
       : null;
   const inner = (
     <>
@@ -547,7 +549,7 @@ function PortfolioUpdates({ updates }) {
                 <div className="lbl">
                   <i>{mark}</i> {t(`landing.upd.${kind}`)}
                 </div>
-                <div>
+                <div className="tks">
                   {u[key]?.length ? (
                     u[key].map((r) => <Chip key={r.cusip} r={r} kind={kind} />)
                   ) : (

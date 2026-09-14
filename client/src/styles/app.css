@@ -664,7 +664,10 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 .conv-card .foot a { font-weight: 700; font-size: 15px; }
 
 /* portfolio update cards */
-.upd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+/* align-items: start, because a card stretched to its neighbour's height puts
+   the extra space in one lump under the last row. Each card is its own height
+   now, and the chip sizing above keeps those heights close. */
+.upd-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
 @media (max-width: 1000px) { .upd-grid { grid-template-columns: 1fr; } }
 .upd-card .head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
 .upd-card .avatar {
@@ -680,12 +683,17 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 .upd-card .when span { font-size: 11.5px; color: var(--text-2); }
 .upd-row { margin-top: 10px; }
 .upd-row .lbl { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+/* a section with nothing in it still occupies a chip's line, so the four
+   sections line up across cards; gap rather than a margin on each chip,
+   because the 6px hanging off the last one was enough to wrap the row */
+.upd-row .tks { display: flex; flex-wrap: wrap; gap: 6px; min-height: 25px; }
+.upd-row .tks .tk { margin: 0; }
 /* new/add = buy, reduce/exit = sell; the label text and glyph carry the meaning too */
 .upd-row .lbl i { display: inline-flex; align-items: center; justify-content: center; font-style: normal; font-size: 11px; font-weight: 900; }
 .upd-row.new .lbl, .upd-row.add .lbl { color: var(--buy); }
 .upd-row.reduce .lbl, .upd-row.exit .lbl { color: var(--sell); }
-.tk { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 6px; font-size: 12px; font-weight: 700; margin: 0 6px 6px 0; text-decoration: none !important; }
-.tk small { font-weight: 600; opacity: .85; }
+.tk { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 12px; font-weight: 700; margin: 0 6px 6px 0; text-decoration: none !important; }
+.tk small { font-weight: 600; font-size: 11px; opacity: .85; }
 .tk { background: var(--popover); color: var(--text); border: 1px solid var(--border); }
 .tk.new, .tk.add { color: var(--buy); }
 .tk.reduce, .tk.exit { color: var(--sell); }

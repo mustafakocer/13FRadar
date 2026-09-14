@@ -134,7 +134,12 @@ body { overflow-x: clip; }
 .card + .card { margin-top: 16px; }
 /* …but not when they are columns of a grid/flex row — there the gap
    already spaces them and the margin would misalign the second card. */
-.grid > .card + .card, .row > .card + .card { margin-top: 0; }
+/* Cards stack with a sibling margin in normal flow, which is wrong inside any
+   grid: the gap already spaces them, and the margin pushes every card but the
+   first down by 16px — a staggered top row, and 16px added to every grid row.
+   The reset listed .grid and .row by name, so .upd-grid and .ins-grid were
+   staggered. Matching any grid container keeps the next one from repeating it. */
+.grid > .card + .card, .row > .card + .card, [class*='grid'] > .card + .card { margin-top: 0; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
 
 .grid { display: grid; gap: 16px; }

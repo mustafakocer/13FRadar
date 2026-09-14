@@ -16,7 +16,7 @@ export default function Gurus() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Usta Yatırımcılar: Portföyleri ve 13F Bildirimleri | 13F Radar' : 'Superinvestors: Portfolios & 13F Filings | 13F Radar',
+        title: lang === 'tr' ? 'Usta Yatırımcılar: Portföyleri ve 13F Bildirimleri | Fundocap' : 'Superinvestors: Portfolios & 13F Filings | Fundocap',
         description:
           lang === 'tr'
             ? "Warren Buffett, Bill Ackman, Michael Burry ve diğer efsane yatırımcıların çeyreklik 13F portföyleri: pozisyonlar, alımlar, satışlar."

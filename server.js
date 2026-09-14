@@ -45,4 +45,4 @@ app.use(async (req, res) => {
   return mod.default(req, res);
 });
 
-app.listen(PORT, () => console.log(`13F Radar dev server on http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`Fundocap dev server on http://localhost:${PORT}`));

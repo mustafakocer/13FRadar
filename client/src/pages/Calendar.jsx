@@ -53,7 +53,7 @@ export default function Calendar() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? `13F Bildirim Takvimi ${d ? d.next.quarter.split(' ').reverse().join(' ') : ''}: Son Tarihler ve Kim Bildirdi | 13F Radar` : `13F Filing Calendar ${d ? d.next.quarter : ''}: Deadlines & Who Has Filed | 13F Radar`,
+        title: lang === 'tr' ? `13F Bildirim Takvimi ${d ? d.next.quarter.split(' ').reverse().join(' ') : ''}: Son Tarihler ve Kim Bildirdi | Fundocap` : `13F Filing Calendar ${d ? d.next.quarter : ''}: Deadlines & Who Has Filed | Fundocap`,
         description: answer ? answer.slice(0, 155) : undefined,
         answer,
         path: '/calendar',

@@ -149,7 +149,7 @@ function Hero({ summary }) {
   return (
     <section className="hero-band">
       <div className="hero-topbar">
-        <span className="hero-kicker">SEC 13F · Form 4 · 13D/G</span>
+        <span className="hero-kicker">SEC 13F · Form 4</span>
         <LangSwitch />
       </div>
       <h1>

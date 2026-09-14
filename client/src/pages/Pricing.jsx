@@ -21,7 +21,7 @@ export default function Pricing() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Fiyatlandırma: Ücretsiz ve Pro Planlar | 13F Radar' : 'Pricing: Free and Pro Plans | 13F Radar',
+        title: lang === 'tr' ? 'Fiyatlandırma: Ücretsiz ve Pro Planlar | Fundocap' : 'Pricing: Free and Pro Plans | Fundocap',
         description: lang === 'tr' ? 'Ücretsiz planla fon arama ve ilk 10 pozisyon; Pro ile tam portföyler, alım-satımlar, insider akışı ve dışa aktarma.' : 'Free: fund search and top-10 positions. Pro: full portfolios, buys and sells, the insider feed and exports.',
         path: '/pricing',
       }),

@@ -4,7 +4,7 @@ Uygulama abonelikleri Stripe Checkout ile satar, planı Stripe webhook'u ile Sup
 
 ## 1. Ürün ve fiyatlar (Stripe Dashboard → Product catalog)
 
-Tek bir ürün ("13F Radar Pro") altında dört **recurring** fiyat oluştur:
+Tek bir ürün ("Fundocap Pro") altında dört **recurring** fiyat oluştur:
 
 | Fiyat | Tutar | Periyot | Env değişkeni |
 |---|---|---|---|

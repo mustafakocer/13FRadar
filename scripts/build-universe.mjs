@@ -12,7 +12,7 @@ import axios from 'axios';
 import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 
-const UA = process.env.SEC_USER_AGENT || '13FRadar-universe/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
 const http = axios.create({ timeout: 60000, headers: { 'User-Agent': UA } });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

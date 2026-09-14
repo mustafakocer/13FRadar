@@ -4,7 +4,7 @@ import { getSubmissions, list13F, getHoldings, padCik } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
 import { requirePro } from '../_lib/auth.js';
 
-const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
 
 // GET /api/stock-ownership?cusip=037833100
 // WhaleWisdom-style aggregate view: the largest 13F holders of one security,

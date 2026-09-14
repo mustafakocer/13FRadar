@@ -28,9 +28,9 @@ export const GUIDES = [
 ];
 
 export const COMPARES = [
-  { id: 'whalewisdom', paths: { en: '/compare/13f-radar-vs-whalewisdom', tr: '/karsilastir/13f-radar-vs-whalewisdom' }, title: { en: '13F Radar vs WhaleWisdom', tr: '13F Radar vs WhaleWisdom' } },
-  { id: 'dataroma', paths: { en: '/compare/13f-radar-vs-dataroma', tr: '/karsilastir/13f-radar-vs-dataroma' }, title: { en: '13F Radar vs Dataroma', tr: '13F Radar vs Dataroma' } },
-  { id: '13radar', paths: { en: '/compare/13f-radar-vs-13radar', tr: '/karsilastir/13f-radar-vs-13radar' }, title: { en: '13F Radar vs 13radar.com', tr: '13F Radar vs 13radar.com' } },
+  { id: 'whalewisdom', paths: { en: '/compare/13f-radar-vs-whalewisdom', tr: '/karsilastir/13f-radar-vs-whalewisdom' }, title: { en: 'Fundocap vs WhaleWisdom', tr: 'Fundocap vs WhaleWisdom' } },
+  { id: 'dataroma', paths: { en: '/compare/13f-radar-vs-dataroma', tr: '/karsilastir/13f-radar-vs-dataroma' }, title: { en: 'Fundocap vs Dataroma', tr: 'Fundocap vs Dataroma' } },
+  { id: '13radar', paths: { en: '/compare/13f-radar-vs-13radar', tr: '/karsilastir/13f-radar-vs-13radar' }, title: { en: 'Fundocap vs 13radar.com', tr: 'Fundocap vs 13radar.com' } },
 ];
 
 export const contentByPath = (path) => {

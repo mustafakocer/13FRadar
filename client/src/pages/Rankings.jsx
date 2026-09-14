@@ -42,7 +42,7 @@ export default function Rankings() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? `${title} — Usta Yatırımcılar ${qt} | 13F Radar` : `${title} — Superinvestors ${qt} | 13F Radar`,
+        title: lang === 'tr' ? `${title} — Usta Yatırımcılar ${qt} | Fundocap` : `${title} — Superinvestors ${qt} | Fundocap`,
         description: answer
           ? truncate155(answer)
           : lang === 'tr'

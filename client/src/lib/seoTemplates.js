@@ -18,7 +18,7 @@ export const quarterText = (reportDate, lang) => {
 const num = (n, lang) => (n == null ? '—' : n.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US'));
 
 export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions, history = null }) {
-  if (!cik) return { title: lang === 'tr' ? 'Yükleniyor… | 13F Radar' : 'Loading… | 13F Radar', path: '/gurus' };
+  if (!cik) return { title: lang === 'tr' ? 'Yükleniyor… | Fundocap' : 'Loading… | Fundocap', path: '/gurus' };
   const name = manager?.displayName || manager?.name || `CIK ${cik}`;
   const qt = quarterText(filing?.reportDate, lang);
   const top = holdings?.positions?.[0];
@@ -27,8 +27,8 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
   const aum = holdings?.aum;
   const title =
     lang === 'tr'
-      ? `${name} Portföyü ${qt}: Pozisyonlar, Alımlar ve Satışlar | 13F Radar`
-      : `${name} Portfolio ${qt}: Holdings, Buys & Sells | 13F Radar`;
+      ? `${name} Portföyü ${qt}: Pozisyonlar, Alımlar ve Satışlar | Fundocap`
+      : `${name} Portfolio ${qt}: Holdings, Buys & Sells | Fundocap`;
   let description;
   if (lang === 'tr') {
     description = `${name}, ${qt} 13F bildiriminde ${num(count, lang)} pozisyon ve ${fmtMoney(aum)} portföy büyüklüğü raporladı.`;
@@ -76,8 +76,8 @@ export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate 
   const price = stock?.price?.price;
   const title =
     lang === 'tr'
-      ? `${sym} — ${company} Hissesini Hangi Usta Yatırımcılar Tutuyor? | 13F Radar`
-      : `${sym} — Which Superinvestors Hold ${company}? | 13F Radar`;
+      ? `${sym} — ${company} Hissesini Hangi Usta Yatırımcılar Tutuyor? | Fundocap`
+      : `${sym} — Which Superinvestors Hold ${company}? | Fundocap`;
   let description;
   if (lang === 'tr') {
     description = n ? `${num(n, lang)} usta yatırımcı ${company} (${sym}) hissesini 13F bildiriminde raporluyor.` : `${company} (${sym}) hissesinin kurumsal sahipliği.`;
@@ -120,7 +120,7 @@ export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate 
 export function homeSeo({ lang }) {
   return {
     jsonLd: siteJsonLd(lang),
-    title: lang === 'tr' ? '13F Radar — Akıllı Parayı ve İçeriden Alımları Takip Edin' : '13F Radar — Track the Smart Money & Insiders',
+    title: lang === 'tr' ? 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' : 'Fundocap — Track the Smart Money & Insiders',
     description:
       lang === 'tr'
         ? "8.000'den fazla fonun 13F portföyleri, usta yatırımcı konsensüsü ve SEC Form 4 insider sinyalleri. Warren Buffett'tan Michael Burry'ye kim ne alıyor, ne satıyor."
@@ -135,7 +135,7 @@ export function consensusSeo({ lang, data }) {
   const qt = quarterText(latest, lang);
   const top = data?.mostHeld?.[0];
   return {
-    title: lang === 'tr' ? `Usta Yatırımcı Konsensüsü ${qt}: En Çok Tutulan Hisseler | 13F Radar` : `Superinvestor Consensus ${qt}: Most Held Stocks | 13F Radar`,
+    title: lang === 'tr' ? `Usta Yatırımcı Konsensüsü ${qt}: En Çok Tutulan Hisseler | Fundocap` : `Superinvestor Consensus ${qt}: Most Held Stocks | Fundocap`,
     description:
       lang === 'tr'
         ? `${n || ''} efsane fonun birleşik 13F görünümü.${top ? ` En çok tutulan: ${top.ticker || top.issuer} (${top.holderCount} fon).` : ''} Bu çeyrek en çok alınan ve satılan hisseler.`

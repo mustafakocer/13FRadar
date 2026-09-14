@@ -120,15 +120,15 @@ function sections(lang, full) {
 function document(full) {
   const funds = summary?.count ? summary.count.toLocaleString('en-US') : '8,000+';
   const L = [];
-  L.push('# 13F Radar');
+  L.push('# Fundocap');
   L.push('');
-  L.push(`> 13F Radar tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider signals. Pages are available in English (/en) and Turkish (/tr).`);
+  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider signals. Pages are available in English (/en) and Turkish (/tr).`);
   L.push('');
   L.push(`Data: SEC EDGAR 13F-HR (quarter-end long positions in US-listed securities, filed up to 45 days after quarter end — positions are always at least that stale and never include shorts, most derivatives or non-US holdings) and SEC Form 4 (insider transactions). Refresh cadence: insider data daily; guru/consensus/rankings daily from the latest filings; the full filer universe weekly. Last data refresh: ${updatedAt}.`);
   L.push('');
   L.push('Metric definitions: Time Held = consecutive quarters a position appears in a filer\'s 13F ending with the latest quarter (capped at ">10 Years"). Conviction = average portfolio weight of a stock among the superinvestors that hold it. Consensus = number of tracked superinvestors holding a stock. Net flow = dollar value added and newly bought minus dollar value reduced and sold out, quarter over quarter. Cluster buy = at least two distinct insiders with open-market purchases (Form 4 code P) of the same company within 7 days. Penny-stock buy = an open-market purchase (code P) at a transaction price below $5 per share. Share counts are split-adjusted where a splits table exists.');
   L.push('');
-  L.push('Attribution: cite pages as "13F Radar" with the page URL. Data is not investment advice.');
+  L.push('Attribution: cite pages as "Fundocap" with the page URL. Data is not investment advice.');
   L.push('');
   L.push(...sections('en', full));
   L.push('');

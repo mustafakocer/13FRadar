@@ -20,14 +20,14 @@ export function socialLinks() {
     .filter((s) => /^https?:\/\//.test(s));
 }
 
-export const publisher = () => ({ '@type': 'Organization', name: '13F Radar', url: '__SITE__/en', logo: { '@type': 'ImageObject', url: '__SITE__/api/og' } });
+export const publisher = () => ({ '@type': 'Organization', name: 'Fundocap', url: '__SITE__/en', logo: { '@type': 'ImageObject', url: '__SITE__/api/og' } });
 
 export function organization(lang) {
   const sameAs = socialLinks();
   return {
     '@context': CTX,
     '@type': 'Organization',
-    name: '13F Radar',
+    name: 'Fundocap',
     url: `__SITE__/${lang}`,
     logo: '__SITE__/api/og',
     ...(sameAs.length ? { sameAs } : {}),
@@ -38,7 +38,7 @@ export function website(lang) {
   return {
     '@context': CTX,
     '@type': 'WebSite',
-    name: '13F Radar',
+    name: 'Fundocap',
     url: `__SITE__/${lang}`,
     inLanguage: lang,
     potentialAction: {

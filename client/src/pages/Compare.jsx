@@ -174,7 +174,7 @@ export default function Compare() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Fon ve Hisse Karşılaştırma | 13F Radar' : 'Compare Funds & Stocks | 13F Radar',
+        title: lang === 'tr' ? 'Fon ve Hisse Karşılaştırma | Fundocap' : 'Compare Funds & Stocks | Fundocap',
         description: lang === 'tr' ? 'İki fonun portföyünü veya üç hissenin rasyolarını yan yana karşılaştırın.' : 'Compare two fund portfolios or three stocks side by side.',
         path: '/compare',
       }),

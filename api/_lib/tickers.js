@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
 
-const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
 
 // ticker -> issuer CIK via SEC's official mapping (cached 1 day)
 export function tickerMap() {

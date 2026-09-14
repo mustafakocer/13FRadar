@@ -5,7 +5,7 @@ import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from './cache.js';
 
 // SEC requires a descriptive User-Agent with contact info.
-const UA = process.env.SEC_USER_AGENT || '13FRadar/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
 
 const http = axios.create({
   timeout: 25000,

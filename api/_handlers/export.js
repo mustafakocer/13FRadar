@@ -36,7 +36,7 @@ export default async function handler(req, res) {
         { h: 'Portfolio %', v: (r) => r.weight.toFixed(2) },
       ]);
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="13fradar-${cik}-${f?.reportDate || acc}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="fundocap-${cik}-${f?.reportDate || acc}.csv"`);
       res.setHeader('Cache-Control', 'private, no-store');
       return res.status(200).send(body);
     }

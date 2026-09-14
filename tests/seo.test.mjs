@@ -10,7 +10,7 @@ test('SSR: guru page returns table rows, H1 and metadata without JS', async () =
   assert.ok(count(html, /<table/g) >= 1, 'has a table');
   assert.ok(count(html, /<tr/g) >= 11, 'has header + 10 rows');
   assert.match(html, /<h1>Berkshire Hathaway \(Warren Buffett\)<\/h1>/);
-  assert.match(html, /<title>Berkshire Hathaway \(Warren Buffett\) Portfolio Q2 2026: Holdings, Buys &amp; Sells \| 13F Radar<\/title>/);
+  assert.match(html, /<title>Berkshire Hathaway \(Warren Buffett\) Portfolio Q2 2026: Holdings, Buys &amp; Sells \| Fundocap<\/title>/);
   assert.match(html, /<meta name="description" content="[^"]*11 positions worth \$198\.16B[^"]*"/);
   assert.match(headers['cache-control'], /s-maxage=86400/);
   assert.ok(html.includes('window.__STATE__='), 'dehydrated query state present');
@@ -19,7 +19,7 @@ test('SSR: guru page returns table rows, H1 and metadata without JS', async () =
 test('SSR: stock page carries the quote board and links the gurus that hold it', async () => {
   const { status, html } = await ssr('/en/stock/AAPL');
   assert.equal(status, 200);
-  assert.match(html, /<title>AAPL — Which Superinvestors Hold Apple Inc\.\? \| 13F Radar<\/title>/);
+  assert.match(html, /<title>AAPL — Which Superinvestors Hold Apple Inc\.\? \| Fundocap<\/title>/);
   assert.match(html, /class="kv-grid quote-grid/, 'quote board is server-rendered');
   assert.match(html, /Prev Close/, 'with its numbers, not an empty shell');
   // the funds a stock links to now come from the superinvestor set, not from
@@ -41,7 +41,7 @@ test('SSR: home page renders content and site JSON-LD', async () => {
 test('metadata: TR and EN render distinct titles for the same entity', async () => {
   const en = await ssr(GURU);
   const tr = await ssr(GURU.replace('/en/', '/tr/'));
-  assert.match(tr.html, /<title>Berkshire Hathaway \(Warren Buffett\) Portföyü 2026 Q2: Pozisyonlar, Alımlar ve Satışlar \| 13F Radar<\/title>/);
+  assert.match(tr.html, /<title>Berkshire Hathaway \(Warren Buffett\) Portföyü 2026 Q2: Pozisyonlar, Alımlar ve Satışlar \| Fundocap<\/title>/);
   assert.notEqual(attr(en.html, /<title>([^<]*)/)[0], attr(tr.html, /<title>([^<]*)/)[0]);
   assert.match(tr.html, /<html lang="tr">/);
 });
@@ -107,7 +107,7 @@ test('noindex on account and watchlist; 404 on unknown routes', async () => {
 test('SSR: penny board renders the full table, answer box and JSON-LD without JS', async () => {
   const { status, html, headers } = await ssr('/en/insiders/penny');
   assert.equal(status, 200);
-  assert.match(html, /<title>Penny Stock Insider Buys: Form 4 Signals Under \$5 \| 13F Radar<\/title>/);
+  assert.match(html, /<title>Penny Stock Insider Buys: Form 4 Signals Under \$5 \| Fundocap<\/title>/);
   // the board ships inside the teaser, so every row is server-rendered
   assert.ok(count(html, /<tr/g) >= 20, 'header plus board rows');
   assert.match(html, /data-answer-box/);
@@ -130,7 +130,7 @@ test('SSR: penny board is translated and keeps its sibling signal pages', async 
 test('SSR: the report table, its filters and JSON-LD render without JS', async () => {
   const { status, html, headers } = await ssr('/en/report');
   assert.equal(status, 200);
-  assert.match(html, /<title>What Superinvestors Bought and Sold — \d{4} Q[1-4] \| 13F Radar<\/title>/);
+  assert.match(html, /<title>What Superinvestors Bought and Sold — \d{4} Q[1-4] \| Fundocap<\/title>/);
   assert.ok(count(html, /<tr/g) >= 10, 'header plus rows');
   assert.match(html, /data-answer-box/);
   assert.match(html, /spark-bars/, 'the quarterly activity column is server-rendered');

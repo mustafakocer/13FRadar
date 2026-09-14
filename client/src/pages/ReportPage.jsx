@@ -52,7 +52,7 @@ export default function ReportPage() {
   useSeo(
     useMemo(
       () => ({
-        title: `${title} | 13F Radar`,
+        title: `${title} | Fundocap`,
         description: answer ? answer.slice(0, 155) : lang === 'tr' ? 'Usta yatırımcıların çeyreklik 13F raporları: en çok alınan ve satılanlar, yeni konsensüs pozisyonları, en büyük çıkışlar.' : 'Quarterly superinvestor 13F reports: most bought and sold, new consensus positions, biggest exits.',
         answer,
         path: id ? `/reports/${id}` : '/reports',

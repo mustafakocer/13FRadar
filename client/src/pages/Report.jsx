@@ -188,8 +188,8 @@ export default function Report() {
       () => ({
         title:
           lang === 'tr'
-            ? `Usta Yatırımcılar Ne Aldı, Ne Sattı — ${qLabel} | 13F Radar`
-            : `What Superinvestors Bought and Sold — ${qLabel} | 13F Radar`,
+            ? `Usta Yatırımcılar Ne Aldı, Ne Sattı — ${qLabel} | Fundocap`
+            : `What Superinvestors Bought and Sold — ${qLabel} | Fundocap`,
         description: answer ? answer.slice(0, 155) : undefined,
         answer,
         path: '/report',

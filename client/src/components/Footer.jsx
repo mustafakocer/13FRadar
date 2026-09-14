@@ -51,18 +51,18 @@ export default function Footer() {
           ))}
         </div>
         <div>
-          <b>13F Radar</b>
+          <b>Fundocap</b>
           <Link to="/pricing">{t('nav.pricing')}</Link>
           <Link to="/report">{t('nav.report')}</Link>
           <Link to="/compare">{t('nav.compare')}</Link>
         </div>
       </nav>
       <div className="footer-brand">
-        <Ico icon={Radar} size={18} /> 13F<span className="dot">Radar</span>
+        <Ico icon={Radar} size={18} /> <span>Fundo<span className="dot">cap</span></span>
       </div>
       <p className="muted small">{t('footer.disclaimer')}</p>
       <p className="muted small">{t('footer.sources')}</p>
-      <p className="muted small">© {new Date().getFullYear()} 13F Radar</p>
+      <p className="muted small">© {new Date().getFullYear()} Fundocap</p>
     </footer>
   );
 }

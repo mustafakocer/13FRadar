@@ -31,11 +31,11 @@ export default function GuruTicker() {
   const latest = d?.rows?.[d.rows.length - 1];
   useSeo(
     useMemo(() => {
-      if (!d) return { title: `${name || slug} — ${tk} | 13F Radar`, path: `/guru/${slug}/${tk}` };
+      if (!d) return { title: `${name || slug} — ${tk} | Fundocap`, path: `/guru/${slug}/${tk}` };
       const held = latest?.shares > 0;
       const qt = quarterText(latest?.reportDate, lang);
       return {
-        title: `${fill(t('pair.title'), { name, ticker: tk })} | 13F Radar`,
+        title: `${fill(t('pair.title'), { name, ticker: tk })} | Fundocap`,
         description:
           lang === 'tr'
             ? `${name} ${tk} (${d.issuer}) pozisyonunu ${d.rows.length} çeyrek boyunca nasıl değiştirdi: ${held ? `${qt} itibarıyla ${fmtNum(latest.shares)} adet, portföyün %${latest.weight.toFixed(2)}'i, ${timeHeldLabel(d.heldQuarters, lang)} elde tutuluyor.` : `pozisyon ${qt} itibarıyla kapalı.`}`

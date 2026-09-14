@@ -47,7 +47,7 @@ test('llms.txt follows the llmstxt.org shape and lists EN/TR URLs separately', (
   execFileSync('node', [path.join(root, 'scripts', 'build-llms.mjs')], { env: { ...process.env, SITE_URL: 'https://example.test' } });
   const txt = fs.readFileSync(path.join(root, 'client', 'dist', 'llms.txt'), 'utf8');
   const lines = txt.split('\n');
-  assert.equal(lines[0], '# 13F Radar', 'H1 title line');
+  assert.equal(lines[0], '# Fundocap', 'H1 title line');
   assert.ok(lines[2].startsWith('> '), 'blockquote summary');
   const h2 = lines.filter((l) => l.startsWith('## '));
   assert.ok(h2.length >= 10, `H2 sections (${h2.length})`);

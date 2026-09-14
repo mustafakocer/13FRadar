@@ -37,8 +37,14 @@ body { overflow-x: clip; }
   max-width: 1320px; margin: 0 auto; padding: 0 24px;
   height: 64px; display: flex; align-items: center; gap: 18px;
 }
+/* The wordmark is set lowercase as a typographic treatment of the logo, not
+   as the brand's spelling: the markup still says "Fundocap", so the link's
+   accessible name, a copy-paste and anything reading the DOM get the canonical
+   capitalisation while the lockup renders as the mark. Prose, titles and
+   metadata keep the capital F. */
 .brand {
-  font-size: 20px; font-weight: 800; letter-spacing: -0.03em; color: var(--text) !important;
+  font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: var(--text) !important;
+  text-transform: lowercase;
   display: flex; align-items: center; gap: 6px; white-space: nowrap; text-decoration: none !important;
 }
 .brand .dot { color: var(--accent); }
@@ -408,7 +414,8 @@ th.sortable { cursor: pointer; user-select: none; }
   border-top: 1px solid var(--border);
   display: flex; flex-direction: column; gap: 6px;
 }
-.footer-brand { font-weight: 800; letter-spacing: -0.02em; }
+/* lowercase for the same reason as .brand above */
+.footer-brand { font-weight: 800; letter-spacing: -0.015em; text-transform: lowercase; }
 .footer-brand .dot { color: var(--accent); }
 .footer-brand { display: flex; align-items: center; gap: 6px; }
 

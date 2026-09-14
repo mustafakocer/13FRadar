@@ -33,6 +33,14 @@ try {
 const gurus = new Map();
 for (const m of [...POPULAR_MANAGERS, ...CONSENSUS_MANAGERS]) gurus.set(m.cik, m.name);
 const only = process.env.GURU_HISTORY_CIKS ? new Set(process.env.GURU_HISTORY_CIKS.split(',')) : null;
+const FORCE = process.env.GURU_HISTORY_FORCE === '1';
+
+// Downloading forty info tables per guru is the entire cost of this job —
+// ~800 filings, an hour of CI, every single day, to rebuild numbers that
+// cannot change: a quarter's holdings are fixed once filed, and an amendment
+// arrives as a new accession. So when EDGAR lists exactly the filings the
+// stored history was built from, keep it and fetch nothing.
+const fingerprint = (filings) => filings.map((f) => `${f.reportDate}:${f.acc}`).join(',');
 
 // Previous run, so a guru whose EDGAR fetch fails today keeps yesterday's
 // history instead of vanishing from the site. Carried-over entries are
@@ -47,6 +55,7 @@ try {
 const out = { updatedAt: new Date().toISOString(), quarters: QUARTERS, gurus: {} };
 const allCusips = new Set();
 const carried = [];
+const reused = [];
 const failed = [];
 const carryOver = (cik, name, why) => {
   if (previous[cik]) {
@@ -68,6 +77,14 @@ for (const [cik, name] of gurus) {
     carryOver(cik, name, `submissions failed (${e.message})`);
     continue;
   }
+  const fp = fingerprint(filings);
+  if (!FORCE && previous[cik]?.fp === fp) {
+    out.gurus[cik] = previous[cik];
+    reused.push(name);
+    console.log(`${name}: no new filing since the last build — reusing ${filings.length} quarters`);
+    continue;
+  }
+
   const snaps = (
     await mapLimit(filings, 3, async (f) => {
       try {
@@ -133,7 +150,7 @@ for (const [cik, name] of gurus) {
     e.heldQuarters = held;
     e.firstSeen = e.series[0][0];
   }
-  out.gurus[cik] = { name, quarters, positions };
+  out.gurus[cik] = { name, fp, quarters, positions };
   console.log(`${name}: ${quarters.length} quarters, ${Object.keys(positions).length} securities`);
 }
 
@@ -155,15 +172,17 @@ for (const [cik, g] of Object.entries(out.gurus)) {
   for (const q of g.quarters) q.top10 = q.top10.map((c) => tickers[c] || c);
 }
 
-const refreshed = Object.keys(out.gurus).length - carried.length;
-if (!refreshed && Object.keys(previous).length) {
+// Reused entries are the normal state between filing seasons, so only a run
+// that fetched nothing AND reused nothing means EDGAR was unreachable.
+const refreshed = Object.keys(out.gurus).length - carried.length - reused.length;
+if (!refreshed && !reused.length && Object.keys(previous).length) {
   console.error('guru-history.json: nothing refreshed (EDGAR unreachable?) — keeping the existing file untouched');
   process.exit(1);
 }
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(out));
 console.log(
-  `guru-history.json: ${Object.keys(out.gurus).length} gurus (${refreshed} refreshed, ${carried.length} carried over, ${failed.length} missing), ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`
+  `guru-history.json: ${Object.keys(out.gurus).length} gurus (${refreshed} refreshed, ${reused.length} unchanged, ${carried.length} carried over, ${failed.length} missing), ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`
 );
 if (carried.length) console.warn(`carried over: ${carried.join(', ')}`);
 if (failed.length) console.warn(`missing: ${failed.join(', ')}`);

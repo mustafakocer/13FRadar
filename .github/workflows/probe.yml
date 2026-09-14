@@ -3,6 +3,8 @@ name: Probe live API
 on:
   workflow_dispatch: {}
   push:
+    branches:
+      - claude/13f-intelligence-features-nejb1h
     paths:
       - '.github/workflows/probe.yml'
 

@@ -3,10 +3,12 @@ name: Build 13F universe
 on:
   workflow_dispatch: {}
   schedule:
-    # 03:00 UTC daily. The universe only really moves around quarterly
-    # deadlines, so most runs commit nothing — but when a deadline passes the
-    # file is current the next morning instead of the next Monday.
-    - cron: '0 3 * * *'
+    # Mondays 03:00 UTC. The filer universe only moves around the quarterly
+    # deadlines, so a daily run committed nothing on 29 days out of 30 — at
+    # 24 minutes a run that was 720 of the account's 2,000 monthly Actions
+    # minutes spent to learn nothing. Weekly still has the file current
+    # within days of a deadline.
+    - cron: '0 3 * * 1'
 
 permissions:
   contents: write

@@ -25,7 +25,7 @@ import { managerStyle } from '../data/popular.js';
 import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import Ico from '../components/Ico.jsx';
-import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper } from 'lucide-react';
+import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert } from 'lucide-react';
 
 function Loading({ t }) {
   return (
@@ -144,6 +144,13 @@ export default function Manager() {
 
   // mark the latest filing as "seen" for watchlist NEW badges
   const latestFiled = filings[0]?.filingDate;
+  // A 13F is due 45 days after the quarter it covers, so a fund that is still
+  // filing is never more than ~135 days behind. Past that, EDGAR has nothing
+  // newer under this CIK — the fund stopped filing, or it files under another
+  // entity now — and the positions below are history, not a current portfolio.
+  const newestReport = filings[0]?.reportDate;
+  const dormant =
+    newestReport && (Date.now() - Date.parse(`${newestReport}T00:00:00Z`)) / 86400000 > 200;
   useEffect(() => {
     if (mgr.data && latestFiled) markFilingSeen(mgr.data.cik, latestFiled);
   }, [mgr.data, latestFiled]);
@@ -271,6 +278,20 @@ export default function Manager() {
           </select>
         </div>
       </div>
+
+      {dormant && (
+        <div
+          className="card"
+          style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}
+        >
+          <span className="small">
+            <Ico icon={TriangleAlert} size={14} />{' '}
+            {t('manager.dormant')
+              .replace('{q}', quarterLabel(filings[0].reportDate))
+              .replace('{d}', filings[0].filingDate)}
+          </span>
+        </div>
+      )}
 
       <AnswerBox text={seo.answer} />
 

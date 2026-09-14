@@ -270,6 +270,8 @@ const dict = {
     'manager.exitBadge': 'ÇIKIŞ',
     'manager.noPrev': 'Önceki çeyrek verisi yok',
     'manager.quarterEnd': 'Dönem sonu',
+    'manager.dormant':
+      'EDGAR\'da bu CIK adına en son {q} bildirimi var ({d}). O tarihten sonra 13F bildirimi yok — fon bildirmeyi bıraktı ya da başka bir tüzel kişilik adına bildiriyor. Aşağıdaki pozisyonlar o tarihin fotoğrafı, güncel portföy değil.',
     'manager.filedOn': 'Dosyalama tarihi',
     'manager.sectors': 'Sektör Dağılımı',
     'manager.benchmark': 'Getiri Karşılaştırma',
@@ -1017,6 +1019,8 @@ const dict = {
     'manager.exitBadge': 'EXIT',
     'manager.noPrev': 'No prior quarter data',
     'manager.quarterEnd': 'Quarter end',
+    'manager.dormant':
+      'The most recent 13F EDGAR holds under this CIK is {q}, filed {d}. Nothing has been filed since — the fund stopped filing, or it files under a different entity now. The positions below are a snapshot of that date, not a current portfolio.',
     'manager.filedOn': 'Filed on',
     'manager.sectors': 'Sector Allocation',
     'manager.benchmarkNote':

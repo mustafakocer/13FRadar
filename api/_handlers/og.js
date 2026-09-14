@@ -45,7 +45,7 @@ function card({ kicker, title, sub, stats = [], rows = [] }) {
   <defs><radialGradient id="g" cx="85%" cy="15%" r="70%"><stop offset="0" stop-color="#12264f"/><stop offset="1" stop-color="#0d1b3e"/></radialGradient></defs>
   <rect width="1200" height="630" fill="url(#g)"/>
   <rect x="0" y="0" width="1200" height="8" fill="#ffd250"/>
-  <g transform="translate(80,62) scale(1.5)"><rect x="3.9" y="3.3" width="3.4" height="17.4" rx="1.7" fill="#ffffff"/><rect x="8.9" y="3.3" width="11.2" height="3.4" rx="1.7" fill="#ffd250"/><rect x="8.9" y="9.8" width="7.1" height="3.4" rx="1.7" fill="#ffffff"/></g><text x="126" y="90" font-size="30" font-weight="bold" fill="#ffffff">Fundo<tspan fill="#ffd250">cap</tspan></text>
+  <g transform="translate(80,62) scale(1.5)"><circle cx="12" cy="12" r="9.2" stroke="#ffffff" stroke-width="2.2" fill="none"/><path d="M6.5 15.5 L10 11.5 L12.8 13.8 L16.6 9.2" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="16.6" cy="9.2" r="2.3" fill="#ffd250"/></g><text x="126" y="90" font-size="30" font-weight="bold" fill="#ffffff">Fundo<tspan fill="#ffd250">cap</tspan></text>
   <text x="80" y="160" font-size="22" fill="#ffd250" letter-spacing="3">${esc(kicker)}</text>
   <text x="80" y="235" font-size="${title.length > 34 ? 44 : 56}" font-weight="bold" fill="#ffffff">${esc(clip(title, 46))}</text>
   <text x="80" y="290" font-size="26" fill="#c3cbdd">${esc(clip(sub, 80))}</text>
@@ -125,7 +125,7 @@ function barChart({ title, sub, rows, color, valueOf, labelOf }) {
     .join('\n');
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" font-family="DejaVu Sans">
   <rect width="1200" height="630" fill="#0d1b3e"/><rect x="0" y="0" width="1200" height="8" fill="#ffd250"/>
-  <g transform="translate(80,52) scale(1.5)"><rect x="3.9" y="3.3" width="3.4" height="17.4" rx="1.7" fill="#ffffff"/><rect x="8.9" y="3.3" width="11.2" height="3.4" rx="1.7" fill="#ffd250"/><rect x="8.9" y="9.8" width="7.1" height="3.4" rx="1.7" fill="#ffffff"/></g><text x="126" y="80" font-size="30" font-weight="bold" fill="#ffffff">Fundo<tspan fill="#ffd250">cap</tspan></text>
+  <g transform="translate(80,52) scale(1.5)"><circle cx="12" cy="12" r="9.2" stroke="#ffffff" stroke-width="2.2" fill="none"/><path d="M6.5 15.5 L10 11.5 L12.8 13.8 L16.6 9.2" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/><circle cx="16.6" cy="9.2" r="2.3" fill="#ffd250"/></g><text x="126" y="80" font-size="30" font-weight="bold" fill="#ffffff">Fundo<tspan fill="#ffd250">cap</tspan></text>
   <text x="80" y="128" font-size="38" font-weight="bold" fill="#ffffff">${esc(clip(title, 50))}</text>
   <text x="80" y="160" font-size="22" fill="#c3cbdd">${esc(clip(sub, 90))}</text>
   ${bars}

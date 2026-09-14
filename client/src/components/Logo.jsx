@@ -1,12 +1,13 @@
-// The Fundocap mark: an F whose two arms are weighted bars against the stem.
-// It reads as the initial and as a fund's largest holdings on an axis, which
-// is what the site is. The top arm — the biggest position — takes the accent;
-// everything else follows the text colour, so the mark works in both themes
-// and anywhere an icon sits inline.
+// The Fundocap mark: a market line inside a ring, with the accent on the
+// latest point. The ring is the scope — the site watches what the big funds
+// hold — and the line is what it watches. The accent dot is the position the
+// eye lands on; everything else follows the text colour, so the mark works in
+// both themes and anywhere an icon sits inline.
 //
-// Drawn on the same 24-unit grid as the lucide icons around it, but filled
-// rather than stroked: a brand mark should carry slightly more weight than the
-// navigation icons it sits next to.
+// Drawn on the same 24-unit grid as the lucide icons around it, stroked a
+// touch heavier than they are: a brand mark should carry slightly more weight
+// than the navigation icons it sits next to. The dot stays clear of the ring
+// at every size (checked at 16, 20, 22, 32 and 64px in both themes).
 export default function Logo({ size = 22, className = '' }) {
   return (
     <svg
@@ -18,9 +19,15 @@ export default function Logo({ size = 22, className = '' }) {
       focusable="false"
       className={`ico-svg ${className}`.trim()}
     >
-      <rect x="3.9" y="3.3" width="3.4" height="17.4" rx="1.7" fill="currentColor" />
-      <rect x="8.9" y="3.3" width="11.2" height="3.4" rx="1.7" fill="var(--accent)" />
-      <rect x="8.9" y="9.8" width="7.1" height="3.4" rx="1.7" fill="currentColor" />
+      <circle cx="12" cy="12" r="9.2" stroke="currentColor" strokeWidth="2.2" />
+      <path
+        d="M6.5 15.5 L10 11.5 L12.8 13.8 L16.6 9.2"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="16.6" cy="9.2" r="2.3" fill="var(--accent)" />
     </svg>
   );
 }

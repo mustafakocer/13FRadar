@@ -56,7 +56,7 @@ test('ranking page stacks Article + ItemList + FAQPage, items point at stock pag
 });
 
 test('home carries Organization (sameAs from env) + WebSite with SearchAction', async () => {
-  process.env.SOCIAL_LINKS = 'https://x.com/13fradar,https://www.linkedin.com/company/13fradar';
+  process.env.SOCIAL_LINKS = 'https://x.com/fundocap,https://www.linkedin.com/company/fundocap';
   const { html } = await ssr('/en');
   const { blocks, problems } = validateHtmlJsonLd(html);
   assert.deepEqual(problems, []);

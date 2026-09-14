@@ -10,6 +10,11 @@ on:
 
 # probe-run: 20
 
+# The target used to be pasted into every curl. One place now, and a repo
+# variable can point it at a preview deployment without editing this file.
+env:
+  SITE: ${{ vars.SITE_URL || 'https://fundocap.com' }}
+
 jobs:
   probe:
     runs-on: ubuntu-latest
@@ -18,28 +23,28 @@ jobs:
       - name: Probe stock endpoint
         run: |
           echo "=== /api/stock/AAPL ==="
-          curl -sS -m 60 "https://13-f-radar-omega.vercel.app/api/stock/AAPL" | head -c 1500 || true
+          curl -sS -m 60 "$SITE/api/stock/AAPL" | head -c 1500 || true
           echo
           echo "=== /api/chart/AAPL?range=1mo ==="
-          curl -sS -m 60 "https://13-f-radar-omega.vercel.app/api/chart/AAPL?range=1mo" | head -c 400 || true
+          curl -sS -m 60 "$SITE/api/chart/AAPL?range=1mo" | head -c 400 || true
           echo
           echo "=== /api/returns?symbols=AAPL,MSFT ==="
-          curl -sS -m 60 "https://13-f-radar-omega.vercel.app/api/returns?symbols=AAPL,MSFT" | head -c 400 || true
+          curl -sS -m 60 "$SITE/api/returns?symbols=AAPL,MSFT" | head -c 400 || true
           echo
           echo "=== /universe.json (first bytes) ==="
-          curl -sS -m 30 "https://13-f-radar-omega.vercel.app/universe.json" | head -c 300 || true
+          curl -sS -m 30 "$SITE/universe.json" | head -c 300 || true
           echo
           echo "=== /stocks.json (first bytes) ==="
-          curl -sS -m 30 "https://13-f-radar-omega.vercel.app/stocks.json" | head -c 300 || true
+          curl -sS -m 30 "$SITE/stocks.json" | head -c 300 || true
           echo
           echo "=== paywall check: /api/backtest/1067983 without token (expect 402 pro-required) ==="
-          curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/backtest/1067983" | head -c 200 || true
+          curl -sS -m 30 -w " [HTTP %{http_code}]" "$SITE/api/backtest/1067983" | head -c 200 || true
           echo
           echo "=== free endpoint still open: /api/manager/1067983 ==="
-          curl -sS -m 30 -w " [HTTP %{http_code}]" "https://13-f-radar-omega.vercel.app/api/manager/1067983" | head -c 120 || true
+          curl -sS -m 30 -w " [HTTP %{http_code}]" "$SITE/api/manager/1067983" | head -c 120 || true
       - name: Data accuracy audit
         run: |
-          B="https://13-f-radar-omega.vercel.app"
+          B="$SITE"
           echo "=== BRK latest holdings: internal consistency ==="
           ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc')
           echo "acc=$ACC"
@@ -62,7 +67,7 @@ jobs:
       - name: Security & robustness audit
         run: |
           set +e
-          B="https://13-f-radar-omega.vercel.app"
+          B="$SITE"
           ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc'); echo "ACC=$ACC"
           H() { curl -sS -m 40 -o /dev/null -D - "$@" | tr -d '\r' | grep -iE '^(HTTP|cache-control|x-vercel-cache|access-control|content-security|strict-transport|x-frame|x-content-type|content-encoding|content-length|content-type|referrer|permissions)' ; echo; }
           echo "=== [1] security headers: / ==="; H "$B/"
@@ -126,7 +131,7 @@ jobs:
       - name: Paywall & webhook verification (post-fix)
         run: |
           set +e
-          B="https://13-f-radar-omega.vercel.app"
+          B="$SITE"
           ACC=$(curl -sS -m 30 "$B/api/manager/1067983" | jq -r '.filings[0].acc')
           echo "waiting for the new deployment (holdings response gains a 'locked' field)…"
           for i in $(seq 1 24); do

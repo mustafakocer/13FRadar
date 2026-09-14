@@ -57,6 +57,7 @@ export default function Footer() {
         </div>
       </nav>
       <div className="footer-brand">
+        {/* lowercase via .footer-brand; see .brand in app.css */}
         <Logo size={18} /> <span>Fundo<span className="dot">cap</span></span>
       </div>
       <p className="muted small">{t('footer.disclaimer')}</p>

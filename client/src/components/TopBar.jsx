@@ -117,6 +117,8 @@ export default function TopBar({ theme, onToggleTheme }) {
     <header className="topbar no-print">
       <div className="topbar-inner">
         <Link to="/" className="brand">
+          {/* .brand renders this lowercase; the capital stays so the link's
+              accessible name and a copy-paste keep the canonical spelling */}
           <Logo size={22} /> <span>Fundo<span className="dot">cap</span></span>
         </Link>
 

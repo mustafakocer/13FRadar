@@ -40,7 +40,7 @@ Her fiyatın `price_…` kimliğini kopyala. TR fiyatını hangi ziyaretçinin g
 | `STRIPE_PRICE_MONTHLY_TR` | `price_…` |
 | `STRIPE_PRICE_YEARLY_TR` | `price_…` |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → service_role (webhook'un plan yazabilmesi için) |
-| `SITE_URL` | isteğe bağlı, ör. `https://13fradar.com` (ödeme sonrası dönüş adresi) |
+| `SITE_URL` | isteğe bağlı, ör. `https://fundocap.com` (ödeme sonrası dönüş adresi) |
 
 Gizli anahtarları yalnızca Vercel'e gir; sohbete veya repoya yapıştırma. Değişkenleri kaydettikten sonra **Redeploy** yap.
 

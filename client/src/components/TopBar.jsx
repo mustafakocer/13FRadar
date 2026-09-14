@@ -3,7 +3,8 @@ import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Ico from './Ico.jsx';
-import { Radar, Search, Landmark, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
+import Logo from './Logo.jsx';
+import { Search, Landmark, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
 
 // Top navigation: brand · tabs (one of them a drop-down group) · search
 // (opens the ⌘K palette) · theme · TR/EN · account. Below 900px the tabs
@@ -116,7 +117,7 @@ export default function TopBar({ theme, onToggleTheme }) {
     <header className="topbar no-print">
       <div className="topbar-inner">
         <Link to="/" className="brand">
-          <Ico icon={Radar} size={22} /> <span>Fundo<span className="dot">cap</span></span>
+          <Logo size={22} /> <span>Fundo<span className="dot">cap</span></span>
         </Link>
 
         <nav className="nav-tabs" aria-label="Main">

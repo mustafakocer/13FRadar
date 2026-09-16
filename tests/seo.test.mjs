@@ -61,6 +61,17 @@ test('SSR: the filing feed lists arrivals with their period and form type', asyn
   assert.doesNotMatch(amendment, /\$\d/, 'no dollar figure on the amendment row');
 });
 
+test('SSR: the stock screener renders its table and what it filters by', async () => {
+  const { status, html } = await ssr('/en/screen/stocks');
+  assert.equal(status, 200);
+  const plain = html.replace(/<!-- -->/g, '');
+  assert.match(plain, /Funds holding/, 'the ownership column is server-rendered');
+  assert.match(plain, /Top weight/);
+  assert.match(plain, /Energy/, 'sectors the build classified are shown');
+  // the fund screener and the stock screener link to each other
+  assert.match(plain, /href="\/en\/screen"/);
+});
+
 test('SSR: home page renders content and site JSON-LD', async () => {
   const { status, html } = await ssr('/tr');
   assert.equal(status, 200);

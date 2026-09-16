@@ -176,6 +176,19 @@ fs.writeFileSync(
     rows,
   })
 );
+// A compact CIK → state map for the filer directory and the fund screener.
+// Everything the submissions lookups have learned so far, not only the filers
+// in the current window, so the filter keeps working as the window rolls.
+const byCik = {};
+for (const [cik, m] of Object.entries(meta.byCik)) {
+  if (m?.state) byCik[cik] = m.state;
+}
+fs.writeFileSync(
+  path.join(pub, 'filer-states.json'),
+  JSON.stringify({ updatedAt: new Date().toISOString(), count: Object.keys(byCik).length, byCik })
+);
+console.log(`filer-states.json: ${Object.keys(byCik).length} filers with an address`);
+
 console.log(
   `filings.json: ${rows.length} filings (${rows.filter((r) => r.amended).length} amendments, ${rows.filter((r) => r.reportDate).length} with a period, ${rows.filter((r) => r.aum != null).length} with figures)`
 );

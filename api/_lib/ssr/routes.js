@@ -170,6 +170,17 @@ async function loadRankings() {
   return seeds;
 }
 
+// The stock screener asks for a bigger page than the ranking pages do, and a
+// seed only counts when its key matches exactly.
+async function loadStockScreen() {
+  const seeds = [];
+  const r = staticReturns();
+  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
+  if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
+  return seeds;
+}
+
 async function loadFilings() {
   const f = staticFilings();
   return f ? [[['filings'], f]] : [];
@@ -213,6 +224,7 @@ export const ROUTES = [
   { kind: 'reports', re: /^\/reports(?:\/(\d{4}-q[1-4]))?$/, params: (m) => ({ id: m[1] || null }), load: loadReports, cache: 'day' },
   { kind: 'calendar', re: /^\/calendar$/, load: loadCalendar, cache: () => (inFilingSeason() ? 'hour' : 'day') },
   { kind: 'filings', re: /^\/filings$/, load: loadFilings, cache: 'hour' },
+  { kind: 'stock-screen', re: /^\/screen\/stocks$/, load: loadStockScreen, cache: 'hour' },
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },

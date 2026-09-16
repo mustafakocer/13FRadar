@@ -8,6 +8,7 @@ export const LAZY_PAGES = {
   Insiders: { load: () => import('./Insiders.jsx'), match: /^\/insiders$/ },
   PennyStocks: { load: () => import('./PennyStocks.jsx'), match: /^\/insiders\/penny$/ },
   Screen: { load: () => import('./Screen.jsx'), match: /^\/screen$/ },
+  StockScreen: { load: () => import('./StockScreen.jsx'), match: /^\/screen\/stocks$/ },
   Compare: { load: () => import('./Compare.jsx'), match: /^\/compare$/ },
   Report: { load: () => import('./Report.jsx'), match: /^\/report$/ },
   Watchlist: { load: () => import('./Watchlist.jsx'), match: /^\/watchlist$/ },

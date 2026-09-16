@@ -112,6 +112,7 @@ export function buildSitemap(type, site) {
       { path: '/rankings/most-sold', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/consensus', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/conviction', lastmod, changefreq: 'daily', priority: '0.8' },
+      { path: '/rankings/options', lastmod, changefreq: 'daily', priority: '0.7' },
       { path: '/calendar', lastmod: latestFiled, changefreq: 'daily', priority: '0.8' },
       { path: '/emerging-managers', lastmod: latestFiled, changefreq: 'weekly', priority: '0.7' },
       { path: '/reports', lastmod, changefreq: 'weekly', priority: '0.7' },

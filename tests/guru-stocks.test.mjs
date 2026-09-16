@@ -68,7 +68,55 @@ test('the ranked list is returned in order and respects the limit', async () => 
     body.stocks.map((s) => s.rank),
     [1, 2, 3]
   );
-  assert.ok(!('holders' in body.stocks[0]), 'the list view stays a summary');
+  // the list view carries a name preview for the "held by" column, not the roll
+  for (const row of body.stocks) {
+    assert.ok(row.holders.length <= 3, 'at most three names travel with a list row');
+    for (const h of row.holders) {
+      assert.deepEqual(Object.keys(h).sort(), ['cik', 'name'], 'and only their identity');
+    }
+  }
+});
+
+test('the sector list offered is the one the table can honour', async () => {
+  const { body } = await invoke(handler, {});
+  assert.ok(body.sectors.includes('Energy'));
+  assert.ok(!body.sectors.includes(null), 'unclassified rows do not become a filter option');
+  assert.deepEqual(body.sectors, [...body.sectors].sort(), 'and it is ordered');
+});
+
+test('filtering by sector drops the rows that have not been classified', async () => {
+  const { body } = await invoke(handler, { sector: 'Energy' });
+  assert.ok(body.stocks.length > 0);
+  for (const s of body.stocks) assert.equal(s.sector, 'Energy');
+  // HLT and BABA carry no sector in the fixture — a sector filter must not
+  // sweep them in on the grounds that nobody looked them up yet
+  assert.ok(!body.stocks.some((s) => s.ticker === 'HLT' || s.ticker === 'BABA'));
+  assert.equal(body.matched, body.stocks.length);
+});
+
+test('market cap filtering uses the bucket the build stamped', async () => {
+  const { body } = await invoke(handler, { cap: 'mega' });
+  for (const s of body.stocks) assert.equal(s.cap, 'mega');
+  assert.ok(body.stocks.every((s) => s.marketCap >= 200e9));
+});
+
+test('"new positions only" keeps names a fund actually opened this quarter', async () => {
+  const { body } = await invoke(handler, { strongBuy: '1' });
+  assert.ok(body.stocks.length > 0);
+  for (const s of body.stocks) {
+    assert.ok(s.newBuyers > 0, `${s.ticker} has no new buyer`);
+    assert.ok(s.netValue > 0, `${s.ticker} is not a net buy`);
+  }
+  const all = await invoke(handler, {});
+  assert.ok(body.stocks.length < all.body.stocks.length, 'the filter actually narrows');
+});
+
+test('filters compose, and an empty result is still a well-formed answer', async () => {
+  const { status, body } = await invoke(handler, { sector: 'Energy', cap: 'micro' });
+  assert.equal(status, 200);
+  assert.equal(body.matched, 0);
+  assert.deepEqual(body.stocks, []);
+  assert.ok(body.sectors.length > 0, 'the filter options survive an empty match');
 });
 
 test('free callers get a cacheable summary and a trimmed holder list', async (t) => {

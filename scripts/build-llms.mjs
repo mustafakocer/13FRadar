@@ -79,8 +79,8 @@ function sections(lang, full) {
   for (const g of gurus) L.push(link(lang, `/guru/${g.slug}`, g.name, guruLine(g, lang)));
   L.push('');
   H('Rankings', 'Sıralamalar');
-  for (const k of ['most-bought', 'most-sold', 'consensus', 'conviction']) {
-    const label = { 'most-bought': t ? 'En çok alınanlar' : 'Most bought', 'most-sold': t ? 'En çok satılanlar' : 'Most sold', consensus: t ? 'Konsensüs (en çok tutulan)' : 'Consensus (most owned)', conviction: t ? 'Yüksek kanaat' : 'High conviction' }[k];
+  for (const k of ['most-bought', 'most-sold', 'consensus', 'conviction', 'options']) {
+    const label = { 'most-bought': t ? 'En çok alınanlar' : 'Most bought', 'most-sold': t ? 'En çok satılanlar' : 'Most sold', consensus: t ? 'Konsensüs (en çok tutulan)' : 'Consensus (most owned)', conviction: t ? 'Yüksek kanaat' : 'High conviction', options: t ? 'Opsiyon sahipliği' : 'Option ownership' }[k];
     L.push(link(lang, `/rankings/${k}`, label, latestReport ? `${latestReport}` : ''));
   }
   L.push(link(lang, '/consensus', t ? 'Usta yatırımcı konsensüsü' : 'Superinvestor consensus'));

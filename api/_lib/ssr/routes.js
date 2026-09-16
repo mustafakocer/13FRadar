@@ -149,6 +149,12 @@ async function loadRankings() {
   const seeds = await loadConsensus();
   const r = staticReturns();
   if (r) seeds.push([['static-returns'], r.returns || {}]);
+  // The full ranked table, under the key the unfiltered page asks for, so a
+  // crawler sees the whole list rather than the thirty public rows.
+  const g = ok(await invoke(guruStocksHandler, { limit: '300' }));
+  if (g?.available) seeds.push([['guru-stocks', 300, '', '', 0, 0], g]);
+  const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
+  if (o?.available) seeds.push([['guru-options'], o]);
   return seeds;
 }
 
@@ -190,7 +196,7 @@ export const ROUTES = [
   { kind: 'reports', re: /^\/reports(?:\/(\d{4}-q[1-4]))?$/, params: (m) => ({ id: m[1] || null }), load: loadReports, cache: 'day' },
   { kind: 'calendar', re: /^\/calendar$/, load: loadCalendar, cache: () => (inFilingSeason() ? 'hour' : 'day') },
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
-  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction)$/, load: loadRankings, cache: 'hour' },
+  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus$/, load: loadConsensus, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },

@@ -34,7 +34,31 @@ const summarise = (s) => ({
   adders: s.adders,
   reducers: s.reducers,
   exiters: s.exiters,
+  sector: s.sector ?? null,
+  marketCap: s.marketCap ?? null,
+  cap: s.cap ?? null,
+  // the first few names keep the "held by" column working on list views;
+  // the full roll of holders stays behind the per-security call
+  holders: (s.holders || []).slice(0, 3).map((h) => ({ cik: h.cik, name: h.name })),
 });
+
+// Narrow the ranked table. A row with no sector or market cap yet is dropped
+// by a filter on that field — saying "Technology" and getting back names the
+// build has not classified would be worse than a shorter list.
+function applyFilters(rows, q) {
+  const sector = String(q.sector || '').trim().toLowerCase();
+  const cap = String(q.cap || '').trim().toLowerCase();
+  const minHolders = Number(q.minHolders) || 0;
+  // "Strong buy" = funds opening the position outright, not trimming around it
+  const strongBuy = q.strongBuy === '1' || q.strongBuy === 'true';
+  return rows.filter((r) => {
+    if (sector && String(r.sector || '').toLowerCase() !== sector) return false;
+    if (cap && r.cap !== cap) return false;
+    if (minHolders && r.holderCount < minHolders) return false;
+    if (strongBuy && !(r.newBuyers > 0 && r.netValue > 0)) return false;
+    return true;
+  });
+}
 
 export default async function handler(req, res) {
   const table = guruStockTable();
@@ -87,6 +111,14 @@ export default async function handler(req, res) {
   }
 
   const limit = Math.min(Number(req.query.limit) || LIST_LIMIT, LIST_LIMIT);
+  const filtered = applyFilters(table.stocks.map(summarise), req.query);
   res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
-  return res.status(200).json({ ...meta, stocks: table.stocks.slice(0, limit).map(summarise) });
+  return res.status(200).json({
+    ...meta,
+    matched: filtered.length,
+    // the sectors actually present in the table, so the page offers filters
+    // it can honour rather than a fixed list of industry names
+    sectors: [...new Set(table.stocks.map((s) => s.sector).filter(Boolean))].sort(),
+    stocks: filtered.slice(0, limit),
+  });
 }

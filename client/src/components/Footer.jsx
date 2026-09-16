@@ -10,6 +10,7 @@ const EXPLORE = [
   ['/insiders/cluster', 'landing.ins.tab.cluster'],
   ['/insiders/csuite', 'landing.ins.tab.csuite'],
   ['/insiders/penny', 'landing.ins.tab.penny'],
+  ['/filings', 'filings.title'],
 ];
 const LEARN = [
   ['/guides/what-is-13f', '/rehber/13f-nedir', 'guide.what'],
@@ -22,6 +23,7 @@ const RANKINGS = [
   ['/rankings/most-sold', 'rank.mostSold'],
   ['/rankings/consensus', 'rank.consensus'],
   ['/rankings/conviction', 'rank.conviction'],
+  ['/rankings/options', 'rank.options'],
 ];
 
 export default function Footer() {

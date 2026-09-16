@@ -102,6 +102,9 @@ async function main() {
             cik: e.cik.padStart(10, '0'),
             name: e.name,
             filed: e.filed,
+            // the accession these numbers were computed from, so the filings
+            // feed can attach them to that filing and not to a later amendment
+            acc: e.acc,
             aum: Math.round(aum),
             positions: positions.length,
             top10: Number(top10.toFixed(1)),

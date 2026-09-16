@@ -1,0 +1,64 @@
+{
+ "updatedAt": "2026-09-14T00:00:00.000Z",
+ "count": 4,
+ "quarters": [
+  {
+   "quarter": "Q2 2026",
+   "count": 3
+  },
+  {
+   "quarter": "Q1 2026",
+   "count": 1
+  }
+ ],
+ "rows": [
+  {
+   "form": "13F-HR/A",
+   "name": "Nykredit A/S",
+   "cik": "0000318083",
+   "filed": "2026-09-08",
+   "acc": "0000318083-26-000045",
+   "amended": true,
+   "reportDate": "2026-06-30",
+   "state": "G7",
+   "aum": null,
+   "positions": null
+  },
+  {
+   "form": "13F-HR",
+   "name": "Dodge & Cox",
+   "cik": "0000200217",
+   "filed": "2026-09-04",
+   "acc": "0000200217-26-000007",
+   "amended": false,
+   "reportDate": "2026-06-30",
+   "state": "CA",
+   "aum": 191000000000,
+   "positions": 222
+  },
+  {
+   "form": "13F-HR",
+   "name": "BlackRock, Inc.",
+   "cik": "0001364742",
+   "filed": "2026-08-07",
+   "acc": "0001364742-26-000123",
+   "amended": false,
+   "reportDate": "2026-06-30",
+   "state": "NY",
+   "aum": 6729538649155,
+   "positions": 5696
+  },
+  {
+   "form": "13F-HR",
+   "name": "Anchor Capital Advisors LLC",
+   "cik": "0000813917",
+   "filed": "2026-05-15",
+   "acc": "0000813917-26-000009",
+   "amended": false,
+   "reportDate": "2026-03-31",
+   "state": "MA",
+   "aum": 3560000000,
+   "positions": 245
+  }
+ ]
+}

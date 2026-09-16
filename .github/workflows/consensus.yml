@@ -52,11 +52,17 @@ jobs:
         run: node scripts/build-guru-activity.mjs
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      # The filing feed reads one small daily index per business day, so it is
+      # cheap enough to refresh with the rest rather than on its own schedule.
+      - name: Build filings.json
+        run: node scripts/build-filings.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
       - name: Commit if changed
         run: |
           git config user.name 'consensus-bot'
           git config user.email 'actions@github.com'
-          git add --all client/public api/_data/consensus-pro.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json
+          git add --all client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh consensus & returns data'
           # the branch may have moved during the long run — rebase our data

@@ -17,6 +17,7 @@ export const LAZY_PAGES = {
   ContentPage: { load: () => import('./ContentPage.jsx'), match: /^\/(guides|rehber|compare|karsilastir)\/[a-z0-9-]+$/ },
   ReportPage: { load: () => import('./ReportPage.jsx'), match: /^\/reports(\/|$)/ },
   Calendar: { load: () => import('./Calendar.jsx'), match: /^\/calendar$/ },
+  Filings: { load: () => import('./Filings.jsx'), match: /^\/filings$/ },
   Emerging: { load: () => import('./Emerging.jsx'), match: /^\/emerging-managers$/ },
   GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/[^/]+$/ },
 };

@@ -47,6 +47,20 @@ test('SSR: a stock page states where it ranks among the gurus and who is most co
   assert.match(plain.slice(value), /Berkshire/, 'value leads with the big one');
 });
 
+test('SSR: the filing feed lists arrivals with their period and form type', async () => {
+  const { status, html } = await ssr('/en/filings');
+  assert.equal(status, 200);
+  const plain = html.replace(/<!-- -->/g, '');
+  assert.match(plain, /<title>Latest 13F Filings \| Fundocap<\/title>/);
+  assert.match(plain, /13F-HR\/A/, 'amendments are shown as amendments');
+  assert.match(plain, /Q2 2026/, 'the period reported, not only the date filed');
+  assert.match(plain, /BlackRock/);
+  // an amendment has no measured figures of its own and must not borrow the
+  // original filing's
+  const amendment = plain.slice(plain.indexOf('Nykredit'), plain.indexOf('Dodge'));
+  assert.doesNotMatch(amendment, /\$\d/, 'no dollar figure on the amendment row');
+});
+
 test('SSR: home page renders content and site JSON-LD', async () => {
   const { status, html } = await ssr('/tr');
   assert.equal(status, 200);

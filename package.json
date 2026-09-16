@@ -16,6 +16,7 @@
     "teaser": "node scripts/build-teaser.mjs",
     "report": "node scripts/build-report.mjs",
     "related": "node scripts/build-related.mjs",
+    "filings": "node scripts/build-filings.mjs",
     "geo-monitor": "node --experimental-strip-types scripts/geo-monitor.ts",
     "test": "node --test tests/*.test.mjs",
     "test:full": "npm run build && node --test tests/*.test.mjs",

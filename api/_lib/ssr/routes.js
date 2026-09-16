@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { invoke, withBudget } from './invoke.js';
 import managerHandler from '../../_handlers/manager.js';
@@ -29,6 +30,17 @@ const staticTeaser = () => json('../../../client/public/insiders-teaser.json');
 const staticReturns = () => json('../../../client/public/returns.json');
 const staticSummary = () => json('../../../client/public/universe-summary.json');
 const staticStocks = () => json('../../../client/public/stocks.json');
+// FILINGS_FILE points the offline tests at a fixture feed; production reads
+// the file the daily Action writes, and renders nothing when it is absent.
+const staticFilings = () => {
+  const override = process.env.FILINGS_FILE;
+  if (!override) return json('../../../client/public/filings.json');
+  try {
+    return JSON.parse(fs.readFileSync(override, 'utf8'));
+  } catch {
+    return null;
+  }
+};
 
 // CDN cache policy per page kind — the ISR equivalent for a Vite app.
 export const CACHE = {
@@ -158,6 +170,11 @@ async function loadRankings() {
   return seeds;
 }
 
+async function loadFilings() {
+  const f = staticFilings();
+  return f ? [[['filings'], f]] : [];
+}
+
 async function loadCalendar() {
   const r = await invoke(calendarHandler, {});
   return r.status === 200 ? [[['calendar'], r.body]] : [];
@@ -195,6 +212,7 @@ export const ROUTES = [
   { kind: 'insider-signal', re: /^\/insiders\/(cluster|csuite|penny)$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'reports', re: /^\/reports(?:\/(\d{4}-q[1-4]))?$/, params: (m) => ({ id: m[1] || null }), load: loadReports, cache: 'day' },
   { kind: 'calendar', re: /^\/calendar$/, load: loadCalendar, cache: () => (inFilingSeason() ? 'hour' : 'day') },
+  { kind: 'filings', re: /^\/filings$/, load: loadFilings, cache: 'hour' },
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },

@@ -149,8 +149,56 @@ export function valueMultiplier(filingDate) {
   return filingDate && filingDate >= '2023-01-03' ? 1 : 1000;
 }
 
+// The band of implied share prices a whole equity book can sit in. It is
+// deliberately wide: the top has to clear Berkshire A stock (about $700k a
+// share) and the bottom has to leave room for a genuine penny-stock fund.
+const SANE_PRICE = [0.01, 100_000];
+
+// Some filers ignore the reporting-unit rule: whole dollars in a filing that
+// should be thousands, or thousands in one that should be dollars. Either way
+// the portfolio comes out 1000× wrong, which is the difference between a $7B
+// fund and a $7M one.
+//
+// The date rule decides the multiplier; this checks the result against the
+// share prices the filing itself implies, and only overrides when the stated
+// units put the median price outside anything a stock can trade at *and* the
+// other unit puts it back inside. A filing that is merely unusual is left
+// alone — a wrong correction is worse than an odd-looking number.
+//
+// This catches a book reported 1000× too large, where the implied prices climb
+// past any traded price. It deliberately does not catch one reported 1000× too
+// small: a median implied price of fifteen cents is what a filer writing
+// thousands into a dollars filing looks like, and it is also exactly what a
+// real penny-stock fund looks like. Without market prices to compare against,
+// correcting that case would silently multiply a legitimate portfolio by a
+// thousand, so the extreme end (under a cent a share) is the only part of that
+// direction acted on.
+export function detectValueScale(rows, filingDate, { minRows = 8 } = {}) {
+  const stated = valueMultiplier(filingDate);
+  const prices = [];
+  for (const r of rows) {
+    // principal amounts (convertible debt) are not share counts, so the ratio
+    // is not a price and must not vote
+    if (String(r.shrsOrPrnAmt?.sshPrnamtType || 'SH').toUpperCase() !== 'SH') continue;
+    const value = Number(r.value) || 0;
+    const shares = Number(r.shrsOrPrnAmt?.sshPrnamt) || 0;
+    if (value > 0 && shares > 0) prices.push((value * stated) / shares);
+  }
+  if (prices.length < minRows) return { mult: stated, corrected: false, median: null };
+  prices.sort((a, b) => a - b);
+  const median = prices[Math.floor(prices.length / 2)];
+  const sane = (p) => p >= SANE_PRICE[0] && p <= SANE_PRICE[1];
+  if (sane(median)) return { mult: stated, corrected: false, median };
+  for (const factor of [1000, 1 / 1000]) {
+    if (sane(median * factor)) {
+      return { mult: stated * factor, corrected: true, median, correctedMedian: median * factor };
+    }
+  }
+  return { mult: stated, corrected: false, median };
+}
+
 export function aggregatePositions(rows, filingDate) {
-  const mult = valueMultiplier(filingDate);
+  const { mult, corrected } = detectValueScale(rows, filingDate);
   const map = new Map();
   for (const r of rows) {
     const cusip = String(r.cusip || '').toUpperCase().trim();
@@ -174,7 +222,9 @@ export function aggregatePositions(rows, filingDate) {
   const positions = [...map.values()].sort((a, b) => b.value - a.value);
   const aum = positions.reduce((s, p) => s + p.value, 0);
   for (const p of positions) p.weight = aum ? (p.value / aum) * 100 : 0;
-  return { aum, positions };
+  // `unitFix` travels with the filing so a page can say the numbers were
+  // corrected rather than quietly restating what the filer reported.
+  return { aum, positions, ...(corrected ? { unitFix: true } : {}) };
 }
 
 // Full holdings for one filing — cached long-term since filings are immutable.

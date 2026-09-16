@@ -252,6 +252,21 @@ export default function Manager() {
               {mgr.data.displayName && mgr.data.displayName !== mgr.data.name ? `${mgr.data.name} · ` : ''}CIK {mgr.data.cik}
               {mgr.data.city ? ` · ${mgr.data.city}, ${mgr.data.state}` : ''}
               {filing ? ` · ${t('manager.quarterEnd')}: ${filing.reportDate} · ${t('manager.filedOn')}: ${filing.filingDate}` : ''}
+              {/* Straight to the document these numbers were read from, so a
+                  reader can check a figure against the filing itself rather
+                  than take the site's word for it. */}
+              {filing && (
+                <>
+                  {' · '}
+                  <a
+                    href={`https://www.sec.gov/Archives/edgar/data/${Number(mgr.data.cik)}/${String(filing.acc).replace(/-/g, '')}/`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {t('guru.verify')} ↗
+                  </a>
+                </>
+              )}
             </div>
             <div className="head-badges">
               {managerStyle(mgr.data.cik) && (

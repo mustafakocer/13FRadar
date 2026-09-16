@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useI18n } from '../i18n.jsx';
 import { managerPath } from '../lib/paths.js';
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
@@ -11,8 +12,9 @@ import { Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 // idea, while the biggest position by portfolio weight is somebody's actual
 // bet. Reading only the first list is how people mistake index-scale
 // ownership for conviction.
-export default function GuruOwnership({ stock, byConviction, byValue, truncated, options, ownedPct, universe }) {
+export default function GuruOwnership({ stock, byConviction, byValue, truncated, options, ownedPct, universe, trend }) {
   const { t } = useI18n();
+  const [range, setRange] = useState('all');
   if (!stock) return null;
 
   const row = (h, showWeight) => (
@@ -90,6 +92,46 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
         {byValue?.length > 0 && list(t('guru.byValue'), byValue, false)}
       </div>
 
+      {trend?.quarters?.length > 1 && (
+        <>
+          <div className="row mt16" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <div className="small muted">
+              {t('guru.trend')}
+              {/* the history covers the funds it can backfill, which is fewer
+                  than the panel — saying which keeps the count honest */}
+              <span> · {t('guru.trendFunds').replace('{n}', fmtNum(trend.funds))}</span>
+            </div>
+            <div className="row" style={{ gap: 4 }}>
+              {['1y', '5y', '10y', 'all'].map((r) => (
+                <button key={r} className={`chip sm${range === r ? ' fsel-active' : ''}`} onClick={() => setRange(r)}>
+                  {t(`guru.range.${r}`)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <table className="data mt8">
+            <thead>
+              <tr>
+                <th className="l">{t('filings.reportFor')}</th>
+                <th>{t('guru.holding')}</th>
+                <th>{t('consensus.totalValue')}</th>
+                <th>{t('consensus.avgWeight')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cut(trend.quarters, range).map((q) => (
+                <tr key={q.reportDate}>
+                  <td className="l">{q.reportDate}</td>
+                  <td className="num">{fmtNum(q.holders)}</td>
+                  <td className="num">{fmtMoney(q.value)}</td>
+                  <td className="num">{fmtPct(q.avgWeight, { sign: false })}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
       {truncated && (
         <div className="small muted mt8">
           <Link to="/pricing">{t('guru.moreHolders')} →</Link>
@@ -116,4 +158,12 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
       )}
     </div>
   );
+}
+
+// The server sends the whole stored history; the range buttons cut it here so
+// switching windows costs nothing and works before hydration finishes.
+const RANGE_QUARTERS = { '1y': 4, '5y': 20, '10y': 40 };
+function cut(quarters, range) {
+  const n = RANGE_QUARTERS[range];
+  return n ? quarters.slice(-n) : quarters;
 }

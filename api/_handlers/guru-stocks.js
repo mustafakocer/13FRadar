@@ -2,6 +2,7 @@
 // GET /api/guru-stocks?ticker=AAPL            → one security, with its holders
 // GET /api/guru-stocks?cusip=037833100        → same, when no ticker resolved
 // GET /api/guru-stocks?view=options           → PUT/CALL ownership, biggest first
+// GET /api/guru-stocks?ticker=AAPL&range=5y   → …with ownership cut to 5 years
 //
 // The summary of a security — how many curated funds hold it, its rank, what
 // the quarter did to it — is free: it is the answer the page exists to give,
@@ -9,6 +10,7 @@
 // few names is Pro, in line with the ten free rows on a portfolio.
 import { isPro, noStore } from '../_lib/auth.js';
 import { guruStockTable, guruStock, guruOptions, byConviction, byValue } from '../_lib/guruStocks.js';
+import { ownershipTrend, trendRange } from '../_lib/guruStockHistory.js';
 
 const FREE_HOLDERS = 5;
 // Enough for the screener's first page loads; the table is ranked, so the tail
@@ -107,6 +109,10 @@ export default async function handler(req, res) {
       holders: pro ? s.holders : s.holders.slice(0, FREE_HOLDERS),
       holdersTruncated: !pro && s.holderCount > FREE_HOLDERS,
       options: guruOptions({ ticker: s.ticker, cusip: s.cusip }),
+      // Quarterly ownership from the stored history. It covers the funds that
+      // history reaches, not the whole panel, so it travels with its own fund
+      // count rather than being read against the panel's.
+      trend: trendRange(ownershipTrend({ ticker: s.ticker, cusip: s.cusip }), String(req.query.range || 'all')),
     });
   }
 

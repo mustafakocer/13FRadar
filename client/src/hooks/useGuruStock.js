@@ -30,6 +30,7 @@ export function useGuruStock({ ticker, cusip }) {
     topByConviction: ready ? q.data.topByConviction || [] : [],
     topByValue: ready ? q.data.topByValue || [] : [],
     options: ready ? q.data.options || [] : [],
+    trend: ready ? q.data.trend || null : null,
     holdersTruncated: Boolean(q.data?.holdersTruncated),
     universe: q.data?.universe ?? null,
     reportDate: q.data?.reportDate ?? null,

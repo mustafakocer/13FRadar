@@ -329,6 +329,7 @@ export default function Stock() {
               : null
           }
           universe={guru.universe}
+          trend={guru.trend}
         />
       )}
 

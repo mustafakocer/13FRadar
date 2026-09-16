@@ -65,7 +65,10 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
 | `FMP_API_KEY`, `TWELVEDATA_API_KEY` | opsiyonel | fiyat/rasyo sağlayıcıları |
 | Stripe / Supabase | ödeme için | bkz. docs/STRIPE-KURULUM.md |
-| `SEC_FIXTURE_DIR`, `GURU_HISTORY_FILE` | yalnız test | çevrimdışı fixture'lar (`tests/fixtures`) |
+| `RESEND_API_KEY`, `ALERT_FROM` | alert e-postası için | `scripts/send-alerts.mjs`; anahtar yoksa koşu eşleştirir ama göndermez |
+| `SUPABASE_SERVICE_ROLE_KEY` | alert işi için | digest her kullanıcının alert'lerini okur, RLS ile çalışamaz |
+| `HISTORY_STORE`, `HISTORY_SUPABASE_URL`, `HISTORY_SUPABASE_KEY` | tarihsel depo için | `HISTORY_STORE=1` olmadan okuma yolu dosyalardan devam eder |
+| `SEC_FIXTURE_DIR`, `GURU_HISTORY_FILE`, `GURU_STOCKS_FILE`, `FILINGS_FILE` | yalnız test | çevrimdışı fixture'lar (`tests/fixtures`) |
 
 ### GEO (generative engine optimization) kontrol listesi
 
@@ -112,6 +115,9 @@ Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, so
 | `api/_data/splits.json` | `scripts/build-splits.mjs` | günlük | bölünme olayları (adetler split-adjusted) |
 | `client/public/insiders-teaser.json`, `api/_data/insiders.json` | `scripts/build-insiders.mjs` | günlük | Form 4 akışı; sınıflandırma: güçlü sinyal / likidite / gürültü, 10b5-1 bayrağı |
 | `client/public/universe.json`, `universe-summary.json`, `api/_data/slugs.json` | `scripts/build-universe.mjs` + `build-slugs.mjs` | haftalık | tüm 13F evreni ve slug tablosu |
+| `api/_data/guru-stocks.json` | `scripts/build-consensus.mjs` | günlük | menkul bazında guru sahipliği: sıra, tutan fon sayısı, ağırlıklar, çeyrek aktivitesi, PUT/CALL satırları |
+| `api/_data/sector-map.json` | `scripts/build-consensus.mjs` | günlük (artımlı) | ticker→sektör; her koşuda en çok `SECTOR_BUDGET` yeni sembol sorulur |
+| `client/public/filings.json`, `client/public/filer-states.json`, `api/_data/filer-meta.json` | `scripts/build-filings.mjs` | günlük | 13F bildirim akışı (13F-HR / 13F-HR/A), bildirilen dönem, fon adresleri |
 
 ### Test ve kalite kapıları
 
@@ -173,6 +179,27 @@ Ana sayfa şu statik dosyaları okur (hepsi Action'lar tarafından üretilir, `c
 
 - **E-posta bildirimi:** Vercel Cron + KV + Resend hesabı ile izleme listesine yeni 13F bildirimi. Şimdilik uygulama içi "YENİ 13F" rozetleri var.
 - **Hesap + senkron izleme listesi:** Supabase/Clerk entegrasyonu gerekir; bugün localStorage kullanılıyor.
+
+### Tarihsel depo (opsiyonel, henüz doldurulmadı)
+
+`supabase/history-schema.sql` 2013'ten itibaren tam holding geçmişi için tablo
+şemasını tanımlar; `scripts/backfill-13f.mjs` EDGAR çeyreklik indekslerinden
+yeniden başlatılabilir şekilde doldurur (imleç `backfill_state` tablosunda,
+her koşu yenisinden eskiye doğru sınırlı sayıda çeyrek okur, yarıda kalan
+çeyrek bir sonraki koşuda yalnızca eksik bildirimleri okur).
+
+Okuma yolu (`api/_lib/holdingsStore.js`) yalnızca `HISTORY_STORE=1` iken
+devreye girer ve her hata durumunda EDGAR'a düşer — yani depo boşken, backfill
+sürerken ve bittikten sonra site aynı şekilde çalışır.
+
+```bash
+psql "$DATABASE_URL" -f supabase/history-schema.sql
+BACKFILL_DRY=1 npm run backfill        # ne okuyacağını yazar, hiçbir şey yazmaz
+BACKFILL_QUARTERS=4 npm run backfill   # sınırlı bir koşu
+```
+
+Kaba büyüklük: 2013+ için ~115 milyon pozisyon satırı. Tek koşuda bitmez,
+tasarım gereği defalarca çalıştırılır.
 
 ### Notlar / Bilinen Sınırlar
 - Yahoo Finance resmi olmayan API'dir; nadiren crumb/cookie yenilemesi gerekir (client otomatik dener).

@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from './cache.js';
+import { storedHoldings } from './holdingsStore.js';
 
 // SEC requires a descriptive User-Agent with contact info.
 const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
@@ -228,8 +229,15 @@ export function aggregatePositions(rows, filingDate) {
 }
 
 // Full holdings for one filing — cached long-term since filings are immutable.
+//
+// When the historical store is configured and has this filing, it answers;
+// otherwise the info table is fetched and parsed as before. The store is off
+// by default and returns null on any trouble, so this is a shortcut, never a
+// dependency.
 export function getHoldings(cik, acc, filingDate) {
   return cached(`hold:${numCik(cik)}:${acc}`, TTL.DAY_7, async () => {
+    const stored = await storedHoldings(cik, acc);
+    if (stored) return stored;
     const xml = await fetchInfoTableXml(cik, acc);
     const rows = await parse13F(xml);
     let fd = filingDate;

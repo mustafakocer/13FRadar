@@ -18,7 +18,9 @@ fs.mkdirSync(pub, { recursive: true });
 
 // ---- consensus.json -------------------------------------------------------
 console.log('Building consensus…');
-const consensus = await build();
+// The runner has an OpenFIGI key and no request deadline, so this is where the
+// per-stock table earns its tickers; /api/consensus takes the static map only.
+const consensus = await build({ stocksTickers: Number(process.env.CONSENSUS_FIGI_BUDGET || 1500) });
 // Public file: the free part — most-held plus the per-manager "what changed"
 // teaser cards for the landing page. Full buys/sells/new-position lists are
 // Pro data and go to api/_data (served by /api/consensus behind the paywall).
@@ -29,9 +31,20 @@ fs.writeFileSync(
 );
 const dataDir = path.join(process.cwd(), 'api', '_data');
 fs.mkdirSync(dataDir, { recursive: true });
-fs.writeFileSync(path.join(dataDir, 'consensus-pro.json'), JSON.stringify(consensus));
+// The per-stock table is the bulky part and only the stock page, the ownership
+// rankings and the screener read it, so it gets its own file rather than
+// riding along in every /api/consensus response.
+const { stocks, options, ...core } = consensus;
+fs.writeFileSync(path.join(dataDir, 'consensus-pro.json'), JSON.stringify(core));
+fs.writeFileSync(
+  path.join(dataDir, 'guru-stocks.json'),
+  JSON.stringify({ updatedAt, managers, stocks, options })
+);
 console.log(
   `consensus.json (public) + consensus-pro.json: ${managers.length} managers, ${mostHeld.length} most-held, ${consensus.topBought.length} bought, ${consensus.newPositions.length} new, ${updates.length} update cards`
+);
+console.log(
+  `guru-stocks.json: ${stocks.length} securities (${stocks.filter((s) => s.ticker).length} with a ticker), ${options.length} option lines`
 );
 
 // ---- returns.json ---------------------------------------------------------

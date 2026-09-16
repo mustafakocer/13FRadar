@@ -39,7 +39,9 @@ const FILERS = [
     prev: [['GOOGL', 12e6, 1.9e9], ['CMG', 28e6, 1.5e9], ['HLT', 8e6, 1.6e9], ['AMZN', 4e6, 0.7e9]] },
   { cik: '0001649339', name: 'SCION ASSET MANAGEMENT, LLC', city: 'SARATOGA', state: 'CA',
     q: [['0001649339-26-000004', '2026-08-13', '2026-06-30'], ['0001649339-26-000002', '2026-05-14', '2026-03-31']],
-    cur: [['BABA', 1.5e6, 128e6], ['NVDA', 0.5e6, 59e6], ['OXY', 1e6, 60e6]],
+    // the PUT line shares NVDA's CUSIP with the common above on purpose: the
+    // roll-up has to keep the two sides apart instead of netting them
+    cur: [['BABA', 1.5e6, 128e6], ['NVDA', 0.5e6, 59e6], ['OXY', 1e6, 60e6], ['NVDA', 0.2e6, 24e6, 'Put']],
     prev: [['BABA', 2e6, 160e6], ['KO', 0.3e6, 20e6]] },
 ];
 
@@ -47,9 +49,10 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const infoTable = (rows) =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">\n` +
   rows
-    .map(([t, shares, value]) => {
+    .map(([t, shares, value, putCall]) => {
       const [cusip, issuer] = STOCKS[t];
-      return `  <infoTable><nameOfIssuer>${esc(issuer)}</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>${cusip}</cusip><value>${Math.round(value)}</value><shrsOrPrnAmt><sshPrnamt>${Math.round(shares)}</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt><investmentDiscretion>SOLE</investmentDiscretion><votingAuthority><Sole>${Math.round(shares)}</Sole><Shared>0</Shared><None>0</None></votingAuthority></infoTable>`;
+      const side = putCall ? `<putCall>${putCall}</putCall>` : '';
+      return `  <infoTable><nameOfIssuer>${esc(issuer)}</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>${cusip}</cusip><value>${Math.round(value)}</value><shrsOrPrnAmt><sshPrnamt>${Math.round(shares)}</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt>${side}<investmentDiscretion>SOLE</investmentDiscretion><votingAuthority><Sole>${Math.round(shares)}</Sole><Shared>0</Shared><None>0</None></votingAuthority></infoTable>`;
     })
     .join('\n') +
   `\n</informationTable>\n`;

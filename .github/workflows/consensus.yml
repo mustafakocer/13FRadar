@@ -1,7 +1,21 @@
 name: Build consensus & returns
 
 on:
-  workflow_dispatch: {}
+  # The knobs that decide how long a run takes. The guru bench went from 20
+  # names to 99, and a first run that walks forty quarters for all of them can
+  # outlast the job. Start shallow to get the data out, then re-run deeper:
+  # the history cache keys on which filings were read, so raising the look-back
+  # rebuilds rather than being mistaken for work already done.
+  workflow_dispatch:
+    inputs:
+      guru_quarters:
+        description: 'Quarters of history per guru (40 = full ten years)'
+        type: string
+        default: '40'
+      sector_budget:
+        description: 'New symbols to look a sector up for this run'
+        type: string
+        default: '250'
   schedule:
     # Daily 04:30 UTC — keeps the consensus page and return columns fresh
     - cron: '30 4 * * *'
@@ -28,7 +42,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # 88 minutes was the 20-guru run; 99 gurus and the filings crawl need room
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -41,11 +56,13 @@ jobs:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+          SECTOR_BUDGET: ${{ inputs.sector_budget || '250' }}
       - name: Build guru-history.json (10 years, curated gurus) & splits.json
         run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
       # pivots guru-history by quarter for /report, and fills in sector,
       # market cap and the ETF flag when an FMP key is configured
       - name: Build guru-activity.json

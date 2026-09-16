@@ -77,20 +77,25 @@ test('SSR: the consensus page ships its segments, filters and a row you can open
   assert.equal(status, 200);
   const plain = html.replace(/<!-- -->/g, '');
   // every segment is a control on the page, not a separate route
-  for (const label of ['En Çok Tutulanlar', 'Alınanlar', 'Satılanlar', 'Yeni Pozisyonlar', 'Opsiyonlar', 'Tüm Evren']) {
+  for (const label of ['En Çok Tutulanlar', 'Alınanlar', 'Satılanlar', 'Yeni Pozisyonlar', 'Fonlar', 'Tüm Evren']) {
     assert.ok(plain.includes(label), `segment ${label}`);
   }
-  assert.match(plain, /Sektör/, 'filters render once the table is built');
+  // the strip that frames the quarter, from the static file alone
+  assert.match(plain, /Takip edilen fon/);
+  assert.match(plain, /En çok tutulan/);
   assert.match(plain, /aria-expanded="false"/, 'rows are openable');
   assert.match(plain, /href="\/tr\/guru\//, 'the funds holding a stock are links');
+  assert.doesNotMatch(plain, /Sektör/, 'no filter the data cannot honour');
 
   // a Pro segment shows the paywall rather than the table
   const { html: bought } = await ssr('/tr/consensus?tab=bought');
   assert.doesNotMatch(bought.replace(/<!-- -->/g, ''), /<tr[^>]*role="button"/, 'no rows behind the paywall');
 
-  // options match /rankings/options, which is public
-  const { html: options } = await ssr('/tr/consensus?tab=options');
-  assert.match(options.replace(/<!-- -->/g, ''), /NVIDIA/, 'the option line renders for anyone');
+  // the fund segment is free and lists every tracked fund as a link
+  const { html: funds } = await ssr('/tr/consensus?tab=funds');
+  const plainFunds = funds.replace(/<!-- -->/g, '');
+  assert.match(plainFunds, /Yeni aldı/);
+  assert.ok((plainFunds.match(/href="\/tr\/guru\//g) || []).length >= 3, 'each fund links to its page');
 });
 
 test('SSR: home page renders content and site JSON-LD', async () => {

@@ -139,6 +139,20 @@ async function loadConsensus() {
   return seeds;
 }
 
+// The consensus page itself: the static file above plus the per-security
+// table its default segment renders, under the exact key the unfiltered page
+// asks for — a seed only counts when the key matches.
+async function loadConsensusPage() {
+  const seeds = await loadConsensus();
+  const r = staticReturns();
+  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
+  if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
+  const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
+  if (o?.available) seeds.push([['guru-options'], o]);
+  return seeds;
+}
+
 // /report renders its whole table from the activity pivot, so that file has to
 // be seeded or the page ships empty to crawlers.
 async function loadReport() {
@@ -228,7 +242,7 @@ export const ROUTES = [
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
-  { kind: 'consensus', re: /^\/consensus$/, load: loadConsensus, cache: 'hour' },
+  { kind: 'consensus', re: /^\/consensus$/, load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: async () => [], cache: 'day' },
   { kind: 'report', re: /^\/report$/, load: loadReport, cache: 'hour' },

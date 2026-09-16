@@ -1,0 +1,48 @@
+name: Send alert digests
+
+# Runs after the data jobs have had time to land (consensus 04:30, insiders
+# 05:30, filings alongside them), so a digest never reports a filing the site
+# cannot yet show.
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Match and print without sending'
+        type: boolean
+        default: true
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      # A repository without the service key has nobody to read alerts for.
+      # That is a configuration state, not a failure, so the job says so and
+      # stops rather than going red every morning.
+      - name: Check configuration
+        id: cfg
+        env:
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ -z "$SERVICE_KEY" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY not configured — skipping the digest."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Send digests
+        if: steps.cfg.outputs.ready == 'true'
+        run: node scripts/send-alerts.mjs ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          SITE_URL: ${{ secrets.SITE_URL }}

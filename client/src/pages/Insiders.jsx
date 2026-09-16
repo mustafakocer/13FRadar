@@ -8,6 +8,7 @@ import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
+import { useAlerts } from '../hooks/useAlerts.js';
 import InfoTip from '../components/InfoTip.jsx';
 import { SkeletonRows } from '../components/Skeleton.jsx';
 import Ico from '../components/Ico.jsx';
@@ -249,6 +250,36 @@ export default function Insiders() {
     [tab, period, page, sort, search, minValue, adv]
   );
 
+  // "Save as alert" stores the filters as they stand, so the digest re-runs
+  // exactly the feed the reader was looking at rather than an approximation.
+  const { saveAlert } = useAlerts();
+  const [savedAlert, setSavedAlert] = useState(false);
+  const onSaveAlert = async () => {
+    const label = [
+      t(`ins.tab.${tab}`),
+      search || null,
+      minValue ? `> $${minValue}` : null,
+      adv.sector || null,
+      adv.size ? t(`size.${adv.size}`) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    await saveAlert({
+      kind: 'insider',
+      label: label || t('ins.tab.latest'),
+      params: {
+        tickers: search ? [search.toUpperCase()] : [],
+        roles: tab === 'ceo' ? ['ceo'] : tab === 'cfo' ? ['cfo'] : [],
+        codes: adv.codes ? adv.codes.split(',').filter(Boolean) : [],
+        minValue: Number(minValue) || 0,
+        excludePlanned: Boolean(adv.excludePlanned),
+        clusterMin: Number(adv.clusterMin) || 0,
+      },
+    });
+    setSavedAlert(true);
+    setTimeout(() => setSavedAlert(false), 2500);
+  };
+
   const feed = useQuery({
     queryKey: ['insider-feed', params],
     queryFn: () => api.insiderFeed(params),
@@ -413,6 +444,11 @@ export default function Insiders() {
           <button className={`chip${advCount ? ' fsel-active' : ''}`} onClick={() => setAdvOpen(true)}>
             <Ico icon={SlidersHorizontal} /> {t('ins.moreFilters')}{advCount ? ` (${advCount})` : ''}
           </button>
+          {isPro && (
+            <button className="chip" onClick={onSaveAlert} disabled={savedAlert}>
+              🔔 {savedAlert ? t('alerts.saved') : t('alerts.save')}
+            </button>
+          )}
           <span className="muted small" style={{ marginLeft: 'auto' }}>
             {fmtNum(total)} {t('ins.results')}
           </span>

@@ -1,5 +1,6 @@
 import { useMemo, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useAlerts } from '../hooks/useAlerts.js';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
@@ -8,6 +9,7 @@ import AuthForm from '../components/AuthForm.jsx';
 
 export default function Account() {
   const { t, lang } = useI18n();
+  const { alerts, emailEnabled, loading: alertsLoading, removeAlert, setEmail } = useAlerts();
   const {
     configured,
     user,
@@ -125,6 +127,35 @@ export default function Account() {
         </button>
       </div>
       {billingErr && <div className="muted small mt8">{billingErr}</div>}
+
+      <div className="mt16" style={{ borderTop: '1px solid var(--border)', paddingTop: 16 }}>
+        <b>{t('alerts.title')}</b>
+        <label className="check-row mt8">
+          <input type="checkbox" checked={emailEnabled} onChange={(e) => setEmail(e.target.checked)} />
+          <span>
+            <b>{t('alerts.email')}</b>
+            <span className="muted small"> — {t('alerts.emailNote')}</span>
+          </span>
+        </label>
+        {alerts.length > 0 && (
+          <table className="data mt8">
+            <tbody>
+              {alerts.map((a) => (
+                <tr key={a.id}>
+                  <td className="l">{a.label}</td>
+                  <td className="l small muted">{t(`alerts.kind.${a.kind}`)}</td>
+                  <td className="num">
+                    <button className="btn ghost sm" onClick={() => removeAlert(a.id)}>
+                      {t('alerts.remove')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {!alerts.length && !alertsLoading && <div className="muted small mt8">{t('alerts.none')}</div>}
+      </div>
     </div>
   );
 }

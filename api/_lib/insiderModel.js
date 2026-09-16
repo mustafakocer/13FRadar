@@ -130,6 +130,57 @@ export function findClusters(rows, windowDays = 7) {
   return out;
 }
 
+// How tightly a cluster is packed. Two insiders buying on the same morning is
+// a different event from two buying eleven days apart, and the dollar total
+// cannot tell them apart. Measured on transaction dates, not filing dates:
+// filings trail trades by up to two business days and would smear the window.
+export const CLUSTER_DENSITY = ['blitz', 'tight', 'standard', 'extended'];
+
+export function clusterSpanDays(cluster) {
+  if (!cluster?.from || !cluster?.to) return null;
+  const a = new Date(`${cluster.from}T00:00:00Z`).getTime();
+  const b = new Date(`${cluster.to}T00:00:00Z`).getTime();
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b < a) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+export function clusterDensity(cluster) {
+  const span = clusterSpanDays(cluster);
+  if (span == null) return null;
+  if (span <= 1) return 'blitz';
+  if (span <= 3) return 'tight';
+  if (span <= 7) return 'standard';
+  return 'extended';
+}
+
+// Does a ticker's cluster satisfy the size and packing the reader asked for?
+// With neither asked for, every row passes — including rows with no cluster
+// at all, which is why the caller cannot simply test the cluster for null.
+export function clusterMatches(cluster, { min = 0, density = '' } = {}) {
+  if (!min && !density) return true;
+  if (!cluster) return false;
+  if (min && !(cluster.insiders >= min)) return false;
+  if (density && clusterDensity(cluster) !== density) return false;
+  return true;
+}
+
+// Share of a ticker's past open-market insider buys that are in the green at
+// the current price. It is a hit rate over a handful of trades, not a
+// forecast: reported alongside the sample size so a 100% built on one buy
+// reads as what it is. Rows priced at zero are skipped rather than counted
+// as wins.
+export function winRate(rows, currentPrice) {
+  if (!Number.isFinite(currentPrice) || currentPrice <= 0) return null;
+  let n = 0;
+  let wins = 0;
+  for (const r of rows) {
+    if (!isBuy(r) || !(r.p > 0)) continue;
+    n++;
+    if (currentPrice > r.p) wins++;
+  }
+  return n ? { n, wins, rate: Number(((wins / n) * 100).toFixed(1)) } : null;
+}
+
 // ------------------------------------------------------------------ symbols
 // EDGAR's issuerTradingSymbol is free text a filer types, so it arrives as
 // "OMEX", [ENTX], (SIRI), NYSE:XYF, NONE, or the issuer's CIK. Anything that

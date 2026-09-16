@@ -596,6 +596,8 @@ async function enrich(tickers) {
           vol: num(qd.avgVolume) ?? num(qd.volume) ?? meta[sym]?.vol,
           lo: num(qd.yearLow) ?? meta[sym]?.lo,
           hi: num(qd.yearHigh) ?? meta[sym]?.hi,
+          // the multiple the insider bought at, for the feed's P/E column
+          pe: num(qd.pe) ?? meta[sym]?.pe,
         };
       }
     }

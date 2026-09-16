@@ -4,9 +4,13 @@ import {
   classifyTransaction,
   cleanSymbol,
   crawlLedger,
+  clusterDensity,
+  clusterMatches,
+  clusterSpanDays,
   findClusters,
   rowClass,
   selectScanDays,
+  winRate,
 } from '../api/_lib/insiderModel.js';
 import { buildTeaser, buildPennyBoard, isPenny } from '../api/_lib/insiderTeaser.js';
 
@@ -241,4 +245,45 @@ test('crawl plan: a run of holidays still advances the checkpoint', () => {
   const plan = selectScanDays({ fromDay: '2026-05-22', today: '2026-05-26', published: () => new Set(), maxDays: 25 });
   assert.deepEqual(plan.days, [], 'nothing to fetch');
   assert.equal(plan.checkpoint, '2026-05-26', 'moves past every unpublished day');
+});
+
+// ---- cluster packing, hit rate --------------------------------------------
+
+test('cluster density measures how tightly the buying is packed', () => {
+  const span = (from, to) => ({ insiders: 3, value: 1, from, to });
+  assert.equal(clusterSpanDays(span('2026-05-01', '2026-05-01')), 0);
+  assert.equal(clusterDensity(span('2026-05-01', '2026-05-01')), 'blitz');
+  assert.equal(clusterDensity(span('2026-05-01', '2026-05-02')), 'blitz');
+  assert.equal(clusterDensity(span('2026-05-01', '2026-05-04')), 'tight');
+  assert.equal(clusterDensity(span('2026-05-01', '2026-05-08')), 'standard');
+  assert.equal(clusterDensity(span('2026-05-01', '2026-05-12')), 'extended');
+  assert.equal(clusterDensity(null), null, 'no cluster has no density');
+  assert.equal(clusterSpanDays({ from: '2026-05-05', to: '2026-05-01' }), null, 'backwards is not a span');
+});
+
+test('cluster filters: asking for nothing keeps everything, asking excludes', () => {
+  const cl = { insiders: 2, value: 10, from: '2026-05-01', to: '2026-05-02' };
+  assert.equal(clusterMatches(null, {}), true, 'an unfiltered feed is not a cluster feed');
+  assert.equal(clusterMatches(null, { min: 2 }), false, 'but a cluster filter needs a cluster');
+  assert.equal(clusterMatches(cl, { min: 2 }), true);
+  assert.equal(clusterMatches(cl, { min: 3 }), false);
+  assert.equal(clusterMatches(cl, { density: 'blitz' }), true);
+  assert.equal(clusterMatches(cl, { density: 'extended' }), false);
+  assert.equal(clusterMatches(cl, { min: 2, density: 'tight' }), false, 'both must hold');
+});
+
+test('win rate counts open-market buys only, and reports its sample size', () => {
+  const rows = [
+    { k: 'P', p: 10 },
+    { k: 'P', p: 30 },
+    { k: 'S', p: 5 }, // a sale is not a signal that can be right or wrong
+    { k: 'A', p: 1 }, // neither is a grant
+    { k: 'P', p: 0 }, // a zero-price row would otherwise count as a free win
+  ];
+  const w = winRate(rows, 20);
+  assert.deepEqual(w, { n: 2, wins: 1, rate: 50 });
+  assert.equal(winRate(rows, null), null, 'no current price, no verdict');
+  assert.equal(winRate(rows, 0), null);
+  assert.equal(winRate([{ k: 'S', p: 5 }], 20), null, 'no buys, no rate');
+  assert.equal(winRate([{ k: 'P', p: 10 }], 20).n, 1, 'a single trade still reports n');
 });

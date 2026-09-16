@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
@@ -7,16 +7,14 @@ import { useI18n } from '../i18n.jsx';
 import FavoriteButton from '../components/FavoriteButton.jsx';
 import PositionCards from '../components/PositionCards.jsx';
 import ChartBox from '../components/ChartBox.jsx';
-import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, SparkBar, BacktestChart } from '../components/Charts/index.js';
+import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, BacktestChart } from '../components/Charts/index.js';
 import HoldingsTable from '../components/HoldingsTable.jsx';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
-import { timeHeldLabel } from '../lib/timeHeld.js';
 import { managerPath } from '../lib/paths.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
@@ -27,11 +25,34 @@ import InfoTip from '../components/InfoTip.jsx';
 import Ico from '../components/Ico.jsx';
 import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert } from 'lucide-react';
 
+// The same shape as the consensus page: the four numbers that frame the
+// quarter, the segments of the page as tabs in the URL, and under the active
+// tab one thing — a table, or a pair of charts — rather than everything at
+// once. The old overview stacked six stat cards, a top-ten table, two charts
+// and the backtest in a single scroll and then repeated the table on another
+// tab; a reader looking for one number had to pass every other one.
+const TABS = ['portfolio', 'changes', 'mix', 'history', 'backtest'];
+
 function Loading({ t }) {
   return (
     <div className="loading">
       <div className="spinner" />
       {t('common.loading')}
+    </div>
+  );
+}
+
+function Kpi({ label, tip, value, sub, cls = '' }) {
+  return (
+    <div className="card" style={{ padding: '12px 16px' }}>
+      <div className="small muted">
+        {label}
+        {tip && <InfoTip tip={tip} />}
+      </div>
+      <div className={cls} style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>
+        {value}
+      </div>
+      {sub && <div className="small muted">{sub}</div>}
     </div>
   );
 }
@@ -49,7 +70,21 @@ export default function Manager() {
   });
   const cik = cikParam || slugQ.data?.cik || null;
   const { isPro } = useAuth();
-  const [tab, setTab] = useState('overview');
+
+  // The segment lives in the URL so a link can point at the history or the
+  // changes of a fund, not only at its front.
+  const [sp, setSp] = useSearchParams();
+  const tab = TABS.includes(sp.get('tab')) ? sp.get('tab') : 'portfolio';
+  const setTab = (k) =>
+    setSp(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (k === 'portfolio') next.delete('tab');
+        else next.set('tab', k);
+        return next;
+      },
+      { replace: true }
+    );
   const [selAcc, setSelAcc] = useState(null);
   const [btOn, setBtOn] = useState(false);
 
@@ -83,10 +118,6 @@ export default function Manager() {
     enabled: !!prevFiling && (isPro || visibleCusips.length > 0),
     staleTime: 6 * 60 * 60 * 1000,
   });
-  const prevByCusip = useMemo(
-    () => new Map((prevHoldings.data?.positions || []).map((p) => [p.cusip, p])),
-    [prevHoldings.data]
-  );
 
   const aumHist = useQuery({
     queryKey: ['aum', cik],
@@ -106,13 +137,12 @@ export default function Manager() {
 
   // returns come from the precomputed static file — zero per-symbol calls
   const returns = useStaticReturns();
-  const benchReturns = returns;
 
   const sectorTickers = topTickers.slice(0, 25);
   const sectors = useQuery({
     queryKey: ['sectors', sectorTickers.join(',')],
     queryFn: () => api.sectors(sectorTickers),
-    enabled: tab === 'portfolio' && sectorTickers.length > 0,
+    enabled: tab === 'mix' && sectorTickers.length > 0,
     staleTime: 24 * 60 * 60 * 1000,
   });
 
@@ -163,7 +193,6 @@ export default function Manager() {
     retry: 1,
   });
 
-
   // related managers by holdings overlap (nightly precompute; 404 = none)
   const related = useQuery({
     queryKey: ['related', cik],
@@ -187,27 +216,12 @@ export default function Manager() {
 
   const positions = holdings.data?.positions || [];
   const history = aumHist.data?.history || [];
-
   const latest = history[history.length - 1];
-
-  // 1D return, weighted by portfolio weight over resolved tickers
-  let day1 = null;
-  if (returns.data && positions.length) {
-    let wSum = 0;
-    let acc1d = 0;
-    for (const p of positions.slice(0, 50)) {
-      const r = returns.data[p.ticker];
-      if (r?.ret1d != null) {
-        wSum += p.weight;
-        acc1d += p.weight * r.ret1d;
-      }
-    }
-    if (wSum > 10) day1 = acc1d / wSum;
-  }
-
   const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
 
-  // Current-portfolio weighted 1Y/YTD return over resolved top-50 tickers
+  // Current-portfolio weighted 1Y/YTD return over resolved top-50 tickers.
+  // The 1D figure the header used to carry is gone: a one-day move on a
+  // portfolio disclosed 45 days late is noise dressed as a number.
   let port1y = null;
   let portYtd = null;
   if (returns.data && positions.length) {
@@ -220,26 +234,23 @@ export default function Manager() {
     if (w1 > 10) port1y = a1 / w1;
     if (w2 > 10) portYtd = a2 / w2;
   }
+  const spy1y = returns.data?.SPY?.ret1y ?? null;
   const benchSeries =
-    port1y != null && benchReturns.data
+    port1y != null && returns.data
       ? [
           { label: t('manager.portfolioSeries'), ret1y: port1y, retYtd: portYtd },
           ...['SPY', 'QQQ', 'IWM']
-            .filter((s) => benchReturns.data[s])
-            .map((s) => ({
-              label: s,
-              ret1y: benchReturns.data[s].ret1y,
-              retYtd: benchReturns.data[s].retYtd,
-            })),
+            .filter((s) => returns.data[s])
+            .map((s) => ({ label: s, ret1y: returns.data[s].ret1y, retYtd: returns.data[s].retYtd })),
         ]
       : null;
 
-  const badges = [
-    day1 != null && { label: t('manager.day1'), v: day1, fmt: (x) => fmtPct(x, { digits: 2 }) },
-    latest?.qoq != null && { label: t('manager.qoq'), v: latest.qoq, fmt: fmtPct },
-    latest?.yoy != null && { label: t('manager.yoy'), v: latest.yoy, fmt: fmtPct },
-    latest?.estFlow != null && { label: t('manager.estFlow'), v: latest.estFlow, fmt: fmtMoney },
-  ].filter(Boolean);
+  const ms = mstats.data?.quarters >= 2 ? mstats.data : null;
+  const ready = !holdings.isLoading && !holdings.error;
+  const optionRows = positions.filter((p) => p.putCall);
+  const secUrl = filing
+    ? `https://www.sec.gov/Archives/edgar/data/${Number(mgr.data.cik)}/${String(filing.acc).replace(/-/g, '')}/`
+    : null;
 
   return (
     <div>
@@ -255,28 +266,15 @@ export default function Manager() {
               {/* Straight to the document these numbers were read from, so a
                   reader can check a figure against the filing itself rather
                   than take the site's word for it. */}
-              {filing && (
+              {secUrl && (
                 <>
                   {' · '}
-                  <a
-                    href={`https://www.sec.gov/Archives/edgar/data/${Number(mgr.data.cik)}/${String(filing.acc).replace(/-/g, '')}/`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {t('guru.verify')} ↗
-                  </a>
+                  <a href={secUrl} target="_blank" rel="noopener noreferrer">{t('guru.verify')} ↗</a>
                 </>
               )}
-            </div>
-            <div className="head-badges">
               {managerStyle(mgr.data.cik) && (
-                <span className="badge plain">{t(`style.${managerStyle(mgr.data.cik)}`)}</span>
+                <span className="badge plain sm" style={{ marginLeft: 8 }}>{t(`style.${managerStyle(mgr.data.cik)}`)}</span>
               )}
-              {badges.map((b) => (
-                <span key={b.label} className={`badge ${b.v >= 0 ? 'pos' : 'neg'}`}>
-                  {b.label} {b.fmt(b.v)}
-                </span>
-              ))}
             </div>
           </div>
         </div>
@@ -284,7 +282,7 @@ export default function Manager() {
           <button className="btn ghost no-print" onClick={() => window.print()}>
             <Ico icon={Printer} /> {t('manager.print')}
           </button>
-          <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)}>
+          <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)} aria-label={t('manager.filings')}>
             {filings.map((f) => (
               <option key={f.acc} value={f.acc}>
                 {quarterLabel(f.reportDate)} {f.form === '13F-HR/A' ? '(A)' : ''}
@@ -295,377 +293,286 @@ export default function Manager() {
       </div>
 
       {dormant && (
-        <div
-          className="card"
-          style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}
-        >
+        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
           <span className="small">
             <Ico icon={TriangleAlert} size={14} />{' '}
-            {t('manager.dormant')
-              .replace('{q}', quarterLabel(filings[0].reportDate))
-              .replace('{d}', filings[0].filingDate)}
+            {t('manager.dormant').replace('{q}', quarterLabel(filings[0].reportDate)).replace('{d}', filings[0].filingDate)}
           </span>
         </div>
       )}
 
       <AnswerBox text={seo.answer} />
 
-      <div className="tabs">
-        {['overview', 'portfolio', 'holdings', ...(hasHist ? ['history'] : [])].map((k) => (
-          <button key={k} className={`tab${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>
-            {t(`manager.${k}`)}
-          </button>
-        ))}
-      </div>
-
       {holdings.isLoading && (
         <>
           <SkeletonStats />
-          <div className="mt16">
-            <SkeletonRows rows={7} />
-          </div>
+          <div className="mt16"><SkeletonRows rows={7} /></div>
         </>
       )}
-      {holdings.error && (
-        <div className="error-box">{t('common.error')}: {String(holdings.error.message)}</div>
-      )}
+      {holdings.error && <div className="error-box">{t('common.error')}: {String(holdings.error.message)}</div>}
 
-      {!holdings.isLoading && !holdings.error && tab === 'overview' && (
+      {ready && (
         <>
-          <div className="grid grid-3">
-            <div className="card stat-card">
-              <span className="stat-label">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
-              <span className="stat-value">{fmtMoney(holdings.data?.aum)}</span>
-              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.aum)} /></ChartBox>
-            </div>
-            <div className="card stat-card">
-              <span className="stat-label">{t('manager.positions')}</span>
-              <span className="stat-value">{fmtNum(holdings.data?.count)}</span>
-              <ChartBox height={44} style={{ marginTop: 0 }}><SparkBar values={history.map((h) => h.positions)} color="--chart-2" /></ChartBox>
-            </div>
-            <div className="card stat-card">
-              <span className="stat-label">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>
-              <span className="stat-value">{fmtPct(top10, { sign: false })}</span>
-              <span className="stat-sub">
-                {latest?.estFlow != null && (
-                  <>
-                    {t('manager.estFlow')}:{' '}
-                    <b className={deltaClass(latest.estFlow)}>{fmtMoney(latest.estFlow)}</b>
-                  </>
-                )}
-              </span>
-            </div>
+          {/* ---- the four numbers that frame the quarter ------------------ */}
+          <div className="grid grid-4" style={{ marginBottom: 16 }}>
+            <Kpi
+              label={t('manager.aum')}
+              tip="tips.aum"
+              value={fmtMoney(holdings.data?.aum)}
+              sub={
+                latest?.qoq != null ? (
+                  <>{t('manager.qoq')} <b className={deltaClass(latest.qoq)}>{fmtPct(latest.qoq)}</b></>
+                ) : (
+                  filing && quarterLabel(filing.reportDate)
+                )
+              }
+            />
+            <Kpi
+              label={t('manager.positions')}
+              value={fmtNum(holdings.data?.count)}
+              sub={
+                ms
+                  ? t('manager.kpi.newExit').replace('{n}', fmtNum(ms.newCount ?? 0)).replace('{m}', fmtNum(ms.exitCount ?? 0))
+                  : latest?.yoy != null && <>{t('manager.yoy')} <b className={deltaClass(latest.yoy)}>{fmtPct(latest.yoy)}</b></>
+              }
+            />
+            <Kpi
+              label={t('manager.top10')}
+              tip="tips.top10"
+              value={fmtPct(top10, { sign: false })}
+              sub={
+                ms
+                  ? `${t('manager.kpi.turnover')} ${fmtPct(ms.turnoverLatest, { sign: false })}`
+                  : latest?.estFlow != null && <>{t('manager.estFlow')} <b className={deltaClass(latest.estFlow)}>{fmtMoney(latest.estFlow)}</b></>
+              }
+            />
+            {port1y != null ? (
+              <Kpi
+                label={t('manager.ret1y')}
+                value={fmtPct(port1y)}
+                cls={deltaClass(port1y)}
+                sub={spy1y != null ? `SPY ${fmtPct(spy1y)} · ${t('manager.ret1yNote')}` : t('manager.ret1yNote')}
+              />
+            ) : (
+              <Kpi
+                label={t('manager.estFlow')}
+                value={latest?.estFlow != null ? fmtMoney(latest.estFlow) : '—'}
+                cls={latest?.estFlow != null ? deltaClass(latest.estFlow) : ''}
+                sub={filing && quarterLabel(filing.reportDate)}
+              />
+            )}
           </div>
 
-          {mstats.isLoading && (
-            <div className="grid grid-3 mt16">
-              {[0, 1, 2].map((i) => (
-                <div className="card stat-card" key={i} style={{ minHeight: 118 }}>
-                  <div className="skel skel-row" style={{ width: '40%' }} />
-                  <div className="skel skel-row" style={{ height: 26, width: '30%' }} />
+          {/* ---- segments ------------------------------------------------ */}
+          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {TABS.map((k) => (
+              <button key={k} className={`chip${tab === k ? ' fsel-active' : ''}${k === 'backtest' ? ' no-print' : ''}`} onClick={() => setTab(k)}>
+                {t(`manager.tab.${k}`)}
+                {k === 'backtest' && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
+              </button>
+            ))}
+          </div>
+
+          {/* ---- one thing per segment ----------------------------------- */}
+          {tab === 'portfolio' && (
+            <HoldingsTable
+              positions={positions}
+              prevPositions={prevHoldings.data?.positions || null}
+              returns={returns.data}
+              cik={mgr.data.cik}
+              total={holdings.data?.count}
+              locked={!!holdings.data?.locked}
+              exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
+              timeHeld={hasHist ? hist.data.timeHeld : null}
+              guruSlug={guruSlug}
+            />
+          )}
+
+          {tab === 'changes' && (
+            <>
+              <ChangeStory positions={positions} prevPositions={prevHoldings.data?.positions || null} />
+              <PositionCards positions={positions} prevPositions={prevHoldings.data?.positions || null} />
+            </>
+          )}
+
+          {tab === 'mix' && (
+            <>
+              <div className="grid grid-2">
+                <div className="card">
+                  <h3>{t('manager.composition')}</h3>
+                  <ChartBox height={300}><PortfolioPie positions={positions} /></ChartBox>
                 </div>
-              ))}
-            </div>
-          )}
-          {mstats.data?.quarters >= 2 && (
-            <div className="grid grid-3 mt16">
-              <div className="card stat-card">
-                <span className="stat-label">{t('manager.turnover')}<InfoTip tip="tips.turnover" /></span>
-                <span className="stat-value">
-                  {fmtPct(mstats.data.turnoverLatest, { sign: false })}
-                </span>
-                <span className="stat-sub">
-                  {t('manager.turnoverAvg')}: {fmtPct(mstats.data.turnoverAvg, { sign: false })}
-                </span>
-              </div>
-              <div className="card stat-card">
-                <span className="stat-label">{t('manager.avgHold')}<InfoTip tip="tips.avgHold" /></span>
-                <span className="stat-value">
-                  {mstats.data.avgHoldingQuarters != null
-                    ? `${mstats.data.avgHoldingQuarters.toFixed(1)}`
-                    : '—'}
-                </span>
-                <span className="stat-sub">{t('manager.avgHoldUnit')}</span>
-              </div>
-              <div className="card stat-card">
-                <span className="stat-label">{t('manager.newExit')}</span>
-                <span className="stat-value">
-                  <span className="delta-pos">{mstats.data.newCount ?? 0}</span>{' '}
-                  <span className="delta-neg">{mstats.data.exitCount ?? 0}</span>
-                </span>
-                <span className="stat-sub">{t('manager.newExitSub')}</span>
-              </div>
-            </div>
-          )}
-
-          <div className="card mt16">
-            <h3>{t('manager.topHoldings')} · {filing ? quarterLabel(filing.reportDate) : ''}</h3>
-            <div className="table-wrap">
-              <table className="data">
-                <thead>
-                  <tr>
-                    <th className="l">{t('table.rank')}</th>
-                    <th className="l">{t('table.symbol')}</th>
-                    <th className="l">{t('table.company')}</th>
-                    <th>{t('table.weight')}</th>
-                    <th>{t('table.value')}</th>
-                    <th>{t('table.shares')}</th>
-                    <th>{t('table.delta')}</th>
-                    {hasHist && <th>{t('hist.timeHeld')}</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {positions.slice(0, 10).map((p, i) => {
-                    const q = prevByCusip.get(p.cusip);
-                    const d = q && q.shares > 0 ? ((p.shares - q.shares) / q.shares) * 100 : null;
-                    return (
-                      <tr key={`${p.cusip}|${p.putCall}`}>
-                        <td className="l muted">{i + 1}</td>
-                        <td className="l">
-                          {p.ticker ? (
-                            <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
-                          ) : (
-                            <span className="muted small">{p.cusip}</span>
-                          )}
-                          {p.putCall && <span className="badge type" style={{ marginLeft: 6 }}>{p.putCall}</span>}
-                        </td>
-                        <td className="l">{p.issuer}</td>
-                        <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
-                        <td className="num">{fmtMoney(p.value)}</td>
-                        <td className="num">{fmtNum(p.shares)}</td>
-                        <td className={`num ${prevHoldings.data ? (q ? deltaClass(d) : 'delta-pos') : 'muted'}`}>
-                          {!prevHoldings.data ? '—' : q ? fmtPct(d) : t('manager.newBadge')}
-                        </td>
-                        {hasHist && (
-                          <td className="num">
-                            {guruSlug && p.ticker && hist.data.timeHeld[p.cusip] ? (
-                              <Link to={`/guru/${guruSlug}/${p.ticker}`}>{timeHeldLabel(hist.data.timeHeld[p.cusip].quarters, lang)}</Link>
-                            ) : (
-                              timeHeldLabel(hist.data.timeHeld[p.cusip]?.quarters, lang) || '—'
-                            )}
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            {holdings.data?.count > 10 && (
-              <p className="muted small mt8">
-                10 {t('table.showing')} · {fmtNum(holdings.data.count)} {t('manager.positions').toLowerCase()} ·{' '}
-                <button className="linklike" onClick={() => setTab('holdings')}>{t('manager.holdings')} →</button>
-              </p>
-            )}
-          </div>
-
-          <div className="card mt16">
-            <h3>{t('manager.aumHistory')}</h3>
-            <ChartBox height={260}>
-              {aumHist.isLoading ? (
-                <div className="skel" style={{ height: 260, borderRadius: 10 }} />
-              ) : history.length > 1 ? (
-                <AumLineChart history={history} />
-              ) : (
-                <div className="muted small">{t('common.na')}</div>
-              )}
-            </ChartBox>
-          </div>
-
-          {history.some((h) => h.estFlow != null) && (
-            <div className="card mt16">
-              <h3>{t('manager.flowHistory')}</h3>
-              <ChartBox height={200}><FlowBarChart history={history} label={t('manager.estFlow')} /></ChartBox>
-              <p className="muted small mt8">{t('manager.flowNote')}</p>
-            </div>
-          )}
-
-          <div className="card mt16 no-print">
-            <h3><Ico icon={FlaskConical} /> {t('manager.backtest')}</h3>
-            {!isPro && <Paywall compact />}
-            {isPro && !btOn && (
-              <>
-                <p className="muted small" style={{ marginBottom: 12 }}>
-                  {t('manager.backtestNote')}
-                </p>
-                <button className="btn" onClick={() => setBtOn(true)}>
-                  {t('manager.backtestRun')}
-                </button>
-              </>
-            )}
-            {btOn && backtest.isLoading && <Loading t={t} />}
-            {btOn && backtest.error && (
-              <div className="muted small">{t('common.error')}: {String(backtest.error.message)}</div>
-            )}
-            {btOn && backtest.data?.points?.length > 1 && (
-              <>
-                <div className="head-badges" style={{ marginBottom: 12 }}>
-                  <span className={`badge ${backtest.data.totalPort >= 0 ? 'pos' : 'neg'}`}>
-                    {t('manager.portfolioSeries')} {fmtPct(backtest.data.totalPort)}
-                  </span>
-                  <span className={`badge ${backtest.data.totalSpy >= 0 ? 'pos' : 'neg'}`}>
-                    SPY {fmtPct(backtest.data.totalSpy)}
-                  </span>
-                  {backtest.data.coverage != null && (
-                    <span className="badge plain">
-                      {t('manager.backtestCoverage')}: {fmtPct(backtest.data.coverage, { sign: false, digits: 0 })}
-                    </span>
+                <div className="card">
+                  <h3>{t('manager.sectors')}</h3>
+                  {sectors.isLoading ? (
+                    <Loading t={t} />
+                  ) : (
+                    <ChartBox height={300}><SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} /></ChartBox>
                   )}
                 </div>
-                <ChartBox height={260}><BacktestChart
-                  points={backtest.data.points}
-                  labels={{ port: t('manager.portfolioSeries') }}
-                /></ChartBox>
-                <p className="muted small mt8">{t('manager.backtestNote')}</p>
-              </>
-            )}
-            {btOn && backtest.data && !(backtest.data.points?.length > 1) && !backtest.isLoading && (
-              <div className="muted small">{t('common.na')}</div>
-            )}
-          </div>
-        </>
-      )}
+              </div>
+              {benchSeries && (
+                <div className="card mt16">
+                  <h3>{t('manager.benchmark')}</h3>
+                  <ChartBox height={240}><BenchmarkBars series={benchSeries} /></ChartBox>
+                  <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
+                </div>
+              )}
+              {optionRows.length > 0 && (
+                <div className="card mt16">
+                  <h3><Ico icon={Target} /> {t('manager.options')}</h3>
+                  <div className="head-badges" style={{ marginBottom: 12 }}>
+                    <span className="badge plain">
+                      PUT {fmtPct(optionRows.filter((p) => /put/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
+                    </span>
+                    <span className="badge plain">
+                      CALL {fmtPct(optionRows.filter((p) => /call/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
+                    </span>
+                  </div>
+                  <div className="table-wrap">
+                    <table className="data">
+                      <thead>
+                        <tr>
+                          <th className="l">{t('table.symbol')}</th>
+                          <th className="l">{t('table.company')}</th>
+                          <th>{t('table.type')}</th>
+                          <th>{t('manager.notional')}</th>
+                          <th>{t('table.weight')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {optionRows.map((p) => (
+                          <tr key={`${p.cusip}|${p.putCall}`}>
+                            <td className="l">
+                              {p.ticker ? (
+                                <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
+                              ) : (
+                                <span className="muted small">{p.cusip}</span>
+                              )}
+                            </td>
+                            <td className="l">{p.issuer}</td>
+                            <td><span className="badge type">{p.putCall.toUpperCase()}</span></td>
+                            <td className="num">{fmtMoney(p.value)}</td>
+                            <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="muted small mt8">{t('manager.optionsNote')}</p>
+                </div>
+              )}
+            </>
+          )}
 
-      {!holdings.isLoading && !holdings.error && tab === 'portfolio' && (
-        <>
-          <ChangeStory
-            positions={positions}
-            prevPositions={prevHoldings.data?.positions || null}
-          />
-          <PositionCards
-            positions={positions}
-            prevPositions={prevHoldings.data?.positions || null}
-          />
-          <div className="grid grid-2 mt16">
-            <div className="card">
-              <h3>{t('manager.composition')}</h3>
-              <ChartBox height={300}><PortfolioPie positions={positions} /></ChartBox>
-            </div>
-            <div className="card">
-              <h3>{t('manager.sectors')}</h3>
-              {sectors.isLoading ? (
-                <Loading t={t} />
-              ) : (
-                <ChartBox height={300}><SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} /></ChartBox>
+          {tab === 'history' && (
+            <>
+              <div className="card">
+                <h3>{t('manager.aumHistory')}</h3>
+                <ChartBox height={260}>
+                  {aumHist.isLoading ? (
+                    <div className="skel" style={{ height: 260, borderRadius: 10 }} />
+                  ) : history.length > 1 ? (
+                    <AumLineChart history={history} />
+                  ) : (
+                    <div className="muted small">{t('common.na')}</div>
+                  )}
+                </ChartBox>
+              </div>
+              {history.some((h) => h.estFlow != null) && (
+                <div className="card mt16">
+                  <h3>{t('manager.flowHistory')}</h3>
+                  <ChartBox height={200}><FlowBarChart history={history} label={t('manager.estFlow')} /></ChartBox>
+                  <p className="muted small mt8">{t('manager.flowNote')}</p>
+                </div>
+              )}
+              {hasHist && (
+                <div className="card mt16">
+                  <h3>{t('hist.title')} · {hist.data.lookback} {t('screen.quarter')}</h3>
+                  <div className="table-wrap">
+                    <table className="data">
+                      <thead>
+                        <tr>
+                          <th className="l">{t('hist.quarter')}</th>
+                          <th className="l">{t('hist.filed')}</th>
+                          <th>{t('hist.count')}</th>
+                          <th>{t('hist.value')}</th>
+                          <th>{t('hist.turnover')}</th>
+                          <th className="l">{t('hist.top10')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...hist.data.quarters].reverse().map((q) => (
+                          <tr key={q.acc}>
+                            <td className="l"><b>{quarterLabel(q.reportDate)}</b></td>
+                            <td className="l muted">{q.filed}</td>
+                            <td className="num">{fmtNum(q.count)}</td>
+                            <td className="num">{fmtMoney(q.aum)}</td>
+                            <td className="num">{q.turnover != null ? fmtPct(q.turnover, { sign: false }) : '—'}</td>
+                            <td className="l small">
+                              {q.top10.map((tk, i) => (
+                                <span key={`${tk}-${i}`}>
+                                  {i > 0 && ', '}
+                                  {/^[A-Z0-9.\-]{1,6}$/.test(tk) ? (
+                                    guruSlug ? <Link to={`/guru/${guruSlug}/${tk}`}>{tk}</Link> : <Link to={`/stock/${tk}`}>{tk}</Link>
+                                  ) : (
+                                    <span className="muted">{tk}</span>
+                                  )}
+                                </span>
+                              ))}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="muted small mt8">{t('hist.splitNote')}</p>
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'backtest' && (
+            <div className="card no-print">
+              <h3><Ico icon={FlaskConical} /> {t('manager.backtest')}</h3>
+              {!isPro && <Paywall compact />}
+              {isPro && !btOn && (
+                <>
+                  <p className="muted small" style={{ marginBottom: 12 }}>{t('manager.backtestNote')}</p>
+                  <button className="btn" onClick={() => setBtOn(true)}>{t('manager.backtestRun')}</button>
+                </>
+              )}
+              {btOn && backtest.isLoading && <Loading t={t} />}
+              {btOn && backtest.error && (
+                <div className="muted small">{t('common.error')}: {String(backtest.error.message)}</div>
+              )}
+              {btOn && backtest.data?.points?.length > 1 && (
+                <>
+                  <div className="head-badges" style={{ marginBottom: 12 }}>
+                    <span className={`badge ${backtest.data.totalPort >= 0 ? 'pos' : 'neg'}`}>
+                      {t('manager.portfolioSeries')} {fmtPct(backtest.data.totalPort)}
+                    </span>
+                    <span className={`badge ${backtest.data.totalSpy >= 0 ? 'pos' : 'neg'}`}>SPY {fmtPct(backtest.data.totalSpy)}</span>
+                    {backtest.data.coverage != null && (
+                      <span className="badge plain">
+                        {t('manager.backtestCoverage')}: {fmtPct(backtest.data.coverage, { sign: false, digits: 0 })}
+                      </span>
+                    )}
+                  </div>
+                  <ChartBox height={260}>
+                    <BacktestChart points={backtest.data.points} labels={{ port: t('manager.portfolioSeries') }} />
+                  </ChartBox>
+                  <p className="muted small mt8">{t('manager.backtestNote')}</p>
+                </>
+              )}
+              {btOn && backtest.data && !(backtest.data.points?.length > 1) && !backtest.isLoading && (
+                <div className="muted small">{t('common.na')}</div>
               )}
             </div>
-          </div>
-          {benchSeries && (
-            <div className="card mt16">
-              <h3>{t('manager.benchmark')}</h3>
-              <ChartBox height={240}><BenchmarkBars series={benchSeries} /></ChartBox>
-              <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
-            </div>
-          )}
-
-          {positions.some((p) => p.putCall) && (
-            <div className="card mt16">
-              <h3><Ico icon={Target} /> {t('manager.options')}</h3>
-              <div className="head-badges" style={{ marginBottom: 12 }}>
-                <span className="badge plain">
-                  PUT {fmtPct(positions.filter((p) => /put/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
-                </span>
-                <span className="badge plain">
-                  CALL {fmtPct(positions.filter((p) => /call/i.test(p.putCall)).reduce((s, p) => s + p.weight, 0), { sign: false })}
-                </span>
-              </div>
-              <div className="table-wrap">
-                <table className="data">
-                  <thead>
-                    <tr>
-                      <th className="l">{t('table.symbol')}</th>
-                      <th className="l">{t('table.company')}</th>
-                      <th>{t('table.type')}</th>
-                      <th>{t('manager.notional')}</th>
-                      <th>{t('table.weight')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {positions
-                      .filter((p) => p.putCall)
-                      .map((p) => (
-                        <tr key={`${p.cusip}|${p.putCall}`}>
-                          <td className="l">
-                            {p.ticker ? (
-                              <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>
-                                {p.ticker}
-                              </Link>
-                            ) : (
-                              <span className="muted small">{p.cusip}</span>
-                            )}
-                          </td>
-                          <td className="l">{p.issuer}</td>
-                          <td>
-                            <span className="badge type">{p.putCall.toUpperCase()}</span>
-                          </td>
-                          <td className="num">{fmtMoney(p.value)}</td>
-                          <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="muted small mt8">{t('manager.optionsNote')}</p>
-            </div>
           )}
         </>
       )}
 
-      {tab === 'history' && hasHist && (
-        <div className="card">
-          <h3>{t('hist.title')} · {hist.data.lookback} {t('screen.quarter')}</h3>
-          <div className="table-wrap">
-            <table className="data">
-              <thead>
-                <tr>
-                  <th className="l">{t('hist.quarter')}</th>
-                  <th className="l">{t('hist.filed')}</th>
-                  <th>{t('hist.count')}</th>
-                  <th>{t('hist.value')}</th>
-                  <th>{t('hist.turnover')}</th>
-                  <th className="l">{t('hist.top10')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...hist.data.quarters].reverse().map((q) => (
-                  <tr key={q.acc}>
-                    <td className="l"><b>{quarterLabel(q.reportDate)}</b></td>
-                    <td className="l muted">{q.filed}</td>
-                    <td className="num">{fmtNum(q.count)}</td>
-                    <td className="num">{fmtMoney(q.aum)}</td>
-                    <td className="num">{q.turnover != null ? fmtPct(q.turnover, { sign: false }) : '—'}</td>
-                    <td className="l small">
-                      {q.top10.map((tk, i) => (
-                        <span key={`${tk}-${i}`}>
-                          {i > 0 && ', '}
-                          {/^[A-Z0-9.\-]{1,6}$/.test(tk) ? (
-                            guruSlug ? <Link to={`/guru/${guruSlug}/${tk}`}>{tk}</Link> : <Link to={`/stock/${tk}`}>{tk}</Link>
-                          ) : (
-                            <span className="muted">{tk}</span>
-                          )}
-                        </span>
-                      ))}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="muted small mt8">{t('hist.splitNote')}</p>
-        </div>
-      )}
-
-      {!holdings.isLoading && !holdings.error && tab === 'holdings' && (
-        <HoldingsTable
-          positions={positions}
-          prevPositions={prevHoldings.data?.positions || null}
-          returns={returns.data}
-          cik={mgr.data.cik}
-          total={holdings.data?.count}
-          locked={!!holdings.data?.locked}
-          exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
-        />
-      )}
       {related.data?.related?.length > 0 && (
         <div className="card mt16">
           <h3><Ico icon={LinkIcon} /> {t('related.title')}</h3>

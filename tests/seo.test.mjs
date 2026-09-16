@@ -98,6 +98,26 @@ test('SSR: the consensus page ships its segments, filters and a row you can open
   assert.ok((plainFunds.match(/href="\/tr\/guru\//g) || []).length >= 3, 'each fund links to its page');
 });
 
+test('SSR: the fund page frames the quarter in four numbers, then one table', async () => {
+  const { html } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
+  const plain = html.replace(/<!-- -->/g, '');
+  for (const label of ['Pozisyonlar', 'Değişimler', 'Dağılım', 'Geçmiş']) {
+    assert.ok(plain.includes(label), `segment ${label}`);
+  }
+  assert.match(plain, /Portföy Büyüklüğü/, 'the strip names AUM');
+  assert.match(plain, /İlk 10 Hissenin Ağırlığı/, 'and concentration');
+  // the one table carries the time-held column the old top-ten table had
+  assert.match(plain, /Elde Tutma/);
+  // the default segment is the holdings table itself, not a top-ten preview
+  // that repeats it a tab later; the related-managers table below is the
+  // only other one on the page
+  assert.ok((plain.match(/<table/g) || []).length <= 2, 'one table for the segment, one for related managers');
+  assert.doesNotMatch(plain, /En Büyük Yatırımları/, 'no top-ten preview duplicating the table');
+  // a segment is a link, so ?tab=history renders the history table
+  const { html: hist } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett?tab=history');
+  assert.match(hist.replace(/<!-- -->/g, ''), /Portföy Büyüklüğü Geçmişi/);
+});
+
 test('SSR: home page renders content and site JSON-LD', async () => {
   const { status, html } = await ssr('/tr');
   assert.equal(status, 200);

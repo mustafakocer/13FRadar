@@ -3,6 +3,7 @@ import { invoke, withBudget } from './invoke.js';
 import managerHandler from '../../_handlers/manager.js';
 import holdingsHandler from '../../_handlers/holdings.js';
 import stockHandler from '../../_handlers/stock.js';
+import guruStocksHandler from '../../_handlers/guru-stocks.js';
 import slugHandler from '../../_handlers/slug.js';
 import guruHistoryHandler from '../../_handlers/guru-history.js';
 import calendarHandler from '../../_handlers/calendar.js';
@@ -109,6 +110,11 @@ async function loadStock({ ticker, cusip }) {
   seeds.push([['stock', ticker], stock]);
   const c = staticConsensus();
   if (c) seeds.push([['consensus'], c]);
+  // The guru standing is the free hook and the answer an assistant quotes, so
+  // it has to be in the HTML rather than arrive after hydration. Anonymous
+  // render = the free payload, which is what the CDN may keep.
+  const g = ok(await invoke(guruStocksHandler, { ticker, ...(cusip ? { cusip } : {}) }));
+  if (g?.available) seeds.push([['guru-stock', cusip || ticker], g]);
   return { seeds };
 }
 

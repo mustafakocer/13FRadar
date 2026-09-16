@@ -21,6 +21,8 @@ import Paywall from '../components/Paywall.jsx';
 import ChartBox from '../components/ChartBox.jsx';
 import { PriceChart } from '../components/Charts/index.js';
 import GuruSignal from '../components/GuruSignal.jsx';
+import GuruOwnership from '../components/GuruOwnership.jsx';
+import { useGuruStock } from '../hooks/useGuruStock.js';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
@@ -100,6 +102,10 @@ export default function Stock() {
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
   });
+
+  // Per-security standing among the curated funds — covers every name they
+  // hold, not just the thirty that fit on the consensus page.
+  const guru = useGuruStock({ ticker, cusip });
 
   const consensus = useConsensusStatic();
   const consensusRow = useMemo(() => {
@@ -308,6 +314,22 @@ export default function Stock() {
         <div className="mt16">
           <Paywall />
         </div>
+      )}
+
+      {guru.held && (
+        <GuruOwnership
+          stock={guru.stock}
+          byConviction={guru.topByConviction}
+          byValue={guru.topByValue}
+          truncated={guru.holdersTruncated}
+          options={guru.options}
+          ownedPct={
+            guru.stock.totalShares && tr.sharesOutstanding
+              ? (guru.stock.totalShares / tr.sharesOutstanding) * 100
+              : null
+          }
+          universe={guru.universe}
+        />
       )}
 
       {cusip && isPro && (ownership.isLoading || ownership.data?.holders?.length > 0) && (

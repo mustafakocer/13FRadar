@@ -6,6 +6,8 @@ export const fixtures = path.join(root, 'tests', 'fixtures', 'sec');
 process.env.SEC_FIXTURE_DIR = process.env.SEC_FIXTURE_DIR || fixtures;
 process.env.SITE_URL = process.env.SITE_URL || 'https://example.test';
 process.env.GURU_HISTORY_FILE = process.env.GURU_HISTORY_FILE || path.join(root, 'tests', 'fixtures', 'guru-history.fixture.json');
+process.env.GURU_STOCKS_FILE =
+  process.env.GURU_STOCKS_FILE || path.join(root, 'tests', 'fixtures', 'guru-stocks.fixture.json');
 
 export function requireBuild() {
   const f = path.join(root, 'client', 'dist', 'server', 'entry-server.js');

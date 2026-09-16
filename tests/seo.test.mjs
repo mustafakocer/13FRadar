@@ -28,6 +28,25 @@ test('SSR: stock page carries the quote board and links the gurus that hold it',
   assert.match(amzn, /href="\/en\/guru\//, 'a held stock links to the gurus holding it');
 });
 
+test('SSR: a stock page states where it ranks among the gurus and who is most committed', async () => {
+  const { html } = await ssr('/en/stock/OXY');
+  // React splits adjacent text nodes with comment markers; drop them so the
+  // assertions read like the rendered sentence rather than the transport.
+  const plain = html.replace(/<!-- -->/g, '');
+  assert.match(plain, /Guru Ownership/, 'the ownership block is server-rendered');
+  assert.match(plain, /Popularity rank<\/span><span class="v">#1/, 'ranked first in the fixture panel');
+  assert.match(plain, /of 13 securities/, 'and says what it is ranked against');
+  assert.match(plain, /Top 5 by conviction/);
+  assert.match(plain, /What changed this quarter/);
+  // the two holder lists disagree, which is the point of showing both: Scion
+  // has a quarter of its book in OXY, Berkshire a far larger dollar position
+  const conviction = plain.indexOf('Top 5 by conviction');
+  const value = plain.indexOf('Top 5 by value');
+  assert.ok(conviction > 0 && value > conviction, 'both orderings are rendered');
+  assert.match(plain.slice(conviction, value), /Scion/, 'conviction leads with the concentrated fund');
+  assert.match(plain.slice(value), /Berkshire/, 'value leads with the big one');
+});
+
 test('SSR: home page renders content and site JSON-LD', async () => {
   const { status, html } = await ssr('/tr');
   assert.equal(status, 200);

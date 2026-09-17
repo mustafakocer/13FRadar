@@ -17,7 +17,12 @@ export const quarterText = (reportDate, lang) => {
 
 const num = (n, lang) => (n == null ? '—' : n.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US'));
 
-export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions, history = null }) {
+// segment: 'portfolio' is the fund's front page; 'changes' | 'mix' | 'history'
+// | 'backtest' are its sub-pages, each with its own title and canonical. The
+// Person/Dataset entities and the FAQ describe the fund, not a sub-page, so
+// they are emitted on the front only — a segment carries breadcrumbs and no
+// duplicate of the entity that lives one level up.
+export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions, history = null, segment = 'portfolio' }) {
   if (!cik) return { title: lang === 'tr' ? 'Yükleniyor… | Fundocap' : 'Loading… | Fundocap', path: '/gurus' };
   const name = manager?.displayName || manager?.name || `CIK ${cik}`;
   const qt = quarterText(filing?.reportDate, lang);
@@ -39,14 +44,62 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
     if (topTxt) description += ` Top holding: ${topTxt}.`;
     description += ' Quarterly buys, sells, new positions and exits from SEC EDGAR data.';
   }
-  const path = manager?.path || `/manager/${cik}`;
+  const front = manager?.path || `/manager/${cik}`;
   const answer = guruAnswerFromPage({ manager, filing, holdings, prevPositions, update: manager?.update }, lang);
   if (answer) description = truncate155(answer);
   const faq = managerFaq({ lang, name, filing, holdings, prevPositions });
-  const crumbs = breadcrumbs(lang, [
-    manager?.kind === 'guru' ? [lang === 'tr' ? 'Usta Yatırımcılar' : 'Superinvestors', '/gurus'] : [lang === 'tr' ? '13F Dosyalayan Kurumlar' : '13F Filers', '/filers'],
-    [name, path],
-  ]);
+  const parent = manager?.kind === 'guru' ? [lang === 'tr' ? 'Usta Yatırımcılar' : 'Superinvestors', '/gurus'] : [lang === 'tr' ? '13F Dosyalayan Kurumlar' : '13F Filers', '/filers'];
+
+  if (segment !== 'portfolio') {
+    const tr = lang === 'tr';
+    const sub = {
+      changes: {
+        label: tr ? 'Değişimler' : 'Changes',
+        title: tr ? `${name} ${qt}: Bu Çeyrek Ne Aldı, Ne Sattı` : `${name} ${qt}: What It Bought and Sold This Quarter`,
+        description: tr
+          ? `${name} portföyünün ${qt} çeyreğindeki değişimi: yeni alınan, artırılan, azaltılan ve tamamen çıkılan pozisyonlar, bir önceki 13F ile karşılaştırmalı.`
+          : `How ${name}'s portfolio changed in ${qt}: positions opened, added to, reduced and exited, against the previous 13F.`,
+      },
+      mix: {
+        label: tr ? 'Dağılım' : 'Mix',
+        title: tr ? `${name} ${qt}: Portföy ve Sektör Dağılımı` : `${name} ${qt}: Portfolio and Sector Mix`,
+        description: tr
+          ? `${name} portföyünün ${qt} çeyreğinde pozisyon ve sektör dağılımı, getiri karşılaştırması ve opsiyon pozisyonları.`
+          : `${name}'s ${qt} portfolio by position and by sector, return comparison and option positions.`,
+      },
+      history: {
+        label: tr ? 'Geçmiş' : 'History',
+        title: tr ? `${name}: Portföy Büyüklüğü ve Çeyreklik Geçmiş` : `${name}: Portfolio Value and Quarterly History`,
+        description: tr
+          ? `${name} için çeyreklik portföy büyüklüğü, tahmini para giriş-çıkışı ve geçmiş 13F bildirimleri.`
+          : `${name}'s portfolio value by quarter, estimated net flows and past 13F filings.`,
+      },
+      backtest: {
+        label: 'Backtest',
+        title: tr ? `${name}: 13F Kopyalama Backtesti` : `${name}: Copy-the-13F Backtest`,
+        description: tr
+          ? `${name} portföyünü her çeyrek bildirim sonrası kopyalasaydınız ne olurdu — SPY ile karşılaştırmalı, deneysel.`
+          : `What copying ${name}'s 13F each quarter after it was filed would have returned, against SPY — experimental.`,
+      },
+    }[segment];
+    if (sub) {
+      const path = `${front}/${segment}`;
+      return {
+        title: `${sub.title} | Fundocap`,
+        description: sub.description,
+        path,
+        image: `/api/og?type=guru&cik=${cik}`,
+        type: 'article',
+        faq: [],
+        answer: null,
+        dateModified: filing?.filingDate || null,
+        jsonLd: [breadcrumbs(lang, [parent, [name, front], [sub.label, path]])],
+      };
+    }
+  }
+
+  const path = front;
+  const crumbs = breadcrumbs(lang, [parent, [name, path]]);
   return {
     title,
     description,

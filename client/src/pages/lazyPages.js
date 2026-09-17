@@ -20,7 +20,7 @@ export const LAZY_PAGES = {
   Calendar: { load: () => import('./Calendar.jsx'), match: /^\/calendar$/ },
   Filings: { load: () => import('./Filings.jsx'), match: /^\/filings$/ },
   Emerging: { load: () => import('./Emerging.jsx'), match: /^\/emerging-managers$/ },
-  GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/[^/]+$/ },
+  GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/(?!(?:changes|mix|history|backtest)$)[^/]+$/ },
 };
 
 for (const p of Object.values(LAZY_PAGES)) p.component = lazyPreloadable(p.load);

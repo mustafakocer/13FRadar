@@ -70,6 +70,13 @@ export function buildSitemap(type, site) {
         priority: want === 'guru' ? '0.9' : '0.5',
       }));
     if (want === 'guru') {
+      // each guru's sub-pages; filers keep only their front, four more URLs
+      // apiece across eight thousand of them is weight without readers
+      for (const e of [...entries]) {
+        for (const seg of ['changes', 'mix', 'history', 'backtest']) {
+          entries.push({ path: `${e.path}/${seg}`, lastmod: e.lastmod, changefreq: 'weekly', priority: '0.6' });
+        }
+      }
       // guru × ticker trade-history pages for positions currently held
       const hist = historyTable();
       for (const [slug, v] of Object.entries(slugs.bySlug)) {

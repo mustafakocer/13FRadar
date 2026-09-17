@@ -118,9 +118,23 @@ test('SSR: the fund page frames the quarter in four numbers, then one table', as
   // only other one on the page
   assert.ok((plain.match(/<table/g) || []).length <= 2, 'one table for the segment, one for related managers');
   assert.doesNotMatch(plain, /En Büyük Yatırımları/, 'no top-ten preview duplicating the table');
-  // a segment is a link, so ?tab=history renders the history table
-  const { html: hist } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett?tab=history');
-  assert.match(hist.replace(/<!-- -->/g, ''), /Portföy Büyüklüğü Geçmişi/);
+  // each segment is its own page with its own canonical and title; the chips
+  // link between them
+  assert.match(plain, /href="\/tr\/guru\/berkshire-hathaway-warren-buffett\/changes"/);
+  const { html: hist } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett/history');
+  const plainHist = hist.replace(/<!-- -->/g, '');
+  assert.match(plainHist, /Portföy Büyüklüğü Geçmişi/);
+  assert.match(plainHist, /<link rel="canonical" href="[^"]*\/tr\/guru\/berkshire-hathaway-warren-buffett\/history"/);
+  assert.match(plainHist, /<title>Berkshire Hathaway \(Warren Buffett\): Portföy Büyüklüğü ve Çeyreklik Geçmiş \| Fundocap<\/title>/);
+  // the sub-page carries breadcrumbs but not a second copy of the fund entity
+  assert.doesNotMatch(plainHist, /"@type":"Dataset"/, 'the Dataset lives on the front only');
+  // the guru × ticker page still resolves — a symbol is not a segment word
+  const { status: tick } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett/AAPL');
+  assert.equal(tick, 200);
+  // and the numeric route keeps the segment through its redirect
+  const { status: red, headers } = await ssr('/tr/manager/1067983/changes');
+  assert.equal(red, 301);
+  assert.match(headers.location, /\/guru\/berkshire-hathaway-warren-buffett\/changes$/);
 });
 
 test('SSR: home page renders content and site JSON-LD', async () => {

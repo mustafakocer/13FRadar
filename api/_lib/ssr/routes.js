@@ -64,18 +64,19 @@ async function loadHome() {
   return seeds;
 }
 
-async function loadManager({ cik, slug, kind }) {
+async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
+  const tail = segment === 'portfolio' ? '' : `/${segment}`;
   const seeds = [];
   if (slug) {
     const e = cikForSlug(slug);
     if (!e || (kind && e.kind !== kind && !(kind === 'filer' && e.kind === 'guru'))) return { seeds, status: 404 };
-    if (kind === 'filer' && e.kind === 'guru') return { redirect: `/guru/${slug}`, status: 301 };
+    if (kind === 'filer' && e.kind === 'guru') return { redirect: `/guru/${slug}${tail}`, status: 301 };
     cik = e.cik;
     seeds.push([['slug', slug], { ...e, slug }]);
   } else if (cik) {
     // numeric route: 301 to the stored slug so one URL carries the ranking
     const canonical = filerPath(cik);
-    if (!canonical.startsWith('/manager/')) return { redirect: canonical, status: 301 };
+    if (!canonical.startsWith('/manager/')) return { redirect: `${canonical}${tail}`, status: 301 };
   }
   const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 8000));
   if (!mgr) return { seeds, status: 404 };
@@ -228,10 +229,12 @@ async function loadTeaserOnly() {
 // (client-only pages) with a no-store header.
 export const ROUTES = [
   { kind: 'home', re: /^\/$/, load: loadHome, cache: 'hour' },
-  { kind: 'manager', re: /^\/manager\/(\d{1,10})$/, params: (m) => ({ cik: m[1].padStart(10, '0') }), load: loadManager, cache: 'day' },
-  { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'guru' }), load: loadManager, cache: 'day' },
-  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
-  { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'filer' }), load: loadManager, cache: 'day' },
+  // A fund's sub-pages are the fixed words after its slug; they are matched
+  // before the guru × ticker route, whose last segment is a symbol.
+  { kind: 'manager', re: /^\/manager\/(\d{1,10})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ cik: m[1].padStart(10, '0'), segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
+  { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'guru', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
+  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/(?!(?:changes|mix|history|backtest)$)([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
+  { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'filer', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
   { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
   { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },
   { kind: 'insider-signal', re: /^\/insiders\/(cluster|csuite|penny)$/, load: loadTeaserOnly, cache: 'hour' },

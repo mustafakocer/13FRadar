@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useParams, useSearchParams, Link } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
@@ -26,9 +26,9 @@ import Ico from '../components/Ico.jsx';
 import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert } from 'lucide-react';
 
 // The same shape as the consensus page: the four numbers that frame the
-// quarter, the segments of the page as tabs in the URL, and under the active
-// tab one thing — a table, or a pair of charts — rather than everything at
-// once. The old overview stacked six stat cards, a top-ten table, two charts
+// quarter, the segments of the page as pages of their own — /guru/<slug>,
+// /guru/<slug>/changes, /mix, /history, /backtest — and on each one thing: a
+// table, or a pair of charts, rather than everything at once. The old overview stacked six stat cards, a top-ten table, two charts
 // and the backtest in a single scroll and then repeated the table on another
 // tab; a reader looking for one number had to pass every other one.
 const TABS = ['portfolio', 'changes', 'mix', 'history', 'backtest'];
@@ -57,7 +57,9 @@ function Kpi({ label, tip, value, sub, cls = '' }) {
   );
 }
 
-export default function Manager() {
+// segment: which sub-page this route mounts; the routes pass it in because
+// the sub-page path is a fixed word, not a URL parameter.
+export default function Manager({ segment = 'portfolio' }) {
   const { cik: cikParam, slug } = useParams();
   const { t, lang } = useI18n();
   // /guru/:slug and /filer/:slug resolve to a CIK first (seeded on the server)
@@ -71,20 +73,7 @@ export default function Manager() {
   const cik = cikParam || slugQ.data?.cik || null;
   const { isPro } = useAuth();
 
-  // The segment lives in the URL so a link can point at the history or the
-  // changes of a fund, not only at its front.
-  const [sp, setSp] = useSearchParams();
-  const tab = TABS.includes(sp.get('tab')) ? sp.get('tab') : 'portfolio';
-  const setTab = (k) =>
-    setSp(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (k === 'portfolio') next.delete('tab');
-        else next.set('tab', k);
-        return next;
-      },
-      { replace: true }
-    );
+  const tab = TABS.includes(segment) ? segment : 'portfolio';
   const [selAcc, setSelAcc] = useState(null);
   const [btOn, setBtOn] = useState(false);
 
@@ -167,8 +156,9 @@ export default function Manager() {
         holdings: holdings.data,
         prevPositions: prevHoldings.data?.positions ?? null,
         history: hist.data || null,
+        segment: tab,
       }),
-    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data, hist.data]
+    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data, hist.data, tab]
   );
   useSeo(seo);
 
@@ -248,6 +238,8 @@ export default function Manager() {
   const ms = mstats.data?.quarters >= 2 ? mstats.data : null;
   const ready = !holdings.isLoading && !holdings.error;
   const optionRows = positions.filter((p) => p.putCall);
+  // the fund's canonical front, which every segment hangs off
+  const base = mgr.data.path || managerPath(mgr.data.cik);
   const secUrl = filing
     ? `https://www.sec.gov/Archives/edgar/data/${Number(mgr.data.cik)}/${String(filing.acc).replace(/-/g, '')}/`
     : null;
@@ -366,10 +358,15 @@ export default function Manager() {
           {/* ---- segments ------------------------------------------------ */}
           <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
             {TABS.map((k) => (
-              <button key={k} className={`chip${tab === k ? ' fsel-active' : ''}${k === 'backtest' ? ' no-print' : ''}`} onClick={() => setTab(k)}>
+              <Link
+                key={k}
+                to={k === 'portfolio' ? base : `${base}/${k}`}
+                className={`chip${tab === k ? ' fsel-active' : ''}${k === 'backtest' ? ' no-print' : ''}`}
+                aria-current={tab === k ? 'page' : undefined}
+              >
                 {t(`manager.tab.${k}`)}
                 {k === 'backtest' && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
-              </button>
+              </Link>
             ))}
           </div>
 

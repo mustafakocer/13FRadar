@@ -52,8 +52,15 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
           <Route path="/guru/:slug" element={<Manager />} />
-          <Route path="/guru/:slug/:ticker" element={<Lazy><GuruTicker /></Lazy>} />
           <Route path="/filer/:slug" element={<Manager />} />
+          {/* A fund's sub-pages are fixed words, so they outrank the guru ×
+              ticker route below, whose last segment is a symbol. */}
+          {['changes', 'mix', 'history', 'backtest'].flatMap((seg) =>
+            ['/manager/:cik', '/guru/:slug', '/filer/:slug'].map((base) => (
+              <Route key={`${base}/${seg}`} path={`${base}/${seg}`} element={<Manager segment={seg} />} />
+            ))
+          )}
+          <Route path="/guru/:slug/:ticker" element={<Lazy><GuruTicker /></Lazy>} />
           <Route path="/gurus" element={<Gurus />} />
           <Route path="/filers" element={<Lazy><Filers /></Lazy>} />
           <Route path="/filers/:letter" element={<Lazy><Filers /></Lazy>} />

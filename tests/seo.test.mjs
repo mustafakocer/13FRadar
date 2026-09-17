@@ -88,14 +88,19 @@ test('SSR: the consensus page ships its segments, filters and a row you can open
   assert.doesNotMatch(plain, /Sektör/, 'no filter the data cannot honour');
 
   // a Pro segment shows the paywall rather than the table
-  const { html: bought } = await ssr('/tr/consensus?tab=bought');
+  const { html: bought } = await ssr('/tr/consensus/bought');
   assert.doesNotMatch(bought.replace(/<!-- -->/g, ''), /<tr[^>]*role="button"/, 'no rows behind the paywall');
 
   // the fund segment is free and lists every tracked fund as a link
-  const { html: funds } = await ssr('/tr/consensus?tab=funds');
+  const { html: funds } = await ssr('/tr/consensus/funds');
   const plainFunds = funds.replace(/<!-- -->/g, '');
   assert.match(plainFunds, /Yeni aldı/);
   assert.ok((plainFunds.match(/href="\/tr\/guru\//g) || []).length >= 3, 'each fund links to its page');
+  // each segment is its own page with its own title, and the chips are links
+  assert.match(plainFunds, /<title>Takip Edilen Usta Yatırımcılar[^<]*<\/title>/);
+  assert.match(plainFunds, /<link rel="canonical" href="[^"]*\/tr\/consensus\/funds"/);
+  assert.match(plain, /href="\/tr\/consensus\/bought"/, 'the bought segment is a link from the front');
+  assert.doesNotMatch(plainFunds, /Takip edilen fon<\/div>/, 'the four-number strip frames the front page only');
 });
 
 test('SSR: the fund page frames the quarter in four numbers, then one table', async () => {

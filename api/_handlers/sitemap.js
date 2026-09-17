@@ -114,6 +114,7 @@ export function buildSitemap(type, site) {
       { path: '/rankings/conviction', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/options', lastmod, changefreq: 'daily', priority: '0.7' },
       { path: '/filings', lastmod, changefreq: 'daily', priority: '0.7' },
+      ...['bought', 'sold', 'new', 'funds', 'universe'].map((k) => ({ path: `/consensus/${k}`, lastmod, changefreq: 'daily', priority: '0.8' })),
       { path: '/screen/stocks', lastmod, changefreq: 'daily', priority: '0.7' },
       { path: '/calendar', lastmod: latestFiled, changefreq: 'daily', priority: '0.8' },
       { path: '/emerging-managers', lastmod: latestFiled, changefreq: 'weekly', priority: '0.7' },

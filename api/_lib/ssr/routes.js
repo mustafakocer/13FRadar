@@ -242,7 +242,7 @@ export const ROUTES = [
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
-  { kind: 'consensus', re: /^\/consensus$/, load: loadConsensusPage, cache: 'hour' },
+  { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: async () => [], cache: 'day' },
   { kind: 'report', re: /^\/report$/, load: loadReport, cache: 'hour' },

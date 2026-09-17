@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
@@ -9,6 +9,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import { consensusSeo } from '../lib/seoTemplates.js';
+import AnswerBox from '../components/AnswerBox.jsx';
 import Paywall from '../components/Paywall.jsx';
 import HoldersPanel from '../components/HoldersPanel.jsx';
 import { managerPath } from '../lib/paths.js';
@@ -23,8 +24,11 @@ import { Compass, ChevronRight, ChevronDown, Download } from 'lucide-react';
 // segment's question. Everything shown comes from the files the site already
 // ships — nothing here waits on a build that has not run.
 //
-// Segments live in the URL so /consensus?tab=bought is a link.
+// Each segment is its own page — /consensus/bought, /consensus/funds — the way
+// the insider signals are /insiders/cluster and /insiders/penny: a URL a reader
+// can send, a crawler can index, and a sitemap can list. The chips are links.
 const TABS = ['held', 'bought', 'sold', 'new', 'funds', 'universe'];
+const pathOf = (k) => (k === 'held' ? '/consensus' : `/consensus/${k}`);
 // The split the page has always had: most held is the free hook, the rest of
 // the quarter is Pro.
 const PRO_TABS = new Set(['bought', 'sold', 'new', 'universe']);
@@ -79,18 +83,8 @@ export default function Consensus() {
   const { t, lang } = useI18n();
   const { isPro } = useAuth();
 
-  const [sp, setSp] = useSearchParams();
-  const tab = TABS.includes(sp.get('tab')) ? sp.get('tab') : 'held';
-  const setTab = (k) =>
-    setSp(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        if (k === 'held') next.delete('tab');
-        else next.set('tab', k);
-        return next;
-      },
-      { replace: true }
-    );
+  const { segment } = useParams();
+  const tab = TABS.includes(segment) ? segment : 'held';
 
   const [q, setQ] = useState('');
   const [open, setOpen] = useState(null); // cusip of the expanded row
@@ -101,7 +95,8 @@ export default function Consensus() {
   // identically either way.
   const { data, isLoading, error, proLoading, proError } = useConsensusStatic();
   const table = useGuruStocks({ limit: 500 });
-  useSeo(useMemo(() => consensusSeo({ lang, data }), [lang, data]));
+  const seo = useMemo(() => consensusSeo({ lang, data, segment: tab, t }), [lang, data, tab, t]);
+  useSeo(seo);
 
   const uniStocks = useQuery({
     queryKey: ['stocksUniverse'],
@@ -186,11 +181,13 @@ export default function Consensus() {
       <div className="page-head">
         <div>
           <h1><Ico icon={Compass} size={22} /> {t('consensus.title')}</h1>
-          <div className="sub">{t('consensus.tagline')}</div>
+          <div className="sub">{t(`consensus.desc.${tab}`)}</div>
         </div>
       </div>
+      <AnswerBox text={seo.answer} />
 
-      {/* ---- the four numbers that frame the quarter ---------------------- */}
+      {/* ---- the four numbers that frame the quarter — on the front only --- */}
+      {tab === 'held' && (
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
         <Kpi label={t('consensus.kpi.funds')} value={fmtNum(managers.length)} sub={<Link to="/gurus">{t('consensus.seeFunds')} →</Link>} />
         <Kpi label={t('consensus.kpi.period')} value={latest ? quarterLabel(latest) : '—'} sub={t('consensus.kpi.periodNote')} />
@@ -206,14 +203,15 @@ export default function Consensus() {
           sub={topBuy ? `+${fmtMoney(topBuy.netValue)} · ${fmtNum(topBuy.buyers)} ${t('consensus.kpi.fundsBought')}` : null}
         />
       </div>
+      )}
 
       {/* ---- segments ---------------------------------------------------- */}
       <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
         {TABS.map((k) => (
-          <button key={k} className={`chip${k === tab ? ' fsel-active' : ''}`} onClick={() => setTab(k)}>
+          <Link key={k} to={pathOf(k)} className={`chip${k === tab ? ' fsel-active' : ''}`} aria-current={k === tab ? 'page' : undefined}>
             {t(`consensus.tab.${k}`)}
             {PRO_TABS.has(k) && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
-          </button>
+          </Link>
         ))}
       </div>
 

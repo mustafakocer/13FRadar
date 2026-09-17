@@ -71,6 +71,7 @@ export default function App() {
           <Route path="/emerging-managers" element={<Lazy><Emerging /></Lazy>} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />
+          <Route path="/consensus/:segment" element={<Consensus />} />
           <Route path="/report" element={<Lazy><Report /></Lazy>} />
           <Route path="/insiders" element={<Lazy><Insiders /></Lazy>} />
           <Route path="/screen" element={<Lazy><Screen /></Lazy>} />

@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci
       # A repository without the service key has nobody to read alerts for.
       # That is a configuration state, not a failure, so the job says so and
       # stops rather than going red every morning.

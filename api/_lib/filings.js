@@ -13,7 +13,13 @@ export const FORMS = ['13F-HR', '13F-HR/A'];
 
 // Form Type   Company Name   CIK   Date Filed   File Name
 // Company names carry spaces, so the CIK and the date anchor the split.
-const LINE_RE = /^(13F-HR(?:\/A)?)\s+(.+?)\s+(\d{1,10})\s+(\d{4}-\d{2}-\d{2})\s+(\S+)\s*$/;
+// EDGAR writes the filing date two ways. The quarterly full index dashes it,
+// 2026-09-08; the daily index does not, 20260908. The feed reads daily indexes
+// and the backfill reads quarterly ones, so the parser has to take both — a
+// pattern that accepts only the dashed form matches nothing in a daily index
+// and reports an empty day instead of an error, which is how this shipped
+// returning zero filings for eight business days in a row.
+const LINE_RE = /^(13F-HR(?:\/A)?)\s+(.+?)\s+(\d{1,10})\s+(\d{4}-\d{2}-\d{2}|\d{8})\s+(\S+)\s*$/;
 const ACC_RE = /(\d{10}-\d{2}-\d{6})/;
 
 export function parseFilingIndex(text) {
@@ -29,7 +35,8 @@ export function parseFilingIndex(text) {
       form,
       name: name.trim(),
       cik: String(cik).padStart(10, '0'),
-      filed,
+      // one shape downstream, whichever index this line came from
+      filed: filed.includes('-') ? filed : `${filed.slice(0, 4)}-${filed.slice(4, 6)}-${filed.slice(6, 8)}`,
       acc,
       amended: form.endsWith('/A'),
     });

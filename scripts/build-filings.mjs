@@ -114,6 +114,18 @@ for (const day of days) {
   await sleep(300);
 }
 
+// Every index read cleanly and not one line matched. That is what a parser
+// that cannot read the index it was given looks like, and it is also what a
+// genuinely quiet stretch looks like, since 13F filings bunch up around the
+// 45-day deadline. It is not an error, so say it loudly instead of failing:
+// a silent zero is how eight empty days went unnoticed.
+if (!incoming.length && misses < days.length) {
+  console.log(
+    `::warning::${days.length - misses} index files read, no 13F line in any of them — ` +
+      'expected between deadlines, worth checking the parser if it persists past one.'
+  );
+}
+
 // A run that reads nothing must not overwrite a good file with an empty one.
 if (!incoming.length && misses === days.length) {
   console.error('No index could be read — keeping the stored feed.');

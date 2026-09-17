@@ -42,6 +42,36 @@ test('CIKs are padded so they join with the rest of the site', () => {
   assert.ok(parseFilingIndex(INDEX).every((r) => r.cik.length === 10));
 });
 
+// The daily index is what the feed actually reads, and it writes the filing
+// date without dashes. The hand-written sample above used the quarterly
+// index's dashed form, so the parser passed its test and still returned an
+// empty list for every real day it was given.
+const DAILY_INDEX = `Description:           Daily Index of EDGAR Dissemination Feed by Form Type
+Last Data Received:    September 8, 2026
+
+Form Type   Company Name                                   CIK         Date Filed  File Name
+---------------------------------------------------------------------------------------------
+13F-HR      BlackRock, Inc.                                1364742     20260908    edgar/data/1364742/0001364742-26-000123.txt
+13F-HR/A    Nykredit A/S                                   318083      20260908    edgar/data/318083/0000318083-26-000045.txt
+13F-NT      Some Notice Filer LLC                          999999      20260908    edgar/data/999999/0000999999-26-000001.txt
+`;
+
+test('the daily index is read too, not just the quarterly one', () => {
+  const rows = parseFilingIndex(DAILY_INDEX);
+  assert.equal(rows.length, 2, 'an undashed filing date must not drop the row');
+  assert.deepEqual(rows.map((r) => r.filed), ['2026-09-08', '2026-09-08'], 'dates normalise to ISO');
+  assert.equal(rows[0].cik, '0001364742');
+  assert.equal(rows[1].acc, '0000318083-26-000045');
+  assert.equal(rows[1].amended, true);
+});
+
+test('both index formats produce the same row for the same filing', () => {
+  const dashed = parseFilingIndex('13F-HR      Dodge & Cox       200217   2026-09-04  edgar/data/200217/0000200217-26-000007.txt');
+  const plain = parseFilingIndex('13F-HR      Dodge & Cox       200217   20260904    edgar/data/200217/0000200217-26-000007.txt');
+  assert.deepEqual(dashed, plain);
+  assert.equal(dashed[0].filed, '2026-09-04');
+});
+
 test('junk in, empty out', () => {
   assert.deepEqual(parseFilingIndex(''), []);
   assert.deepEqual(parseFilingIndex(null), []);

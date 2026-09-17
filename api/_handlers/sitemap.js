@@ -70,6 +70,13 @@ export function buildSitemap(type, site) {
         priority: want === 'guru' ? '0.9' : '0.5',
       }));
     if (want === 'guru') {
+      // each guru's sub-pages; filers keep only their front, four more URLs
+      // apiece across eight thousand of them is weight without readers
+      for (const e of [...entries]) {
+        for (const seg of ['changes', 'mix', 'history', 'backtest']) {
+          entries.push({ path: `${e.path}/${seg}`, lastmod: e.lastmod, changefreq: 'weekly', priority: '0.6' });
+        }
+      }
       // guru × ticker trade-history pages for positions currently held
       const hist = historyTable();
       for (const [slug, v] of Object.entries(slugs.bySlug)) {
@@ -112,6 +119,10 @@ export function buildSitemap(type, site) {
       { path: '/rankings/most-sold', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/consensus', lastmod, changefreq: 'daily', priority: '0.8' },
       { path: '/rankings/conviction', lastmod, changefreq: 'daily', priority: '0.8' },
+      { path: '/rankings/options', lastmod, changefreq: 'daily', priority: '0.7' },
+      { path: '/filings', lastmod, changefreq: 'daily', priority: '0.7' },
+      ...['bought', 'sold', 'new', 'funds', 'universe'].map((k) => ({ path: `/consensus/${k}`, lastmod, changefreq: 'daily', priority: '0.8' })),
+      { path: '/screen/stocks', lastmod, changefreq: 'daily', priority: '0.7' },
       { path: '/calendar', lastmod: latestFiled, changefreq: 'daily', priority: '0.8' },
       { path: '/emerging-managers', lastmod: latestFiled, changefreq: 'weekly', priority: '0.7' },
       { path: '/reports', lastmod, changefreq: 'weekly', priority: '0.7' },

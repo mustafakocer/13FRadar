@@ -1,0 +1,537 @@
+{
+ "updatedAt": "2026-09-14T00:00:00.000Z",
+ "managers": [
+  {
+   "name": "Berkshire Hathaway",
+   "cik": "0001067983",
+   "reportDate": "2026-06-30"
+  },
+  {
+   "name": "Pershing Square",
+   "cik": "0001336528",
+   "reportDate": "2026-06-30"
+  },
+  {
+   "name": "Scion Asset Management",
+   "cik": "0001649339",
+   "reportDate": "2026-06-30"
+  }
+ ],
+ "stocks": [
+  {
+   "cusip": "674599105",
+   "issuer": "OCCIDENTAL PETE CORP",
+   "rank": 1,
+   "holderCount": 2,
+   "totalValue": 15960000000,
+   "totalShares": 265000000,
+   "avgWeight": 15.08,
+   "maxWeight": 22.14,
+   "buyValue": 602045455,
+   "sellValue": 0,
+   "netValue": 602045455,
+   "buyers": 2,
+   "sellers": 0,
+   "newBuyers": 1,
+   "adders": 1,
+   "reducers": 0,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001649339",
+     "name": "Scion Asset Management",
+     "weight": 22.14,
+     "shares": 1000000,
+     "value": 60000000,
+     "change": null,
+     "activity": "new"
+    },
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 8.02,
+     "shares": 264000000,
+     "value": 15900000000,
+     "change": 3.53,
+     "activity": "add"
+    }
+   ],
+   "ticker": "OXY",
+   "sector": "Energy",
+   "marketCap": 45000000000,
+   "cap": "large"
+  },
+  {
+   "cusip": "02079K305",
+   "issuer": "ALPHABET INC",
+   "rank": 2,
+   "holderCount": 2,
+   "totalValue": 5300000000,
+   "totalShares": 32000000,
+   "avgWeight": 14.82,
+   "maxWeight": 27.97,
+   "buyValue": 3300000000,
+   "sellValue": 0,
+   "netValue": 3300000000,
+   "buyers": 1,
+   "sellers": 0,
+   "newBuyers": 1,
+   "adders": 0,
+   "reducers": 0,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001336528",
+     "name": "Pershing Square",
+     "weight": 27.97,
+     "shares": 12000000,
+     "value": 2000000000,
+     "change": 0,
+     "activity": "hold"
+    },
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 1.67,
+     "shares": 20000000,
+     "value": 3300000000,
+     "change": null,
+     "activity": "new"
+    }
+   ],
+   "ticker": "GOOGL",
+   "sector": "Communication Services",
+   "marketCap": 2100000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "023135106",
+   "issuer": "AMAZON COM INC",
+   "rank": 3,
+   "holderCount": 2,
+   "totalValue": 3000000000,
+   "totalShares": 16000000,
+   "avgWeight": 8.17,
+   "maxWeight": 15.38,
+   "buyValue": 366666667,
+   "sellValue": 0,
+   "netValue": 366666667,
+   "buyers": 1,
+   "sellers": 0,
+   "newBuyers": 0,
+   "adders": 1,
+   "reducers": 0,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001336528",
+     "name": "Pershing Square",
+     "weight": 15.38,
+     "shares": 6000000,
+     "value": 1100000000,
+     "change": 50,
+     "activity": "add"
+    },
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 0.96,
+     "shares": 10000000,
+     "value": 1900000000,
+     "change": 0,
+     "activity": "hold"
+    }
+   ],
+   "ticker": "AMZN",
+   "sector": "Consumer Discretionary",
+   "marketCap": 1900000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "594918104",
+   "issuer": "MICROSOFT CORP",
+   "rank": 4,
+   "holderCount": 2,
+   "totalValue": 1840000000,
+   "totalShares": 4400000,
+   "avgWeight": 7.2,
+   "maxWeight": 13.99,
+   "buyValue": 1000000000,
+   "sellValue": 0,
+   "netValue": 1000000000,
+   "buyers": 1,
+   "sellers": 0,
+   "newBuyers": 1,
+   "adders": 0,
+   "reducers": 0,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001336528",
+     "name": "Pershing Square",
+     "weight": 13.99,
+     "shares": 2400000,
+     "value": 1000000000,
+     "change": null,
+     "activity": "new"
+    },
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 0.42,
+     "shares": 2000000,
+     "value": 840000000,
+     "change": 0,
+     "activity": "hold"
+    }
+   ],
+   "ticker": "MSFT",
+   "sector": "Technology",
+   "marketCap": 3000000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "43300A203",
+   "issuer": "HILTON WORLDWIDE HLDGS INC",
+   "rank": 5,
+   "holderCount": 2,
+   "totalValue": 1720000000,
+   "totalShares": 8000000,
+   "avgWeight": 10.55,
+   "maxWeight": 20.98,
+   "buyValue": 220000000,
+   "sellValue": 214285714,
+   "netValue": 5714286,
+   "buyers": 1,
+   "sellers": 1,
+   "newBuyers": 1,
+   "adders": 0,
+   "reducers": 1,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001336528",
+     "name": "Pershing Square",
+     "weight": 20.98,
+     "shares": 7000000,
+     "value": 1500000000,
+     "change": -12.5,
+     "activity": "reduce"
+    },
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 0.11,
+     "shares": 1000000,
+     "value": 220000000,
+     "change": null,
+     "activity": "new"
+    }
+   ],
+   "ticker": "HLT",
+   "sector": null,
+   "marketCap": 55000000000,
+   "cap": "large"
+  },
+  {
+   "cusip": "67066G104",
+   "issuer": "NVIDIA CORPORATION",
+   "rank": 6,
+   "holderCount": 2,
+   "totalValue": 659000000,
+   "totalShares": 5500000,
+   "avgWeight": 11.04,
+   "maxWeight": 21.77,
+   "buyValue": 659000000,
+   "sellValue": 0,
+   "netValue": 659000000,
+   "buyers": 2,
+   "sellers": 0,
+   "newBuyers": 2,
+   "adders": 0,
+   "reducers": 0,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001649339",
+     "name": "Scion Asset Management",
+     "weight": 21.77,
+     "shares": 500000,
+     "value": 59000000,
+     "change": null,
+     "activity": "new"
+    },
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 0.3,
+     "shares": 5000000,
+     "value": 600000000,
+     "change": null,
+     "activity": "new"
+    }
+   ],
+   "ticker": "NVDA",
+   "sector": "Technology",
+   "marketCap": 3100000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "037833100",
+   "issuer": "APPLE INC",
+   "rank": 7,
+   "holderCount": 1,
+   "totalValue": 69900000000,
+   "totalShares": 300000000,
+   "avgWeight": 35.27,
+   "maxWeight": 35.27,
+   "buyValue": 0,
+   "sellValue": 23300000000,
+   "netValue": -23300000000,
+   "buyers": 0,
+   "sellers": 1,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 1,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 35.27,
+     "shares": 300000000,
+     "value": 69900000000,
+     "change": -25,
+     "activity": "reduce"
+    }
+   ],
+   "ticker": "AAPL",
+   "sector": "Technology",
+   "marketCap": 3400000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "025816109",
+   "issuer": "AMERICAN EXPRESS CO",
+   "rank": 8,
+   "holderCount": 1,
+   "totalValue": 37200000000,
+   "totalShares": 151600000,
+   "avgWeight": 18.77,
+   "maxWeight": 18.77,
+   "buyValue": 0,
+   "sellValue": 0,
+   "netValue": 0,
+   "buyers": 0,
+   "sellers": 0,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 0,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 18.77,
+     "shares": 151600000,
+     "value": 37200000000,
+     "change": 0,
+     "activity": "hold"
+    }
+   ],
+   "ticker": "AXP",
+   "sector": "Financials",
+   "marketCap": 190000000000,
+   "cap": "large"
+  },
+  {
+   "cusip": "191216100",
+   "issuer": "COCA COLA CO",
+   "rank": 9,
+   "holderCount": 1,
+   "totalValue": 26000000000,
+   "totalShares": 400000000,
+   "avgWeight": 13.12,
+   "maxWeight": 13.12,
+   "buyValue": 0,
+   "sellValue": 20000000,
+   "netValue": -20000000,
+   "buyers": 0,
+   "sellers": 1,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 0,
+   "exiters": 1,
+   "holders": [
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 13.12,
+     "shares": 400000000,
+     "value": 26000000000,
+     "change": 0,
+     "activity": "hold"
+    }
+   ],
+   "ticker": "KO",
+   "sector": "Consumer Staples",
+   "marketCap": 280000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "060505104",
+   "issuer": "BANK OF AMER CORP",
+   "rank": 10,
+   "holderCount": 1,
+   "totalValue": 24600000000,
+   "totalShares": 605000000,
+   "avgWeight": 12.41,
+   "maxWeight": 12.41,
+   "buyValue": 0,
+   "sellValue": 16061157025,
+   "netValue": -16061157025,
+   "buyers": 0,
+   "sellers": 1,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 1,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 12.41,
+     "shares": 605000000,
+     "value": 24600000000,
+     "change": -39.5,
+     "activity": "reduce"
+    }
+   ],
+   "ticker": "BAC",
+   "sector": "Financials",
+   "marketCap": 300000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "166764100",
+   "issuer": "CHEVRON CORP NEW",
+   "rank": 11,
+   "holderCount": 1,
+   "totalValue": 17700000000,
+   "totalShares": 118000000,
+   "avgWeight": 8.93,
+   "maxWeight": 8.93,
+   "buyValue": 0,
+   "sellValue": 750000000,
+   "netValue": -750000000,
+   "buyers": 0,
+   "sellers": 1,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 1,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001067983",
+     "name": "Berkshire Hathaway",
+     "weight": 8.93,
+     "shares": 118000000,
+     "value": 17700000000,
+     "change": -4.07,
+     "activity": "reduce"
+    }
+   ],
+   "ticker": "CVX",
+   "sector": "Energy",
+   "marketCap": 290000000000,
+   "cap": "mega"
+  },
+  {
+   "cusip": "169656105",
+   "issuer": "CHIPOTLE MEXICAN GRILL INC",
+   "rank": 12,
+   "holderCount": 1,
+   "totalValue": 1550000000,
+   "totalShares": 28000000,
+   "avgWeight": 21.68,
+   "maxWeight": 21.68,
+   "buyValue": 0,
+   "sellValue": 180000000,
+   "netValue": -180000000,
+   "buyers": 0,
+   "sellers": 1,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 0,
+   "exiters": 1,
+   "holders": [
+    {
+     "cik": "0001336528",
+     "name": "Pershing Square",
+     "weight": 21.68,
+     "shares": 28000000,
+     "value": 1550000000,
+     "change": 0,
+     "activity": "hold"
+    }
+   ],
+   "ticker": "CMG",
+   "sector": "Consumer Discretionary",
+   "marketCap": 8000000000,
+   "cap": "mid"
+  },
+  {
+   "cusip": "01609W102",
+   "issuer": "ALIBABA GROUP HLDG LTD",
+   "rank": 13,
+   "holderCount": 1,
+   "totalValue": 128000000,
+   "totalShares": 1500000,
+   "avgWeight": 47.23,
+   "maxWeight": 47.23,
+   "buyValue": 0,
+   "sellValue": 42666667,
+   "netValue": -42666667,
+   "buyers": 0,
+   "sellers": 1,
+   "newBuyers": 0,
+   "adders": 0,
+   "reducers": 1,
+   "exiters": 0,
+   "holders": [
+    {
+     "cik": "0001649339",
+     "name": "Scion Asset Management",
+     "weight": 47.23,
+     "shares": 1500000,
+     "value": 128000000,
+     "change": -25,
+     "activity": "reduce"
+    }
+   ],
+   "ticker": "BABA",
+   "sector": null,
+   "marketCap": null,
+   "cap": null
+  }
+ ],
+ "options": [
+  {
+   "cusip": "67066G104",
+   "issuer": "NVIDIA CORPORATION",
+   "putCall": "Put",
+   "holderCount": 1,
+   "totalValue": 24000000,
+   "totalShares": 200000,
+   "holders": [
+    {
+     "cik": "0001649339",
+     "name": "Scion Asset Management",
+     "weight": 8.86,
+     "value": 24000000
+    }
+   ],
+   "ticker": "NVDA"
+  }
+ ]
+}

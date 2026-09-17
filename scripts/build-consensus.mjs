@@ -7,7 +7,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { build } from '../api/_lib/consensusBuild.js';
-import { yahooChartReturns } from '../api/_lib/yahooClient.js';
+import { yahooChartReturns, yahooQuote, yahooQuoteSummary, mapLimit } from '../api/_lib/yahooClient.js';
+import { loadSectorMap, sectorsToFetch, mergeSectors, applyStockMeta } from '../api/_lib/stockMeta.js';
 import { tdGet, hasTd } from '../api/_lib/providers.js';
 import { returnsFromSeries } from '../api/_lib/stooq.js';
 
@@ -18,7 +19,9 @@ fs.mkdirSync(pub, { recursive: true });
 
 // ---- consensus.json -------------------------------------------------------
 console.log('Building consensus…');
-const consensus = await build();
+// The runner has an OpenFIGI key and no request deadline, so this is where the
+// per-stock table earns its tickers; /api/consensus takes the static map only.
+const consensus = await build({ stocksTickers: Number(process.env.CONSENSUS_FIGI_BUDGET || 1500) });
 // Public file: the free part — most-held plus the per-manager "what changed"
 // teaser cards for the landing page. Full buys/sells/new-position lists are
 // Pro data and go to api/_data (served by /api/consensus behind the paywall).
@@ -29,17 +32,73 @@ fs.writeFileSync(
 );
 const dataDir = path.join(process.cwd(), 'api', '_data');
 fs.mkdirSync(dataDir, { recursive: true });
-fs.writeFileSync(path.join(dataDir, 'consensus-pro.json'), JSON.stringify(consensus));
+// The per-stock table is the bulky part and only the stock page, the ownership
+// rankings and the screener read it, so it gets its own file rather than
+// riding along in every /api/consensus response.
+const { stocks: rawStocks, options, ...core } = consensus;
+
+// ---- sector + market cap for the per-security table ------------------------
+// Sectors accumulate in a committed map a few hundred symbols at a time;
+// market caps are bulk-quoted every run. Both are best-effort: a provider
+// hiccup leaves the fields null and the filters simply offer less.
+const sectorMap = loadSectorMap();
+const wanted = sectorsToFetch(rawStocks, sectorMap, Number(process.env.SECTOR_BUDGET || 250));
+const found = {};
+if (wanted.length) {
+  console.log(`Looking up sectors for ${wanted.length} new symbols…`);
+  const got = await mapLimit(wanted, 4, async (sym) => {
+    try {
+      const r = await yahooQuoteSummary(sym, ['assetProfile']);
+      return r?.assetProfile?.sector || null;
+    } catch {
+      return undefined; // ask again next run rather than storing a failure
+    }
+  });
+  got.forEach((sector, i) => {
+    if (sector !== undefined) found[wanted[i]] = sector;
+  });
+}
+const sectors = mergeSectors(sectorMap, found);
+if (Object.keys(found).length) {
+  fs.writeFileSync(path.join(process.cwd(), 'api', '_data', 'sector-map.json'), JSON.stringify(sectors));
+}
+
+const marketCaps = {};
+const capSymbols = rawStocks.map((s) => s.ticker).filter(Boolean).slice(0, Number(process.env.MARKETCAP_BUDGET || 900));
+for (let i = 0; i < capSymbols.length; i += 50) {
+  const chunk = capSymbols.slice(i, i + 50);
+  try {
+    for (const q of await yahooQuote(chunk)) {
+      if (q?.symbol && q.marketCap != null) marketCaps[String(q.symbol).toUpperCase()] = q.marketCap;
+    }
+  } catch (e) {
+    console.warn(`market cap batch ${i / 50 + 1} failed: ${e.message}`);
+  }
+  await sleep(250);
+}
+
+const stocks = applyStockMeta(rawStocks, { sectors: sectors.bySymbol, marketCaps });
+console.log(
+  `stock meta: ${stocks.filter((s) => s.sector).length}/${stocks.length} with a sector, ${stocks.filter((s) => s.marketCap).length} with a market cap`
+);
+fs.writeFileSync(path.join(dataDir, 'consensus-pro.json'), JSON.stringify(core));
+fs.writeFileSync(
+  path.join(dataDir, 'guru-stocks.json'),
+  JSON.stringify({ updatedAt, managers, stocks, options })
+);
 console.log(
   `consensus.json (public) + consensus-pro.json: ${managers.length} managers, ${mostHeld.length} most-held, ${consensus.topBought.length} bought, ${consensus.newPositions.length} new, ${updates.length} update cards`
+);
+console.log(
+  `guru-stocks.json: ${stocks.length} securities (${stocks.filter((s) => s.ticker).length} with a ticker), ${options.length} option lines`
 );
 
 // ---- returns.json ---------------------------------------------------------
 // 1Y/YTD for the most-held tickers across the universe + consensus tickers.
 const tickers = new Set();
 try {
-  const stocks = JSON.parse(fs.readFileSync(path.join(pub, 'stocks.json'), 'utf8'));
-  for (const r of stocks.rows) if (r.ticker) tickers.add(r.ticker);
+  const universe = JSON.parse(fs.readFileSync(path.join(pub, 'stocks.json'), 'utf8'));
+  for (const r of universe.rows) if (r.ticker) tickers.add(r.ticker);
 } catch {
   /* stocks.json optional */
 }

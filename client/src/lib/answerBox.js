@@ -182,17 +182,19 @@ export const RANK_RULE = {
     'most-sold': 'ranked by net dollar value sold across the tracked superinvestor set',
     consensus: 'ranked by the number of tracked superinvestors holding the stock',
     conviction: 'ranked by the average portfolio weight among the superinvestors that hold the stock (at least two holders)',
+    options: 'ranked by the reported value of PUT and CALL positions, which are disclosed separately from common stock',
   },
   tr: {
     'most-bought': 'takip edilen usta yatırımcı setinde net alım tutarına göre (artırma ve yeni pozisyonlar eksi azaltmalar) sıralanır',
     'most-sold': 'takip edilen usta yatırımcı setinde net satış tutarına göre sıralanır',
     consensus: 'hisseyi tutan usta yatırımcı sayısına göre sıralanır',
     conviction: 'hisseyi tutan usta yatırımcıların ortalama portföy ağırlığına göre sıralanır (en az iki sahip)',
+    options: 'bildirilen PUT ve CALL pozisyon değerine göre sıralanır; opsiyonlar hisse senedinden ayrı bildirilir',
   },
 };
 export const RANK_NAME = {
-  en: { 'most-bought': 'Most bought', 'most-sold': 'Most sold', consensus: 'Consensus', conviction: 'High conviction' },
-  tr: { 'most-bought': 'En çok alınanlar', 'most-sold': 'En çok satılanlar', consensus: 'Konsensüs', conviction: 'Yüksek kanaat' },
+  en: { 'most-bought': 'Most bought', 'most-sold': 'Most sold', consensus: 'Consensus', conviction: 'High conviction', options: 'Option ownership' },
+  tr: { 'most-bought': 'En çok alınanlar', 'most-sold': 'En çok satılanlar', consensus: 'Konsensüs', conviction: 'Yüksek kanaat', options: 'Opsiyon sahipliği' },
 };
 
 export function rankingAnswer({ kind, reportDate, first, managers }, lang = 'en') {
@@ -204,6 +206,7 @@ export function rankingAnswer({ kind, reportDate, first, managers }, lang = 'en'
     kind === 'most-bought' ? fmtMoney(first.netValue)
     : kind === 'most-sold' ? fmtMoney(Math.abs(first.netValue))
     : kind === 'consensus' ? `${num(first.holderCount, lang)} ${lang === 'tr' ? 'fon' : 'holders'}`
+    : kind === 'options' ? `${first.putCall || ''} ${fmtMoney(first.totalValue)}`.trim()
     : pct(first.avgWeight);
   return lang === 'tr'
     ? `${RANK_NAME.tr[kind]} listesi ${q} 13F bildirimlerine dayanır${n} ve ${RANK_RULE.tr[kind]}; 1. sıra: ${sym} (${stat}).`

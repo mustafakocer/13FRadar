@@ -151,7 +151,10 @@ body { overflow-x: clip; }
 .grid { display: grid; gap: 16px; }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
-@media (max-width: 1000px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } }
+/* the four-number strip at the top of a page: two-up on a tablet, stacked on a phone */
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 1000px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .grid-4 { grid-template-columns: 1fr; } }
 
 /* ---------- stat cards ---------- */
 .stat-card { display: flex; flex-direction: column; gap: 2px; }
@@ -172,6 +175,7 @@ body { overflow-x: clip; }
 /* premium / locked state only — never a CTA */
 .badge.pro { background: color-mix(in srgb, var(--pro) 14%, transparent); color: var(--pro); }
 .badge.type { background: var(--popover); color: var(--text); border: 1px solid var(--border); font-size: 11px; padding: 2px 8px; }
+.badge.sm { font-size: 10px; padding: 1px 6px; }
 
 .delta-pos { color: var(--buy); font-weight: 700; }
 .delta-neg { color: var(--sell); font-weight: 700; }

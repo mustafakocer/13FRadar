@@ -79,8 +79,8 @@ function sections(lang, full) {
   for (const g of gurus) L.push(link(lang, `/guru/${g.slug}`, g.name, guruLine(g, lang)));
   L.push('');
   H('Rankings', 'Sıralamalar');
-  for (const k of ['most-bought', 'most-sold', 'consensus', 'conviction']) {
-    const label = { 'most-bought': t ? 'En çok alınanlar' : 'Most bought', 'most-sold': t ? 'En çok satılanlar' : 'Most sold', consensus: t ? 'Konsensüs (en çok tutulan)' : 'Consensus (most owned)', conviction: t ? 'Yüksek kanaat' : 'High conviction' }[k];
+  for (const k of ['most-bought', 'most-sold', 'consensus', 'conviction', 'options']) {
+    const label = { 'most-bought': t ? 'En çok alınanlar' : 'Most bought', 'most-sold': t ? 'En çok satılanlar' : 'Most sold', consensus: t ? 'Konsensüs (en çok tutulan)' : 'Consensus (most owned)', conviction: t ? 'Yüksek kanaat' : 'High conviction', options: t ? 'Opsiyon sahipliği' : 'Option ownership' }[k];
     L.push(link(lang, `/rankings/${k}`, label, latestReport ? `${latestReport}` : ''));
   }
   L.push(link(lang, '/consensus', t ? 'Usta yatırımcı konsensüsü' : 'Superinvestor consensus'));
@@ -93,6 +93,11 @@ function sections(lang, full) {
   }
   L.push('');
   H('Insider', 'Insider');
+  L.push(link(lang, '/consensus/bought', t ? 'Ustaların bu çeyrek aldıkları' : 'What superinvestors bought this quarter'));
+  L.push(link(lang, '/consensus/sold', t ? 'Ustaların bu çeyrek sattıkları' : 'What superinvestors sold this quarter'));
+  L.push(link(lang, '/consensus/new', t ? 'Ustaların yeni pozisyonları' : 'New positions superinvestors opened'));
+  L.push(link(lang, '/consensus/funds', t ? 'Takip edilen fonlar ve son hamleleri' : 'Tracked funds and their latest moves'));
+  L.push(link(lang, '/consensus/universe', t ? "Tüm Wall Street'in en çok tuttukları" : 'Most held across all 13F filers'));
   L.push(link(lang, '/insiders/cluster', t ? 'Küme alımları' : 'Cluster buys', t ? '7 gün içinde ≥2 insider, açık piyasa' : '≥2 insiders within 7 days, open market'));
   L.push(link(lang, '/insiders/csuite', t ? 'CEO / CFO alımları' : 'CEO / CFO buys'));
   L.push(link(lang, '/insiders/penny', t ? 'Kuruş hisse alımları' : 'Penny-stock buys', t ? "5 $ altı hisselerde, son 30 günde 10 bin $ üzeri açık piyasa alımları" : 'open-market buys above $10,000 in stocks under $5, last 30 days'));

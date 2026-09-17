@@ -1,8 +1,10 @@
+import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import { invoke, withBudget } from './invoke.js';
 import managerHandler from '../../_handlers/manager.js';
 import holdingsHandler from '../../_handlers/holdings.js';
 import stockHandler from '../../_handlers/stock.js';
+import guruStocksHandler from '../../_handlers/guru-stocks.js';
 import slugHandler from '../../_handlers/slug.js';
 import guruHistoryHandler from '../../_handlers/guru-history.js';
 import calendarHandler from '../../_handlers/calendar.js';
@@ -28,6 +30,17 @@ const staticTeaser = () => json('../../../client/public/insiders-teaser.json');
 const staticReturns = () => json('../../../client/public/returns.json');
 const staticSummary = () => json('../../../client/public/universe-summary.json');
 const staticStocks = () => json('../../../client/public/stocks.json');
+// FILINGS_FILE points the offline tests at a fixture feed; production reads
+// the file the daily Action writes, and renders nothing when it is absent.
+const staticFilings = () => {
+  const override = process.env.FILINGS_FILE;
+  if (!override) return json('../../../client/public/filings.json');
+  try {
+    return JSON.parse(fs.readFileSync(override, 'utf8'));
+  } catch {
+    return null;
+  }
+};
 
 // CDN cache policy per page kind — the ISR equivalent for a Vite app.
 export const CACHE = {
@@ -51,18 +64,19 @@ async function loadHome() {
   return seeds;
 }
 
-async function loadManager({ cik, slug, kind }) {
+async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
+  const tail = segment === 'portfolio' ? '' : `/${segment}`;
   const seeds = [];
   if (slug) {
     const e = cikForSlug(slug);
     if (!e || (kind && e.kind !== kind && !(kind === 'filer' && e.kind === 'guru'))) return { seeds, status: 404 };
-    if (kind === 'filer' && e.kind === 'guru') return { redirect: `/guru/${slug}`, status: 301 };
+    if (kind === 'filer' && e.kind === 'guru') return { redirect: `/guru/${slug}${tail}`, status: 301 };
     cik = e.cik;
     seeds.push([['slug', slug], { ...e, slug }]);
   } else if (cik) {
     // numeric route: 301 to the stored slug so one URL carries the ranking
     const canonical = filerPath(cik);
-    if (!canonical.startsWith('/manager/')) return { redirect: canonical, status: 301 };
+    if (!canonical.startsWith('/manager/')) return { redirect: `${canonical}${tail}`, status: 301 };
   }
   const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 8000));
   if (!mgr) return { seeds, status: 404 };
@@ -109,6 +123,11 @@ async function loadStock({ ticker, cusip }) {
   seeds.push([['stock', ticker], stock]);
   const c = staticConsensus();
   if (c) seeds.push([['consensus'], c]);
+  // The guru standing is the free hook and the answer an assistant quotes, so
+  // it has to be in the HTML rather than arrive after hydration. Anonymous
+  // render = the free payload, which is what the CDN may keep.
+  const g = ok(await invoke(guruStocksHandler, { ticker, ...(cusip ? { cusip } : {}) }));
+  if (g?.available) seeds.push([['guru-stock', cusip || ticker], g]);
   return { seeds };
 }
 
@@ -118,6 +137,20 @@ async function loadConsensus() {
   if (c) seeds.push([['consensus'], c]);
   const s = staticStocks();
   if (s) seeds.push([['stocksUniverse'], { ...s, rows: (s.rows || []).slice(0, 60) }]);
+  return seeds;
+}
+
+// The consensus page itself: the static file above plus the per-security
+// table its default segment renders, under the exact key the unfiltered page
+// asks for — a seed only counts when the key matches.
+async function loadConsensusPage() {
+  const seeds = await loadConsensus();
+  const r = staticReturns();
+  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
+  if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
+  const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
+  if (o?.available) seeds.push([['guru-options'], o]);
   return seeds;
 }
 
@@ -143,7 +176,29 @@ async function loadRankings() {
   const seeds = await loadConsensus();
   const r = staticReturns();
   if (r) seeds.push([['static-returns'], r.returns || {}]);
+  // The full ranked table, under the key the unfiltered page asks for, so a
+  // crawler sees the whole list rather than the thirty public rows.
+  const g = ok(await invoke(guruStocksHandler, { limit: '300' }));
+  if (g?.available) seeds.push([['guru-stocks', 300, '', '', 0, 0], g]);
+  const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
+  if (o?.available) seeds.push([['guru-options'], o]);
   return seeds;
+}
+
+// The stock screener asks for a bigger page than the ranking pages do, and a
+// seed only counts when its key matches exactly.
+async function loadStockScreen() {
+  const seeds = [];
+  const r = staticReturns();
+  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
+  if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
+  return seeds;
+}
+
+async function loadFilings() {
+  const f = staticFilings();
+  return f ? [[['filings'], f]] : [];
 }
 
 async function loadCalendar() {
@@ -174,19 +229,23 @@ async function loadTeaserOnly() {
 // (client-only pages) with a no-store header.
 export const ROUTES = [
   { kind: 'home', re: /^\/$/, load: loadHome, cache: 'hour' },
-  { kind: 'manager', re: /^\/manager\/(\d{1,10})$/, params: (m) => ({ cik: m[1].padStart(10, '0') }), load: loadManager, cache: 'day' },
-  { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'guru' }), load: loadManager, cache: 'day' },
-  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
-  { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1], kind: 'filer' }), load: loadManager, cache: 'day' },
+  // A fund's sub-pages are the fixed words after its slug; they are matched
+  // before the guru × ticker route, whose last segment is a symbol.
+  { kind: 'manager', re: /^\/manager\/(\d{1,10})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ cik: m[1].padStart(10, '0'), segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
+  { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'guru', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
+  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/(?!(?:changes|mix|history|backtest)$)([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
+  { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'filer', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
   { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
   { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },
   { kind: 'insider-signal', re: /^\/insiders\/(cluster|csuite|penny)$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'reports', re: /^\/reports(?:\/(\d{4}-q[1-4]))?$/, params: (m) => ({ id: m[1] || null }), load: loadReports, cache: 'day' },
   { kind: 'calendar', re: /^\/calendar$/, load: loadCalendar, cache: () => (inFilingSeason() ? 'hour' : 'day') },
+  { kind: 'filings', re: /^\/filings$/, load: loadFilings, cache: 'hour' },
+  { kind: 'stock-screen', re: /^\/screen\/stocks$/, load: loadStockScreen, cache: 'hour' },
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
-  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction)$/, load: loadRankings, cache: 'hour' },
+  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
-  { kind: 'consensus', re: /^\/consensus$/, load: loadConsensus, cache: 'hour' },
+  { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: async () => [], cache: 'day' },
   { kind: 'report', re: /^\/report$/, load: loadReport, cache: 'hour' },

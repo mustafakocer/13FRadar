@@ -67,6 +67,7 @@ export default function Screen() {
   const [pos, setPos] = useState('');
   const [conc, setConc] = useState('');
   const [cat, setCat] = useState('');
+  const [state, setState] = useState('');
   const [advOpen, setAdvOpen] = useState(false);
   const [adv, setAdv] = useState(ADV_EMPTY);
   const [draft, setDraft] = useState(ADV_EMPTY);
@@ -81,6 +82,21 @@ export default function Screen() {
     retry: 0,
   });
 
+  // Filer addresses, accumulated by the filing crawl. Filers it has not looked
+  // up yet simply have no state, so the filter offers only the codes it can
+  // honour and a filer with no address is excluded when one is asked for.
+  const states = useQuery({
+    queryKey: ['filer-states'],
+    queryFn: async () => {
+      const r = await fetch('/filer-states.json');
+      if (!r.ok) throw new Error('no-states');
+      return r.json();
+    },
+    staleTime: 24 * 60 * 60 * 1000,
+    retry: 0,
+  });
+  const stateOf = (cik) => states.data?.byCik?.[cik] || null;
+
   const rows = useMemo(() => {
     const all = universe.data?.rows || [];
     const ql = q.trim().toLowerCase();
@@ -92,6 +108,7 @@ export default function Screen() {
       if (cat === 'gurus') {
         if (!GURU_CIKS.has(r.cik)) return false;
       } else if (cat && categorize(r.name) !== cat) return false;
+      if (state && stateOf(r.cik) !== state) return false;
       if (adv.minAum && r.aum / 1e6 < Number(adv.minAum)) return false;
       if (adv.maxAum && r.aum / 1e6 > Number(adv.maxAum)) return false;
       if (adv.minPos && r.positions < Number(adv.minPos)) return false;
@@ -108,7 +125,14 @@ export default function Screen() {
       return (av - bv) * dir;
     });
     return out;
-  }, [universe.data, q, size, pos, conc, cat, adv, sort]);
+  }, [universe.data, states.data, q, size, pos, conc, cat, state, adv, sort]);
+
+  // Only the codes actually present, sorted, so the dropdown is not a list of
+  // fifty states where three have filers.
+  const stateOptions = useMemo(
+    () => [...new Set(Object.values(states.data?.byCik || {}))].filter(Boolean).sort(),
+    [states.data]
+  );
 
   const advCount = Object.values(adv).filter(Boolean).length;
   const onSort = (key) =>
@@ -162,6 +186,11 @@ export default function Screen() {
               : t('screen.subtitle')}
           </div>
         </div>
+      </div>
+
+      <div className="row" style={{ gap: 6, marginBottom: 16 }}>
+        <Link to="/screen" className="chip fsel-active">{t('screen.funds')}</Link>
+        <Link to="/screen/stocks" className="chip">{t('screen.stocks')}</Link>
       </div>
 
       {/* Fintables-style toolbar — filtering is a Pro feature */}
@@ -224,6 +253,14 @@ export default function Screen() {
             { v: 'family', label: t('cat.family') },
           ])}
         />
+        {stateOptions.length > 0 && (
+          <FilterSelect
+            label={t('screen.location')}
+            value={state}
+            onChange={setState}
+            options={OPT(stateOptions.map((v) => ({ v, label: v })))}
+          />
+        )}
         <button
           className={`chip${advCount ? ' fsel-active' : ''}`}
           onClick={() => {

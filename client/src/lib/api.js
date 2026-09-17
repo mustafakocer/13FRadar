@@ -71,6 +71,19 @@ export const api = {
   report: (id) => get(`/api/report-id/${encodeURIComponent(id)}`),
   emerging: () => get('/api/emerging'),
   guruHistory: (cik) => get(`/api/guru-history/${cik}`),
+  guruStock: ({ ticker, cusip }) =>
+    get(`/api/guru-stocks?${cusip ? `cusip=${encodeURIComponent(cusip)}` : `ticker=${encodeURIComponent(ticker)}`}`),
+  guruStocks: ({ limit, sector, cap, minHolders, strongBuy } = {}) => {
+    const qs = new URLSearchParams();
+    if (limit) qs.set('limit', limit);
+    if (sector) qs.set('sector', sector);
+    if (cap) qs.set('cap', cap);
+    if (minHolders) qs.set('minHolders', minHolders);
+    if (strongBuy) qs.set('strongBuy', '1');
+    const q = qs.toString();
+    return get(`/api/guru-stocks${q ? `?${q}` : ''}`);
+  },
+  guruOptions: () => get('/api/guru-stocks?view=options'),
   guruTicker: (cik, ticker) => get(`/api/guru-history-ticker/${cik}/${encodeURIComponent(ticker)}`),
   slug: (slug) => get(`/api/slug-of/${encodeURIComponent(slug)}`),
   gurus: () => get('/api/slug?kind=guru'),

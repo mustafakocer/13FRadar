@@ -22,7 +22,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci
       - name: Build universe.json
         run: node scripts/build-universe.mjs
         env:
@@ -33,9 +33,26 @@ jobs:
           git config user.name 'universe-bot'
           git config user.email 'actions@github.com'
           node scripts/build-slugs.mjs
-          git add client/public/universe.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/slugs.json
+          # Stage only what this run actually produced. `git add` fails on a
+          # pathspec that matches nothing, and some outputs are optional —
+          # sector-map.json is written only when the sector lookup found
+          # something. An hour of crawling should not be thrown away because
+          # one optional file was not written.
+          for f in client/public/universe.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/slugs.json; do
+            if [ -e "$f" ]; then git add --all "$f"; fi
+          done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh 13F universe data'
+          # A rebase refuses to start on a dirty tree, and a build that writes
+          # anything outside the paths above leaves one — an `npm install` that
+          # rewrote the lockfile cost three days of data this way, with every
+          # file built and none of it pushed. Name what is left over and set it
+          # aside, so the run that did the work is the run that lands it.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::warning::left uncommitted, set aside before the rebase:"
+            git status --porcelain
+            git stash push --include-untracked --quiet
+          fi
           # the branch may have moved during the multi-hour run — rebase and retry
           for i in 1 2 3 4; do
             git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0

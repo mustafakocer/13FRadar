@@ -1,7 +1,13 @@
 import { createRequire } from 'node:module';
 import { requirePro } from '../_lib/auth.js';
 import { cached, TTL } from '../_lib/cache.js';
-import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES } from '../_lib/insiderModel.js';
+import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES, KEPT_CODES,
+  CLUSTER_DENSITY,
+  clusterDensity,
+  clusterMatches,
+  clusterSpanDays,
+  winRate,
+} from '../_lib/insiderModel.js';
 import { isPenny } from '../_lib/insiderTeaser.js';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions (Pro only).
@@ -16,6 +22,10 @@ import { isPenny } from '../_lib/insiderTeaser.js';
 //   change   new | inc10 | inc50 | inc100   ownership change after the trade
 //   lagMin,lagMax          calendar days between trade and filing
 //   late     1 = include filings later than the 2-business-day deadline
+//   excludePlanned  1 = drop Rule 10b5-1 scheduled trades
+//   codes    P,S,M,… restrict to specific Form 4 transaction codes
+//   clusterMin      2 | 3 | 5  minimum distinct insiders in the cluster
+//   density  blitz | tight | standard | extended  how tightly it is packed
 //   cls      comma list of conviction|liquidity|noise (default: conviction,liquidity)
 //   sort     date|value|return|shares|lag   dir asc|desc   page, perPage
 //
@@ -79,6 +89,7 @@ function shape(r, meta, companies) {
     offLow: m.px != null && m.lo > 0 ? Number((((m.px - m.lo) / m.lo) * 100).toFixed(1)) : null,
     sector: m.sector || null,
     size: sizeBucket(m.mcap),
+    pe: m.pe ?? null,
     url: r.ci && r.a ? `https://www.sec.gov/Archives/edgar/data/${Number(r.ci)}/${String(r.a).replace(/-/g, '')}/` : null,
   };
 }
@@ -178,6 +189,21 @@ export default async function handler(req, res) {
   const sector = String(req.query.sector || '');
   const change = String(req.query.change || '');
   const includeLate = req.query.late === '1';
+  // Rule 10b5-1 trades are scheduled months ahead, so they carry no view on
+  // today's price. The flag is stored per row; this is the switch that acts
+  // on it.
+  const excludePlanned = req.query.excludePlanned === '1';
+  // Transaction codes, so a reader can ask for exercise-and-hold or tax
+  // withholding specifically instead of the three broad classes.
+  const codes = new Set(
+    String(req.query.codes || '')
+      .toUpperCase()
+      .split(',')
+      .map((c) => c.trim())
+      .filter((c) => KEPT_CODES.has(c))
+  );
+  const clusterMin = Number(req.query.clusterMin) || 0;
+  const density = CLUSTER_DENSITY.includes(String(req.query.density)) ? String(req.query.density) : '';
   const classes = new Set(
     String(req.query.cls || 'conviction,liquidity')
       .split(',')
@@ -210,6 +236,9 @@ export default async function handler(req, res) {
     if (tab === 'ceo' && r.r !== 'ceo') continue;
     if (tab === 'cfo' && r.r !== 'cfo') continue;
     if (tab === 'cluster' && !clusterMap.has(r.t)) continue;
+    if (excludePlanned && r.p5) continue;
+    if (codes.size && !codes.has(String(r.k || '').toUpperCase())) continue;
+    if (!clusterMatches(clusterMap.get(r.t), { min: clusterMin, density })) continue;
     if (tab === 'penny' && !isPenny(r)) continue;
     if (minValue != null && !(r.v != null && r.v >= minValue)) continue;
     if (maxValue != null && !(r.v != null && r.v <= maxValue)) continue;
@@ -253,7 +282,32 @@ export default async function handler(req, res) {
 
   const total = out.length;
   const companies = db.companies || {};
-  const slice = out.slice((page - 1) * perPage, page * perPage).map((r) => shape(r, meta, companies));
+  // Per-row cluster context and the ticker's hit rate. Both are computed over
+  // the whole dataset rather than the page, and only for the rows actually
+  // returned — a hit rate per ticker across a year of rows is not free.
+  const byTicker = new Map();
+  for (const r of rows) {
+    if (!r.t) continue;
+    if (!byTicker.has(r.t)) byTicker.set(r.t, []);
+    byTicker.get(r.t).push(r);
+  }
+  const slice = out.slice((page - 1) * perPage, page * perPage).map((r) => {
+    const row = shape(r, meta, companies);
+    const cl = r.t ? clusterMap.get(r.t) : null;
+    if (cl) {
+      row.cluster = {
+        insiders: cl.insiders,
+        value: Math.round(cl.value),
+        from: cl.from,
+        to: cl.to,
+        spanDays: clusterSpanDays(cl),
+        density: clusterDensity(cl),
+      };
+    }
+    const px = (r.t && meta[r.t]?.px) ?? null;
+    row.winRate = px != null ? winRate(byTicker.get(r.t) || [], px) : null;
+    return row;
+  });
   const sectors = [...new Set(Object.values(meta).map((m) => m.sector).filter(Boolean))].sort();
 
   res.status(200).json({

@@ -12,7 +12,7 @@ import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
 import { LAZY_PAGES } from './pages/lazyPages.js';
 
-const { Insiders, PennyStocks, Screen, Compare, Report, Watchlist, Pricing, Account, Filers, GuruTicker, Calendar, Emerging, ReportPage, ContentPage } = Object.fromEntries(
+const { Insiders, PennyStocks, Screen, StockScreen, Compare, Report, Watchlist, Pricing, Account, Filers, GuruTicker, Calendar, Filings, Emerging, ReportPage, ContentPage } = Object.fromEntries(
   Object.entries(LAZY_PAGES).map(([k, v]) => [k, v.component])
 );
 // Split pages get their own boundary: entity pages hydrate synchronously with
@@ -52,8 +52,15 @@ export default function App() {
           <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
           <Route path="/guru/:slug" element={<Manager />} />
-          <Route path="/guru/:slug/:ticker" element={<Lazy><GuruTicker /></Lazy>} />
           <Route path="/filer/:slug" element={<Manager />} />
+          {/* A fund's sub-pages are fixed words, so they outrank the guru ×
+              ticker route below, whose last segment is a symbol. */}
+          {['changes', 'mix', 'history', 'backtest'].flatMap((seg) =>
+            ['/manager/:cik', '/guru/:slug', '/filer/:slug'].map((base) => (
+              <Route key={`${base}/${seg}`} path={`${base}/${seg}`} element={<Manager segment={seg} />} />
+            ))
+          )}
+          <Route path="/guru/:slug/:ticker" element={<Lazy><GuruTicker /></Lazy>} />
           <Route path="/gurus" element={<Gurus />} />
           <Route path="/filers" element={<Lazy><Filers /></Lazy>} />
           <Route path="/filers/:letter" element={<Lazy><Filers /></Lazy>} />
@@ -61,6 +68,7 @@ export default function App() {
           <Route path="/insiders/:signal" element={<InsiderSignal />} />
           <Route path="/rankings/:kind" element={<Rankings />} />
           <Route path="/calendar" element={<Lazy><Calendar /></Lazy>} />
+          <Route path="/filings" element={<Lazy><Filings /></Lazy>} />
           <Route path="/reports" element={<Lazy><ReportPage /></Lazy>} />
           <Route path="/guides/:slug" element={<Lazy><ContentPage /></Lazy>} />
           <Route path="/rehber/:slug" element={<Lazy><ContentPage /></Lazy>} />
@@ -70,9 +78,11 @@ export default function App() {
           <Route path="/emerging-managers" element={<Lazy><Emerging /></Lazy>} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />
+          <Route path="/consensus/:segment" element={<Consensus />} />
           <Route path="/report" element={<Lazy><Report /></Lazy>} />
           <Route path="/insiders" element={<Lazy><Insiders /></Lazy>} />
           <Route path="/screen" element={<Lazy><Screen /></Lazy>} />
+          <Route path="/screen/stocks" element={<Lazy><StockScreen /></Lazy>} />
           <Route path="/compare" element={<Lazy><Compare /></Lazy>} />
           <Route path="/watchlist" element={<Lazy><Watchlist /></Lazy>} />
           <Route path="/pricing" element={<Lazy><Pricing /></Lazy>} />

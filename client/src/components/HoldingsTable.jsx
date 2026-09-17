@@ -11,6 +11,7 @@ import { SparkBar } from './Charts/index.js';
 import Paywall from './Paywall.jsx';
 import Ico from './Ico.jsx';
 import { Download } from 'lucide-react';
+import { timeHeldLabel } from '../lib/timeHeld.js';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -55,8 +56,12 @@ function HistoryPanel({ cik, cusip, t }) {
   );
 }
 
-export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked }) {
-  const { t } = useI18n();
+// timeHeld: { [cusip]: { quarters } } from the guru history, when the filer
+// has one — it adds a column, and the top-ten table this replaced used to be
+// the only place it showed. guruSlug turns the label into a link to the
+// guru × ticker page.
+export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked, timeHeld = null, guruSlug = null }) {
+  const { t, lang } = useI18n();
   const { isPro } = useAuth();
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState({ key: 'value', dir: -1 });
@@ -80,6 +85,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         isNew: hasPrev && !prev,
         ret1y: returns?.[p.ticker]?.ret1y ?? null,
         retYtd: returns?.[p.ticker]?.retYtd ?? null,
+        held: timeHeld ? (timeHeld[p.cusip]?.quarters ?? 0) : null,
       };
     });
     const f = filter.trim().toLowerCase();
@@ -100,7 +106,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
       if (typeof av === 'string') return av.localeCompare(bv) * dir;
       return (av - bv) * dir;
     });
-  }, [positions, prevPositions, hasPrev, returns, filter, sort]);
+  }, [positions, prevPositions, hasPrev, returns, filter, sort, timeHeld]);
 
   // free tier sees the top 10 positions only
   const visible = !isPro ? rows.slice(0, 10) : showAll ? rows : rows.slice(0, 100);
@@ -117,7 +123,13 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
     }
   };
 
-  const cols = hasPrev ? COLS : COLS.filter((c) => c.key !== 'delta');
+  let cols = hasPrev ? COLS : COLS.filter((c) => c.key !== 'delta');
+  if (timeHeld) {
+    // sits next to the quarter-over-quarter change: both say how settled a
+    // position is
+    const at = cols.findIndex((c) => c.key === 'shares');
+    cols = [...cols.slice(0, at), { key: 'held', tKey: 'hist.timeHeld' }, ...cols.slice(at)];
+  }
 
   return (
     <div className="card">
@@ -201,6 +213,17 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                         <span className="badge type">{t('manager.newBadge')}</span>
                       ) : (
                         fmtPct(p.delta, { digits: 2 })
+                      )}
+                    </td>
+                  )}
+                  {timeHeld && (
+                    <td className="num">
+                      {guruSlug && p.ticker && p.held > 0 ? (
+                        <Link to={`/guru/${guruSlug}/${p.ticker}`} onClick={(e) => e.stopPropagation()}>
+                          {timeHeldLabel(p.held, lang)}
+                        </Link>
+                      ) : (
+                        timeHeldLabel(p.held, lang) || '—'
                       )}
                     </td>
                   )}

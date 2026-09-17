@@ -13,7 +13,7 @@ import { getSubmissions, list13F, getHoldings } from '../api/_lib/sec.js';
 import { mapLimit } from '../api/_lib/yahooClient.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { CONSENSUS_MANAGERS } from '../api/_lib/consensusList.js';
-import { POPULAR_MANAGERS } from '../client/src/data/popular.js';
+import { POPULAR_MANAGERS, wantsHistory } from '../client/src/data/popular.js';
 import { splitAdjust, topRankedCusips } from '../api/_lib/history.js';
 
 const QUARTERS = Number(process.env.GURU_HISTORY_QUARTERS || 40);
@@ -31,7 +31,13 @@ try {
 }
 
 const gurus = new Map();
-for (const m of [...POPULAR_MANAGERS, ...CONSENSUS_MANAGERS]) gurus.set(m.cik, m.name);
+// Market makers and multi-strats file thousands of names a quarter; forty of
+// those info tables each would cost more CI than the rest of the job put
+// together, so popular.js opts them out (see the note there).
+for (const m of [...POPULAR_MANAGERS, ...CONSENSUS_MANAGERS]) {
+  if (!wantsHistory(m.cik)) continue;
+  gurus.set(m.cik, m.name);
+}
 const only = process.env.GURU_HISTORY_CIKS ? new Set(process.env.GURU_HISTORY_CIKS.split(',')) : null;
 const FORCE = process.env.GURU_HISTORY_FORCE === '1';
 

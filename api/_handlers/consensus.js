@@ -21,7 +21,10 @@ function precomputed() {
 export default async function handler(req, res) {
   if (!(await requirePro(req, res))) return;
   try {
-    const data = precomputed() || (await cached('consensus:v1', TTL.HOUR_6, build));
+    // The live fallback builds the per-security table too; it belongs to
+    // /api/guru-stocks, not in every consensus response.
+    const { stocks, options, ...data } =
+      precomputed() || (await cached('consensus:v1', TTL.HOUR_6, build));
     res.status(200).json(data);
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

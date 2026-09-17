@@ -8,6 +8,7 @@ export const LAZY_PAGES = {
   Insiders: { load: () => import('./Insiders.jsx'), match: /^\/insiders$/ },
   PennyStocks: { load: () => import('./PennyStocks.jsx'), match: /^\/insiders\/penny$/ },
   Screen: { load: () => import('./Screen.jsx'), match: /^\/screen$/ },
+  StockScreen: { load: () => import('./StockScreen.jsx'), match: /^\/screen\/stocks$/ },
   Compare: { load: () => import('./Compare.jsx'), match: /^\/compare$/ },
   Report: { load: () => import('./Report.jsx'), match: /^\/report$/ },
   Watchlist: { load: () => import('./Watchlist.jsx'), match: /^\/watchlist$/ },
@@ -17,8 +18,9 @@ export const LAZY_PAGES = {
   ContentPage: { load: () => import('./ContentPage.jsx'), match: /^\/(guides|rehber|compare|karsilastir)\/[a-z0-9-]+$/ },
   ReportPage: { load: () => import('./ReportPage.jsx'), match: /^\/reports(\/|$)/ },
   Calendar: { load: () => import('./Calendar.jsx'), match: /^\/calendar$/ },
+  Filings: { load: () => import('./Filings.jsx'), match: /^\/filings$/ },
   Emerging: { load: () => import('./Emerging.jsx'), match: /^\/emerging-managers$/ },
-  GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/[^/]+$/ },
+  GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/(?!(?:changes|mix|history|backtest)$)[^/]+$/ },
 };
 
 for (const p of Object.values(LAZY_PAGES)) p.component = lazyPreloadable(p.load);

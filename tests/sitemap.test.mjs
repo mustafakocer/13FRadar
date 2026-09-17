@@ -21,10 +21,14 @@ test('sitemap-gurus / sitemap-filers contain every stored slug once per language
   const gAll = locs(buildSitemap('gurus', SITE).body);
   const g = gAll.filter((u) => /\/guru\/[a-z0-9-]+$/.test(u));
   const pairs = gAll.filter((u) => /\/guru\/[a-z0-9-]+\/[A-Z0-9.\-]+$/.test(u));
-  const f = locs(buildSitemap('filers', SITE).body);
+  const subs = gAll.filter((u) => /\/guru\/[a-z0-9-]+\/(changes|mix|history|backtest)$/.test(u));
+  const fAll = locs(buildSitemap('filers', SITE).body);
+  const f = fAll.filter((u) => /\/filer\/[a-z0-9-]+$/.test(u));
   assert.equal(g.length, gurus * 2);
-  assert.equal(g.length + pairs.length, gAll.length, 'only guru and guru×ticker URLs');
+  assert.equal(subs.length, gurus * 2 * 4, 'four sub-pages per guru per language');
+  assert.equal(g.length + subs.length + pairs.length, gAll.length, 'only guru, guru sub-page and guru×ticker URLs');
   assert.equal(f.length, filers * 2);
+  assert.equal(fAll.length, f.length, 'filer sub-pages are not listed');
   assert.equal(new Set(gAll).size, gAll.length, 'no duplicate URLs');
   assert.ok(f.length < 50000, 'under the 50k per-file limit');
   assert.match(buildSitemap('gurus', SITE).body, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);

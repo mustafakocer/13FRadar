@@ -120,6 +120,34 @@ export async function getProfile(userId, select = 'plan,plan_expires') {
   return r.data?.[0] || null;
 }
 
+// Generic service-role reads and writes for the jobs that run outside a
+// request: the digest reads every enabled alert, then writes back how far it
+// got. Row-level security does not apply to the service key, so these are kept
+// to the table-and-filter form the callers actually need rather than a
+// general-purpose client.
+export async function svcSelect(table, params) {
+  const r = await axios.get(`${url()}/rest/v1/${table}`, {
+    timeout: 15000,
+    validateStatus: () => true,
+    params,
+    headers: svcHeaders(),
+  });
+  if (r.status !== 200) throw new Error(`${table} read HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+  return r.data || [];
+}
+
+export async function svcUpdate(table, match, fields) {
+  const r = await axios.patch(`${url()}/rest/v1/${table}`, fields, {
+    timeout: 15000,
+    validateStatus: () => true,
+    params: match,
+    headers: { ...svcHeaders(), Prefer: 'return=minimal' },
+  });
+  if (r.status >= 300) throw new Error(`${table} update HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+}
+
+export const hasServiceKey = () => Boolean(service());
+
 export async function findUserByCustomer(customerId) {
   const r = await axios.get(`${url()}/rest/v1/profiles`, {
     timeout: 8000,

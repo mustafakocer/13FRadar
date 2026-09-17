@@ -8,6 +8,7 @@ import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
+import { useAlerts } from '../hooks/useAlerts.js';
 import InfoTip from '../components/InfoTip.jsx';
 import { SkeletonRows } from '../components/Skeleton.jsx';
 import Ico from '../components/Ico.jsx';
@@ -22,7 +23,13 @@ const VALUE_PRESETS = [
   { v: '10000000', k: 'whale' },
 ];
 
-const DEFAULT_ADV = { size: '', sector: '', minPrice: '', maxPrice: '', change: '', lagMin: '', lagMax: '', late: false, noise: false };
+const DEFAULT_ADV = { size: '', sector: '', minPrice: '', maxPrice: '', change: '', lagMin: '', lagMax: '', late: false, noise: false, excludePlanned: false, codes: '', clusterMin: '', density: '' };
+
+// Form 4 transaction codes worth asking for by name. The three broad classes
+// answer "is this conviction or housekeeping"; these answer "was it an
+// exercise-and-hold or an outright purchase", which the classes flatten.
+const CODE_CHOICES = ['P', 'S', 'C', 'M', 'X', 'D', 'A', 'F', 'G', 'W', 'J', 'I', 'L'];
+const DENSITIES = ['blitz', 'tight', 'standard', 'extended'];
 
 function Stat({ label, children, tip }) {
   return (
@@ -72,6 +79,26 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
                 ))}
               </select>
             </label>
+            <div className="modal-legend" style={{ marginTop: 18 }}>{t('ins.tradeTypes')}</div>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
+              {CODE_CHOICES.map((c) => {
+                const picked = draft.codes.split(',').filter(Boolean);
+                const on = picked.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`chip sm${on ? ' fsel-active' : ''}`}
+                    title={t(`ins.code.${c}`)}
+                    onClick={() =>
+                      set('codes', (on ? picked.filter((x) => x !== c) : [...picked, c]).join(','))
+                    }
+                  >
+                    {c} · {t(`ins.code.${c}`)}
+                  </button>
+                );
+              })}
+            </div>
             <label className="field">
               <span>{t('ins.priceRange')}</span>
               <div className="row" style={{ gap: 8, flexWrap: 'nowrap' }}>
@@ -115,6 +142,32 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
                 <b>{t('ins.includeNoise')}</b>
                 <span className="muted small"> — {t('ins.includeNoiseNote')}</span>
               </span>
+            </label>
+            <label className="check-row">
+              <input type="checkbox" checked={draft.excludePlanned} onChange={(e) => set('excludePlanned', e.target.checked)} />
+              <span>
+                <b>{t('ins.excludePlanned')}</b>
+                <span className="muted small"> — {t('ins.excludePlannedNote')}</span>
+              </span>
+            </label>
+            <div className="modal-legend" style={{ marginTop: 18 }}>{t('ins.clusterShape')}</div>
+            <label className="field">
+              <span>{t('ins.clusterSize')}</span>
+              <select className="select" value={draft.clusterMin} onChange={(e) => set('clusterMin', e.target.value)}>
+                <option value="">{t('screen.all')}</option>
+                <option value="2">2+</option>
+                <option value="3">3+</option>
+                <option value="5">5+</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>{t('ins.density')}</span>
+              <select className="select" value={draft.density} onChange={(e) => set('density', e.target.value)}>
+                <option value="">{t('screen.all')}</option>
+                {DENSITIES.map((d) => (
+                  <option key={d} value={d}>{t(`ins.density.${d}`)}</option>
+                ))}
+              </select>
             </label>
           </div>
         </div>
@@ -189,9 +242,43 @@ export default function Insiders() {
       ...(adv.lagMax ? { lagMax: adv.lagMax } : {}),
       ...(adv.late ? { late: '1' } : {}),
       ...(adv.noise ? { cls: 'conviction,liquidity,noise' } : {}),
+      ...(adv.excludePlanned ? { excludePlanned: '1' } : {}),
+      ...(adv.codes ? { codes: adv.codes } : {}),
+      ...(adv.clusterMin ? { clusterMin: adv.clusterMin } : {}),
+      ...(adv.density ? { density: adv.density } : {}),
     }),
     [tab, period, page, sort, search, minValue, adv]
   );
+
+  // "Save as alert" stores the filters as they stand, so the digest re-runs
+  // exactly the feed the reader was looking at rather than an approximation.
+  const { saveAlert } = useAlerts();
+  const [savedAlert, setSavedAlert] = useState(false);
+  const onSaveAlert = async () => {
+    const label = [
+      t(`ins.tab.${tab}`),
+      search || null,
+      minValue ? `> $${minValue}` : null,
+      adv.sector || null,
+      adv.size ? t(`size.${adv.size}`) : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    await saveAlert({
+      kind: 'insider',
+      label: label || t('ins.tab.latest'),
+      params: {
+        tickers: search ? [search.toUpperCase()] : [],
+        roles: tab === 'ceo' ? ['ceo'] : tab === 'cfo' ? ['cfo'] : [],
+        codes: adv.codes ? adv.codes.split(',').filter(Boolean) : [],
+        minValue: Number(minValue) || 0,
+        excludePlanned: Boolean(adv.excludePlanned),
+        clusterMin: Number(adv.clusterMin) || 0,
+      },
+    });
+    setSavedAlert(true);
+    setTimeout(() => setSavedAlert(false), 2500);
+  };
 
   const feed = useQuery({
     queryKey: ['insider-feed', params],
@@ -357,6 +444,11 @@ export default function Insiders() {
           <button className={`chip${advCount ? ' fsel-active' : ''}`} onClick={() => setAdvOpen(true)}>
             <Ico icon={SlidersHorizontal} /> {t('ins.moreFilters')}{advCount ? ` (${advCount})` : ''}
           </button>
+          {isPro && (
+            <button className="chip" onClick={onSaveAlert} disabled={savedAlert}>
+              🔔 {savedAlert ? t('alerts.saved') : t('alerts.save')}
+            </button>
+          )}
           <span className="muted small" style={{ marginLeft: 'auto' }}>
             {fmtNum(total)} {t('ins.results')}
           </span>
@@ -390,6 +482,8 @@ export default function Insiders() {
                   <th onClick={() => onSort('value')}>{t('ins.valuePrice')}{arrow('value')}</th>
                   <th onClick={() => onSort('shares')}>{t('ins.sharesOwn')}{arrow('shares')}</th>
                   <th onClick={() => onSort('return')}>{t('ins.returnCurr')}<InfoTip tip="tips.insReturn" />{arrow('return')}</th>
+                  <th>{t('ins.winRate')}<InfoTip tip="ins.winRateTip" /></th>
+                  <th>{t('ins.pe')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -412,6 +506,15 @@ export default function Insiders() {
                           {t(`ins.cls.${r.cls}`)}{r.code && r.code !== 'P' && r.code !== 'S' ? ` · ${r.code}` : ''}
                         </span>
                         {r.planned && <span className="badge sm plain" style={{ marginLeft: 4 }}>10b5-1</span>}
+                        {r.cluster && (
+                          <span
+                            className="badge sm pos"
+                            style={{ marginLeft: 4 }}
+                            title={`${r.cluster.from} → ${r.cluster.to} · ${t(`ins.density.${r.cluster.density}`)}`}
+                          >
+                            {t('ins.clusterOf').replace('{n}', r.cluster.insiders)}
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="l">
@@ -440,6 +543,19 @@ export default function Insiders() {
                       <b className={deltaClass(r.ret)}>{r.ret != null ? fmtPct(r.ret) : '—'}</b>
                       <div className="muted small">{t('ins.curr')}: {r.current != null ? `$${fmtNum(r.current, 2)}` : '—'}</div>
                     </td>
+                    <td className="num">
+                      {r.winRate ? (
+                        <>
+                          <b>{fmtPct(r.winRate.rate, { sign: false, digits: 0 })}</b>
+                          {/* the sample size travels with the rate: 100% of one
+                              trade is not the same claim as 60% of fifteen */}
+                          <div className="muted small">n={r.winRate.n}</div>
+                        </>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td className="num">{r.pe != null ? fmtNum(r.pe, 1) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

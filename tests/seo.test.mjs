@@ -28,6 +28,115 @@ test('SSR: stock page carries the quote board and links the gurus that hold it',
   assert.match(amzn, /href="\/en\/guru\//, 'a held stock links to the gurus holding it');
 });
 
+test('SSR: a stock page states where it ranks among the gurus and who is most committed', async () => {
+  const { html } = await ssr('/en/stock/OXY');
+  // React splits adjacent text nodes with comment markers; drop them so the
+  // assertions read like the rendered sentence rather than the transport.
+  const plain = html.replace(/<!-- -->/g, '');
+  assert.match(plain, /Guru Ownership/, 'the ownership block is server-rendered');
+  assert.match(plain, /Popularity rank<\/span><span class="v">#1/, 'ranked first in the fixture panel');
+  assert.match(plain, /of 13 securities/, 'and says what it is ranked against');
+  assert.match(plain, /Top 5 by conviction/);
+  assert.match(plain, /What changed this quarter/);
+  // the two holder lists disagree, which is the point of showing both: Scion
+  // has a quarter of its book in OXY, Berkshire a far larger dollar position
+  const conviction = plain.indexOf('Top 5 by conviction');
+  const value = plain.indexOf('Top 5 by value');
+  assert.ok(conviction > 0 && value > conviction, 'both orderings are rendered');
+  assert.match(plain.slice(conviction, value), /Scion/, 'conviction leads with the concentrated fund');
+  assert.match(plain.slice(value), /Berkshire/, 'value leads with the big one');
+});
+
+test('SSR: the filing feed lists arrivals with their period and form type', async () => {
+  const { status, html } = await ssr('/en/filings');
+  assert.equal(status, 200);
+  const plain = html.replace(/<!-- -->/g, '');
+  assert.match(plain, /<title>Latest 13F Filings \| Fundocap<\/title>/);
+  assert.match(plain, /13F-HR\/A/, 'amendments are shown as amendments');
+  assert.match(plain, /Q2 2026/, 'the period reported, not only the date filed');
+  assert.match(plain, /BlackRock/);
+  // an amendment has no measured figures of its own and must not borrow the
+  // original filing's
+  const amendment = plain.slice(plain.indexOf('Nykredit'), plain.indexOf('Dodge'));
+  assert.doesNotMatch(amendment, /\$\d/, 'no dollar figure on the amendment row');
+});
+
+test('SSR: the stock screener renders its table and what it filters by', async () => {
+  const { status, html } = await ssr('/en/screen/stocks');
+  assert.equal(status, 200);
+  const plain = html.replace(/<!-- -->/g, '');
+  assert.match(plain, /Funds holding/, 'the ownership column is server-rendered');
+  assert.match(plain, /Top weight/);
+  assert.match(plain, /Energy/, 'sectors the build classified are shown');
+  // the fund screener and the stock screener link to each other
+  assert.match(plain, /href="\/en\/screen"/);
+});
+
+test('SSR: the consensus page ships its segments, filters and a row you can open', async () => {
+  const { status, html } = await ssr('/tr/consensus');
+  assert.equal(status, 200);
+  const plain = html.replace(/<!-- -->/g, '');
+  // every segment is a control on the page, not a separate route
+  for (const label of ['En Çok Tutulanlar', 'Alınanlar', 'Satılanlar', 'Yeni Pozisyonlar', 'Fonlar', 'Tüm Evren']) {
+    assert.ok(plain.includes(label), `segment ${label}`);
+  }
+  // the strip that frames the quarter, from the static file alone
+  assert.match(plain, /Takip edilen fon/);
+  assert.match(plain, /En çok tutulan/);
+  assert.match(plain, /aria-expanded="false"/, 'rows are openable');
+  assert.match(plain, /href="\/tr\/guru\//, 'the funds holding a stock are links');
+  assert.doesNotMatch(plain, /Sektör/, 'no filter the data cannot honour');
+
+  // a Pro segment shows the paywall rather than the table
+  const { html: bought } = await ssr('/tr/consensus/bought');
+  assert.doesNotMatch(bought.replace(/<!-- -->/g, ''), /<tr[^>]*role="button"/, 'no rows behind the paywall');
+
+  // the fund segment is free and lists every tracked fund as a link
+  const { html: funds } = await ssr('/tr/consensus/funds');
+  const plainFunds = funds.replace(/<!-- -->/g, '');
+  assert.match(plainFunds, /Yeni aldı/);
+  assert.ok((plainFunds.match(/href="\/tr\/guru\//g) || []).length >= 3, 'each fund links to its page');
+  // each segment is its own page with its own title, and the chips are links
+  assert.match(plainFunds, /<title>Takip Edilen Usta Yatırımcılar[^<]*<\/title>/);
+  assert.match(plainFunds, /<link rel="canonical" href="[^"]*\/tr\/consensus\/funds"/);
+  assert.match(plain, /href="\/tr\/consensus\/bought"/, 'the bought segment is a link from the front');
+  assert.doesNotMatch(plainFunds, /Takip edilen fon<\/div>/, 'the four-number strip frames the front page only');
+});
+
+test('SSR: the fund page frames the quarter in four numbers, then one table', async () => {
+  const { html } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
+  const plain = html.replace(/<!-- -->/g, '');
+  for (const label of ['Pozisyonlar', 'Değişimler', 'Dağılım', 'Geçmiş']) {
+    assert.ok(plain.includes(label), `segment ${label}`);
+  }
+  assert.match(plain, /Portföy Büyüklüğü/, 'the strip names AUM');
+  assert.match(plain, /İlk 10 Hissenin Ağırlığı/, 'and concentration');
+  // the one table carries the time-held column the old top-ten table had
+  assert.match(plain, /Elde Tutma/);
+  // the default segment is the holdings table itself, not a top-ten preview
+  // that repeats it a tab later; the related-managers table below is the
+  // only other one on the page
+  assert.ok((plain.match(/<table/g) || []).length <= 2, 'one table for the segment, one for related managers');
+  assert.doesNotMatch(plain, /En Büyük Yatırımları/, 'no top-ten preview duplicating the table');
+  // each segment is its own page with its own canonical and title; the chips
+  // link between them
+  assert.match(plain, /href="\/tr\/guru\/berkshire-hathaway-warren-buffett\/changes"/);
+  const { html: hist } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett/history');
+  const plainHist = hist.replace(/<!-- -->/g, '');
+  assert.match(plainHist, /Portföy Büyüklüğü Geçmişi/);
+  assert.match(plainHist, /<link rel="canonical" href="[^"]*\/tr\/guru\/berkshire-hathaway-warren-buffett\/history"/);
+  assert.match(plainHist, /<title>Berkshire Hathaway \(Warren Buffett\): Portföy Büyüklüğü ve Çeyreklik Geçmiş \| Fundocap<\/title>/);
+  // the sub-page carries breadcrumbs but not a second copy of the fund entity
+  assert.doesNotMatch(plainHist, /"@type":"Dataset"/, 'the Dataset lives on the front only');
+  // the guru × ticker page still resolves — a symbol is not a segment word
+  const { status: tick } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett/AAPL');
+  assert.equal(tick, 200);
+  // and the numeric route keeps the segment through its redirect
+  const { status: red, headers } = await ssr('/tr/manager/1067983/changes');
+  assert.equal(red, 301);
+  assert.match(headers.location, /\/guru\/berkshire-hathaway-warren-buffett\/changes$/);
+});
+
 test('SSR: home page renders content and site JSON-LD', async () => {
   const { status, html } = await ssr('/tr');
   assert.equal(status, 200);

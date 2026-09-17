@@ -1,7 +1,21 @@
 name: Build consensus & returns
 
 on:
-  workflow_dispatch: {}
+  # The knobs that decide how long a run takes. The guru bench went from 20
+  # names to 99, and a first run that walks forty quarters for all of them can
+  # outlast the job. Start shallow to get the data out, then re-run deeper:
+  # the history cache keys on which filings were read, so raising the look-back
+  # rebuilds rather than being mistaken for work already done.
+  workflow_dispatch:
+    inputs:
+      guru_quarters:
+        description: 'Quarters of history per guru (40 = full ten years)'
+        type: string
+        default: '40'
+      sector_budget:
+        description: 'New symbols to look a sector up for this run'
+        type: string
+        default: '250'
   schedule:
     # Daily 04:30 UTC — keeps the consensus page and return columns fresh
     - cron: '30 4 * * *'
@@ -28,37 +42,63 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    # 88 minutes was the 20-guru run; 99 gurus and the filings crawl need room
+    timeout-minutes: 330
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci
       - name: Build consensus.json & returns.json
         run: node scripts/build-consensus.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+          SECTOR_BUDGET: ${{ inputs.sector_budget || '250' }}
       - name: Build guru-history.json (10 years, curated gurus) & splits.json
         run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
       # pivots guru-history by quarter for /report, and fills in sector,
       # market cap and the ETF flag when an FMP key is configured
       - name: Build guru-activity.json
         run: node scripts/build-guru-activity.mjs
         env:
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      # The filing feed reads one small daily index per business day, so it is
+      # cheap enough to refresh with the rest rather than on its own schedule.
+      - name: Build filings.json
+        run: node scripts/build-filings.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
       - name: Commit if changed
         run: |
           git config user.name 'consensus-bot'
           git config user.email 'actions@github.com'
-          git add --all client/public api/_data/consensus-pro.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json
+          # Stage only what this run actually produced. `git add` fails on a
+          # pathspec that matches nothing, and some outputs are optional —
+          # sector-map.json is written only when the sector lookup found
+          # something. An hour of crawling should not be thrown away because
+          # one optional file was not written.
+          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json; do
+            if [ -e "$f" ]; then git add --all "$f"; fi
+          done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh consensus & returns data'
+          # A rebase refuses to start on a dirty tree, and a build that writes
+          # anything outside the paths above leaves one — an `npm install` that
+          # rewrote the lockfile cost three days of data this way, with every
+          # file built and none of it pushed. Name what is left over and set it
+          # aside, so the run that did the work is the run that lands it.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::warning::left uncommitted, set aside before the rebase:"
+            git status --porcelain
+            git stash push --include-untracked --quiet
+          fi
           # the branch may have moved during the long run — rebase our data
           # commit on top and retry the push a few times
           for i in 1 2 3 4; do

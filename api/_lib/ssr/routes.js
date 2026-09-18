@@ -13,7 +13,7 @@ import reportHandler from '../../_handlers/report.js';
 import relatedHandler from '../../_handlers/related.js';
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
-import { cikForSlug, filerPath } from '../slugs.js';
+import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
 
 const require = createRequire(import.meta.url);
 const json = (file) => {
@@ -68,9 +68,15 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
   const tail = segment === 'portfolio' ? '' : `/${segment}`;
   const seeds = [];
   if (slug) {
-    const e = cikForSlug(slug);
-    if (!e || (kind && e.kind !== kind && !(kind === 'filer' && e.kind === 'guru'))) return { seeds, status: 404 };
-    if (kind === 'filer' && e.kind === 'guru') return { redirect: `/guru/${slug}${tail}`, status: 301 };
+    const hit = resolveSlug(slug);
+    if (!hit) return { seeds, status: 404 };
+    const e = hit.entry;
+    if (kind && e.kind !== kind && !(kind === 'filer' && e.kind === 'guru')) return { seeds, status: 404 };
+    // A slug we used to link to is sent to the one that exists, under the
+    // section the entry actually belongs to.
+    if (hit.alias || (kind === 'filer' && e.kind === 'guru')) {
+      return { redirect: `/${e.kind === 'guru' ? 'guru' : 'filer'}/${hit.canonical}${tail}`, status: 301 };
+    }
     cik = e.cik;
     seeds.push([['slug', slug], { ...e, slug }]);
   } else if (cik) {
@@ -107,8 +113,10 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
 }
 
 async function loadGuruTicker({ slug, ticker }) {
-  const e = cikForSlug(slug);
-  if (!e || e.kind !== 'guru') return { seeds: [], status: 404 };
+  const hit = resolveSlug(slug);
+  if (!hit || hit.entry.kind !== 'guru') return { seeds: [], status: 404 };
+  if (hit.alias) return { redirect: `/guru/${hit.canonical}/${ticker}`, status: 301 };
+  const e = hit.entry;
   const seeds = [[['slug', slug], { ...e, slug }]];
   const p = await invoke(guruHistoryHandler, { cik: e.cik, ticker });
   if (p.status !== 200) return { seeds, status: 404 };

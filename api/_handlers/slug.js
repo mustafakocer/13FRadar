@@ -1,4 +1,4 @@
-import { cikForSlug, slugTable } from '../_lib/slugs.js';
+import { resolveSlug, slugTable } from '../_lib/slugs.js';
 
 // GET /api/slug/:slug          → { cik, name, kind, slug }
 // GET /api/slug?kind=guru      → curated guru list (for the /gurus index)
@@ -7,9 +7,13 @@ export default function handler(req, res) {
   res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');
   const slug = String(req.query.slug || '').toLowerCase();
   if (slug) {
-    const e = cikForSlug(slug);
-    if (!e) return res.status(404).json({ error: 'Unknown slug' });
-    return res.status(200).json({ ...e, slug });
+    // An alias answers with the fund it points at rather than 404ing, so a
+    // client-side navigation to a stale link still renders the page. `slug` is
+    // the canonical spelling and `aliasOf` records what was asked for; the SSR
+    // route turns the same case into a 301, which is what crawlers need.
+    const hit = resolveSlug(slug);
+    if (!hit) return res.status(404).json({ error: 'Unknown slug' });
+    return res.status(200).json({ ...hit.entry, slug: hit.canonical, ...(hit.alias ? { aliasOf: slug } : {}) });
   }
   const t = slugTable();
   if (req.query.kind === 'guru') {

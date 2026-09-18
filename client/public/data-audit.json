@@ -54,8 +54,8 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 84102,
-        "companies": 4205
+        "rows": 84928,
+        "companies": 4217
       },
       "findings": []
     },
@@ -63,7 +63,7 @@
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {
-        "total": 16632,
+        "total": 16651,
         "penny": 9
       },
       "findings": []
@@ -88,7 +88,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 369
+        "tickers": 396
       },
       "findings": []
     },
@@ -121,7 +121,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 0
+        "rows": 81
       },
       "findings": []
     },
@@ -129,7 +129,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 0
+        "filers": 32
       },
       "findings": []
     },

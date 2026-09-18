@@ -143,6 +143,24 @@ test('every dataset the builds commit is registered, once, with a real counter',
       assert.ok(Number.isFinite(floor) && floor >= 0, `${d.key} has a nonsense floor`);
     }
   }
-  // The feed goes empty between filing deadlines, so it must not carry a floor.
-  assert.deepEqual(DATASETS.find((d) => d.key === 'filings').floors, {});
+  // The feed goes empty between filing deadlines, so neither rule may fire on
+  // it: 81 rows in the week after a deadline and near zero a month later is
+  // the feed working, not the feed breaking.
+  for (const key of ['filings', 'filer-states']) {
+    const d = DATASETS.find((x) => x.key === key);
+    assert.deepEqual(d.floors, {}, `${key} must not carry a floor`);
+    assert.equal(d.drift, false, `${key} must not be measured for drift`);
+  }
+});
+
+test('a seasonal dataset is exempt from drift but not from being whole', () => {
+  const seasonal = { ...spec, drift: false, floors: {} };
+  // 500 rows to none is what the filings feed does between deadlines
+  const r = auditDataset({ spec: seasonal, current: withRows(0), baseline: withRows(500) });
+  assert.deepEqual(r.findings, [], 'an emptied seasonal feed is not an incident');
+  assert.equal(r.metrics.rows, 0, 'the count is still reported');
+
+  const { rows, ...noRows } = withRows(0);
+  const broken = auditDataset({ spec: seasonal, current: noRows, baseline: withRows(500) });
+  assert.ok(broken.findings.some((f) => f.rule === 'missing-key' && f.severity === 'error'), 'a missing key still blocks');
 });

@@ -34,9 +34,8 @@ export function size(v) {
 // gate people switch off protects nothing. Drift catches the gradual case;
 // the floor is only there for the collapse.
 //
-// filings and filer-states carry no floor on purpose. 13F filings bunch around
-// the 45-day deadline, so an empty day is ordinary and the build warns about
-// it rather than failing.
+// A dataset whose size is seasonal rather than stable opts out of both, and
+// says why where it is declared.
 export const DATASETS = [
   {
     key: 'consensus',
@@ -135,8 +134,13 @@ export const DATASETS = [
     metrics: (d) => ({ bySlug: size(d.bySlug), byCik: size(d.byCik) }),
     floors: { bySlug: 3000, byCik: 3000 },
   },
-  { key: 'filings', path: 'client/public/filings.json', require: ['updatedAt', 'rows'], metrics: (d) => ({ rows: size(d.rows) }), floors: {} },
-  { key: 'filer-states', path: 'client/public/filer-states.json', require: ['updatedAt', 'byCik'], metrics: (d) => ({ filers: size(d.byCik) }), floors: {} },
+  // The feed is a rolling window over filings as they land, and 13F filings
+  // bunch around the 45-day deadline: 81 rows in the week after one, close to
+  // none a month later. Neither a floor nor a drift band can tell that from a
+  // broken parser, so both are off and the build says so in words instead —
+  // build-filings.mjs warns when every index read cleanly and nothing matched.
+  { key: 'filings', path: 'client/public/filings.json', require: ['updatedAt', 'rows'], metrics: (d) => ({ rows: size(d.rows) }), floors: {}, drift: false },
+  { key: 'filer-states', path: 'client/public/filer-states.json', require: ['updatedAt', 'byCik'], metrics: (d) => ({ filers: size(d.byCik) }), floors: {}, drift: false },
   // written only when the sector lookup found something, so its absence is
   // reported and never fatal
   { key: 'sector-map', path: 'api/_data/sector-map.json', optional: true, require: [], metrics: (d) => ({ symbols: size(d.bySymbol) || size(d) }), floors: {} },
@@ -203,6 +207,8 @@ export function auditDataset({ spec, current, baseline = null, allowDrift = fals
     if (!Number.isFinite(v)) add('error', 'floor', `${name} could not be counted`, { metric: name });
     else if (v < floor) add('error', 'floor', `${name} is ${v}, below the floor of ${floor}`, { metric: name, value: v, floor });
   }
+
+  if (spec.drift === false) return { key: spec.key, path: spec.path, metrics, findings };
 
   if (!baseline || !isObj(baseline)) {
     add('info', 'drift', 'no previous version to compare against');

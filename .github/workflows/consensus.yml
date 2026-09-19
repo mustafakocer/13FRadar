@@ -16,6 +16,10 @@ on:
         description: 'New symbols to look a sector up for this run'
         type: string
         default: '250'
+      allow_drift:
+        description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
+        type: boolean
+        default: false
   schedule:
     # Daily 04:30 UTC — keeps the consensus page and return columns fresh
     - cron: '30 4 * * *'
@@ -75,6 +79,14 @@ jobs:
         run: node scripts/build-filings.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+      # The gate. A rebuild that produced something implausible stops here,
+      # with the previous data still live, instead of publishing a bad number
+      # and waiting for somebody to notice.
+      - name: Audit the rebuilt data
+        run: node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,returns,splits,related,filings,filer-states,sector-map
+        env:
+          AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
+
       - name: Commit if changed
         run: |
           git config user.name 'consensus-bot'

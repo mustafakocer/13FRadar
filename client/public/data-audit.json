@@ -1,0 +1,149 @@
+{
+  "worst": "info",
+  "datasets": [
+    {
+      "key": "consensus",
+      "path": "client/public/consensus.json",
+      "metrics": {
+        "managers": 73,
+        "mostHeld": 30,
+        "updates": 73
+      },
+      "findings": []
+    },
+    {
+      "key": "consensus-pro",
+      "path": "api/_data/consensus-pro.json",
+      "metrics": {
+        "managers": 73,
+        "mostHeld": 30,
+        "topBought": 20,
+        "topSold": 20,
+        "newPositions": 40
+      },
+      "findings": []
+    },
+    {
+      "key": "guru-stocks",
+      "path": "api/_data/guru-stocks.json",
+      "metrics": {
+        "managers": 73,
+        "stocks": 1930,
+        "options": 60
+      },
+      "findings": []
+    },
+    {
+      "key": "guru-history",
+      "path": "api/_data/guru-history.json",
+      "metrics": {
+        "gurus": 84
+      },
+      "findings": []
+    },
+    {
+      "key": "guru-activity",
+      "path": "client/public/guru-activity.json",
+      "metrics": {
+        "quarters": 8,
+        "names": 550
+      },
+      "findings": []
+    },
+    {
+      "key": "insiders",
+      "path": "api/_data/insiders.json",
+      "metrics": {
+        "rows": 84928,
+        "companies": 4217
+      },
+      "findings": []
+    },
+    {
+      "key": "insiders-teaser",
+      "path": "client/public/insiders-teaser.json",
+      "metrics": {
+        "total": 16651,
+        "penny": 9
+      },
+      "findings": []
+    },
+    {
+      "key": "universe",
+      "path": "client/public/universe.json",
+      "metrics": {
+        "rows": 7830
+      },
+      "findings": []
+    },
+    {
+      "key": "stocks",
+      "path": "client/public/stocks.json",
+      "metrics": {
+        "rows": 500
+      },
+      "findings": []
+    },
+    {
+      "key": "returns",
+      "path": "client/public/returns.json",
+      "metrics": {
+        "tickers": 396
+      },
+      "findings": []
+    },
+    {
+      "key": "splits",
+      "path": "api/_data/splits.json",
+      "metrics": {
+        "tickers": 5037
+      },
+      "findings": []
+    },
+    {
+      "key": "related",
+      "path": "api/_data/related.json",
+      "metrics": {
+        "managers": 84
+      },
+      "findings": []
+    },
+    {
+      "key": "slugs",
+      "path": "api/_data/slugs.json",
+      "metrics": {
+        "bySlug": 7832,
+        "byCik": 7832
+      },
+      "findings": []
+    },
+    {
+      "key": "filings",
+      "path": "client/public/filings.json",
+      "metrics": {
+        "rows": 81
+      },
+      "findings": []
+    },
+    {
+      "key": "filer-states",
+      "path": "client/public/filer-states.json",
+      "metrics": {
+        "filers": 32
+      },
+      "findings": []
+    },
+    {
+      "key": "sector-map",
+      "path": "api/_data/sector-map.json",
+      "metrics": {},
+      "findings": [
+        {
+          "rule": "missing",
+          "severity": "info",
+          "message": "not produced this run"
+        }
+      ]
+    }
+  ]
+}

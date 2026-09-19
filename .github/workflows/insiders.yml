@@ -1,7 +1,12 @@
 name: Build insider trading data
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      allow_drift:
+        description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
+        type: boolean
+        default: false
   schedule:
     # 05:30 UTC daily — after the consensus job, before the US pre-market.
     # Form 4s are filed through the evening, so this picks up the previous
@@ -59,6 +64,14 @@ jobs:
             if (days > 5) { console.error('::warning::insider dataset is ' + days + ' days behind'); }
           "
 
+      # The gate. A rebuild that produced something implausible stops here,
+      # with the previous data still live, instead of publishing a bad number
+      # and waiting for somebody to notice.
+      - name: Audit the rebuilt data
+        run: node scripts/audit-data.mjs --only=insiders,insiders-teaser
+        env:
+          AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
+
       - name: Commit if changed
         run: |
           git config user.name 'insider-bot'
@@ -68,7 +81,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in api/_data/insiders.json api/_data/ticker-meta.json client/public/insiders-teaser.json; do
+          for f in api/_data/insiders.json api/_data/ticker-meta.json client/public/insiders-teaser.json client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

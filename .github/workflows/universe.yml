@@ -1,7 +1,12 @@
 name: Build 13F universe
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      allow_drift:
+        description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
+        type: boolean
+        default: false
   schedule:
     # Mondays 03:00 UTC. The filer universe only moves around the quarterly
     # deadlines, so a daily run committed nothing on 29 days out of 30 — at
@@ -28,6 +33,14 @@ jobs:
         env:
           SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      # The gate. A rebuild that produced something implausible stops here,
+      # with the previous data still live, instead of publishing a bad number
+      # and waiting for somebody to notice.
+      - name: Audit the rebuilt data
+        run: node scripts/audit-data.mjs --only=universe,stocks,slugs
+        env:
+          AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
+
       - name: Commit if changed
         run: |
           git config user.name 'universe-bot'
@@ -38,7 +51,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public/universe.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/slugs.json; do
+          for f in client/public/universe.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/slugs.json client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

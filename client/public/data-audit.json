@@ -1,13 +1,13 @@
 {
-  "worst": "info",
+  "worst": "warn",
   "datasets": [
     {
       "key": "consensus",
       "path": "client/public/consensus.json",
       "metrics": {
-        "managers": 73,
+        "managers": 72,
         "mostHeld": 30,
-        "updates": 73
+        "updates": 72
       },
       "findings": []
     },
@@ -15,21 +15,30 @@
       "key": "consensus-pro",
       "path": "api/_data/consensus-pro.json",
       "metrics": {
-        "managers": 73,
+        "managers": 72,
         "mostHeld": 30,
         "topBought": 20,
         "topSold": 20,
         "newPositions": 40
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "lagging",
+          "severity": "warn",
+          "message": "Pershing Square last reported 2026-03-31, panel median 2026-06-30"
+        }
+      ]
     },
     {
       "key": "guru-stocks",
       "path": "api/_data/guru-stocks.json",
       "metrics": {
-        "managers": 73,
-        "stocks": 1930,
-        "options": 60
+        "managers": 72,
+        "stocks": 1920,
+        "options": 57,
+        "withTicker": 1901,
+        "withSector": 1736,
+        "withCap": 1415
       },
       "findings": []
     },
@@ -37,7 +46,7 @@
       "key": "guru-history",
       "path": "api/_data/guru-history.json",
       "metrics": {
-        "gurus": 84
+        "gurus": 85
       },
       "findings": []
     },
@@ -54,8 +63,9 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 85001,
-        "companies": 4223
+        "rows": 84999,
+        "companies": 4223,
+        "futureDated": 0
       },
       "findings": []
     },
@@ -88,15 +98,21 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 371
+        "tickers": 1860
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "drift",
+          "severity": "warn",
+          "message": "tickers moved +401.3%, 371 → 1860"
+        }
+      ]
     },
     {
       "key": "splits",
       "path": "api/_data/splits.json",
       "metrics": {
-        "tickers": 5037
+        "tickers": 5053
       },
       "findings": []
     },
@@ -104,7 +120,7 @@
       "key": "related",
       "path": "api/_data/related.json",
       "metrics": {
-        "managers": 84
+        "managers": 85
       },
       "findings": []
     },
@@ -136,12 +152,14 @@
     {
       "key": "sector-map",
       "path": "api/_data/sector-map.json",
-      "metrics": {},
+      "metrics": {
+        "symbols": 1745
+      },
       "findings": [
         {
-          "rule": "missing",
+          "rule": "drift",
           "severity": "info",
-          "message": "not produced this run"
+          "message": "no previous version to compare against"
         }
       ]
     }

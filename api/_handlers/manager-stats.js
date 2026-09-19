@@ -1,15 +1,22 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
+import { guruHistory } from '../_lib/history.js';
+import { managerStatsFromGuru } from '../_lib/managerHistory.js';
 
 // Portfolio characteristics over the last 8 quarters (WhaleWisdom-style):
 // turnover %, average holding period, new/exited counts.
+//
+// A curated guru answers from the nightly history file; anyone else is read
+// from EDGAR, eight quarters of info tables at a time.
 export default async function handler(req, res) {
   const cik = String(req.query.cik || '').replace(/\D/g, '');
   if (!cik) return res.status(400).json({ error: 'Missing CIK' });
 
   try {
     const data = await cached(`mstats:${cik}`, TTL.HOUR_6, async () => {
+      const guru = guruHistory(cik);
+      if (guru) return managerStatsFromGuru(guru);
       const sub = await getSubmissions(cik);
       const filings = list13F(sub).slice(0, 8).reverse(); // oldest -> newest
       if (filings.length < 2) return { quarters: filings.length };

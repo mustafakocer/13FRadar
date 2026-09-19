@@ -8,11 +8,13 @@ on:
         type: boolean
         default: false
   schedule:
-    # 05:30 UTC daily — after the consensus job, before the US pre-market.
-    # Form 4s are filed through the evening, so this picks up the previous
-    # session. Sunday finds nothing new and exits in seconds, but keeping it
-    # daily means a backlog is never a day older than it has to be.
-    - cron: '30 5 * * *'
+    # 04:53 UTC daily (07:53 Istanbul) — after the universe and consensus
+    # chain, before the US pre-market. Form 4s are filed through the evening,
+    # so this picks up the previous session. Sunday finds nothing new and
+    # exits in seconds, but keeping it daily means a backlog is never a day
+    # older than it has to be. An odd minute: GitHub queues :00 and :30 runs
+    # for hours on busy mornings.
+    - cron: '53 4 * * *'
   push:
     # Only the deployment branch. A feature-branch push used to start a full
     # crawl on that branch: hours of CI, a data commit on a throwaway ref, and

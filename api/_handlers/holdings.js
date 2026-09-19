@@ -1,6 +1,7 @@
 import { getHoldings, getSubmissions, list13F } from '../_lib/sec.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { isPro, noStore } from '../_lib/auth.js';
+import { latestHoldings } from '../_lib/latestHoldings.js';
 
 // GET /api/holdings/:cik/:acc?light=1&full=1&cusips=A,B,C
 //   light=1   skip CUSIP->ticker resolution (comparisons / previous quarter)
@@ -30,26 +31,33 @@ export default async function handler(req, res) {
   }
 
   try {
+    // The free view — the ten largest rows and the true totals — is what the
+    // universe build stored for this filing, when it is the filer's latest.
+    // That answers without EDGAR; everything else reads the filing.
+    const snap = !wantFull && !cusipFilter.length ? latestHoldings(cik, acc) : null;
     // The filing date decides the ×1000 rule, so it is derived from EDGAR,
     // never taken from the client (a wrong value would poison the cache).
-    const { aum, positions } = await getHoldings(cik, acc, null);
+    const { aum, positions, count: snapCount } = snap || (await getHoldings(cik, acc, null));
 
-    let meta = { filingDate: null, reportDate: null };
-    try {
-      const f = list13F(await getSubmissions(cik)).find((x) => x.acc === acc);
-      if (f) meta = { filingDate: f.filingDate, reportDate: f.reportDate };
-    } catch {
-      /* non-fatal */
+    let meta = { filingDate: snap?.filingDate || null, reportDate: snap?.reportDate || null };
+    if (!meta.reportDate) {
+      try {
+        const f = list13F(await getSubmissions(cik)).find((x) => x.acc === acc);
+        if (f) meta = { filingDate: f.filingDate, reportDate: f.reportDate };
+      } catch {
+        /* non-fatal */
+      }
     }
 
     const pro = wantFull ? await isPro(req) : false;
     let out = positions;
     let locked = false;
+    const total = snapCount ?? positions.length;
     if (!pro) {
       out = cusipFilter.length
         ? positions.filter((p) => cusipFilter.includes(p.cusip))
         : positions.slice(0, FREE_ROWS);
-      locked = positions.length > out.length;
+      locked = total > out.length;
     }
 
     let tickers = {};
@@ -65,7 +73,7 @@ export default async function handler(req, res) {
       acc,
       ...meta,
       aum,
-      count: positions.length,
+      count: total,
       locked,
       positions: out.map((p) => ({ ...p, ticker: tickers[p.cusip] ?? null })),
     });

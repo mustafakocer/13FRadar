@@ -8,8 +8,12 @@ import { storedHoldings } from './holdingsStore.js';
 // SEC requires a descriptive User-Agent with contact info.
 const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
 
+// A batch script can wait out a slow EDGAR response; a request on Vercel has
+// a ten-second function limit and a reader watching a spinner. Fail fast
+// there and let the page render what it has — the CDN keeps the last good
+// answer for a week.
 const http = axios.create({
-  timeout: 25000,
+  timeout: process.env.VERCEL ? 8000 : 25000,
   headers: { 'User-Agent': UA, 'Accept-Encoding': 'gzip, deflate' },
 });
 
@@ -24,7 +28,7 @@ const http = axios.create({
 const RPS = Math.max(1, Number(process.env.SEC_RPS) || 8);
 const BACKOFF = (
   process.env.SEC_RETRY_BACKOFF ||
-  (process.env.VERCEL ? '1,2' : '5,15,30,60,120,300')
+  (process.env.VERCEL ? '1' : '5,15,30,60,120,300')
 )
   .split(',')
   .map(Number)

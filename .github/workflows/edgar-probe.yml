@@ -1,0 +1,33 @@
+name: Probe market data sources
+
+# Reachability and shape check for the free sources the batch builds lean on
+# (EDGAR search, SEC XBRL frames, Yahoo chart, OpenFIGI, FMP, Stooq). Prints
+# only; nothing is written or committed. Run it by hand when a build starts
+# coming back empty and the question is "which upstream changed?".
+on:
+  workflow_dispatch: {}
+  push:
+    branches:
+      - claude/laughing-franklin-1dykuv
+    paths:
+      - '.github/workflows/edgar-probe.yml'
+      - 'scripts/probe-market-data.mjs'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/probe-market-data.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}

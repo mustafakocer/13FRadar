@@ -222,7 +222,13 @@ export function driftVerdict(value, baseline, opts = {}) {
   const change = (value - baseline) / baseline;
   const size_ = Math.abs(change);
   if (size_ < warn) return null;
-  return { severity: size_ >= error ? 'error' : 'warn', change };
+  // A bad upstream day makes a file smaller: a truncated response, a feed
+  // that answered nothing, a parser that matched nothing. It does not make a
+  // file four times larger — that is a fix landing (the return file went
+  // from 396 tickers to 1,646 the day its provider was replaced) or the
+  // bench growing, and blocking it would hold the fix hostage to a flag.
+  // Growth is said out loud; only a collapse stops the commit.
+  return { severity: size_ >= error && change < 0 ? 'error' : 'warn', change };
 }
 
 const RANK = { ok: 0, info: 1, warn: 2, error: 3 };

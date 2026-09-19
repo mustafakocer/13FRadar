@@ -13,10 +13,11 @@ export const CONSENSUS_MANAGERS = [
   { cik: '0001536411', name: 'Duquesne Family Office' },
   { cik: '0001656456', name: 'Appaloosa' },
   { cik: '0001040273', name: 'Third Point' },
-  // Last 13F under this CIK: 2024-02-14 (2023 Q4). Later reports appear to
-  // be filed by a successor entity; until that CIK is confirmed and linked
-  // the fund is off the panel rather than voting with a two-year-old book.
-  { cik: '0001079114', name: 'Greenlight Capital', ceased: '2024-02-14' },
+  // Einhorn's reports moved to DME Capital Management, LP with the 2024 Q1
+  // filing; the old CIK's last 13F is dated 2024-02-14 (2023 Q4) and stays
+  // off the panel rather than voting with a two-year-old book.
+  { cik: '0001489933', name: 'DME Capital Management (Greenlight)' },
+  { cik: '0001079114', name: 'Greenlight Capital', ceased: '2024-02-14', successor: '0001489933' },
   { cik: '0001061768', name: 'Baupost Group' },
   { cik: '0001167483', name: 'Tiger Global' },
   { cik: '0001135730', name: 'Coatue Management' },

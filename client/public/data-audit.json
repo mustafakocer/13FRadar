@@ -100,13 +100,7 @@
       "metrics": {
         "tickers": 1860
       },
-      "findings": [
-        {
-          "rule": "drift",
-          "severity": "warn",
-          "message": "tickers moved +401.3%, 371 → 1860"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "splits",
@@ -155,13 +149,7 @@
       "metrics": {
         "symbols": 1745
       },
-      "findings": [
-        {
-          "rule": "drift",
-          "severity": "info",
-          "message": "no previous version to compare against"
-        }
-      ]
+      "findings": []
     }
   ]
 }

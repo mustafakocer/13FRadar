@@ -54,8 +54,9 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 85001,
-        "companies": 4223
+        "rows": 84999,
+        "companies": 4223,
+        "futureDated": 0
       },
       "findings": []
     },

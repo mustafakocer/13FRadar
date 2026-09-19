@@ -11,6 +11,7 @@ import path from 'node:path';
 import axios from 'axios';
 import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
+import { snapshotEntry } from '../api/_lib/latestHoldings.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -83,6 +84,9 @@ async function main() {
   console.log(`Filers to process: ${entries.length}`);
 
   const rows = [];
+  // the ten largest positions and the totals of every latest filing, so a
+  // portfolio page's free view never has to go back to EDGAR for them
+  const snapshot = {};
   const stockAgg = new Map(); // cusip -> {issuer, value, funds}
   let done = 0;
   let failed = 0;
@@ -109,6 +113,7 @@ async function main() {
             positions: positions.length,
             top10: Number(top10.toFixed(1)),
           });
+          snapshot[e.cik.padStart(10, '0')] = snapshotEntry({ acc: e.acc, filed: e.filed, aum, positions });
           // whale-heatmap aggregate across ALL filers (equity positions only)
           for (const p of positions) {
             if (p.putCall) continue;
@@ -149,6 +154,13 @@ async function main() {
     JSON.stringify({ updatedAt: new Date().toISOString(), count: rows.length, rows })
   );
   console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed})`);
+  const snapDir = path.join(process.cwd(), 'api', '_data');
+  fs.mkdirSync(snapDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(snapDir, 'latest-holdings.json'),
+    JSON.stringify({ updatedAt: new Date().toISOString(), byCik: snapshot })
+  );
+  console.log(`Wrote ${Object.keys(snapshot).length} filers -> api/_data/latest-holdings.json`);
 
   // Rank all securities by total universe value
   const ranked = [...stockAgg.entries()]

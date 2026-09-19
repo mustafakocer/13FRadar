@@ -90,18 +90,13 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
   const acc = mgr.filings?.[0]?.acc;
   if (acc) {
     // free tier: top 10 rows + true totals (isPro is false on the server)
+    // Usually answered from the stored snapshot in a few milliseconds; the
+    // budget only binds when a filing newer than the snapshot has to be read.
     const hold = ok(await withBudget(invoke(holdingsHandler, { cik, acc }), 9000));
-    if (hold) {
-      seeds.push([['holdings', cik, acc, false], hold]);
-      const prev = mgr.filings?.[1];
-      const visible = (hold.positions || []).slice(0, 10).map((p) => p.cusip);
-      if (prev && visible.length) {
-        const light = ok(
-          await withBudget(invoke(holdingsHandler, { cik, acc: prev.acc, light: '1', cusips: visible.join(',') }), 6000)
-        );
-        if (light) seeds.push([['holdings-light', cik, prev.acc, false, visible.join(',')], light]);
-      }
-    }
+    if (hold) seeds.push([['holdings', cik, acc, false], hold]);
+    // The previous quarter (for the change arrows) is always an EDGAR read
+    // and used to cost the render up to six more seconds; the client fetches
+    // it after hydration and the arrows fill in.
   }
   // returns/consensus are only used by the holdings tab and are fetched by
   // the client — keeping them out trims ~40 KB from every guru page

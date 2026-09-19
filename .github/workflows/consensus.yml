@@ -20,9 +20,18 @@ on:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
         default: false
+  # Runs when the nightly universe build finishes (01:23 UTC + ~25 min), so
+  # the per-stock table is built on the day's universe and the two never
+  # race each other for the same commit. workflow_run only fires for runs on
+  # the default branch, which is the deployment branch.
+  workflow_run:
+    workflows: ['Build 13F universe']
+    types: [completed]
   schedule:
-    # Daily 04:30 UTC — keeps the consensus page and return columns fresh
-    - cron: '30 4 * * *'
+    # A safety net an hour after the chain should have started: if the
+    # universe run never fires (a GitHub outage, a bad Monday), this does.
+    # The concurrency group below queues it behind a run already going.
+    - cron: '53 2 * * *'
   push:
     # Only the deployment branch. A feature-branch push used to start a full
     # crawl on that branch: hours of CI, a data commit on a throwaway ref, and

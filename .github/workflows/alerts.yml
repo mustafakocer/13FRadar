@@ -5,7 +5,7 @@ name: Send alert digests
 # cannot yet show.
 on:
   schedule:
-    - cron: '0 8 * * *'
+    - cron: '23 8 * * *'
   workflow_dispatch:
     inputs:
       dry_run:

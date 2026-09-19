@@ -10,9 +10,9 @@ name: Data freshness
 on:
   workflow_dispatch: {}
   schedule:
-    # 07:00 UTC — after the consensus (04:30), insider (05:30) and universe
-    # (03:00) builds have had time to finish and push.
-    - cron: '0 7 * * *'
+    # 07:23 UTC — after the nightly chain (universe 01:23 → consensus on its
+    # completion → insiders 04:53) has had time to finish and push.
+    - cron: '23 7 * * *'
   push:
     # Only the deployment branch. A feature-branch push used to start a full
     # crawl on that branch: hours of CI, a data commit on a throwaway ref, and

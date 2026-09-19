@@ -157,6 +157,16 @@ export const DATASETS = [
     floors: { rows: 3000 },
   },
   {
+    key: 'latest-holdings',
+    path: 'api/_data/latest-holdings.json',
+    // written by the universe build from the same pass that ranks the
+    // universe; absent only until that build has run once with this code
+    optional: true,
+    require: ['updatedAt', 'byCik'],
+    metrics: (d) => ({ filers: size(d.byCik), withRows: count(d.byCik, (e) => Array.isArray(e?.top) && e.top.length > 0) }),
+    floors: { filers: 3000 },
+  },
+  {
     key: 'stocks',
     path: 'client/public/stocks.json',
     require: ['updatedAt', 'rows'],

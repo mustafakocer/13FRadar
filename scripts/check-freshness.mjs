@@ -79,7 +79,7 @@ for (const c of CHECKS) {
     // A missing optional enrichment is a warning, not a failure: the site
     // degrades to hiding those columns rather than breaking.
     if (!n) {
-      rows.push([c.label, 'EMPTY', '—', 'set FMP_API_KEY to populate']);
+      rows.push([c.label, 'EMPTY', '—', 'written by the insiders build (Yahoo chart + SEC)']);
       warned++;
     } else {
       rows.push([c.label, 'ok', `${n} tickers`, '']);

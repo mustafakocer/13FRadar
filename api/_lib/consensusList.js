@@ -6,11 +6,17 @@
 export const CONSENSUS_MANAGERS = [
   { cik: '0001067983', name: 'Berkshire Hathaway' },
   { cik: '0001336528', name: 'Pershing Square' },
-  { cik: '0001649339', name: 'Scion Asset Management' },
+  // Deregistered as an investment adviser after its 2025 Q3 report; the
+  // 13F dated 2025-11-03 is the last one. Kept for the record, dropped from
+  // the panel so a year-old book stops counting as a current opinion.
+  { cik: '0001649339', name: 'Scion Asset Management', ceased: '2025-11-03' },
   { cik: '0001536411', name: 'Duquesne Family Office' },
   { cik: '0001656456', name: 'Appaloosa' },
   { cik: '0001040273', name: 'Third Point' },
-  { cik: '0001079114', name: 'Greenlight Capital' },
+  // Last 13F under this CIK: 2024-02-14 (2023 Q4). Later reports appear to
+  // be filed by a successor entity; until that CIK is confirmed and linked
+  // the fund is off the panel rather than voting with a two-year-old book.
+  { cik: '0001079114', name: 'Greenlight Capital', ceased: '2024-02-14' },
   { cik: '0001061768', name: 'Baupost Group' },
   { cik: '0001167483', name: 'Tiger Global' },
   { cik: '0001135730', name: 'Coatue Management' },

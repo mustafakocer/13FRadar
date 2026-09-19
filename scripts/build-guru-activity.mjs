@@ -17,15 +17,14 @@
 //   row: t ticker · n name · g gurus · ng new gurus · sh shares held
 //        bs/ss shares bought/sold · b/s buyers/sellers · nv net value
 //        tv total value held · sp [trailing net values, oldest first]
-//        sec sector · mc market cap · etf  (the last three only with FMP)
+//        sec sector · mc market cap · etf  (from api/_data/sector-map.json)
 import fs from 'node:fs';
 import path from 'node:path';
-import axios from 'axios';
 import { isTradeable, quarterDeltas } from '../api/_lib/guruActivity.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const SRC = path.join(root, 'api', '_data', 'guru-history.json');
-const META = path.join(root, 'api', '_data', 'ticker-meta.json');
+const META = path.join(root, 'api', '_data', 'sector-map.json');
 const OUT = path.join(root, 'client', 'public', 'guru-activity.json');
 
 const QUARTERS = Number(process.env.ACTIVITY_QUARTERS || 8); // quarters exposed
@@ -105,72 +104,32 @@ for (const quarter of exposed) {
   for (const r of keep.keys()) tickers.add(r);
 }
 
-// ---- optional company profile (sector, market cap, ETF flag) ---------------
-// Without FMP_API_KEY the three columns that need it are simply absent and the
-// page hides them, exactly like the penny board's price columns.
-async function profiles(symbols) {
-  const meta = { ...read(META, {}) };
-  const key = process.env.FMP_API_KEY;
-  if (!key) {
-    console.log('FMP_API_KEY unset — sector / market cap / ETF columns will be omitted.');
-    return meta;
-  }
-  const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
-  const unknown = symbols.filter((s) => meta[s]?.sector == null && meta[s]?.etf == null);
-  console.log(`Profiles: ${unknown.length} unknown of ${symbols.length} tickers`);
-  // A refusal used to fall through the array check and leave the sector /
-  // market-cap / ETF columns silently empty, exactly as an unset key does.
-  let refusals = 0;
-  for (const group of chunk(unknown, 50).slice(0, 30)) {
-    if (refusals >= 3) break;
-    let data = null;
-    let status = 0;
-    try {
-      ({ data, status } = await axios.get('https://financialmodelingprep.com/stable/profile', {
-        params: { symbol: group.join(','), apikey: key },
-        timeout: 20000,
-        validateStatus: () => true,
-      }));
-    } catch (e) {
-      refusals++;
-      console.warn(`  FMP profile: ${String(e.message).split(key).join('***')}`);
-      await new Promise((r) => setTimeout(r, 400));
-      continue;
-    }
-    if (status === 200 && Array.isArray(data)) {
-      refusals = 0;
-      for (const p of data) {
-        const sym = String(p.symbol || '').toUpperCase();
-        if (!sym) continue;
-        meta[sym] = {
-          ...(meta[sym] || {}),
-          sector: p.sector || null,
-          mcap: Number(p.marketCap ?? p.mktCap) || meta[sym]?.mcap || null,
-          etf: Boolean(p.isEtf),
-        };
-      }
-    } else {
-      refusals++;
-      const body = typeof data === 'object' && data ? JSON.stringify(data) : String(data ?? '');
-      console.warn(`  FMP profile: HTTP ${status} ${body.split(key).join('***').slice(0, 200)}`);
-      if (refusals >= 3) console.warn('  FMP refused three times — skipping the rest of the enrichment.');
-    }
-    await new Promise((r) => setTimeout(r, 400));
-  }
-  return meta;
-}
-
-const meta = await profiles([...tickers]);
-fs.writeFileSync(META, JSON.stringify(meta));
+// ---- sector, market cap, ETF flag ------------------------------------------
+// From the map build-consensus.mjs keeps (api/_data/sector-map.json): SEC's
+// SIC code per company, a share count times the chart price, and the
+// instrument type Yahoo reports. Nothing is fetched here; a ticker the map
+// has not classified yet simply has no sector column until the next pass.
+const meta = read(META, {});
+const sectorOf = (t) => {
+  const s = meta.bySymbol?.[t];
+  return s && s !== 'ETF' ? s : null;
+};
+const capOf = (t) => {
+  const v = meta.caps?.[t]?.v;
+  return Number.isFinite(v) && v > 0 ? v : null;
+};
+const isEtf = (t) => Boolean(meta.etf?.[t]) || meta.bySymbol?.[t] === 'ETF';
+console.log(`Profiles: ${[...tickers].filter((t) => sectorOf(t) || capOf(t) || isEtf(t)).length} of ${tickers.size} tickers known to the sector map`);
 
 let enriched = 0;
 for (const quarter of exposed) {
   rows[quarter] = rows[quarter].map((r) => {
-    const m = meta[r.t] || {};
     const extra = {};
-    if (m.sector) extra.sec = m.sector;
-    if (Number.isFinite(m.mcap) && m.mcap > 0) extra.mc = m.mcap;
-    if (m.etf) extra.etf = 1;
+    const sec = sectorOf(r.t);
+    const mc = capOf(r.t);
+    if (sec) extra.sec = sec;
+    if (mc) extra.mc = mc;
+    if (isEtf(r.t)) extra.etf = 1;
     if (Object.keys(extra).length) enriched++;
     return { ...r, ...extra };
   });

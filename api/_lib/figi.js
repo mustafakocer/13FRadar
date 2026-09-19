@@ -17,6 +17,13 @@ try {
 const figiCache = new Map(Object.entries(STATIC_MAP));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// A 13F identifier that starts with a letter is a CINS — the CUSIP-format
+// number a non-US issuer gets (Spotify L868…, ASML N070…, Linde G549…).
+// OpenFIGI files those under their own id type and answers nothing for them
+// as a CUSIP, which is how every foreign-domiciled name in the table sat
+// without a ticker.
+export const figiIdType = (id) => (/^[A-Za-z]/.test(String(id)) ? 'ID_CINS' : 'ID_CUSIP');
+
 export async function mapCusipsToTickers(cusips, { maxLive = 60 } = {}) {
   const key = process.env.OPENFIGI_API_KEY;
   const batchSize = key ? 100 : 10;
@@ -26,7 +33,7 @@ export async function mapCusipsToTickers(cusips, { maxLive = 60 } = {}) {
 
   for (let i = 0; i < need.length; i += batchSize) {
     const slice = need.slice(i, i + batchSize);
-    const jobs = slice.map((c) => ({ idType: 'ID_CUSIP', idValue: c }));
+    const jobs = slice.map((c) => ({ idType: figiIdType(c), idValue: c }));
     let attempts = 0;
     while (attempts < 3) {
       attempts++;

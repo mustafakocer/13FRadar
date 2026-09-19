@@ -12,6 +12,10 @@ on:
     paths:
       - '.github/workflows/edgar-probe.yml'
       - 'scripts/probe-market-data.mjs'
+      - 'api/_lib/marketData.js'
+      - 'api/_lib/stockMetaBuild.js'
+      - 'scripts/build-insiders.mjs'
+      - 'scripts/build-guru-activity.mjs'
 
 permissions:
   contents: read
@@ -31,3 +35,40 @@ jobs:
           SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      # Dry runs of the enrichment over the committed data: what the real
+      # builds would write, audited, and thrown away. Nothing is committed.
+      - name: Dry run — sector, market cap, returns
+        run: node scripts/build-stock-meta.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          FMP_BUDGET: '20'
+      - name: Dry run — guru activity
+        run: node scripts/build-guru-activity.mjs
+      - name: Dry run — insiders
+        run: node scripts/build-insiders.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          INSIDER_MONTHS: '12'
+          INSIDER_MAX_DAYS: '3'
+      - name: Audit what the dry runs wrote
+        run: node scripts/audit-data.mjs
+        env:
+          AUDIT_REPORT: '0'
+      - name: What changed
+        run: |
+          git status --short
+          node -e "
+            const m = require('./api/_data/sector-map.json');
+            const by = Object.values(m.bySymbol);
+            const tally = {};
+            for (const s of by) tally[s] = (tally[s] || 0) + 1;
+            console.log('sector-map', Object.keys(m.bySymbol).length, 'symbols', tally, 'caps', Object.keys(m.caps || {}).length, 'etf', Object.keys(m.etf || {}).length);
+            const g = require('./api/_data/guru-stocks.json');
+            console.log('guru-stocks sample', g.stocks.slice(0, 5).map((s) => [s.ticker, s.sector, s.marketCap, s.cap]));
+            const r = require('./client/public/returns.json');
+            console.log('returns', Object.keys(r.returns).length, r.returns.AAPL, r.returns.SPY);
+            const t = require('./api/_data/ticker-meta.json');
+            const vals = Object.values(t);
+            console.log('ticker-meta', vals.length, 'px', vals.filter((x) => x.px).length, 'sector', vals.filter((x) => x.sector).length, 'mcap', vals.filter((x) => x.mcap).length, t.AAPL);
+          "

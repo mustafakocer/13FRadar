@@ -18,7 +18,10 @@ export async function build({ stocksTickers = 0 } = {}) {
   // CONSENSUS_CIKS narrows the panel — the offline tests run the whole
   // aggregation over the three filers that have fixtures.
   const only = process.env.CONSENSUS_CIKS ? new Set(process.env.CONSENSUS_CIKS.split(',')) : null;
-  const panel = only ? CONSENSUS_MANAGERS.filter((m) => only.has(m.cik)) : CONSENSUS_MANAGERS;
+  // A fund that stopped filing (ceased) is off the panel: its last book is a
+  // year or more old and would vote on this quarter's consensus as if it were
+  // current. Naming it in CONSENSUS_CIKS still includes it — the fixtures do.
+  const panel = only ? CONSENSUS_MANAGERS.filter((m) => only.has(m.cik)) : CONSENSUS_MANAGERS.filter((m) => !m.ceased);
   const per = await mapLimit(panel, 5, async (m) => {
     const sub = await getSubmissions(m.cik);
     const fl = list13F(sub);

@@ -13,9 +13,9 @@ on:
         type: string
         default: '40'
       sector_budget:
-        description: 'New symbols to look a sector up for this run'
+        description: 'New symbols to look a sector up for this run (SEC, ~10/s)'
         type: string
-        default: '250'
+        default: '2500'
       allow_drift:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
@@ -32,16 +32,30 @@ on:
       - claude/13f-intelligence-features-nejb1h
     paths:
       - 'scripts/build-consensus.mjs'
+      - 'scripts/build-stock-meta.mjs'
       - 'api/_lib/consensusBuild.js'
+      - 'api/_lib/consensusList.js'
+      - 'api/_lib/stockMetaBuild.js'
+      - 'api/_lib/marketData.js'
+      - 'api/_lib/figi.js'
       - 'api/_lib/sec.js'
       - 'scripts/build-guru-history.mjs'
       - 'scripts/build-splits.mjs'
       - 'scripts/build-related.mjs'
       - 'scripts/build-guru-activity.mjs'
+      - 'scripts/build-filings.mjs'
+      - 'api/_lib/filings.js'
       - '.github/workflows/consensus.yml'
 
 permissions:
   contents: write
+
+# One data run at a time on the deployment branch. The cron and a push on the
+# same morning used to run side by side, each spending two hours to race the
+# other to the same commit.
+concurrency:
+  group: consensus-data
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -54,25 +68,28 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      - name: Build consensus.json & returns.json
+      # Sector comes from SEC (SIC code), market cap from SEC's share count
+      # times Yahoo's chart price, returns from the same chart. FMP is only
+      # asked, one symbol at a time within its free quota, for the caps SEC
+      # cannot price (dual-class names, funds).
+      - name: Build consensus.json, guru-stocks.json & returns.json
         run: node scripts/build-consensus.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
-          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
-          SECTOR_BUDGET: ${{ inputs.sector_budget || '250' }}
+          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          FMP_BUDGET: '100'
+          SECTOR_BUDGET: ${{ inputs.sector_budget || '2500' }}
       - name: Build guru-history.json (10 years, curated gurus) & splits.json
         run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
-      # pivots guru-history by quarter for /report, and fills in sector,
-      # market cap and the ETF flag when an FMP key is configured
+      # pivots guru-history by quarter for /report; sector, market cap and
+      # the ETF flag come from the sector map the step above just refreshed
       - name: Build guru-activity.json
         run: node scripts/build-guru-activity.mjs
-        env:
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
       # The filing feed reads one small daily index per business day, so it is
       # cheap enough to refresh with the rest rather than on its own schedule.
       - name: Build filings.json

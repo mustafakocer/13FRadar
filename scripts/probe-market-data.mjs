@@ -59,6 +59,33 @@ for (const name of ['greenlight capital', 'scion asset', 'dme capital', 'einhorn
   await sleep(300);
 }
 
+section('EDGAR cik-lookup-data.txt: every registrant name matching the fund families');
+{
+  const r = await http.get('https://www.sec.gov/Archives/edgar/cik-lookup-data.txt', {
+    headers: { 'User-Agent': UA },
+    responseType: 'text',
+    transformResponse: [(d) => d],
+    maxContentLength: 200 * 1024 * 1024,
+    maxBodyLength: 200 * 1024 * 1024,
+  });
+  const text = String(r.data || '');
+  console.log(`  HTTP ${r.status} ${Math.round(text.length / 1e6)} MB`);
+  const hits = text.split('\n').filter((l) => /GREENLIGHT|DME CAPITAL|EINHORN|SCION ASSET/i.test(l));
+  for (const h of hits.slice(0, 40)) console.log('  ', h.trim());
+  // last 13F-HR per candidate CIK
+  const ciks = [...new Set(hits.map((l) => /:(\d{10}):/.exec(l)?.[1]).filter(Boolean))].slice(0, 25);
+  for (const cik of ciks) {
+    const sr = await http.get(`https://data.sec.gov/submissions/CIK${cik}.json`, { headers: { 'User-Agent': UA } });
+    const d = sr.data || {};
+    const rec = d.filings?.recent || {};
+    const forms = rec.form || [];
+    const ix = forms.findIndex((f) => f === '13F-HR' || f === '13F-HR/A');
+    if (ix < 0) continue;
+    console.log(`  CIK ${cik} ${d.name}: last 13F ${rec.filingDate[ix]} period ${rec.reportDate?.[ix]} (${forms.filter((f) => f.startsWith('13F-HR')).length} 13F filings on file)`);
+    await sleep(150);
+  }
+}
+
 // 2. Yahoo chart from a runner: rate, fields.
 section('Yahoo chart v8 (30 symbols, sequential)');
 const syms = ['AAPL','MSFT','BRK-B','SPY','AMZN','GOOGL','META','NVDA','TSLA','JPM','V','UNH','XOM','PG','HD','MA','CVX','ABBV','PFE','KO','SPOT','ASML','NU','LIN','CRH','AON','ACN','TSM','BABA','QQQ'];

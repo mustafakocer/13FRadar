@@ -15,9 +15,11 @@
 //   api/_data/insiders.json        full dataset (Pro, served by /api/insider-feed)
 //   client/public/insiders-teaser.json  20 newest buys (public preview)
 //   api/_data/ticker-meta.json     sector / market cap / last price per ticker
+//                                  (Yahoo chart + SEC; no key needed)
 //
-// Env: SEC_USER_AGENT (required by SEC), FMP_API_KEY (optional enrichment),
-//      INSIDER_MONTHS (default 12), INSIDER_MAX_DAYS (daily-index safety cap)
+// Env: SEC_USER_AGENT (required by SEC), INSIDER_MONTHS (default 12),
+//      INSIDER_MAX_DAYS (daily-index safety cap), INSIDER_ENRICH_MAX (tickers
+//      priced per run, default 5000)
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
@@ -31,9 +33,11 @@ import {
   cleanSymbol,
   crawlLedger,
   KEPT_CODES,
+  plausibleDates,
   selectScanDays,
 } from '../api/_lib/insiderModel.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
+import { fetchCharts, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap insider bot (kocergpt@gmail.com)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
@@ -515,97 +519,68 @@ async function fromDailyIndex(fromDay, prevBadDays = {}) {
 }
 
 // --------------------------------------------------------------- enrichment
-// FMP batch endpoints: one request covers many symbols, so this stays well
-// inside the free daily quota. Sector/market cap is cached and only fetched
-// for tickers we have never seen.
-async function enrich(tickers) {
+// Price, 52-week range and volume from one Yahoo chart per ticker; sector
+// from the SIC code on the issuer's SEC submissions feed (cached for good —
+// only tickers never seen are looked up); market cap from SEC's share count
+// times that price. No key, no plan, no batch endpoint to lose. FMP used to
+// do all three and its free plan stopped answering more than one symbol a
+// call, which left every one of these columns empty behind a green run.
+async function enrich(tickers, cikOf) {
   const meta = readJson(META, {});
   const before = Object.keys(meta).length;
-  const key = process.env.FMP_API_KEY;
-  if (!key) {
-    console.log('FMP_API_KEY unset — price, market cap and sector columns stay empty.');
-    return meta;
+
+  console.log(`Enriching: ${tickers.length} tickers…`);
+  const { snapshots, failed, blocked } = await fetchCharts(tickers, {
+    onProgress: (d, n) => console.log(`  ${d}/${n} charts`),
+  });
+  let priced = 0;
+  for (const [sym, snap] of snapshots) {
+    if (!snap) continue;
+    // vol/lo/hi drive the liquidity and off-the-low columns on the penny
+    // board; every consumer treats them as optional, so a provider that
+    // stops returning them degrades to "—" instead of breaking the page.
+    meta[sym] = { ...(meta[sym] || {}), px: snap.price, vol: snap.vol, lo: snap.lo, hi: snap.hi, asOf: snap.asOf };
+    if (snap.etf) meta[sym].etf = 1;
+    priced++;
   }
-  const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+  console.log(`  charts: ${priced} priced, ${failed} failed${blocked ? ' — provider blocked, stopped early' : ''}`);
 
-  // FMP answers a plan or key problem with 401/403/429, and sometimes with a
-  // 200 carrying {"Error Message": …}. Both used to fall through the array
-  // check into an empty result, so a run with the key set looked identical to
-  // one without it — which is how ticker-meta.json stayed empty behind a green
-  // workflow. Say what came back, and stop asking once it is clearly refusing.
-  let refusals = 0;
-  const fmp = async (endpoint, symbols) => {
-    if (refusals >= 3) return null;
-    let data;
-    let status = 0;
-    try {
-      ({ data, status } = await axios.get(`https://financialmodelingprep.com/stable/${endpoint}`, {
-        params: { symbol: symbols.join(','), apikey: key },
-        timeout: 20000,
-        validateStatus: () => true,
-      }));
-    } catch (e) {
-      refusals++;
-      console.warn(`  FMP ${endpoint}: ${String(e.message).split(key).join('***')}`);
-      return null;
+  // sector: only what has never been asked; null (a fund, no SIC) is an answer
+  const unknown = tickers.filter((t) => meta[t]?.sector === undefined && cikOf.get(t));
+  if (unknown.length) {
+    const ciks = [...new Set(unknown.map((t) => cikOf.get(t)))];
+    console.log(`  sectors: ${unknown.length} new tickers (${ciks.length} filers) via SEC…`);
+    const sectors = await fetchSectors(ciks);
+    let got = 0;
+    for (const t of unknown) {
+      const r = sectors.get(cikOf.get(t));
+      if (!r) continue; // fetch failed: ask again next run
+      meta[t] = { ...(meta[t] || {}), sector: r.sector, name: meta[t]?.name || r.name || null };
+      if (r.sector) got++;
     }
-    if (status === 200 && Array.isArray(data)) {
-      refusals = 0;
-      return data;
-    }
-    refusals++;
-    const body = typeof data === 'object' && data ? JSON.stringify(data) : String(data ?? '');
-    const why = body.split(key).join('***').slice(0, 200);
-    console.warn(`  FMP ${endpoint}: HTTP ${status} ${why}`);
-    if (refusals >= 3) console.warn('  FMP refused three times — skipping the rest of the enrichment.');
-    return null;
-  };
+    console.log(`  sectors: ${got} classified`);
+  }
 
-  const unknown = tickers.filter((t) => !meta[t]?.sector);
-  console.log(`Enriching: ${unknown.length} new tickers, ${tickers.length} price refreshes`);
-  for (const group of chunk(unknown, 50).slice(0, 40)) {
-    const data = await fmp('profile', group);
-    if (data) {
-      for (const p of data) {
-        const sym = String(p.symbol || '').toUpperCase();
-        if (!sym) continue;
-        meta[sym] = {
-          ...(meta[sym] || {}),
-          sector: p.sector || null,
-          industry: p.industry || null,
-          mcap: num(p.marketCap ?? p.mktCap),
-          name: p.companyName || meta[sym]?.name || null,
-        };
+  // market cap: share count × price, re-priced every run
+  let capped = 0;
+  try {
+    const shares = await fetchSharesOutstanding();
+    for (const t of tickers) {
+      const sh = cikOf.get(t) ? shares.get(cikOf.get(t)) : null;
+      const v = marketCap(sh?.shares, meta[t]?.px);
+      if (v) {
+        meta[t].mcap = v;
+        capped++;
       }
     }
-    await sleep(400);
+  } catch (e) {
+    console.warn(`  SEC shares outstanding: ${e.message}`);
   }
-  for (const group of chunk(tickers, 50).slice(0, 60)) {
-    const data = await fmp('quote', group);
-    if (data) {
-      for (const qd of data) {
-        const sym = String(qd.symbol || '').toUpperCase();
-        if (!sym) continue;
-        // vol/lo/hi drive the liquidity and off-the-low columns on the penny
-        // board; every consumer treats them as optional, so a provider that
-        // stops returning them degrades to "—" instead of breaking the page.
-        meta[sym] = {
-          ...(meta[sym] || {}),
-          px: num(qd.price),
-          mcap: num(qd.marketCap) ?? meta[sym]?.mcap,
-          vol: num(qd.avgVolume) ?? num(qd.volume) ?? meta[sym]?.vol,
-          lo: num(qd.yearLow) ?? meta[sym]?.lo,
-          hi: num(qd.yearHigh) ?? meta[sym]?.hi,
-          // the multiple the insider bought at, for the feed's P/E column
-          pe: num(qd.pe) ?? meta[sym]?.pe,
-        };
-      }
-    }
-    await sleep(400);
-  }
+
   const after = Object.keys(meta).length;
-  console.log(`Enriched: ${after} tickers in ticker-meta.json (was ${before})`);
-  if (!after) console.error('::warning::FMP_API_KEY is set but no ticker metadata came back — see the FMP lines above');
+  const withSector = Object.values(meta).filter((m) => m.sector).length;
+  console.log(`Enriched: ${after} tickers in ticker-meta.json (was ${before}); ${withSector} with a sector, ${capped} with a market cap`);
+  if (!priced) console.error('::warning::no ticker was priced this run — see the chart lines above');
   return meta;
 }
 
@@ -644,8 +619,15 @@ const stalled = daily.banned || (daily.remaining > 0 && daily.scannedThrough ===
 // merge, de-duplicate (accession + insider + date + shares), trim the window
 const seen = new Set();
 const all = [];
+let implausible = 0;
 for (const r of [...prevRows, ...fresh]) {
   if (!r?.d || r.d < cutoff) continue;
+  // a trade dated after the filing that reports it is the filer's typo, and
+  // would sit at the top of every date-sorted view as an upcoming trade
+  if (!plausibleDates(r.d, r.f)) {
+    implausible++;
+    continue;
+  }
   // rows stored before the symbol cleaner existed still carry "OMEX", (SIRI)
   // and the odd CIK; normalise on the way through so they heal in one build
   if (r.t) r.t = cleanSymbol(r.t);
@@ -671,8 +653,13 @@ for (const r of all) delete r.c;
 const live = new Set(all.filter((r) => r.t).map((r) => r.t));
 for (const k of Object.keys(companies)) if (!live.has(k)) delete companies[k];
 
+if (implausible) console.log(`Dropped ${implausible} row(s) dated after their own filing.`);
+
 const tickers = [...live];
-const meta = await enrich(tickers.slice(0, 3000));
+// issuer CIK per ticker, for the SEC lookups the enrichment makes
+const cikOf = new Map();
+for (const r of all) if (r.t && r.ci && !cikOf.has(r.t)) cikOf.set(r.t, r.ci);
+const meta = await enrich(tickers.slice(0, Number(process.env.INSIDER_ENRICH_MAX || 5000)), cikOf);
 fs.writeFileSync(META, JSON.stringify(meta));
 
 fs.writeFileSync(

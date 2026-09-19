@@ -46,13 +46,15 @@ for (const cik of ['0001079114', '0001649339']) {
   await sleep(300);
 }
 section('EDGAR company search (atom) by name');
-for (const name of ['greenlight capital', 'scion asset']) {
+for (const name of ['greenlight capital', 'scion asset', 'dme capital', 'einhorn', 'greenlight', 'dme', 'scion']) {
   const r = await http.get('https://www.sec.gov/cgi-bin/browse-edgar', {
-    params: { company: name, type: '13F-HR', action: 'getcompany', output: 'atom', count: 40 },
+    params: { company: name, action: 'getcompany', output: 'atom', count: 40 },
     headers: { 'User-Agent': UA },
   });
   const body = String(r.data || '');
-  const entries = [...body.matchAll(/<title>([^<]+)<\/title>[\s\S]*?CIK=(\d+)/g)].map((m) => `${m[1]} (CIK ${m[2]})`);
+  const entries = [...body.matchAll(/<entry>[\s\S]*?<title>([^<]+)<\/title>[\s\S]*?CIK=(\d+)/g)].map((m) => `${m[1].trim()} (CIK ${m[2]})`);
+  const companies = [...body.matchAll(/<company-info>[\s\S]*?<cik>(\d+)<\/cik>[\s\S]*?<conformed-name>([^<]+)<\/conformed-name>/g)].map((m) => `${m[2]} (CIK ${m[1]})`);
+  console.log(`${name}: companies=${companies.slice(0, 20).join(' | ')}`);
   console.log(`${name}: HTTP ${r.status} ${entries.length ? entries.slice(0, 15).join(' | ') : body.slice(0, 300)}`);
   await sleep(300);
 }

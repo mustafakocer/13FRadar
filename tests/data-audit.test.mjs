@@ -49,9 +49,10 @@ test('a big move warns, a collapse blocks', () => {
   assert.match(error.findings[0].message, /rows moved -70\.0%, 500 → 150/);
 });
 
-test('growth is watched as closely as loss', () => {
+test('growth is watched, but it is a fix or a bigger bench, never a bad upstream day', () => {
   const r = auditDataset({ spec, current: withRows(1200), baseline: withRows(500) });
-  assert.deepEqual(severities(r), ['error'], 'a file that triples is as suspect as one that halves');
+  assert.deepEqual(severities(r), ['warn'], 'a file that triples is said out loud, not held back');
+  assert.match(r.findings[0].message, /\+140\.0%/);
 });
 
 test('a tiny baseline cannot produce a percentage worth acting on', () => {
@@ -78,11 +79,20 @@ test('a floor catches the file that survived as an empty shell', () => {
   assert.match(r.findings[0].message, /rows is 4, below the floor of 100/);
 });
 
-test('the drift override waves through an intended jump and nothing else', () => {
-  const jumped = { spec, current: withRows(2000), baseline: withRows(500) };
+test('a collapse blocks; growth is only said out loud', () => {
+  const grown = { spec, current: withRows(2000), baseline: withRows(500) };
+  assert.deepEqual(severities(auditDataset(grown)), ['warn'], 'a fix landing quadruples a file; a bad day never does');
+  const shrunk = { spec, current: withRows(500), baseline: withRows(2000) };
+  assert.deepEqual(severities(auditDataset(shrunk)), ['error']);
+  assert.equal(driftVerdict(150, 100).severity, 'warn', 'a moderate move either way is a warning');
+  assert.equal(driftVerdict(60, 100).severity, 'warn');
+});
+
+test('the drift override waves through an intended collapse and nothing else', () => {
+  const jumped = { spec, current: withRows(500), baseline: withRows(2000) };
   assert.deepEqual(severities(auditDataset(jumped)), ['error']);
   const waved = auditDataset({ ...jumped, allowDrift: true });
-  assert.deepEqual(severities(waved), ['warn'], 'the bench going from 20 names to 99 is real');
+  assert.deepEqual(severities(waved), ['warn'], 'the bench being cut from 99 names to 20 is real');
   assert.match(waved.findings[0].message, /drift override on/);
 
   // A floor is a statement about the file being broken, not about how much it

@@ -10,12 +10,17 @@ export const POPULAR_MANAGERS = [
   { cik: '0001067983', name: 'Berkshire Hathaway (Warren Buffett)', style: 'value' },
   { cik: '0001350694', name: 'Bridgewater Associates (Ray Dalio)', style: 'macro' },
   { cik: '0001336528', name: 'Pershing Square (Bill Ackman)', style: 'activist' },
-  { cik: '0001649339', name: 'Scion Asset Management (Michael Burry)', style: 'value' },
+  // Deregistered as an adviser after the 2025 Q3 report; no further 13Fs.
+  { cik: '0001649339', name: 'Scion Asset Management (Michael Burry)', style: 'value', ceased: '2025-11-03' },
   { cik: '0001037389', name: 'Renaissance Technologies', style: 'quant' },
   { cik: '0001536411', name: 'Duquesne Family Office (Druckenmiller)', style: 'macro' },
   { cik: '0001656456', name: 'Appaloosa (David Tepper)', style: 'macro' },
   { cik: '0001040273', name: 'Third Point (Dan Loeb)', style: 'activist' },
-  { cik: '0001079114', name: 'Greenlight Capital (David Einhorn)', style: 'value' },
+  // Einhorn's 13Fs moved from Greenlight Capital Inc to DME Capital
+  // Management, LP in 2024 (2024 Q1 onward). The old CIK keeps its page and
+  // its ten years of history; the new one carries the current book.
+  { cik: '0001489933', name: 'DME Capital Management (Greenlight, David Einhorn)', style: 'value' },
+  { cik: '0001079114', name: 'Greenlight Capital Inc (David Einhorn, to 2023)', style: 'value', successor: '0001489933' },
   { cik: '0001061768', name: 'Baupost Group (Seth Klarman)', style: 'value' },
   { cik: '0001167483', name: 'Tiger Global Management', style: 'growth' },
   { cik: '0001135730', name: 'Coatue Management', style: 'growth' },

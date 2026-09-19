@@ -63,6 +63,7 @@ export const GURU_SLUGS = {
   '0001446194': 'susquehanna-international-group-llp',
   '0001453072': 'alyeska-investment-group-l-p',
   '0001484150': 'lindsell-train-ltd',
+  '0001489933': 'dme-capital-management-lp',
   '0001505183': 'stockbridge-partners-llc',
   '0001510387': 'gotham-asset-management-llc',
   '0001512857': 'brevan-howard-capital-management-lp',

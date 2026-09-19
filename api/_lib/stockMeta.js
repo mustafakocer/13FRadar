@@ -1,11 +1,11 @@
 // Sector and market cap for the securities the curated funds hold, so the
 // ownership rankings and the screener can filter by them.
 //
-// Sector comes one symbol at a time from the quote provider's profile, which
-// is why it is kept in a committed map (api/_data/sector-map.json) and filled
-// in a few hundred symbols per run rather than refetched daily: a company's
-// sector changes about as often as its name. Market cap moves every day and
-// is fetched in bulk instead.
+// Sector comes from the SIC code on each filer's SEC submissions feed, one
+// request per company, which is why it is kept in a committed map
+// (api/_data/sector-map.json) and never refetched: a company's sector changes
+// about as often as its name. Market cap is a share count times today's
+// price and is re-priced every run (see stockMetaBuild.js).
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -45,7 +45,8 @@ export function mergeSectors(map, found) {
   for (const [sym, sector] of Object.entries(found || {})) {
     bySymbol[String(sym).toUpperCase()] = sector ?? null;
   }
-  return { updatedAt: new Date().toISOString(), bySymbol };
+  // the file also carries market caps and the fund flags; they ride along
+  return { ...(map || {}), updatedAt: new Date().toISOString(), bySymbol };
 }
 
 // Market cap buckets, matching the sizes the rest of the site filters by.

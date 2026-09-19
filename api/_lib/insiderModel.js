@@ -58,6 +58,13 @@ export const isSell = (r) => r.k === 'S';
 
 // Business days between the transaction and the filing. The SEC deadline is
 // 2 business days; anything later is a "late filing".
+// A transaction cannot postdate the filing that reports it. The dataset
+// carried a row dated a year after its filing — the filer's typo — and the
+// feed showed it as an upcoming trade. Rows failing this are dropped at
+// build time and the audit counts any that get through.
+export const plausibleDates = (transDate, filedDate) =>
+  Boolean(transDate && filedDate && String(transDate) <= String(filedDate));
+
 export function filingLagDays(transDate, filedDate) {
   if (!transDate || !filedDate) return null;
   const a = new Date(`${transDate}T00:00:00Z`);

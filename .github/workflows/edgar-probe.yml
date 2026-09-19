@@ -16,6 +16,8 @@ on:
       - 'api/_lib/stockMetaBuild.js'
       - 'scripts/build-insiders.mjs'
       - 'scripts/build-guru-activity.mjs'
+      - 'api/_lib/dataAudit.js'
+      - 'api/_lib/consensusList.js'
 
 permissions:
   contents: read

@@ -3,10 +3,30 @@ export const setAuthToken = (t) => {
   authToken = t;
 };
 
-async function get(url) {
-  const r = await fetch(url, {
-    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-  });
+// A request that never answers used to leave the page on its spinner for as
+// long as the browser cared to wait. Every call now carries a deadline; when
+// it passes the fetch is aborted and the page gets an error it can show.
+export const REQUEST_TIMEOUT_MS = 10000;
+
+async function request(url, { method = 'GET', timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  let r;
+  try {
+    r = await fetch(url, {
+      method,
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      ...(ctrl ? { signal: ctrl.signal } : {}),
+    });
+  } catch (e) {
+    const timedOut = e?.name === 'AbortError';
+    const err = new Error(timedOut ? `timeout after ${Math.round(timeoutMs / 1000)}s` : e?.message || 'network error');
+    err.timeout = timedOut;
+    err.status = 0;
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   const data = await r.json().catch(() => ({}));
   if (!r.ok) {
     const err = new Error(data.error || `HTTP ${r.status}`);
@@ -16,19 +36,8 @@ async function get(url) {
   return data;
 }
 
-async function post(url) {
-  const r = await fetch(url, {
-    method: 'POST',
-    headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
-  });
-  const data = await r.json().catch(() => ({}));
-  if (!r.ok) {
-    const err = new Error(data.error || `HTTP ${r.status}`);
-    err.status = r.status;
-    throw err;
-  }
-  return data;
-}
+const get = (url, opts) => request(url, opts);
+const post = (url, opts) => request(url, { ...opts, method: 'POST' });
 
 export const api = {
   checkout: (cycle) => post(`/api/checkout?cycle=${cycle === 'y' ? 'y' : 'm'}`),
@@ -49,9 +58,10 @@ export const api = {
     get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}`),
   consensus: () => get('/api/consensus'),
   insiders: (ticker) => get(`/api/insiders/${encodeURIComponent(ticker)}`),
+  // the backtest reads price series for up to 150 names; it earns a longer leash
   backtest: (cik, opts = {}) => {
     const qs = new URLSearchParams(opts).toString();
-    return get(`/api/backtest/${cik}${qs ? `?${qs}` : ''}`);
+    return get(`/api/backtest/${cik}${qs ? `?${qs}` : ''}`, { timeoutMs: 30000 });
   },
   universe: async () => {
     const r = await fetch('/universe.json');
@@ -63,7 +73,7 @@ export const api = {
     if (!r.ok) throw new Error('no-stocks-universe');
     return r.json();
   },
-  stockOwnership: (cusip) => get(`/api/stock-ownership?cusip=${encodeURIComponent(cusip)}`),
+  stockOwnership: (cusip) => get(`/api/stock-ownership?cusip=${encodeURIComponent(cusip)}`, { timeoutMs: 30000 }),
   managerStats: (cik) => get(`/api/manager-stats/${cik}`),
   calendar: () => get('/api/calendar'),
   reports: () => get('/api/report'),

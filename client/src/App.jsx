@@ -1,5 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
+import { useI18n } from './i18n.jsx';
 import Home from './pages/Home.jsx';
 import Manager from './pages/Manager.jsx';
 import Stock from './pages/Stock.jsx';
@@ -30,6 +32,8 @@ const Lazy = ({ children }) => (
 );
 
 export default function App() {
+  const { t } = useI18n();
+  const { pathname } = useLocation();
   // 'dark' (the default theme) on the server and for the first client render
   // (hydration must match); the persisted choice is applied right after mount.
   const [theme, setTheme] = useState('dark');
@@ -48,6 +52,9 @@ export default function App() {
     <div className="layout">
       <TopBar theme={theme} onToggleTheme={toggleTheme} />
       <main className="main">
+        {/* One page's render error stays inside the page area; the shell and
+            the other routes keep working, and moving to another route resets it. */}
+        <ErrorBoundary resetKey={pathname} title={t('common.error')} message={t('common.renderFailed')} retry={t('common.retry')}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
@@ -88,6 +95,7 @@ export default function App() {
           <Route path="/pricing" element={<Lazy><Pricing /></Lazy>} />
           <Route path="/account" element={<Lazy><Account /></Lazy>} />
         </Routes>
+        </ErrorBoundary>
         <Footer />
       </main>
       <CommandPalette />

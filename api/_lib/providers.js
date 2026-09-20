@@ -6,7 +6,12 @@ import { stooqDaily } from './stooq.js';
 // (Yahoo 429s Vercel; Stooq serves a JS-challenge page).
 //   FMP_API_KEY         financialmodelingprep.com  (free: 250 req/day)
 //   TWELVEDATA_API_KEY  twelvedata.com             (free: 800 req/day)
-const http = axios.create({ timeout: 15000, validateStatus: () => true });
+// Short sockets on Vercel: the stock handler answers from cache after a
+// fixed budget and these calls only warm it (see _handlers/stock.js).
+const http = axios.create({
+  timeout: Number(process.env.PROVIDER_TIMEOUT_MS) || (process.env.VERCEL ? 4000 : 15000),
+  validateStatus: () => true,
+});
 
 const FMP_V3 = 'https://financialmodelingprep.com/api/v3';
 const FMP_STABLE = 'https://financialmodelingprep.com/stable';

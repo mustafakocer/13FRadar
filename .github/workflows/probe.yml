@@ -13,7 +13,7 @@ on:
 # The target used to be pasted into every curl. One place now, and a repo
 # variable can point it at a preview deployment without editing this file.
 env:
-  SITE: ${{ vars.SITE_URL || 'https://fundocap.com' }}
+  SITE: ${{ vars.SITE_URL || 'https://www.fundocap.co' }}
 
 jobs:
   probe:

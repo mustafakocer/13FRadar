@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fmtMoney } from '../client/src/lib/format.js';
 import { reportAnswer } from '../client/src/lib/reportText.js';
+import { CANONICAL_SITE } from '../api/_lib/site.js';
 
 const [year, q] = process.argv.slice(2).map(Number);
 if (!year || !q || q < 1 || q > 4) {
@@ -136,7 +137,7 @@ table('Notable moves (largest % change in shares)', notableMoves, [['Manager', (
 // The domain was hard-coded here, so every generated report pointed at one
 // host no matter where the site was deployed. SITE_URL is what the rest of
 // the build uses.
-const site = (process.env.SITE_URL || '').replace(/\/$/, '');
+const site = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');
 md.push('', `---`, `Source: Fundocap${site ? ` · ${site}/en/reports/${id}` : ''}`);
 fs.mkdirSync(path.join(root, 'reports'), { recursive: true });
 fs.writeFileSync(path.join(root, 'reports', `${id}.md`), md.join('\n') + '\n');

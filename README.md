@@ -59,7 +59,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 
 | Değişken | Zorunlu | Açıklama |
 |---|---|---|
-| `SITE_URL` | **Prod'da evet** (`scripts/check-env.mjs` build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://fundocap.com`. Preview'da `VERCEL_URL`'den türetilir. |
+| `SITE_URL` | opsiyonel (`scripts/check-env.mjs` yalnız `*.vercel.app` değerinde build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://www.fundocap.co` (prod varsayılanı; `*.vercel.app` değerleri prod'da yok sayılır). Preview'da `VERCEL_URL`'den türetilir. |
 | `SEC_USER_AGENT` | önerilir | SEC'in istediği iletişim bilgisi |
 | `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı (varsayılan 8/sn) ve 429/403 sonrası bekleme süreleri (sn, virgülle). Batch script'lerde 10 dakikalık SEC bloğunu aşacak kadar uzun, Vercel'de kısa (`1,2`). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
@@ -102,7 +102,7 @@ Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, so
 
 ### Sitemap, robots, OG
 
-- `/sitemap.xml` indeks; `/sitemap-pages.xml`, `-gurus.xml` (guru + guru×hisse sayfaları), `-filers.xml`, `-stocks.xml`, `-insider.xml`. Hepsi `api/_handlers/sitemap.js` tarafından istek anında üretilir (6 saat CDN cache) — ayrıca "yeniden üretme" adımı yoktur; kaynak dosyalar (`slugs.json`, `universe.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`) Action'larla yenilendiğinde sitemap kendiliğinden güncellenir. `lastmod` en son bildirim tarihinden gelir.
+- `/sitemap.xml` indeks; `/sitemap-pages.xml`, `-gurus.xml` (guru + alt sayfalar + guru×hisse), `-filers.xml`, `-stocks.xml` (usta setinin tuttuğu tüm semboller + evrenin en çok tutulanları), `-guides.xml`, `-insider.xml`; 50k URL'yi aşan aile `-<tür>-<n>.xml` parçalarına bölünür. Kök her zaman `api/_lib/site.js` kanonik origin'idir (`https://www.fundocap.co`); eski `13-f-radar-omega.vercel.app` ve `fundocap.co` apex, `vercel.json` ile aynı yola 301 döner. Hepsi `api/_handlers/sitemap.js` tarafından istek anında üretilir (6 saat CDN cache) — ayrıca "yeniden üretme" adımı yoktur; kaynak dosyalar (`slugs.json`, `universe.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`) Action'larla yenilendiğinde sitemap kendiliğinden güncellenir. `lastmod` en son bildirim tarihinden gelir.
 - `/robots.txt`: her şeye izin, `/api/` ve hesap/izleme listesi yolları hariç; sitemap indeksini gösterir.
 - `/api/og?type=guru&cik=…` ve `/api/og?type=stock&ticker=…` 1200×630 PNG üretir (resvg + paketlenmiş DejaVu Sans); diğer sayfalar varsayılan kartı kullanır.
 
@@ -156,7 +156,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
 2. [vercel.com](https://vercel.com) → **Add New → Project** → GitHub'dan `mustafakocer/Fundocap` reposunu import edin.
 3. Ayarlara dokunmanıza gerek yok — `vercel.json` her şeyi tanımlıyor (client build + `api/` fonksiyonları + SPA rewrites). Framework sorusuna **Other** deyin.
 4. **Deploy** butonuna basın. İlk build ~2 dk sürer.
-5. Environment Variables — **`SITE_URL` production'da zorunludur** (yoksa build kasıtlı olarak durur). Diğerleri:
+5. Environment Variables — `SITE_URL` production'da varsayılan olarak `https://www.fundocap.co` alınır; ayarlarsanız `*.vercel.app` olmamalı (build durur). Diğerleri:
    - `SEC_USER_AGENT` → `Fundocap/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
    - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.

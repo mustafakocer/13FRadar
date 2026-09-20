@@ -1,5 +1,5 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
+import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
 import { requirePro } from '../_lib/auth.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
       const ticker = (await mapCusipsToTickers([cusip], { maxLive: 0 }))[cusip] || null;
       const splits = splitsFor(ticker);
       const rows = await mapLimit(filings, 4, async (f) => {
-        const { positions } = await getHoldings(cik, f.acc, f.filingDate);
+        const { positions } = await getEffectiveHoldings(cik, f);
         const match = positions.filter((p) => p.cusip === cusip);
         const shares = match.reduce((s, p) => s + p.shares, 0);
         return {

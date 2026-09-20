@@ -6,6 +6,7 @@
 // identically before, during and after the backfill, and a store that goes
 // down degrades to the old path rather than to an error page.
 import axios from 'axios';
+import { effectiveFilings } from './amendments.js';
 
 const url = () => (process.env.HISTORY_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(/\/$/, '');
 const key = () => process.env.HISTORY_SUPABASE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -57,26 +58,32 @@ export async function storedHoldings(cik, acc) {
 }
 
 // Every 13F a filer has made, newest first — the whole history rather than the
-// most recent quarters EDGAR's submissions endpoint returns inline.
-export async function storedFilings(cik) {
+// most recent quarters EDGAR's submissions endpoint returns inline. One row
+// per accession, as stored; `{ effective: true }` folds them into one entry
+// per period with the amendments attached (amendments.js), which is the
+// shape every derived computation reads.
+export async function storedFilings(cik, { effective = false } = {}) {
   if (!storeEnabled() || !cik) return null;
   try {
     const rows = await select('filings', {
       cik: `eq.${String(cik).padStart(10, '0')}`,
-      select: 'acc,form,amended,report_date,filed,aum,positions',
+      select: 'acc,form,amended,report_date,period_of_report,amendment_type,filed,aum,positions',
       order: 'report_date.desc',
       limit: '200',
     });
     if (!rows.length) return null;
-    return rows.map((r) => ({
+    const out = rows.map((r) => ({
       acc: r.acc,
       form: r.form,
       amended: r.amended,
-      reportDate: r.report_date,
+      // the cover page's own period wins over the index-derived one
+      reportDate: r.period_of_report || r.report_date,
+      amendmentType: r.amendment_type || null,
       filingDate: r.filed,
       aum: r.aum == null ? null : Number(r.aum),
       positions: r.positions,
     }));
+    return effective ? effectiveFilings(out) : out;
   } catch {
     return null;
   }

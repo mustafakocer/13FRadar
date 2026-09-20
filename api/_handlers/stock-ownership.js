@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { cached, TTL } from '../_lib/cache.js';
-import { getSubmissions, list13F, getHoldings, padCik } from '../_lib/sec.js';
+import { getSubmissions, list13F, getEffectiveHoldings, padCik } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/yahooClient.js';
 import { requirePro } from '../_lib/auth.js';
 
@@ -43,7 +43,7 @@ export default async function handler(req, res) {
         const sub = await getSubmissions(cik);
         const fl = list13F(sub);
         if (!fl.length) return null;
-        const cur = await getHoldings(cik, fl[0].acc, fl[0].filingDate);
+        const cur = await getEffectiveHoldings(cik, fl[0]);
         const pos = cur.positions.filter((p) => p.cusip === cusip && !p.putCall);
         if (!pos.length) return null;
         const shares = pos.reduce((s, p) => s + p.shares, 0);
@@ -54,7 +54,7 @@ export default async function handler(req, res) {
         let isNew = false;
         if (fl[1]) {
           try {
-            const prev = await getHoldings(cik, fl[1].acc, fl[1].filingDate);
+            const prev = await getEffectiveHoldings(cik, fl[1]);
             const prevSh = prev.positions
               .filter((p) => p.cusip === cusip && !p.putCall)
               .reduce((s, p) => s + p.shares, 0);

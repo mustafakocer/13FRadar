@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler">
+  <headerData><submissionType>13F-HR</submissionType></headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>06-30-2026</reportCalendarOrQuarter>
+      <isAmendment>false</isAmendment>
+      <reportType>13F HOLDINGS REPORT</reportType>
+    </coverPage>
+  </formData>
+</edgarSubmission>

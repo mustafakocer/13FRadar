@@ -199,6 +199,18 @@ psql restore -c "select count(*) from public.profiles; select count(*) from auth
 #    tablosuna `insert … on conflict (id) do nothing` ile taşı (şema ve roller orada zaten var).
 ```
 
+### 13F-HR/A (düzeltme) bildirimleri ve etkin çeyrek
+
+Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. Cover page'deki `amendmentType` iki değer alır: **RESTATEMENT** (tablonun tamamı yeniden verilir → orijinalin *yerine* geçer) ve **NEW HOLDINGS** (yalnız eksik bırakılan pozisyonlar → orijinale *eklenir*). Eskiden `list13F` "çeyrek başına en son dosyalanan belge" diyerek 4 satırlık bir NEW HOLDINGS düzeltmesini çeyreğin kendisi sanıyordu (Berkshire 2025 Q1 = 4 pozisyon, 2023 Q3/Q4 = tek satır Chubb; devir %200, AAPL "1.3 yıl").
+
+- `api/_lib/amendments.js`: saf mantık — `effectiveFilings` (CIK, dönem) başına tek giriş, sıralama **dönem tarihine** göre; `parseCoverPage` (`periodOfReport`, `amendmentType`); `applyAmendment` / `effectiveSnapshot`. Tip okunamazsa tablo boyutundan çıkarılır (orijinalin yarısından fazla satır → restatement) ve `inferred: true` işaretlenir.
+- `api/_lib/sec.js`: `list13FAll` ham liste (denetim), `list13F` etkin liste (`amendments` ekli), `getEffectiveHoldings(cik, filing)` = orijinal + sıralı düzeltmeler, `fetchCoverPage`. **Tüm türev hesaplar** (holdings, consensus, guru-history, aum-history, manager-stats, position-history, backtest, stock-ownership, universe snapshot) yalnız etkin snapshot'tan beslenir; ham accession `getHoldings` ile ayrıca okunabilir.
+- **Devir tanımı** tek yerde, `api/_lib/turnover.js`: `(açılan pozisyon değeri + kapatılan pozisyonların önceki değeri + ortak pozisyonlarda |Δadet| × fiyat) / iki çeyreğin ortalama portföy değeri`. Fiyat hareketi devir sayılmaz; herhangi bir işlem olan çeyrek asla "%0" göstermez (`<0.1%`). `newCount`/`exitCount` aynı fonksiyondan gelir.
+- **Elde tutma süresi** ticker üzerinden sayılır (CUSIP değişimi kırılma değildir; `api/_data/cusip-tickers.json` eşlemesi).
+- UI: "(A)" satırı yok; düzeltme uygulanan çeyrek `✎` ve "Düzeltme içerir (13F-HR/A, tarih)" rozeti taşır; `/filings` HR/A satırları dönem, tür (yeniden beyan / yeni pozisyonlar) ve tablo satır sayısını gösterir (`FILINGS_AMEND_BUDGET`, varsayılan 150/koşu).
+- Depo: `supabase/migrations/2026-09-20-amendments.up.sql` (`period_of_report`, `amendment_type`, `effective_filings` view) — geri alma: `…down.sql`.
+- **Yeniden hesaplama (backfill):** `npm run rebuild` (`--dry` planı ve maliyeti yazar; `--only=history,consensus`; `REBUILD_CIKS=…`). Guru geçmişi parmak izi `v2|…` sürümlü olduğu için ilk gece Action'ı da tüm guruları kendiliğinden yeniden okur; elle tetiklemek için `Build consensus & returns → force_history`. Tahmini maliyet: geçmiş ~8–9k EDGAR isteği (~25 dk), konsensüs ~10 dk, evren ~1 saat (gece zaten çalışır); bellek <1 GB.
+
 ### Tarihsel depo (opsiyonel, henüz doldurulmadı)
 
 `supabase/history-schema.sql` 2013'ten itibaren tam holding geçmişi için tablo

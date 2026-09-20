@@ -166,13 +166,19 @@ export default function Filings() {
                     </td>
                     <td className="l">{quarterOf(r.reportDate) || <span className="muted">—</span>}</td>
                     <td className="l">{r.filed}</td>
-                    {/* figures exist only for the filing the universe scan
-                        measured; an amendment shows a dash rather than the
-                        original filing's numbers */}
-                    <td className="num">{r.aum != null ? fmtMoney(r.aum) : <span className="muted">—</span>}</td>
-                    <td className="num">{r.positions != null ? fmtNum(r.positions) : <span className="muted">—</span>}</td>
+                    {/* figures are the document's own: the universe scan's
+                        measurement of an original, or an amendment's table —
+                        a restatement's whole book, or the lines a NEW
+                        HOLDINGS amendment adds (shown with a plus) */}
+                    <td className="num">{r.aum != null ? `${r.amendmentType === 'NEW HOLDINGS' ? '+' : ''}${fmtMoney(r.aum)}` : <span className="muted">—</span>}</td>
+                    <td className="num">{r.positions != null ? `${r.amendmentType === 'NEW HOLDINGS' ? '+' : ''}${fmtNum(r.positions)}` : <span className="muted">—</span>}</td>
                     <td className="l">
                       <span className={`badge sm ${r.amended ? 'neg' : 'plain'}`}>{r.form}</span>
+                      {r.amendmentType && (
+                        <span className="small muted" style={{ marginLeft: 6 }}>
+                          {t(r.amendmentType === 'RESTATEMENT' ? 'filings.amend.restatement' : 'filings.amend.newHoldings')}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

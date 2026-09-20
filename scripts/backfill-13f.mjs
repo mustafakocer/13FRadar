@@ -22,7 +22,7 @@
 // reads only the rest. Expect many runs: 2013 onward is roughly 115 million
 // positions.
 import axios from 'axios';
-import { parse13F, aggregatePositions, fetchInfoTableXml } from '../api/_lib/sec.js';
+import { parse13F, aggregatePositions, fetchInfoTableXml, fetchCoverPage } from '../api/_lib/sec.js';
 import { parseFilingIndex } from '../api/_lib/filings.js';
 import {
   quartersToBackfill,
@@ -144,6 +144,9 @@ for (const key of quarters) {
       const xml = await fetchInfoTableXml(f.cik, f.acc);
       const parsed = await parse13F(xml);
       const { aum, positions, unitFix } = aggregatePositions(parsed, f.filed);
+      // the cover page: the period the document itself reports, and for an
+      // amendment whether it restates or adds (see supabase/migrations)
+      const cover = await fetchCoverPage(f.cik, f.acc);
       await upsert(
         'filings',
         [
@@ -152,7 +155,9 @@ for (const key of quarters) {
             cik: f.cik,
             form: f.form,
             amended: f.amended,
-            report_date: f.reportDate || null,
+            report_date: f.reportDate || cover?.periodOfReport || null,
+            period_of_report: cover?.periodOfReport || null,
+            amendment_type: f.amended ? cover?.amendmentType || null : null,
             filed: f.filed,
             aum: Math.round(aum),
             positions: positions.length,

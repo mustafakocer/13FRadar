@@ -1,4 +1,4 @@
-import { getSubmissions, list13F, getHoldings } from './sec.js';
+import { getSubmissions, list13F, getEffectiveHoldings } from './sec.js';
 import { mapLimit } from './yahooClient.js';
 import { mapCusipsToTickers } from './figi.js';
 import { CONSENSUS_MANAGERS } from './consensusList.js';
@@ -26,16 +26,18 @@ export async function build({ stocksTickers = 0 } = {}) {
     const sub = await getSubmissions(m.cik);
     const fl = list13F(sub);
     if (!fl.length) return null;
-    const cur = await getHoldings(m.cik, fl[0].acc, fl[0].filingDate);
+    // effective snapshots: the original with its 13F-HR/A amendments applied,
+    // never an amendment standing in for a quarter
+    const cur = await getEffectiveHoldings(m.cik, fl[0]);
     let prev = null;
     if (fl[1]) {
       try {
-        prev = await getHoldings(m.cik, fl[1].acc, fl[1].filingDate);
+        prev = await getEffectiveHoldings(m.cik, fl[1]);
       } catch {
         /* prev optional */
       }
     }
-    return { name: m.name, cik: m.cik, reportDate: fl[0].reportDate, filed: fl[0].filingDate, cur, prev };
+    return { name: m.name, cik: m.cik, reportDate: fl[0].reportDate, filed: fl[0].filingDate, amended: Boolean(cur.amended), cur, prev };
   });
   const managers = per.filter(Boolean);
 
@@ -286,7 +288,7 @@ export async function build({ stocksTickers = 0 } = {}) {
 
   return {
     updatedAt: new Date().toISOString(),
-    managers: managers.map((m) => ({ name: m.name, cik: m.cik, reportDate: m.reportDate })),
+    managers: managers.map((m) => ({ name: m.name, cik: m.cik, reportDate: m.reportDate, ...(m.amended ? { amended: true } : {}) })),
     mostHeld: mostHeld.map(dress),
     topBought: topBought.map(dress),
     topSold: topSold.map(dress),

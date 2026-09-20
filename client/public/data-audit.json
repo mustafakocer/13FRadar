@@ -63,7 +63,7 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 84999,
+        "rows": 84326,
         "companies": 4223,
         "futureDated": 0
       },
@@ -73,7 +73,7 @@
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {
-        "total": 16634,
+        "total": 16532,
         "penny": 9
       },
       "findings": []

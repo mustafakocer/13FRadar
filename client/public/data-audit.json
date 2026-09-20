@@ -82,9 +82,24 @@
       "key": "universe",
       "path": "client/public/universe.json",
       "metrics": {
-        "rows": 7830
+        "rows": 9020
       },
       "findings": []
+    },
+    {
+      "key": "latest-holdings",
+      "path": "api/_data/latest-holdings.json",
+      "metrics": {
+        "filers": 9020,
+        "withRows": 9020
+      },
+      "findings": [
+        {
+          "rule": "drift",
+          "severity": "info",
+          "message": "no previous version to compare against"
+        }
+      ]
     },
     {
       "key": "stocks",

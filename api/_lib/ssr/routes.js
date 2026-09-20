@@ -14,6 +14,8 @@ import relatedHandler from '../../_handlers/related.js';
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
+import { knownSymbol, priceUnavailable } from '../priceSnapshot.js';
+import { guruStock } from '../guruStocks.js';
 
 const require = createRequire(import.meta.url);
 const json = (file) => {
@@ -119,11 +121,18 @@ async function loadGuruTicker({ slug, ticker }) {
   return { seeds };
 }
 
+// A stock page's status is decided by whether the symbol is ours to serve,
+// never by whether a quote provider answered. The quote handler answers 200
+// within its own budget (a live quote, the last one seen, the nightly close,
+// or an empty price block), so the only 404 is a symbol no committed dataset
+// has ever carried and no provider knows. Tying the status to the provider
+// chain is what made every /stock/* URL a soft 404 on a throttled day.
 async function loadStock({ ticker, cusip }) {
   const seeds = [];
   const stock = ok(await withBudget(invoke(stockHandler, { ticker }), 8000));
-  if (!stock) return { seeds, status: 404 };
-  seeds.push([['stock', ticker], stock]);
+  const priced = stock?.price?.price != null;
+  if (!priced && !knownSymbol(ticker) && !guruStock({ ticker, cusip })) return { seeds, status: 404 };
+  seeds.push([['stock', ticker], stock || priceUnavailable(ticker)]);
   const c = staticConsensus();
   if (c) seeds.push([['consensus'], c]);
   // The guru standing is the free hook and the answer an assistant quotes, so

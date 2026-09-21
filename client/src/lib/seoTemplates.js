@@ -184,7 +184,7 @@ export function homeSeo({ lang }) {
 
 export function consensusSeo({ lang, data, segment = 'held', t = null }) {
   const tr = lang === 'tr';
-  const n = data?.managers?.length;
+  const n = data?.coverage?.included ?? data?.managers?.length;
   const latest = (data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
   const qt = quarterText(latest, lang);
   const top = data?.mostHeld?.[0];

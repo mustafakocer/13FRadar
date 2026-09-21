@@ -9,6 +9,7 @@ import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/forma
 import { quarterText, rankingJsonLd } from '../lib/seoTemplates.js';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
+import CoverageLine from '../components/CoverageLine.jsx';
 import { rankingAnswer, truncate155 } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
 import FilterSelect from '../components/FilterSelect.jsx';
@@ -73,7 +74,10 @@ export default function Rankings() {
 
   const latest =
     table.reportDate || (data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
-  const managerCount = table.managers || data?.managers?.length;
+  // the funds the numbers are computed over — the same count, and the same
+  // explanation, every page shows
+  const coverage = table.coverage || data?.coverage || null;
+  const managerCount = coverage?.included ?? (table.managers || data?.managers?.length);
   const qt = quarterText(latest, lang);
   const title = t(def.key);
   const answer = useMemo(
@@ -117,6 +121,7 @@ export default function Rankings() {
         </div>
       </div>
       <AnswerBox text={answer} />
+      <CoverageLine coverage={coverage} />
       <div className="row" style={{ gap: 6, marginBottom: 16 }}>
         {Object.keys(KINDS).map((k) => (
           <Link key={k} to={`/rankings/${k}`} className={`chip${k === kind ? ' fsel-active' : ''}`}>{t(KINDS[k].key)}</Link>

@@ -9,6 +9,7 @@ import { useAuth } from '../auth.jsx';
 import { breadcrumbs, faqJsonLd } from '../lib/seoTemplates.js';
 import { article, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
+import CoverageLine from '../components/CoverageLine.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import Paywall from '../components/Paywall.jsx';
 import InfoTip from '../components/InfoTip.jsx';
@@ -151,8 +152,13 @@ export default function Report() {
   }, [quarters, quarter]);
 
   const data = consensus.data || {};
-  const { managers = [], mostHeld = [], newPositions = [] } = data;
+  const { mostHeld = [], newPositions = [] } = data;
   const qLabel = quarter ? quarterLabel(quarter) : '';
+  // The panel the selected quarter's rows were computed over — the activity
+  // file carries it per quarter; the consensus count is not the same thing
+  // once an older quarter is selected.
+  const coverage = (quarter === newest ? activity.data?.coverage : older.data?.coverage) || null;
+  const fundCount = coverage?.included ?? data.coverage?.included ?? (data.managers || []).length;
 
   const answer = useMemo(() => {
     if (!all.length) return null;
@@ -162,9 +168,9 @@ export default function Report() {
     const bottom = sells[0];
     if (!top || !bottom) return null;
     return lang === 'tr'
-      ? `${qLabel} çeyreğinde takip edilen ${managers.length || ''} usta yatırımcı en çok ${top.t} aldı (${fmtMoney(top.nv)} net, ${top.b} fon alıcı) ve en çok ${bottom.t} sattı (${fmtMoney(Math.abs(bottom.nv))} net, ${bottom.s} fon satıcı). Tabloda ${all.length} hisse, SEC 13F bildirimlerinden çeyrek bazında hesaplandı.`
+      ? `${qLabel} çeyreğinde takip edilen ${fundCount || ''} usta yatırımcı en çok ${top.t} aldı (${fmtMoney(top.nv)} net, ${top.b} fon alıcı) ve en çok ${bottom.t} sattı (${fmtMoney(Math.abs(bottom.nv))} net, ${bottom.s} fon satıcı). Tabloda ${all.length} hisse, SEC 13F bildirimlerinden çeyrek bazında hesaplandı.`
       : `In ${qLabel} the tracked superinvestors bought ${top.t} most (${fmtMoney(top.nv)} net across ${top.b} funds) and sold ${bottom.t} most (${fmtMoney(Math.abs(bottom.nv))} net across ${bottom.s} funds). The table covers ${all.length} holdings, computed quarter over quarter from SEC 13F filings.`;
-  }, [all, qLabel, managers, lang]);
+  }, [all, qLabel, fundCount, lang]);
 
   const faq = useMemo(() => {
     if (!all.length) return [];
@@ -240,12 +246,13 @@ export default function Report() {
             <Ico icon={Newspaper} size={22} /> {t('report.title')}
           </h1>
           <div className="sub">
-            <b>{qLabel}</b> {t('report.subtitle')} · {managers.length} {t('report.funds')}
+            <b>{qLabel}</b> {t('report.subtitle')} · {fundCount} {t('report.funds')}
           </div>
         </div>
       </div>
 
       <AnswerBox text={answer} />
+      <CoverageLine coverage={coverage} />
 
       {/* ---- buys / sells ------------------------------------------------ */}
       <div className="tabs">

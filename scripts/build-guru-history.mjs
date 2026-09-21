@@ -20,8 +20,7 @@ import path from 'node:path';
 import { getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
 import { mapLimit } from '../api/_lib/yahooClient.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
-import { CONSENSUS_MANAGERS } from '../api/_lib/consensusList.js';
-import { POPULAR_MANAGERS, wantsHistory } from '../client/src/data/popular.js';
+import { historyPanel } from '../api/_lib/gurus.js';
 import { splitAdjust, topRankedCusips } from '../api/_lib/history.js';
 import { turnover } from '../api/_lib/turnover.js';
 
@@ -42,11 +41,9 @@ try {
 const gurus = new Map();
 // Market makers and multi-strats file thousands of names a quarter; forty of
 // those info tables each would cost more CI than the rest of the job put
-// together, so popular.js opts them out (see the note there).
-for (const m of [...POPULAR_MANAGERS, ...CONSENSUS_MANAGERS]) {
-  if (!wantsHistory(m.cik)) continue;
-  gurus.set(m.cik, m.name);
-}
+// together, so the registry opts them out (`history: false`, gurus.js).
+// Closed funds stay in: their history is exactly what their page shows.
+for (const m of historyPanel()) gurus.set(m.cik, m.name);
 const only = process.env.GURU_HISTORY_CIKS ? new Set(process.env.GURU_HISTORY_CIKS.split(',')) : null;
 const FORCE = process.env.GURU_HISTORY_FORCE === '1';
 

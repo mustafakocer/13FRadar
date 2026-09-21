@@ -23,14 +23,6 @@ on:
           - 0001_rls
           - 0002_constraints
           - 0003_stripe_events
-  # A push that changes .github/db-run/migrate runs it too, with the
-  # migration name read from that file's first line (a session that can push
-  # but not dispatch). Only on the branch named here.
-  push:
-    branches:
-      - claude/supabase-data-layer-rls-283enf
-    paths:
-      - '.github/db-run/migrate'
 
 permissions:
   contents: read
@@ -119,10 +111,6 @@ jobs:
         run: |
           set -euo pipefail
           source .github/scripts/db-url.sh
-          if [ -z "$MIGRATION" ]; then
-            MIGRATION=$(head -1 .github/db-run/migrate | tr -d '[:space:]')
-            echo "migration named by .github/db-run/migrate: $MIGRATION"
-          fi
           case "$MIGRATION" in
             all|0001_rls|0002_constraints|0003_stripe_events) ;;
             *) echo "::error::unknown migration '$MIGRATION'"; exit 1 ;;

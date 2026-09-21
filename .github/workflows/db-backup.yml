@@ -19,13 +19,6 @@ on:
   schedule:
     - cron: '17 3 * * 1' # Mondays 03:17 UTC
   workflow_dispatch: {}
-  # A push that changes the marker file runs a backup too, for a session that
-  # can push to this branch but is not allowed to dispatch workflows.
-  push:
-    branches:
-      - claude/supabase-data-layer-rls-283enf
-    paths:
-      - '.github/db-run/backup'
 
 permissions:
   contents: read

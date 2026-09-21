@@ -52,3 +52,85 @@ opsiyonel tarihsel depodur. Karar:
 ve `scripts/send-alerts.mjs` okur/yazar. Canlı `public` şemasında olmadıkları
 için alert özelliği bugün çalışmıyor (PostgREST 404). Bu paketin kapsamı
 dışında; ayrı migration ister.
+
+## 2. RLS ve Pro erişimi (S2) — `migrations/0001_rls`
+
+Canlı `pg_policies` dökümü bu ortamdan alınamadı (projeye ağ erişimi yok);
+aşağıdaki "önce" tablosu canlı şemanın tanımı (`supabase/schema.sql` +
+proje açıklaması) üzerinden `migrations/0000_baseline` ile yerelde
+üretildi. Canlıda doğrulamak için:
+
+```sql
+select tablename, policyname, cmd, roles, qual, with_check
+from pg_policies where schemaname = 'public' order by 1, 2;
+```
+
+**Önce**
+
+| tablo | policy | cmd | roller | using | with check |
+|---|---|---|---|---|---|
+| profiles | read own profile | SELECT | public | `auth.uid() = id` | |
+| watchlists | own watchlist | ALL | public | `auth.uid() = user_id` | `auth.uid() = user_id` |
+
+**Sonra**
+
+| tablo | policy | cmd | roller | using | with check |
+|---|---|---|---|---|---|
+| profiles | profiles_select_own | SELECT | authenticated | `auth.uid() = id` | |
+| profiles | profiles_update_own | UPDATE | authenticated | `auth.uid() = id` | `auth.uid() = id` |
+| watchlists | watchlists_select_own | SELECT | authenticated | `auth.uid() = user_id` | |
+| watchlists | watchlists_insert_own | INSERT | authenticated | | `auth.uid() = user_id` |
+| watchlists | watchlists_update_own | UPDATE | authenticated | `auth.uid() = user_id` | `auth.uid() = user_id` |
+| watchlists | watchlists_delete_own | DELETE | authenticated | `auth.uid() = user_id` | |
+
+Policy dışı korumalar:
+
+- `profiles`: `anon` rolünün tablo yetkisi kaldırıldı; `authenticated`'dan
+  INSERT/DELETE yetkisi kaldırıldı (INSERT yalnız `handle_new_user` trigger'ı,
+  `plan='free'`, `on conflict do nothing`).
+- `profiles_guard_columns` (BEFORE UPDATE): istek `request.jwt.claims`
+  içinde `service_role` dışında bir rolle geldiyse `id, email, plan,
+  plan_expires, stripe_customer_id, stripe_subscription_id, created_at`
+  değişikliği `42501` ile reddedilir. JWT yoksa (SQL editor, psql, migration)
+  serbest. `email` listede çünkü alert digest'i `profiles.email`'e gönderiyor;
+  kullanıcının kendi satırında değiştirebileceği kolon bugün yok, ileride
+  eklenecek bir kolon bu listeye girmez.
+- `auth.users.email` değişince `profiles.email` senkronlanır
+  (`on_auth_user_email_changed`).
+- `watchlists`: satır sınırı free **10**, pro **200**;
+  `watchlists_10_cap` AFTER INSERT … FOR EACH STATEMENT (transition table).
+  Satır bazlı BEFORE trigger aynı INSERT'in önceki satırlarını görmez;
+  istemcinin çok satırlı upsert'i sınırı tek ifadeyle aşabilirdi.
+  Var olan satıra upsert büyüme sayılmaz. Hata mesajı `watchlist limit …`,
+  hint `watchlist-cap` (#14 paketi bu hint'i UI'da yakalayabilir).
+- `is_pro(uid default auth.uid())`: `plan = 'pro' and (plan_expires is null
+  or plan_expires > now())`. SECURITY INVOKER: kullanıcı token'ı yalnız kendi
+  cevabını alır; `anon` çalıştıramaz.
+
+### Pro içerik nerede gate'leniyor
+
+Sunucu: `api/_lib/auth.js` → `POST /rest/v1/rpc/is_pro` (kullanıcı JWT'si
+ile; Supabase doğrular, RLS altında kendi satırı). `requirePro`/`isPro`
+kullanan uçlar: `consensus`, `insiders`, `insider-feed`, `export`,
+`backtest`, `position-history`, `stock-ownership`, `holdings?full=1`,
+`guru-stocks` (tam liste). Pro yanıtlar `Cache-Control: private, no-store`.
+
+İstemci: `client/src/auth.jsx` aynı RPC'yi çağırır, `isPro` yalnız rozet ve
+kilit çizer. React state'ini `pro` yapmak sunucudan Pro veri getirmez (402).
+
+Kalan boşluk (bu paketin dışı, ürün kararı): `/screen` gelişmiş filtreleri
+ve `/report`'un 10+ satırı **herkese açık statik JSON** (`client/public/
+universe.json`, `guru-activity*.json`) üzerinde yalnız UI ile kilitli. Veri
+zaten CDN'de; gerçekten Pro olacaksa dosyalar `api/_data`'ya taşınıp bir
+`requirePro` ucundan sunulmalı.
+
+### Doğrulama
+
+- Yerel: `npm run test:db` → `tests/sql/0001_rls.test.sql` (7 blok: kullanıcı
+  token'ı ile plan/plan_expires/stripe_*/email → 42501; başka kullanıcının
+  satırı → 0; anon → yetki yok; service_role → başarılı; is_pro üç durum;
+  cap 10/200 + toplu insert; e-posta senkronu).
+- Canlı: `tests/supabase-rls.test.mjs` — `SUPABASE_TEST_URL`,
+  `SUPABASE_TEST_ANON_KEY`, `SUPABASE_TEST_SERVICE_KEY` ile iki geçici
+  kullanıcı açar, aynı üç senaryoyu PostgREST üzerinden koşar, kullanıcıları
+  siler; secret yoksa skip.

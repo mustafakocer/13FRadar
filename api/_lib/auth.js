@@ -1,9 +1,9 @@
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
 
-// Server-side plan check against Supabase. If the URL/anon key aren't
-// configured yet, everything is treated as Pro so the site keeps working
-// pre-launch. Public defaults are baked in below (anon keys are public by
+// Server-side plan check against Supabase (public.is_pro). If the URL/anon
+// key aren't configured yet, everything is treated as Pro so the site keeps
+// working pre-launch. Public defaults are baked in below (anon keys are public by
 // design); env vars override them. The service role key is only needed by
 // the payment webhook.
 const PUBLIC_SUPABASE_URL = 'https://rmisfrxsnhdpcxqzmicy.supabase.co';
@@ -23,31 +23,32 @@ async function planForToken(token) {
     validateStatus: () => true,
     headers: { apikey: anon(), Authorization: `Bearer ${token}` },
   });
-  if (u.status !== 200 || !u.data?.id) return { plan: 'free', userId: null, email: null };
+  if (u.status !== 200 || !u.data?.id) return { pro: false, userId: null, email: null };
 
-  // RLS lets the user read their own profile row with their own token,
-  // so no service role key is needed for plan checks.
-  const p = await axios.get(`${url()}/rest/v1/profiles`, {
-    timeout: 8000,
-    validateStatus: () => true,
-    params: { id: `eq.${u.data.id}`, select: 'plan,plan_expires' },
-    headers: { apikey: anon(), Authorization: `Bearer ${token}` },
-  });
-  const row = p.data?.[0];
-  const active =
-    row?.plan === 'pro' &&
-    (!row.plan_expires || new Date(row.plan_expires) > new Date());
-  return { plan: active ? 'pro' : 'free', userId: u.data.id, email: u.data.email || null };
+  // The one definition of Pro is public.is_pro() in the database: plan =
+  // 'pro' and either no expiry or one still ahead. It runs as the caller
+  // (SECURITY INVOKER), so a user's own token can only answer about the user;
+  // no service key is needed for a plan check.
+  const p = await axios.post(
+    `${url()}/rest/v1/rpc/is_pro`,
+    {},
+    {
+      timeout: 8000,
+      validateStatus: () => true,
+      headers: { apikey: anon(), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    }
+  );
+  return { pro: p.status === 200 && p.data === true, userId: u.data.id, email: u.data.email || null };
 }
 
-// Signed-in user (id, email, plan) or null. Cached per token for 5 minutes.
+// Signed-in user { id, email, pro } or null. Cached per token for 5 minutes.
 export async function getUser(req) {
   if (!authConfigured()) return null;
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
   try {
     const r = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
-    return r.userId ? { id: r.userId, email: r.email, plan: r.plan } : null;
+    return r.userId ? { id: r.userId, email: r.email, pro: r.pro } : null;
   } catch {
     return null;
   }
@@ -58,10 +59,8 @@ export async function isPro(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return false;
   try {
-    const { plan } = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () =>
-      planForToken(token)
-    );
-    return plan === 'pro';
+    const { pro } = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    return pro;
   } catch {
     return false;
   }

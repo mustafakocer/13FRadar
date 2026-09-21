@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: 'sign-in-required' });
-  if (user.plan === 'pro') return res.status(409).json({ error: 'already-pro' });
+  if (user.pro) return res.status(409).json({ error: 'already-pro' });
 
   const cycle = req.query.cycle === 'y' ? 'y' : 'm';
   const country = String(req.headers['x-vercel-ip-country'] || '').toUpperCase();

@@ -1,0 +1,66 @@
+name: Database migrations & RLS
+
+# Applies migrations/ to a throwaway Postgres (with the Supabase auth shim),
+# runs tests/sql/*.test.sql, walks every migration down and up again, and
+# runs the webhook and RLS node tests. The remote RLS test needs the
+# SUPABASE_TEST_* secrets and skips itself without them.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'migrations/**'
+      - 'tests/sql/**'
+      - 'tests/supabase-rls.test.mjs'
+      - 'tests/stripe-webhook.test.mjs'
+      - 'scripts/db-test.sh'
+      - 'api/_lib/auth.js'
+      - 'api/_lib/stripe.js'
+      - 'api/_handlers/stripe-webhook.js'
+      - '.github/workflows/db-tests.yml'
+  push:
+    paths:
+      - 'migrations/**'
+      - 'tests/sql/**'
+      - 'tests/supabase-rls.test.mjs'
+      - 'tests/stripe-webhook.test.mjs'
+      - 'scripts/db-test.sh'
+      - 'api/_lib/auth.js'
+      - 'api/_lib/stripe.js'
+      - 'api/_handlers/stripe-webhook.js'
+      - '.github/workflows/db-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Migrations up, SQL tests, down, up
+        run: bash scripts/db-test.sh
+        env:
+          DATABASE_URL: postgresql://postgres@localhost:5432/postgres
+      - name: Remote RLS (skips without secrets)
+        run: node --test tests/supabase-rls.test.mjs
+        env:
+          SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ secrets.SUPABASE_TEST_ANON_KEY }}
+          SUPABASE_TEST_SERVICE_KEY: ${{ secrets.SUPABASE_TEST_SERVICE_KEY }}

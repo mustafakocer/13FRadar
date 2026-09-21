@@ -39,6 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: .github/scripts
       # A backup job that quietly skips is worse than one that fails: red
       # here means "there is no backup", which is exactly what to know.
       - name: Check configuration
@@ -66,13 +69,14 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
+          source .github/scripts/db-url.sh
           PSQL=/usr/lib/postgresql/17/bin/psql
           PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump
           stamp=$(date -u +%Y%m%dT%H%M%SZ)
           out="fundocap-$stamp.sql"
 
-          echo "server: $($PSQL "$SUPABASE_DB_URL" -Atc 'show server_version')"
-          $PSQL "$SUPABASE_DB_URL" -Atc "
+          echo "server: $($PSQL "$DB_URL" -Atc 'show server_version')"
+          $PSQL "$DB_URL" -Atc "
             select 'profiles   ' || count(*) from public.profiles
             union all select 'watchlists ' || count(*) from public.watchlists
             union all select 'auth.users ' || count(*) from auth.users"
@@ -81,7 +85,7 @@ jobs:
           # other auth table (sessions, refresh tokens, audit log, …); the
           # auth schema's functions and types still come along, so the
           # policies that reference auth.uid() restore cleanly.
-          $PG_DUMP "$SUPABASE_DB_URL" \
+          $PG_DUMP "$DB_URL" \
             --no-owner --no-privileges \
             --schema=public --schema=auth \
             --exclude-table='auth.[^u]*' \

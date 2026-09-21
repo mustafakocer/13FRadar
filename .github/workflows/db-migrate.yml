@@ -72,15 +72,16 @@ jobs:
           BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
         run: |
           set -euo pipefail
+          source .github/scripts/db-url.sh
           stamp=$(date -u +%Y%m%dT%H%M%SZ)
           out="fundocap-pre-migration-$stamp.dump"
-          echo "server: $($PSQL "$SUPABASE_DB_URL" -Atc 'show server_version')"
+          echo "server: $($PSQL "$DB_URL" -Atc 'show server_version')"
           echo "row counts before:"
-          $PSQL "$SUPABASE_DB_URL" -Atc "
+          $PSQL "$DB_URL" -Atc "
             select 'profiles   ' || count(*) from public.profiles
             union all select 'watchlists ' || count(*) from public.watchlists
             union all select 'auth.users ' || count(*) from auth.users"
-          $PG_DUMP "$SUPABASE_DB_URL" -Fc \
+          $PG_DUMP "$DB_URL" -Fc \
             --no-owner --no-privileges \
             --schema=public --schema=auth \
             --exclude-table='auth.[^u]*' \
@@ -106,7 +107,8 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          $PSQL "$SUPABASE_DB_URL" -X -c "select plan, count(*) from public.profiles group by 1 order by 1" \
+          source .github/scripts/db-url.sh
+          $PSQL "$DB_URL" -X -c "select plan, count(*) from public.profiles group by 1 order by 1" \
             -c "select count(*) as unpadded_ciks from public.watchlists where cik !~ '^[0-9]{10}$'" \
             -c "select stripe_customer_id, count(*) from public.profiles where stripe_customer_id is not null group by 1 having count(*) > 1"
 
@@ -116,6 +118,7 @@ jobs:
           MIGRATION: ${{ inputs.migration }}
         run: |
           set -euo pipefail
+          source .github/scripts/db-url.sh
           if [ -z "$MIGRATION" ]; then
             MIGRATION=$(head -1 .github/db-run/migrate | tr -d '[:space:]')
             echo "migration named by .github/db-run/migrate: $MIGRATION"
@@ -130,11 +133,11 @@ jobs:
             files="$MIGRATION"
           fi
           policies() {
-            $PSQL "$SUPABASE_DB_URL" -X -c "select tablename, policyname, cmd, roles from pg_policies where schemaname = 'public' order by 1, 2"
+            $PSQL "$DB_URL" -X -c "select tablename, policyname, cmd, roles from pg_policies where schemaname = 'public' order by 1, 2"
           }
           for f in $files; do
             echo "::group::migrations/$f.up.sql"
-            if PGOPTIONS="-c client_min_messages=warning" $PSQL "$SUPABASE_DB_URL" -X -v ON_ERROR_STOP=1 -1 -f "migrations/$f.up.sql"; then
+            if PGOPTIONS="-c client_min_messages=warning" $PSQL "$DB_URL" -X -v ON_ERROR_STOP=1 -1 -f "migrations/$f.up.sql"; then
               echo "applied: $f"
             else
               echo "::endgroup::"
@@ -152,7 +155,8 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          $PSQL "$SUPABASE_DB_URL" -X \
+          source .github/scripts/db-url.sh
+          $PSQL "$DB_URL" -X \
             -c "select tablename, policyname, cmd, roles, qual as using, with_check from pg_policies where schemaname = 'public' order by 1, 2" \
             -c '\d public.profiles' \
             -c '\d public.watchlists' \

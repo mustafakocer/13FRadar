@@ -11,6 +11,11 @@
 -- the site behaves identically before, during and after a backfill.
 --
 -- Apply with: psql "$DATABASE_URL" -f supabase/history-schema.sql
+--
+-- Status (2026-09-21): NOT applied to the production project. The live
+-- public schema holds only the account tables (see migrations/); every 13F
+-- dataset the site serves is a JSON file committed by GitHub Actions
+-- (docs/SUPABASE.md lists them). Nothing here is a migration of live data.
 
 create table if not exists public.filers (
   cik text primary key,
@@ -42,6 +47,60 @@ create table if not exists public.filings (
 create index if not exists filings_cik_report on public.filings (cik, report_date desc);
 create index if not exists filings_filed on public.filings (filed desc);
 create index if not exists filings_report on public.filings (report_date desc);
+
+-- 13F-HR/A support. Raw filings stay one row per accession (the audit
+-- trail). Two columns carry what the cover page says — the period the
+-- document itself reports, and for an amendment whether it restates the
+-- table or adds to it. Both are added here rather than in a separate
+-- migration because this whole schema is opt-in and not yet applied
+-- anywhere: there is no live table to migrate.
+alter table public.filings
+  add column if not exists period_of_report date,
+  add column if not exists amendment_type text
+    check (amendment_type is null or amendment_type in ('RESTATEMENT', 'NEW HOLDINGS'));
+comment on column public.filings.period_of_report is
+  'periodOfReport from the filing''s own cover page; report_date is the index-derived value';
+comment on column public.filings.amendment_type is
+  '13F-HR/A only: RESTATEMENT replaces the original table, NEW HOLDINGS is added to it';
+create index if not exists filings_cik_period
+  on public.filings (cik, coalesce(period_of_report, report_date) desc, filed);
+
+-- One row per (cik, period): the base document (latest-filed 13F-HR, or the
+-- earliest amendment when no original is stored) and the amendments to apply
+-- to it, oldest first. Consumers read holdings for base_acc and each of
+-- amendment_accs and fold them exactly as api/_lib/amendments.js does.
+create or replace view public.effective_filings as
+with periods as (
+  select
+    acc, cik, form, amended, filed, amendment_type,
+    coalesce(period_of_report, report_date) as period
+  from public.filings
+  where coalesce(period_of_report, report_date) is not null
+),
+base as (
+  select distinct on (cik, period)
+    cik, period, acc as base_acc, filed as base_filed, amended as base_is_amendment
+  from periods
+  order by cik, period, (case when amended then 1 else 0 end), filed desc, acc desc
+)
+select
+  b.cik,
+  b.period,
+  b.base_acc,
+  b.base_filed,
+  b.base_is_amendment,
+  coalesce(
+    array_agg(p.acc order by p.filed, p.acc) filter (where p.acc is not null),
+    '{}'::text[]
+  ) as amendment_accs,
+  coalesce(
+    array_agg(p.amendment_type order by p.filed, p.acc) filter (where p.acc is not null),
+    '{}'::text[]
+  ) as amendment_types
+from base b
+left join periods p
+  on p.cik = b.cik and p.period = b.period and p.amended and p.acc <> b.base_acc and p.filed >= b.base_filed
+group by b.cik, b.period, b.base_acc, b.base_filed, b.base_is_amendment;
 
 -- One row per position per filing. This is the large table: ~2.2M positions a
 -- quarter across the whole universe, so about 115M rows for 2013 onward.

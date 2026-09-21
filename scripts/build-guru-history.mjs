@@ -23,7 +23,7 @@ import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats, tickerFor } from '../api/_lib/securityMaster.js';
 import { historyPanel } from '../api/_lib/gurus.js';
 import { splitAdjust, topRankedCusips } from '../api/_lib/history.js';
-import { turnover } from '../api/_lib/turnover.js';
+import { turnover, turnoverOutliers } from '../api/_lib/turnover.js';
 
 const QUARTERS = Number(process.env.GURU_HISTORY_QUARTERS || 40);
 // keep a position only if it ranked in some quarter's top N by value —
@@ -171,6 +171,8 @@ for (const [cik, name] of gurus) {
   }
   out.gurus[cik] = { name, fp, quarters, positions };
   console.log(`${name}: ${quarters.length} quarters, ${Object.keys(positions).length} securities${quarters.some((q) => q.amended) ? `, ${quarters.filter((q) => q.amended).length} with amendments applied` : ''}`);
+  const odd = turnoverOutliers(quarters);
+  if (odd.length) console.warn(`${name}: turnover above ${60}% in ${odd.map((q) => `${q.reportDate} (${q.turnover}%)`).join(', ')} — check the snapshot for that period`);
 }
 
 // tickers from the security master (resolved above, per guru), then time

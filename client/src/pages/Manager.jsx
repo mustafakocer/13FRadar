@@ -410,11 +410,13 @@ export default function Manager({ segment = 'portfolio' }) {
                 </div>
                 <div className="card">
                   <h3>{t('manager.sectors')}</h3>
-                  {sectors.isLoading ? (
-                    <Loading t={t} />
-                  ) : (
-                    <ChartBox height={300}><SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} /></ChartBox>
-                  )}
+                  {/* The box stays mounted while the sector lookup runs: the
+                      chart takes a `loading` flag instead of being swapped
+                      for a spinner and re-created when the answer lands. */}
+                  <ChartBox height={300}>
+                    <SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} loading={sectors.isLoading} />
+                  </ChartBox>
+                  <p className="muted small mt8">{t('manager.sectorsNote')}</p>
                 </div>
               </div>
               {benchSeries && (

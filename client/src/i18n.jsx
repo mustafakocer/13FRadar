@@ -18,6 +18,9 @@ const dict = {
     'stock.asOf': 'kapanış',
     'common.retry': 'Tekrar dene',
     'common.other': 'Diğer',
+    'sector.unclassified': 'Sınıflandırılmamış',
+    'sector.empty': 'Sektör verisi yok',
+    'manager.sectorsNote': 'İlk 25 pozisyon; sektörü bilinmeyenler (ETF, çözümlenmemiş CUSIP) "Sınıflandırılmamış" diliminde. Toplam %100.',
     'common.all': 'Tümü',
     'common.na': '—',
 
@@ -922,6 +925,9 @@ const dict = {
     'stock.asOf': 'close',
     'common.retry': 'Retry',
     'common.other': 'Other',
+    'sector.unclassified': 'Unclassified',
+    'sector.empty': 'No sector data',
+    'manager.sectorsNote': 'Top 25 positions; names without a sector (ETFs, unresolved CUSIPs) sit in the "Unclassified" slice. Totals 100%.',
     'common.all': 'All',
     'common.na': '—',
 

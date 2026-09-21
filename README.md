@@ -180,6 +180,25 @@ Ana sayfa şu statik dosyaları okur (hepsi Action'lar tarafından üretilir, `c
 - **E-posta bildirimi:** Vercel Cron + KV + Resend hesabı ile izleme listesine yeni 13F bildirimi. Şimdilik uygulama içi "YENİ 13F" rozetleri var.
 - **Hesap + senkron izleme listesi:** Supabase/Clerk entegrasyonu gerekir; bugün localStorage kullanılıyor.
 
+### Veritabanı yedeği ve geri yükleme
+
+`.github/workflows/db-backup.yml` her pazartesi (ve elle) canlı Supabase'in
+`public` şemasını ve `auth.users` tablosunu (şifre hash'leri dahil) `pg_dump`
+ile alır, `BACKUP_PASSPHRASE` ile şifreler, 90 gün saklanan bir artifact
+olarak yükler. Secret'lar: `SUPABASE_DB_URL` (session pooler adresi),
+`BACKUP_PASSPHRASE`. Ayrıntı: `docs/SUPABASE.md` §5.
+
+**Yedekten geri yükleme** (boş bir Postgres'e):
+
+```bash
+gpg -d -o backup.sql fundocap-<zaman>.sql.gpg                                   # 1. passphrase sorar
+createdb restore && psql restore -c "create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;"   # 2. API rolleri
+psql -v ON_ERROR_STOP=0 -q restore -f backup.sql                                # 3. public + auth.users
+psql restore -c "select count(*) from public.profiles; select count(*) from auth.users;"   # 4. say
+# 5. Canlıya dönüş: aynı dosyayı SUPABASE_DB_URL'e uygula; auth.users satırlarını Supabase Auth'un
+#    tablosuna `insert … on conflict (id) do nothing` ile taşı (şema ve roller orada zaten var).
+```
+
 ### Tarihsel depo (opsiyonel, henüz doldurulmadı)
 
 `supabase/history-schema.sql` 2013'ten itibaren tam holding geçmişi için tablo

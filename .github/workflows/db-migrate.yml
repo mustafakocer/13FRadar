@@ -1,0 +1,155 @@
+name: Database migrate
+
+# Applies migrations/<name>.up.sql to the live Supabase project, by hand only.
+# Before touching anything it takes the same dump db-backup.yml takes (custom
+# format, encrypted, 90-day artifact) so the state right before the change
+# can be restored. Each file runs in one transaction with ON_ERROR_STOP: it
+# lands whole or not at all, and the job stops at the first failure with the
+# previous files already committed.
+#
+# Secrets: SUPABASE_DB_URL (session pooler, IPv4), BACKUP_PASSPHRASE.
+# The connection string is never printed; psql and pg_dump errors name the
+# host, not the password, and GitHub masks the secret in logs regardless.
+on:
+  workflow_dispatch:
+    inputs:
+      migration:
+        description: 'Which migration to apply'
+        type: choice
+        required: true
+        default: 'all'
+        options:
+          - all
+          - 0001_rls
+          - 0002_constraints
+          - 0003_stripe_events
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-migrate
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PSQL: /usr/lib/postgresql/17/bin/psql
+      PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check configuration
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          [ -n "$DB_URL" ] || { echo "::error::SUPABASE_DB_URL is not set"; exit 1; }
+          [ -n "$PASS" ] || { echo "::error::BACKUP_PASSPHRASE is not set"; exit 1; }
+
+      - name: Install psql / pg_dump 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          $PG_DUMP --version
+
+      - name: Pre-migration dump (same shape as db-backup)
+        id: dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          source .github/scripts/db-url.sh
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          out="fundocap-pre-migration-$stamp.dump"
+          echo "server: $($PSQL "$DB_URL" -Atc 'show server_version')"
+          echo "row counts before:"
+          $PSQL "$DB_URL" -Atc "
+            select 'profiles   ' || count(*) from public.profiles
+            union all select 'watchlists ' || count(*) from public.watchlists
+            union all select 'auth.users ' || count(*) from auth.users"
+          $PG_DUMP "$DB_URL" -Fc \
+            --no-owner --no-privileges \
+            --schema=public --schema=auth \
+            --exclude-table='auth.[^u]*' \
+            --file "$out"
+          echo "dump: $(wc -c < "$out") bytes"
+          /usr/lib/postgresql/17/bin/pg_restore --list "$out" | grep -c ' TABLE ' | sed 's/^/tables in dump: /'
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            -o "$out.gpg" "$out"
+          shred -u "$out"
+          echo "stamp=$stamp" >> "$GITHUB_OUTPUT"
+          echo "file=$out.gpg" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-pre-migration-${{ steps.dump.outputs.stamp }}
+          path: ${{ steps.dump.outputs.file }}
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Data pre-checks (read only; the migrations abort on these too)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          source .github/scripts/db-url.sh
+          $PSQL "$DB_URL" -X -c "select plan, count(*) from public.profiles group by 1 order by 1" \
+            -c "select count(*) as unpadded_ciks from public.watchlists where cik !~ '^[0-9]{10}$'" \
+            -c "select stripe_customer_id, count(*) from public.profiles where stripe_customer_id is not null group by 1 having count(*) > 1"
+
+      - name: Apply
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          MIGRATION: ${{ inputs.migration }}
+        run: |
+          set -euo pipefail
+          source .github/scripts/db-url.sh
+          case "$MIGRATION" in
+            all|0001_rls|0002_constraints|0003_stripe_events) ;;
+            *) echo "::error::unknown migration '$MIGRATION'"; exit 1 ;;
+          esac
+          if [ "$MIGRATION" = "all" ]; then
+            files="0001_rls 0002_constraints 0003_stripe_events"
+          else
+            files="$MIGRATION"
+          fi
+          policies() {
+            $PSQL "$DB_URL" -X -c "select tablename, policyname, cmd, roles from pg_policies where schemaname = 'public' order by 1, 2"
+          }
+          for f in $files; do
+            echo "::group::migrations/$f.up.sql"
+            if PGOPTIONS="-c client_min_messages=warning" $PSQL "$DB_URL" -X -v ON_ERROR_STOP=1 -1 -f "migrations/$f.up.sql"; then
+              echo "applied: $f"
+            else
+              echo "::endgroup::"
+              echo "::error::$f failed; its transaction was rolled back, earlier files stay applied"
+              echo "state after the failure:"
+              policies
+              exit 1
+            fi
+            policies
+            echo "::endgroup::"
+          done
+
+      - name: State after
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          source .github/scripts/db-url.sh
+          $PSQL "$DB_URL" -X \
+            -c "select tablename, policyname, cmd, roles, qual as using, with_check from pg_policies where schemaname = 'public' order by 1, 2" \
+            -c '\d public.profiles' \
+            -c '\d public.watchlists' \
+            -c '\d public.stripe_events' \
+            -c "select p.proname, pg_get_function_identity_arguments(p.oid) as args, p.prosecdef as security_definer from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('is_pro','apply_stripe_event','profiles_guard_columns','watchlists_enforce_cap','watchlists_normalize_cik','handle_new_user','handle_user_email_change') order by 1" \
+            -c "select tgrelid::regclass as table, tgname from pg_trigger where not tgisinternal and (tgrelid = 'public.profiles'::regclass or tgrelid = 'public.watchlists'::regclass or tgrelid = 'auth.users'::regclass) order by 1, 2" \
+            -c "select 'profiles   ' || count(*) from public.profiles union all select 'watchlists ' || count(*) from public.watchlists union all select 'auth.users ' || count(*) from auth.users" \
+            || true

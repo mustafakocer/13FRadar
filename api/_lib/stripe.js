@@ -9,7 +9,8 @@ import axios from 'axios';
 //   STRIPE_PRICE_YEARLY       price_… ($199 / year)
 //   STRIPE_PRICE_MONTHLY_TR   price_… ($10 / month, shown to visitors from Türkiye)
 //   STRIPE_PRICE_YEARLY_TR    price_… ($100 / year)
-const API = 'https://api.stripe.com';
+// STRIPE_API_BASE points the client at a stand-in during tests.
+const apiBase = () => (process.env.STRIPE_API_BASE || 'https://api.stripe.com').replace(/\/$/, '');
 
 export const hasStripe = () => !!process.env.STRIPE_SECRET_KEY;
 
@@ -50,7 +51,7 @@ async function call(method, path, params) {
   if (!key) throw new Error('STRIPE_SECRET_KEY not set');
   const r = await axios({
     method,
-    url: `${API}${path}`,
+    url: `${apiBase()}${path}`,
     timeout: 15000,
     validateStatus: () => true,
     headers: {
@@ -104,7 +105,7 @@ export function readRawBody(req) {
     req.on('data', (c) => chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)));
     req.on('end', finish);
     req.on('error', finish);
-    setTimeout(finish, 3000);
+    setTimeout(finish, 3000).unref?.();
   }).then((raw) => {
     if (raw) return raw;
     const b = req.body;
@@ -114,15 +115,23 @@ export function readRawBody(req) {
   });
 }
 
-// Access decision for one Stripe subscription object.
+// current_period_end lives on the subscription in older API versions and on
+// its items since 2025-03; unix seconds either way.
+export function periodEndOf(sub) {
+  return sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
+}
+export const unixToIso = (s) => (s ? new Date(Number(s) * 1000).toISOString() : null);
+
+// Access decision for one Stripe subscription object: { plan, expires }.
+// Pro always expires at the end of the paid period; the next renewal event
+// moves it. A subscription cancelled at period end therefore needs no special
+// case, and a renewal whose payment failed keeps access while Stripe's Smart
+// Retries run (status past_due), until Stripe itself moves it to
+// canceled/unpaid.
 export function planForSubscription(sub) {
   const status = String(sub?.status || '');
-  const periodEnd =
-    sub?.current_period_end ?? sub?.items?.data?.[0]?.current_period_end ?? null;
-  const endIso = periodEnd ? new Date(periodEnd * 1000).toISOString() : null;
   if (['active', 'trialing', 'past_due'].includes(status)) {
-    // cancel_at_period_end: access continues until the paid period ends
-    return { plan: 'pro', expires: sub.cancel_at_period_end ? endIso : null };
+    return { plan: 'pro', expires: unixToIso(periodEndOf(sub)) };
   }
   if (status === 'incomplete') return null; // first payment still pending
   return { plan: 'free', expires: null }; // canceled, unpaid, incomplete_expired, paused

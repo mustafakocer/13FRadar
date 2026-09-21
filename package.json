@@ -21,6 +21,7 @@
     "backfill": "node scripts/backfill-13f.mjs",
     "geo-monitor": "node --experimental-strip-types scripts/geo-monitor.ts",
     "test": "node --test tests/*.test.mjs",
+    "test:db": "bash scripts/db-test.sh",
     "test:full": "npm run build && node --test tests/*.test.mjs",
     "slugs": "node scripts/build-slugs.mjs",
     "fixtures": "node tests/fixtures/make-fixtures.mjs"

@@ -22,15 +22,11 @@ export function AuthProvider({ children }) {
     }
     const supabase = await getSupabase();
     try {
-      const { data } = await supabase
-        .from('profiles')
-        .select('plan, plan_expires')
-        .eq('id', session.user.id)
-        .maybeSingle();
-      const active =
-        data?.plan === 'pro' &&
-        (!data.plan_expires || new Date(data.plan_expires) > new Date());
-      setPlan(active ? 'pro' : 'free');
+      // The database decides what Pro means (public.is_pro: plan = 'pro' and
+      // no expiry or one still ahead). The client only paints the badge and
+      // the locks; every Pro payload is gated again on the server.
+      const { data } = await supabase.rpc('is_pro');
+      setPlan(data === true ? 'pro' : 'free');
     } catch {
       setPlan('free');
     }

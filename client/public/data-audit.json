@@ -93,13 +93,7 @@
         "filers": 9020,
         "withRows": 9020
       },
-      "findings": [
-        {
-          "rule": "drift",
-          "severity": "info",
-          "message": "no previous version to compare against"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "stocks",
@@ -137,8 +131,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 7832,
-        "byCik": 7832
+        "bySlug": 9024,
+        "byCik": 9024
       },
       "findings": []
     },

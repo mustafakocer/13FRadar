@@ -16,9 +16,14 @@
 // The counts travel with the number so a page can never show "0% turnover"
 // next to "1 new · 1 exited": a quarter with any opened or closed position
 // has a positive turnover, however small.
-export function turnover(prev, cur) {
+//
+// `idOf(position)` names the security: the ticker from the security master
+// when the caller has one, so a CUSIP that changed under a position (a
+// reorganisation, a new share class) is the same holding and not an exit
+// plus a new position — which would count the whole stake twice.
+export function turnover(prev, cur, { idOf = null } = {}) {
   if (!prev || !cur) return { turnover: null, traded: null, newCount: 0, exitCount: 0, addCount: 0, reduceCount: 0 };
-  const key = (p) => `${String(p.cusip || '').toUpperCase()}`;
+  const key = (p) => (idOf && idOf(p)) || `${String(p.cusip || '').toUpperCase()}`;
   const before = new Map();
   for (const p of prev.positions || []) before.set(key(p), p);
   const after = new Map();

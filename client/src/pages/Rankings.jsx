@@ -12,6 +12,7 @@ import AnswerBox from '../components/AnswerBox.jsx';
 import CoverageLine from '../components/CoverageLine.jsx';
 import { rankingAnswer, truncate155 } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
+import { securityLabel } from '../lib/label.js';
 import FilterSelect from '../components/FilterSelect.jsx';
 import Ico from '../components/Ico.jsx';
 import { Trophy } from 'lucide-react';
@@ -176,7 +177,7 @@ export default function Rankings() {
                 return (
                   <tr key={`${r.cusip}-${r.putCall || ''}`}>
                     <td className="l muted">{i + 1}</td>
-                    <td className="l">{r.ticker ? <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <span className="muted small">{r.cusip}</span>}</td>
+                    <td className="l">{r.ticker ? <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>}</td>
                     <td className="l">{r.issuer}</td>
                     {isOptions && (
                       <td className="l">

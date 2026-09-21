@@ -8,6 +8,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { build } from '../api/_lib/consensusBuild.js';
 import { buildStockMeta } from '../api/_lib/stockMetaBuild.js';
+import { retryUnresolved } from '../api/_lib/figi.js';
+import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 
 const pub = path.join(process.cwd(), 'client', 'public');
 fs.mkdirSync(pub, { recursive: true });
@@ -55,6 +57,19 @@ console.log(
 console.log(
   `guru-stocks.json: ${stocks.length} securities (${stocks.filter((s) => s.ticker).length} with a ticker), ${options.length} option lines`
 );
+
+// ---- security master --------------------------------------------------------
+// Identifiers OpenFIGI could not map get one more try a day, bounded; then
+// the master (and the derived flat map) is written for the commit.
+{
+  const before = masterStats();
+  const r = await retryUnresolved({ limit: Number(process.env.FIGI_RETRY_BUDGET || 200) });
+  persistMaster({ force: true });
+  const after = masterStats();
+  console.log(
+    `security master: ${after.resolved} resolved, ${after.unresolved} unresolved (before: ${before.resolved}/${before.unresolved}; retried ${r.due}, recovered ${r.resolved}); ${stocks.filter((s) => !s.ticker).length} of ${stocks.length} table rows without a ticker`
+  );
+}
 
 // ---- sector, market cap, returns ------------------------------------------
 // One pass over every ticker the table holds: a chart each for price and the

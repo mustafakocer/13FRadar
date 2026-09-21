@@ -47,7 +47,7 @@ const STEPS = [
   { key: 'universe', cmd: 'node scripts/build-universe.mjs && node scripts/build-slugs.mjs', cost: '45–60 min', optional: true },
   {
     key: 'audit',
-    cmd: 'node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,returns,splits,related,filings,filer-states,sector-map',
+    cmd: 'node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,returns,splits,related,filings,filer-states,sector-map,security-master',
     cost: 'seconds',
   },
 ];

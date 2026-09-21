@@ -11,6 +11,7 @@ import { useSeo } from '../seo.jsx';
 import { consensusSeo } from '../lib/seoTemplates.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import CoverageLine from '../components/CoverageLine.jsx';
+import { securityLabel } from '../lib/label.js';
 import Paywall from '../components/Paywall.jsx';
 import HoldersPanel from '../components/HoldersPanel.jsx';
 import { managerPath } from '../lib/paths.js';
@@ -42,7 +43,7 @@ const Sym = ({ r }) =>
       {r.ticker}
     </Link>
   ) : (
-    <span className="muted small">{r.cusip}</span>
+    <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
   );
 
 // A handful of tickers as links — the fund segment's cells.

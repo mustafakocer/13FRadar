@@ -20,6 +20,7 @@ import path from 'node:path';
 import { getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
 import { mapLimit } from '../api/_lib/yahooClient.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
+import { persist as persistMaster, stats as masterStats, tickerFor } from '../api/_lib/securityMaster.js';
 import { historyPanel } from '../api/_lib/gurus.js';
 import { splitAdjust, topRankedCusips } from '../api/_lib/history.js';
 import { turnover } from '../api/_lib/turnover.js';
@@ -127,11 +128,20 @@ for (const [cik, name] of gurus) {
     continue;
   }
 
+  // Resolve this guru's identifiers into the security master before the
+  // arithmetic: turnover and "time held" are keyed by ticker where one is
+  // known, so a CUSIP change under a position is neither a sale nor a
+  // break in the holding streak.
+  const names = {};
+  for (const s of snaps) for (const p of s.positions) if (!names[p.cusip]) names[p.cusip] = p.issuer;
+  await mapCusipsToTickers(Object.keys(names), { maxLive: Number(process.env.GURU_HISTORY_FIGI_BUDGET || 200), names });
+  const idOf = (p) => tickerFor(p.cusip) || String(p.cusip || '').toUpperCase();
+
   const positions = {};
   const quarters = [];
   let prev = null;
   for (const s of snaps) {
-    const t = turnover(prev, s);
+    const t = turnover(prev, s, { idOf });
     quarters.push({
       reportDate: s.f.reportDate,
       filed: s.f.filingDate,
@@ -163,10 +173,10 @@ for (const [cik, name] of gurus) {
   console.log(`${name}: ${quarters.length} quarters, ${Object.keys(positions).length} securities${quarters.some((q) => q.amended) ? `, ${quarters.filter((q) => q.amended).length} with amendments applied` : ''}`);
 }
 
-// tickers (static map first, OpenFIGI for the rest), then time held over the
-// ticker — a CUSIP that changed under a position (a split, a reorganisation)
-// keeps its holding streak — and split adjustment
-const tickers = await mapCusipsToTickers([...allCusips], { maxLive: 400 });
+// tickers from the security master (resolved above, per guru), then time
+// held over the ticker — a CUSIP that changed under a position (a split, a
+// reorganisation) keeps its holding streak — and split adjustment
+const tickers = await mapCusipsToTickers([...allCusips], { maxLive: 0 });
 for (const [cik, g] of Object.entries(out.gurus)) {
   if (g === previous[cik]) continue; // carried over: already mapped and adjusted
   const dates = g.quarters.map((q) => q.reportDate);
@@ -207,6 +217,12 @@ if (!refreshed && !reused.length && Object.keys(previous).length) {
 }
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify(out));
+persistMaster();
+{
+  const ms = masterStats();
+  const noTicker = Object.values(out.gurus).reduce((n, g) => n + Object.values(g.positions).filter((e) => !e.ticker).length, 0);
+  console.log(`security master: ${ms.resolved} resolved, ${ms.unresolved} unresolved; ${noTicker} stored positions without a ticker`);
+}
 console.log(
   `guru-history.json: ${Object.keys(out.gurus).length} gurus (${refreshed} refreshed, ${reused.length} unchanged, ${carried.length} carried over, ${failed.length} missing), ${tablesRead} tables read in ${Math.round((Date.now() - started) / 1000)}s, ${(fs.statSync(OUT).size / 1024).toFixed(0)} KB`
 );

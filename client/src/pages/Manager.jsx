@@ -14,6 +14,7 @@ import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
 import { managerPath } from '../lib/paths.js';
+import { securityLabel } from '../lib/label.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
@@ -455,7 +456,7 @@ export default function Manager({ segment = 'portfolio' }) {
                               {p.ticker ? (
                                 <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
                               ) : (
-                                <span className="muted small">{p.cusip}</span>
+                                <span className="muted small" title={p.cusip}>{securityLabel(p).text}</span>
                               )}
                             </td>
                             <td className="l">{p.issuer}</td>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
+import { securityLabel } from '../lib/label.js';
 import { useSeo } from '../seo.jsx';
 import { useGuruStocks } from '../hooks/useGuruStocks.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
@@ -165,7 +166,7 @@ export default function StockScreen() {
                         {r.ticker ? (
                           <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link>
                         ) : (
-                          <span className="muted small">{r.cusip}</span>
+                          <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
                         )}
                       </td>
                       <td className="l">{r.issuer}</td>

@@ -52,7 +52,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
+          for f in client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

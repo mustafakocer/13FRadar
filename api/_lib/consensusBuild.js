@@ -177,7 +177,9 @@ export async function build({ stocksTickers = 0 } = {}) {
   // stock pages, the screener and the ownership rankings are all keyed on it.
   // Request-time callers pass 0 and ride the static map alone.
   const wide = [...new Set([...stocks, ...exited, ...options].map((s) => s.cusip))].filter((c) => !(c in tickers));
-  Object.assign(tickers, await mapCusipsToTickers(wide, { maxLive: stocksTickers }));
+  const issuerOf = {};
+  for (const s of [...stocks, ...exited, ...options]) issuerOf[s.cusip] = s.issuer;
+  Object.assign(tickers, await mapCusipsToTickers(wide, { maxLive: stocksTickers, names: issuerOf }));
   const dress = (a) => ({ ...a, ticker: tickers[a.cusip] ?? null });
   const dressCard = (u) => ({ ...u, newBuys: u.newBuys.map(dress), adds: u.adds.map(dress), reduces: u.reduces.map(dress), exits: u.exits.map(dress) });
 

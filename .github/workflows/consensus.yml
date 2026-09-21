@@ -114,7 +114,7 @@ jobs:
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
       - name: Audit the rebuilt data
-        run: node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,returns,splits,related,filings,filer-states,sector-map
+        run: node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,returns,splits,related,filings,filer-states,sector-map,security-master
         env:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 
@@ -127,7 +127,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json; do
+          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

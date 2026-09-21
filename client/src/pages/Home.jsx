@@ -14,6 +14,7 @@ import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
+import { securityLabel } from '../lib/label.js';
 import Ico from '../components/Ico.jsx';
 import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star } from 'lucide-react';
 
@@ -414,7 +415,7 @@ function ConvictionCard({ icon, title, rows, value, sub }) {
             {r.ticker ? (
               <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tick">{r.ticker}</Link>
             ) : (
-              <span className="tick">{r.cusip}</span>
+              <span className="tick" title={r.cusip}>{securityLabel(r).text}</span>
             )}
             <div className="issuer">{niceName(r.issuer)}</div>
           </div>
@@ -634,7 +635,7 @@ function MarketActivity({ activity, mostHeld, managers, coverage, returns }) {
                       {r.ticker ? (
                         <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 800 }}>{r.ticker}</Link>
                       ) : (
-                        <span className="muted small">{r.cusip}</span>
+                        <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
                       )}
                     </td>
                     <td className="l">{niceName(r.issuer)}</td>

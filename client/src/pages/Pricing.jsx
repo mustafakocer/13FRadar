@@ -8,6 +8,10 @@ import { api } from '../lib/api.js';
 import Ico from '../components/Ico.jsx';
 import { Gift, Check } from 'lucide-react';
 
+// USD list prices, matching the Stripe products in docs/STRIPE-KURULUM.md
+// (yearly = 10 × monthly, "2 months free").
+export const PRICES = { global: { m: 19.9, y: 199 }, tr: { m: 10, y: 100 } };
+
 const FREE_FEATURES = ['pf1', 'pf2', 'pf3', 'pf4'];
 const PRO_FEATURES = ['pp1', 'pp2', 'pp3', 'pp4', 'pp5', 'pp6', 'pp7', 'pp8'];
 
@@ -44,9 +48,14 @@ export default function Pricing() {
   };
 
   const isTR = geo.data?.country === 'TR';
-  // Anchored discount display (TR); annual = 10× monthly everywhere → "2 months free"
-  const price = cycle === 'm' ? (isTR ? '$10' : t('pricing.proPrice')) : isTR ? '$100' : '$199';
-  const anchor = cycle === 'm' ? (isTR ? '$15' : null) : isTR ? '$120' : '$238';
+  // What Stripe actually charges (docs/STRIPE-KURULUM.md): the TR card shows
+  // the global price struck through as its reference, and a yearly plan shows
+  // twelve months at the monthly rate — the only anchors that correspond to a
+  // real price. The old "$15" had no Stripe price behind it.
+  const region = isTR ? PRICES.tr : PRICES.global;
+  const usd = (v) => `$${Number.isInteger(v) ? v : v.toFixed(2).replace('.', lang === 'tr' ? ',' : '.')}`;
+  const price = usd(cycle === 'm' ? region.m : region.y);
+  const anchor = cycle === 'm' ? (isTR ? usd(PRICES.global.m) : null) : usd((isTR ? PRICES.tr.m : PRICES.global.m) * 12);
 
   return (
     <div>

@@ -1,19 +1,25 @@
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
 
-// Server-side plan check against Supabase (public.is_pro). If the URL/anon
-// key aren't configured yet, everything is treated as Pro so the site keeps
-// working pre-launch. Public defaults are baked in below (anon keys are public by
-// design); env vars override them. The service role key is only needed by
-// the payment webhook.
-const PUBLIC_SUPABASE_URL = 'https://rmisfrxsnhdpcxqzmicy.supabase.co';
-const PUBLIC_SUPABASE_ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJtaXNmcnhzbmhkcGN4cXptaWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgzNDE2NzQsImV4cCI6MjEwMzkxNzY3NH0.61AzY7NluBE0vhGKagzq42U6ZlGIt1M328JtqqfR56A';
-
-const url = () =>
-  (process.env.SUPABASE_URL || PUBLIC_SUPABASE_URL).replace(/\/$/, '');
-const anon = () => process.env.SUPABASE_ANON_KEY || PUBLIC_SUPABASE_ANON_KEY;
+// Server-side plan check against Supabase (public.is_pro). The project URL
+// and anon key come from the environment only — SUPABASE_URL and
+// SUPABASE_ANON_KEY on Vercel — and nothing is baked in here any more.
+//
+// Unconfigured means *not* Pro. It used to mean "everyone is Pro" (a
+// pre-launch convenience), which with no fallback keys left would have turned
+// a missing env var into a site-wide paywall bypass. Now a missing key locks
+// the Pro tier and says so once in the log; scripts/check-env.mjs stops a
+// production build that lacks the variables.
+const url = () => String(process.env.SUPABASE_URL || '').replace(/\/$/, '');
+const anon = () => process.env.SUPABASE_ANON_KEY || '';
 const service = () => process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
+let warned = false;
+const warnOnce = () => {
+  if (warned) return;
+  warned = true;
+  console.warn('auth: SUPABASE_URL / SUPABASE_ANON_KEY not set — every request is treated as signed out (Pro locked)');
+};
 
 export const authConfigured = () => Boolean(url() && anon());
 
@@ -43,7 +49,10 @@ async function planForToken(token) {
 
 // Signed-in user { id, email, pro } or null. Cached per token for 5 minutes.
 export async function getUser(req) {
-  if (!authConfigured()) return null;
+  if (!authConfigured()) {
+    warnOnce();
+    return null;
+  }
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
   try {
@@ -55,7 +64,10 @@ export async function getUser(req) {
 }
 
 export async function isPro(req) {
-  if (!authConfigured()) return true;
+  if (!authConfigured()) {
+    warnOnce();
+    return false;
+  }
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return false;
   try {

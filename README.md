@@ -64,7 +64,9 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı (varsayılan 8/sn) ve 429/403 sonrası bekleme süreleri (sn, virgülle). Batch script'lerde 10 dakikalık SEC bloğunu aşacak kadar uzun, Vercel'de kısa (`1,2`). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
 | `FMP_API_KEY`, `TWELVEDATA_API_KEY` | opsiyonel | fiyat/rasyo sağlayıcıları |
-| Stripe / Supabase | ödeme için | bkz. docs/STRIPE-KURULUM.md |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | prod'da zorunlu | sunucu tarafı plan kontrolü (`api/_lib/auth.js`); yoksa herkes çıkış yapmış sayılır, Pro kilitli; production build durur |
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | prod'da zorunlu | aynı değerler, istemci paketine build'de gömülür (`client/src/lib/supabase.js`) |
+| Stripe | ödeme için | bkz. docs/STRIPE-KURULUM.md |
 | `RESEND_API_KEY`, `ALERT_FROM` | alert e-postası için | `scripts/send-alerts.mjs`; anahtar yoksa koşu eşleştirir ama göndermez |
 | `SUPABASE_SERVICE_ROLE_KEY` | alert işi için | digest her kullanıcının alert'lerini okur, RLS ile çalışamaz |
 | `HISTORY_STORE`, `HISTORY_SUPABASE_URL`, `HISTORY_SUPABASE_KEY` | tarihsel depo için | `HISTORY_STORE=1` olmadan okuma yolu dosyalardan devam eder |

@@ -64,10 +64,14 @@ sonuna kadar Pro'dur; Stripe iptal edince `customer.subscription.updated`
 | `STRIPE_PRICE_YEARLY` | `price_…` |
 | `STRIPE_PRICE_MONTHLY_TR` | `price_…` |
 | `STRIPE_PRICE_YEARLY_TR` | `price_…` |
+| `SUPABASE_URL` | Supabase → Settings → API → Project URL (sunucu: plan kontrolü `is_pro()`) |
+| `SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public (sunucu) |
+| `VITE_SUPABASE_URL` | aynı Project URL — istemci paketine build'de gömülür |
+| `VITE_SUPABASE_ANON_KEY` | aynı anon key — istemci paketine build'de gömülür |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → service_role (webhook'un plan yazabilmesi için) |
 | `SITE_URL` | isteğe bağlı, ör. `https://fundocap.com` (ödeme sonrası dönüş adresi) |
 
-Gizli anahtarları yalnızca Vercel'e gir; sohbete veya repoya yapıştırma. Değişkenleri kaydettikten sonra **Redeploy** yap.
+Gizli anahtarları yalnızca Vercel'e gir; sohbete veya repoya yapıştırma. Değişkenleri kaydettikten sonra **Redeploy** yap. Kodda gömülü URL/anon key yoktur: dört Supabase değişkeni eksikse production build `scripts/check-env.mjs`'te durur; preview'da auth kapalı, Pro kilitli çalışır.
 
 ## 5. Supabase şeması
 

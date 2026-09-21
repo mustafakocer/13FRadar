@@ -19,4 +19,15 @@ if (production && /\.vercel\.app$/i.test(new URL(site || CANONICAL_SITE).hostnam
 if (production && !site) {
   console.log(`SITE_URL is not set — production uses the canonical default ${CANONICAL_SITE}`);
 }
+// Supabase: the server (api/_lib/auth.js) and the client bundle
+// (client/src/lib/supabase.js) read their project URL and anon key from the
+// environment only. A production build without them ships a site whose Pro
+// tier is locked for everyone, so it stops here instead.
+const SUPABASE_VARS = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'];
+const missing = SUPABASE_VARS.filter((k) => !process.env[k]);
+if (missing.length && production) {
+  console.error(`\n✖ Missing ${missing.join(', ')} — set them in Vercel → Project → Settings → Environment Variables (Production) and redeploy. Server: SUPABASE_URL + SUPABASE_ANON_KEY; client bundle: VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (same values).\n`);
+  process.exit(1);
+}
+if (missing.length) console.log(`supabase: ${missing.join(', ')} not set — auth off, Pro locked (fine outside production)`);
 console.log(`env ok (SITE_URL=${site || (production ? CANONICAL_SITE : '(unset, non-production)')})`);

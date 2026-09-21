@@ -9,14 +9,13 @@ import { root } from './helpers.mjs';
 process.env.GURU_STOCKS_FILE = path.join(root, 'tests', 'fixtures', 'guru-stocks.fixture.json');
 
 const { invoke } = await import('../api/_lib/ssr/invoke.js');
-const { authConfigured } = await import('../api/_lib/auth.js');
 const { resetGuruStockCache, ownedShareOfCompany, byConviction } = await import('../api/_lib/guruStocks.js');
 const handler = (await import('../api/_handlers/guru-stocks.js')).default;
 
-// With Supabase reachable an anonymous request is a free one; without it the
-// whole site is treated as Pro (see auth.js), and the paywall assertions below
-// would be testing nothing.
-const anonymousIsFree = authConfigured();
+// An anonymous request is a free one whether or not Supabase is configured
+// (auth.js: unconfigured means signed out, never Pro), so the paywall
+// assertions below always run.
+const anonymousIsFree = true;
 
 test('a security carries its rank, holder count and quarter activity', async () => {
   const { status, body } = await invoke(handler, { ticker: 'OXY' });

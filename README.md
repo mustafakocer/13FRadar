@@ -59,7 +59,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 
 | Değişken | Zorunlu | Açıklama |
 |---|---|---|
-| `SITE_URL` | **Prod'da evet** (`scripts/check-env.mjs` build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://fundocap.com`. Preview'da `VERCEL_URL`'den türetilir. |
+| `SITE_URL` | opsiyonel (`scripts/check-env.mjs` yalnız `*.vercel.app` değerinde build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://www.fundocap.co` (prod varsayılanı; `*.vercel.app` değerleri prod'da yok sayılır). Preview'da `VERCEL_URL`'den türetilir. |
 | `SEC_USER_AGENT` | önerilir | SEC'in istediği iletişim bilgisi |
 | `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı (varsayılan 8/sn) ve 429/403 sonrası bekleme süreleri (sn, virgülle). Batch script'lerde 10 dakikalık SEC bloğunu aşacak kadar uzun, Vercel'de kısa (`1,2`). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
@@ -102,7 +102,7 @@ Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, so
 
 ### Sitemap, robots, OG
 
-- `/sitemap.xml` indeks; `/sitemap-pages.xml`, `-gurus.xml` (guru + guru×hisse sayfaları), `-filers.xml`, `-stocks.xml`, `-insider.xml`. Hepsi `api/_handlers/sitemap.js` tarafından istek anında üretilir (6 saat CDN cache) — ayrıca "yeniden üretme" adımı yoktur; kaynak dosyalar (`slugs.json`, `universe.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`) Action'larla yenilendiğinde sitemap kendiliğinden güncellenir. `lastmod` en son bildirim tarihinden gelir.
+- `/sitemap.xml` indeks; `/sitemap-pages.xml`, `-gurus.xml` (guru + alt sayfalar + guru×hisse), `-filers.xml`, `-stocks.xml` (usta setinin tuttuğu tüm semboller + evrenin en çok tutulanları), `-guides.xml`, `-insider.xml`; 50k URL'yi aşan aile `-<tür>-<n>.xml` parçalarına bölünür. Kök her zaman `api/_lib/site.js` kanonik origin'idir (`https://www.fundocap.co`); eski `13-f-radar-omega.vercel.app` ve `fundocap.co` apex, `vercel.json` ile aynı yola 301 döner. Hepsi `api/_handlers/sitemap.js` tarafından istek anında üretilir (6 saat CDN cache) — ayrıca "yeniden üretme" adımı yoktur; kaynak dosyalar (`slugs.json`, `universe.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`) Action'larla yenilendiğinde sitemap kendiliğinden güncellenir. `lastmod` en son bildirim tarihinden gelir.
 - `/robots.txt`: her şeye izin, `/api/` ve hesap/izleme listesi yolları hariç; sitemap indeksini gösterir.
 - `/api/og?type=guru&cik=…` ve `/api/og?type=stock&ticker=…` 1200×630 PNG üretir (resvg + paketlenmiş DejaVu Sans); diğer sayfalar varsayılan kartı kullanır.
 
@@ -156,7 +156,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
 2. [vercel.com](https://vercel.com) → **Add New → Project** → GitHub'dan `mustafakocer/Fundocap` reposunu import edin.
 3. Ayarlara dokunmanıza gerek yok — `vercel.json` her şeyi tanımlıyor (client build + `api/` fonksiyonları + SPA rewrites). Framework sorusuna **Other** deyin.
 4. **Deploy** butonuna basın. İlk build ~2 dk sürer.
-5. Environment Variables — **`SITE_URL` production'da zorunludur** (yoksa build kasıtlı olarak durur). Diğerleri:
+5. Environment Variables — `SITE_URL` production'da varsayılan olarak `https://www.fundocap.co` alınır; ayarlarsanız `*.vercel.app` olmamalı (build durur). Diğerleri:
    - `SEC_USER_AGENT` → `Fundocap/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
    - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.
@@ -198,6 +198,17 @@ psql restore -c "select count(*) from public.profiles; select count(*) from auth
 # 5. Canlıya dönüş: aynı dosyayı SUPABASE_DB_URL'e uygula; auth.users satırlarını Supabase Auth'un
 #    tablosuna `insert … on conflict (id) do nothing` ile taşı (şema ve roller orada zaten var).
 ```
+
+### 13F-HR/A (düzeltme) bildirimleri ve etkin çeyrek
+
+Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. Cover page'deki `amendmentType` iki değer alır: **RESTATEMENT** (tablonun tamamı yeniden verilir → orijinalin *yerine* geçer) ve **NEW HOLDINGS** (yalnız eksik bırakılan pozisyonlar → orijinale *eklenir*). Eskiden `list13F` "çeyrek başına en son dosyalanan belge" diyerek 4 satırlık bir NEW HOLDINGS düzeltmesini çeyreğin kendisi sanıyordu (Berkshire 2025 Q1 = 4 pozisyon, 2023 Q3/Q4 = tek satır Chubb; devir %200, AAPL "1.3 yıl").
+
+- `api/_lib/amendments.js`: saf mantık — `effectiveFilings` (CIK, dönem) başına tek giriş, sıralama **dönem tarihine** göre; `parseCoverPage` (`periodOfReport`, `amendmentType`); `applyAmendment` / `effectiveSnapshot`. Tip okunamazsa tablo boyutundan çıkarılır (orijinalin yarısından fazla satır → restatement) ve `inferred: true` işaretlenir.
+- `api/_lib/sec.js`: `list13FAll` ham liste (denetim), `list13F` etkin liste (`amendments` ekli), `getEffectiveHoldings(cik, filing)` = orijinal + sıralı düzeltmeler, `fetchCoverPage`. **Tüm türev hesaplar** (holdings, consensus, guru-history, aum-history, manager-stats, position-history, backtest, stock-ownership, universe snapshot) yalnız etkin snapshot'tan beslenir; ham accession `getHoldings` ile ayrıca okunabilir.
+- **Devir tanımı** tek yerde, `api/_lib/turnover.js`: `(açılan pozisyon değeri + kapatılan pozisyonların önceki değeri + ortak pozisyonlarda |Δadet| × fiyat) / iki çeyreğin ortalama portföy değeri`. Fiyat hareketi devir sayılmaz; herhangi bir işlem olan çeyrek asla "%0" göstermez (`<0.1%`). `newCount`/`exitCount` aynı fonksiyondan gelir.
+- **Elde tutma süresi** ticker üzerinden sayılır (CUSIP değişimi kırılma değildir; `api/_data/cusip-tickers.json` eşlemesi).
+- UI: "(A)" satırı yok; düzeltme uygulanan çeyrek `✎` ve "Düzeltme içerir (13F-HR/A, tarih)" rozeti taşır; `/filings` HR/A satırları dönem, tür (yeniden beyan / yeni pozisyonlar) ve tablo satır sayısını gösterir (`FILINGS_AMEND_BUDGET`, varsayılan 150/koşu).
+- **Yeniden hesaplama (backfill):** `npm run rebuild` (`--dry` planı ve maliyeti yazar; `--only=history,consensus`; `REBUILD_CIKS=…`). Guru geçmişi parmak izi `v2|…` sürümlü olduğu için ilk gece Action'ı da tüm guruları kendiliğinden yeniden okur; elle tetiklemek için `Build consensus & returns → force_history`. Tahmini maliyet: geçmiş ~8–9k EDGAR isteği (~25 dk), konsensüs ~10 dk, evren ~1 saat (gece zaten çalışır); bellek <1 GB.
 
 ### Tarihsel depo (opsiyonel, henüz doldurulmadı)
 

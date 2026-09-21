@@ -17,13 +17,13 @@ export function invoke(handler, query = {}, headers = {}) {
         return this;
       },
       json(body) {
-        resolve({ status: this.statusCode, body });
+        resolve({ status: this.statusCode, body, headers: this.headers });
       },
       send(body) {
-        resolve({ status: this.statusCode, body });
+        resolve({ status: this.statusCode, body, headers: this.headers });
       },
       end() {
-        resolve({ status: this.statusCode, body: null });
+        resolve({ status: this.statusCode, body: null, headers: this.headers });
       },
     };
     const req = { query: { ...query }, headers, method: 'GET', url: '' };

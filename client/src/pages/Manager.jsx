@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtTurnover, deltaClass, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import FavoriteButton from '../components/FavoriteButton.jsx';
 import PositionCards from '../components/PositionCards.jsx';
@@ -243,6 +243,10 @@ export default function Manager({ segment = 'portfolio' }) {
   const secUrl = filing
     ? `https://www.sec.gov/Archives/edgar/data/${Number(mgr.data.cik)}/${String(filing.acc).replace(/-/g, '')}/`
     : null;
+  // A quarter is one row whatever was filed for it; when a 13F-HR/A was
+  // folded into the snapshot the page says so, with the date, in one badge.
+  const amendments = holdings.data?.amendments || filing?.amendments || [];
+  const amendedOn = (holdings.data?.amended || filing?.amended) && amendments.length ? amendments.map((a) => a.filingDate).join(', ') : null;
 
   return (
     <div>
@@ -267,6 +271,11 @@ export default function Manager({ segment = 'portfolio' }) {
               {managerStyle(mgr.data.cik) && (
                 <span className="badge plain sm" style={{ marginLeft: 8 }}>{t(`style.${managerStyle(mgr.data.cik)}`)}</span>
               )}
+              {amendedOn && (
+                <span className="badge plain sm" style={{ marginLeft: 8 }} title={t('tips.amended')}>
+                  {t('manager.amended').replace('{d}', amendedOn)}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -277,7 +286,7 @@ export default function Manager({ segment = 'portfolio' }) {
           <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)} aria-label={t('manager.filings')}>
             {filings.map((f) => (
               <option key={f.acc} value={f.acc}>
-                {quarterLabel(f.reportDate)} {f.form === '13F-HR/A' ? '(A)' : ''}
+                {quarterLabel(f.reportDate)}{f.amended ? ' ✎' : ''}
               </option>
             ))}
           </select>
@@ -334,7 +343,7 @@ export default function Manager({ segment = 'portfolio' }) {
               value={fmtPct(top10, { sign: false })}
               sub={
                 ms
-                  ? `${t('manager.kpi.turnover')} ${fmtPct(ms.turnoverLatest, { sign: false })}`
+                  ? `${t('manager.kpi.turnover')} ${fmtTurnover(ms.turnoverLatest)}`
                   : latest?.estFlow != null && <>{t('manager.estFlow')} <b className={deltaClass(latest.estFlow)}>{fmtMoney(latest.estFlow)}</b></>
               }
             />
@@ -494,18 +503,25 @@ export default function Manager({ segment = 'portfolio' }) {
                           <th className="l">{t('hist.filed')}</th>
                           <th>{t('hist.count')}</th>
                           <th>{t('hist.value')}</th>
-                          <th>{t('hist.turnover')}</th>
+                          <th>{t('hist.turnover')}<InfoTip tip="tips.turnover" /></th>
                           <th className="l">{t('hist.top10')}</th>
                         </tr>
                       </thead>
                       <tbody>
                         {[...hist.data.quarters].reverse().map((q) => (
                           <tr key={q.acc}>
-                            <td className="l"><b>{quarterLabel(q.reportDate)}</b></td>
+                            <td className="l">
+                              <b>{quarterLabel(q.reportDate)}</b>
+                              {q.amended?.length > 0 && (
+                                <span className="badge plain sm" style={{ marginLeft: 6 }} title={`13F-HR/A ${q.amended.map((a) => a.filed).join(', ')}`}>
+                                  ✎ {t('hist.amended')}
+                                </span>
+                              )}
+                            </td>
                             <td className="l muted">{q.filed}</td>
                             <td className="num">{fmtNum(q.count)}</td>
                             <td className="num">{fmtMoney(q.aum)}</td>
-                            <td className="num">{q.turnover != null ? fmtPct(q.turnover, { sign: false }) : '—'}</td>
+                            <td className="num">{fmtTurnover(q.turnover)}</td>
                             <td className="l small">
                               {q.top10.map((tk, i) => (
                                 <span key={`${tk}-${i}`}>

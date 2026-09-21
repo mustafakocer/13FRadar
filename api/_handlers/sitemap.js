@@ -2,18 +2,26 @@ import { createRequire } from 'node:module';
 import { slugTable } from '../_lib/slugs.js';
 import { siteUrl } from '../_lib/site.js';
 import { historyTable } from '../_lib/history.js';
+import { guruStockTable } from '../_lib/guruStocks.js';
 import { reportIndex } from './report.js';
 import { GUIDES, COMPARES } from '../../client/src/content/registry.js';
 
 // Sitemap index + per-entity sitemaps + robots.txt.
 //   /sitemap.xml            → index (type=index)
-//   /sitemap-gurus.xml      → curated gurus, lastmod = latest filing date
+//   /sitemap-pages.xml      → static / ranking / listing pages
+//   /sitemap-gurus.xml      → curated gurus, their sub-pages and guru × ticker pages
 //   /sitemap-filers.xml     → every other 13F filer
-//   /sitemap-stocks.xml     → the 500 most-held securities with a ticker
+//   /sitemap-stocks.xml     → every security the curated funds hold, plus the
+//                             universe's most-held names
+//   /sitemap-guides.xml     → guides and comparisons (language-specific slugs)
 //   /sitemap-insider.xml    → insider signal pages, lastmod = teaser build
-//   /sitemap-pages.xml      → static/ranking pages
 //   /robots.txt
-// Every URL is emitted once per language with xhtml:link alternates.
+// Every URL is emitted once per language with xhtml:link alternates. A
+// family that would exceed the protocol's 50,000-URL limit is split into
+// /sitemap-<type>-<n>.xml parts and the index lists each part.
+//
+// The origin comes from api/_lib/site.js — never from the request's host —
+// so the index can only ever name the canonical domain.
 const require = createRequire(import.meta.url);
 const load = (f) => {
   try {
@@ -23,6 +31,8 @@ const load = (f) => {
   }
 };
 const LANGS = ['en', 'tr'];
+export const URL_LIMIT = 50000;
+export const TYPES = ['pages', 'gurus', 'filers', 'stocks', 'guides', 'insider'];
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function urlset(site, entries) {
@@ -43,22 +53,20 @@ function urlset(site, entries) {
 }
 
 const day = (iso) => (iso ? String(iso).slice(0, 10) : null);
+// each entry becomes one URL per language
+const PER_PART = Math.floor(URL_LIMIT / LANGS.length);
 
-export function buildSitemap(type, site) {
+function context() {
   const slugs = slugTable();
   const universe = load('../../client/public/universe.json');
   const filedByCik = new Map((universe?.rows || []).map((r) => [r.cik, r.filed]));
   const latestFiled = [...filedByCik.values()].sort().pop() || null;
+  return { slugs, filedByCik, latestFiled };
+}
 
-  if (type === 'index') {
-    const parts = ['pages', 'gurus', 'filers', 'stocks', 'insider'];
-    return {
-      contentType: 'application/xml',
-      body: `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${parts
-        .map((p) => `<sitemap><loc>${esc(`${site}/sitemap-${p}.xml`)}</loc>${latestFiled ? `<lastmod>${latestFiled}</lastmod>` : ''}</sitemap>`)
-        .join('\n')}\n</sitemapindex>`,
-    };
-  }
+// The entries of one family, before language expansion and chunking.
+export function entriesFor(type, ctx = context()) {
+  const { slugs, filedByCik, latestFiled } = ctx;
   if (type === 'gurus' || type === 'filers') {
     const want = type === 'gurus' ? 'guru' : 'filer';
     const entries = Object.entries(slugs.bySlug)
@@ -88,30 +96,44 @@ export function buildSitemap(type, site) {
         }
       }
     }
-    return { contentType: 'application/xml', body: urlset(site, entries) };
+    return entries;
   }
   if (type === 'stocks') {
-    const stocks = load('../../client/public/stocks.json');
+    // Every name the curated funds hold (the per-security table the stock
+    // page is built from), then the universe's most-held list. A symbol is
+    // listed once, under the date its table was last rebuilt.
     const seen = new Set();
     const entries = [];
-    for (const r of stocks?.rows || []) {
-      if (!r.ticker || seen.has(r.ticker)) continue;
-      seen.add(r.ticker);
-      entries.push({ path: `/stock/${r.ticker}`, lastmod: day(stocks.updatedAt), changefreq: 'weekly', priority: '0.7' });
-    }
-    return { contentType: 'application/xml', body: urlset(site, entries) };
+    const add = (ticker, lastmod, priority) => {
+      const sym = String(ticker || '').toUpperCase();
+      if (!sym || !/^[A-Z0-9.\-]{1,12}$/.test(sym) || seen.has(sym)) return;
+      seen.add(sym);
+      entries.push({ path: `/stock/${sym}`, lastmod, changefreq: 'weekly', priority });
+    };
+    const gs = guruStockTable();
+    const gsDate = day(gs?.updatedAt) || latestFiled;
+    for (const s of gs?.stocks || []) add(s.ticker, gsDate, s.rank <= 100 ? '0.8' : '0.7');
+    for (const o of gs?.options || []) add(o.ticker, gsDate, '0.6');
+    const stocks = load('../../client/public/stocks.json');
+    for (const r of stocks?.rows || []) add(r.ticker, day(stocks.updatedAt) || latestFiled, '0.7');
+    return entries;
+  }
+  if (type === 'guides') {
+    const consensus = load('../../client/public/consensus.json');
+    const lastmod = day(consensus?.updatedAt) || latestFiled;
+    return [...GUIDES, ...COMPARES].map((g) => ({ path: g.paths.en, paths: g.paths, lastmod: g.updatedAt || lastmod, changefreq: 'monthly', priority: '0.6' }));
   }
   if (type === 'insider') {
     const teaser = load('../../client/public/insiders-teaser.json');
     const lastmod = day(teaser?.updatedAt);
     const entries = ['cluster', 'csuite', 'penny'].map((k) => ({ path: `/insiders/${k}`, lastmod, changefreq: 'daily', priority: '0.8' }));
     entries.push({ path: '/insiders', lastmod, changefreq: 'daily', priority: '0.7' });
-    return { contentType: 'application/xml', body: urlset(site, entries) };
+    return entries;
   }
   if (type === 'pages') {
     const consensus = load('../../client/public/consensus.json');
     const lastmod = day(consensus?.updatedAt) || latestFiled;
-    const entries = [
+    return [
       { path: '/', lastmod, changefreq: 'daily', priority: '1.0' },
       { path: '/gurus', lastmod: latestFiled, changefreq: 'weekly', priority: '0.9' },
       { path: '/consensus', lastmod, changefreq: 'daily', priority: '0.9' },
@@ -127,15 +149,27 @@ export function buildSitemap(type, site) {
       { path: '/emerging-managers', lastmod: latestFiled, changefreq: 'weekly', priority: '0.7' },
       { path: '/reports', lastmod, changefreq: 'weekly', priority: '0.7' },
       ...reportIndex().map((id) => ({ path: `/reports/${id}`, lastmod, changefreq: 'monthly', priority: '0.8' })),
-      ...[...GUIDES, ...COMPARES].map((g) => ({ path: g.paths.en, paths: g.paths, changefreq: 'monthly', priority: '0.6' })),
       { path: '/screen', lastmod: latestFiled, changefreq: 'weekly', priority: '0.6' },
       { path: '/report', lastmod, changefreq: 'weekly', priority: '0.5' },
       { path: '/compare', changefreq: 'monthly', priority: '0.3' },
       { path: '/pricing', changefreq: 'monthly', priority: '0.4' },
       ...['0', ...'abcdefghijklmnopqrstuvwxyz'].map((l) => ({ path: `/filers/${l}`, lastmod: latestFiled, changefreq: 'weekly', priority: '0.4' })),
     ];
-    return { contentType: 'application/xml', body: urlset(site, entries) };
   }
+  return null;
+}
+
+// How many files a family needs: one URL per language per entry.
+export const partsOf = (entries) => Math.max(1, Math.ceil(entries.length / PER_PART));
+
+// "stocks" → { family: 'stocks', part: 1 }; "filers-3" → part 3.
+export function parseType(type) {
+  const m = /^([a-z]+)(?:-(\d+))?$/.exec(String(type || ''));
+  if (!m) return null;
+  return { family: m[1], part: m[2] ? Number(m[2]) : 1 };
+}
+
+export function buildSitemap(type, site) {
   if (type === 'robots') {
     // AI crawlers are welcome (GEO): explicit Allow blocks so a future
     // blanket rule can never shut them out by accident. Only private and
@@ -148,7 +182,29 @@ export function buildSitemap(type, site) {
       body: `${block('*')}\n${AI_BOTS.map(block).join('\n')}\nSitemap: ${site}/sitemap.xml\n`,
     };
   }
-  return null;
+  const ctx = context();
+  if (type === 'index') {
+    const rows = [];
+    for (const family of TYPES) {
+      const entries = entriesFor(family, ctx) || [];
+      const n = partsOf(entries);
+      const lastmod = entries.reduce((m, e) => (e.lastmod && e.lastmod > m ? e.lastmod : m), '') || ctx.latestFiled;
+      for (let i = 1; i <= n; i++) {
+        const name = n === 1 ? family : `${family}-${i}`;
+        rows.push(`<sitemap><loc>${esc(`${site}/sitemap-${name}.xml`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</sitemap>`);
+      }
+    }
+    return {
+      contentType: 'application/xml',
+      body: `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</sitemapindex>`,
+    };
+  }
+  const parsed = parseType(type);
+  if (!parsed || !TYPES.includes(parsed.family)) return null;
+  const entries = entriesFor(parsed.family, ctx);
+  if (!entries || parsed.part < 1 || parsed.part > partsOf(entries)) return null;
+  const slice = partsOf(entries) === 1 ? entries : entries.slice((parsed.part - 1) * PER_PART, parsed.part * PER_PART);
+  return { contentType: 'application/xml', body: urlset(site, slice) };
 }
 
 export default function handler(req, res) {

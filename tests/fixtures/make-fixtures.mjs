@@ -45,6 +45,37 @@ const FILERS = [
     prev: [['BABA', 2e6, 160e6], ['KO', 0.3e6, 20e6]] },
 ];
 
+// A filer that amends: exercises api/_lib/amendments.js end to end.
+//   2026 Q2  original only
+//   2026 Q1  original (6 names) + 13F-HR/A NEW HOLDINGS (KO, CVX — the
+//            confidential-treatment pattern: filed the same day as the next
+//            quarter's original, exactly as Berkshire's 2025 Q1 was)
+//   2025 Q4  original (5 names) + 13F-HR/A RESTATEMENT (6 names: HLT added,
+//            AAPL's share count corrected)
+// The submissions feed lists documents newest filed first, amendments mixed
+// in with originals — the shape that used to produce "(A)" quarters.
+const AMENDER = {
+  cik: '0009000001', name: 'AMENDMENT TEST FUND LP', city: 'BOSTON', state: 'MA',
+  docs: [
+    { acc: '0009000001-26-000030', form: '13F-HR', filed: '2026-08-14', period: '2026-06-30',
+      rows: [['AAPL', 100e6, 22.5e9], ['MSFT', 10e6, 4.2e9], ['AMZN', 20e6, 3.8e9], ['GOOGL', 20e6, 3.3e9], ['KO', 50e6, 3.25e9], ['CVX', 20e6, 3.0e9], ['HLT', 5e6, 1.1e9], ['OXY', 10e6, 0.6e9]] },
+    { acc: '0009000001-26-000025', form: '13F-HR/A', filed: '2026-08-14', period: '2026-03-31', amendmentType: 'NEW HOLDINGS',
+      rows: [['KO', 50e6, 3.2e9], ['CVX', 20e6, 2.9e9]] },
+    { acc: '0009000001-26-000020', form: '13F-HR', filed: '2026-05-15', period: '2026-03-31',
+      rows: [['AAPL', 100e6, 21e9], ['MSFT', 10e6, 4.0e9], ['AMZN', 20e6, 3.6e9], ['GOOGL', 20e6, 3.1e9], ['HLT', 5e6, 1.0e9], ['OXY', 12e6, 0.7e9]] },
+    { acc: '0009000001-26-000015', form: '13F-HR/A', filed: '2026-03-01', period: '2025-12-31', amendmentType: 'RESTATEMENT',
+      rows: [['AAPL', 100e6, 20e9], ['MSFT', 10e6, 3.9e9], ['AMZN', 20e6, 3.5e9], ['GOOGL', 20e6, 3.0e9], ['OXY', 12e6, 0.65e9], ['HLT', 5e6, 0.95e9]] },
+    { acc: '0009000001-26-000010', form: '13F-HR', filed: '2026-02-14', period: '2025-12-31',
+      rows: [['AAPL', 90e6, 18e9], ['MSFT', 10e6, 3.9e9], ['AMZN', 20e6, 3.5e9], ['GOOGL', 20e6, 3.0e9], ['OXY', 12e6, 0.65e9]] },
+  ],
+};
+
+const coverPage = (d) => {
+  const [y, m, day] = d.period.split('-');
+  const amend = d.form === '13F-HR/A';
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler">\n  <headerData><submissionType>${d.form}</submissionType></headerData>\n  <formData>\n    <coverPage>\n      <reportCalendarOrQuarter>${m}-${day}-${y}</reportCalendarOrQuarter>\n      <isAmendment>${amend}</isAmendment>\n${amend ? `      <amendmentNo>1</amendmentNo>\n      <amendmentInfo><amendmentType>${d.amendmentType}</amendmentType></amendmentInfo>\n` : ''}      <reportType>13F HOLDINGS REPORT</reportType>\n    </coverPage>\n  </formData>\n</edgarSubmission>\n`;
+};
+
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 const infoTable = (rows) =>
   `<?xml version="1.0" encoding="UTF-8"?>\n<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">\n` +
@@ -71,6 +102,22 @@ for (const f of FILERS) {
   const cikN = String(Number(f.cik));
   w(`filings/${cikN}/${f.q[0][0].replace(/-/g, '')}/infotable.xml`, infoTable(f.cur));
   w(`filings/${cikN}/${f.q[1][0].replace(/-/g, '')}/infotable.xml`, infoTable(f.prev));
+}
+
+w(`submissions/CIK${AMENDER.cik}.json`, {
+  cik: String(Number(AMENDER.cik)), name: AMENDER.name,
+  addresses: { business: { city: AMENDER.city, stateOrCountry: AMENDER.state } },
+  filings: { recent: {
+    form: AMENDER.docs.map((d) => d.form),
+    accessionNumber: AMENDER.docs.map((d) => d.acc),
+    filingDate: AMENDER.docs.map((d) => d.filed),
+    reportDate: AMENDER.docs.map((d) => d.period),
+  } },
+});
+for (const d of AMENDER.docs) {
+  const dir = `filings/${String(Number(AMENDER.cik))}/${d.acc.replace(/-/g, '')}`;
+  w(`${dir}/infotable.xml`, infoTable(d.rows));
+  w(`${dir}/primary_doc.xml`, coverPage(d));
 }
 
 for (const [sym, [cusip, issuer, name, px]] of Object.entries(STOCKS)) {

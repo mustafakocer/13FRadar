@@ -8,6 +8,20 @@
     "api/ssr.js": { "includeFiles": "client/dist/**", "maxDuration": 30 },
     "api/index.js": { "includeFiles": "{api/_data/reports/**,reports/**,api/_assets/**}", "maxDuration": 30 }
   },
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "13-f-radar-omega.vercel.app" }],
+      "destination": "https://www.fundocap.co/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "fundocap.co" }],
+      "destination": "https://www.fundocap.co/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api?__path=:path*" },
     { "source": "/sitemap.xml", "destination": "/api?__path=sitemap&type=index" },

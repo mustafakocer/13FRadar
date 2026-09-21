@@ -30,6 +30,15 @@ export const fmtRatio = (v, digits = 2) =>
 // buy = increase, sell = decrease; zero is neither, so it stays uncoloured
 export const deltaClass = (v) => (v == null || v === 0 ? '' : v > 0 ? 'delta-pos' : 'delta-neg');
 
+// Turnover is a trading measure (see api/_lib/turnover.js): a quarter with
+// any trade is never "0%", it is "<0.1%" — otherwise the number sits next to
+// "1 new · 1 exited" and contradicts it.
+export function fmtTurnover(v) {
+  if (v == null || Number.isNaN(v)) return '—';
+  if (v > 0 && v < 0.05) return '<0.1%';
+  return fmtPct(v, { sign: false });
+}
+
 export function quarterLabel(dateStr) {
   if (!dateStr) return '—';
   const [y, m] = dateStr.split('-').map(Number);

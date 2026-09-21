@@ -1,6 +1,6 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { requirePro } from '../_lib/auth.js';
-import { getSubmissions, list13F, getHoldings } from '../_lib/sec.js';
+import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { yahooChartPrices, mapLimit } from '../_lib/yahooClient.js';
 import { dailyCloses } from '../_lib/providers.js';
@@ -30,7 +30,7 @@ export default async function handler(req, res) {
       if (filings.length < 2) return { points: [], error: 'not-enough-filings' };
 
       const snaps = await mapLimit(filings, 4, async (f) => {
-        const { positions } = await getHoldings(cik, f.acc, f.filingDate);
+        const { positions } = await getEffectiveHoldings(cik, f);
         return { f, top: positions.filter((p) => !p.putCall).slice(0, topN) };
       });
       const valid = snaps.filter(Boolean);

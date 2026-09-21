@@ -80,9 +80,14 @@ export default function Stock() {
   const { t, lang } = useI18n();
   const { isPro } = useAuth();
 
-  const { data, isLoading, error } = useQuery({
+  // The quote. The endpoint answers 200 with a dated or empty price block
+  // when its providers are down (priceStale / priceUnavailable), so this
+  // query only errors on a network failure or the client-side deadline —
+  // and then the page still renders everything that does not need a quote.
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['stock', ticker],
     queryFn: () => api.stock(ticker),
+    retry: 1,
   });
 
 
@@ -126,25 +131,26 @@ export default function Stock() {
         {t('common.loading')}
       </div>
     );
-  if (error)
-    return <div className="error-box">{t('common.error')}: {String(error.message)}</div>;
 
-  const {
-    price: p = {},
-    valuation: v = {},
-    fundamentals: f = {},
-    trading: tr = {},
-    analyst: an = {},
-    profile: pr = {},
-  } = data;
+  // Every field below is read defensively: a fallback payload carries nulls,
+  // and a failed request carries nothing at all.
+  const p = data?.price || {};
+  const v = data?.valuation || {};
+  const f = data?.fundamentals || {};
+  const tr = data?.trading || {};
+  const an = data?.analyst || {};
+  const pr = data?.profile || {};
   const chg = p.changePercent;
+  const sym = p.symbol || String(ticker || '').toUpperCase();
+  const quoteMissing = !!error || !data || data.priceUnavailable || p.price == null;
+  const quoteStale = !quoteMissing && !!(data.priceStale || data.stale);
 
   return (
     <div>
       <div className="page-head">
         <div>
           <h1>
-            {p.name} <span className="muted" style={{ fontWeight: 600 }}>({p.symbol})</span>
+            {p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span>
           </h1>
           <div className="row mt8">
             <span className="price-big">
@@ -155,10 +161,31 @@ export default function Stock() {
                 {fmtPct(chg, { digits: 2 })}
               </span>
             )}
+            {quoteStale && data.priceAsOf && (
+              <span className="badge plain" title={t('stock.priceStale')}>{t('stock.asOf')} {data.priceAsOf}</span>
+            )}
             {pr.sector && <span className="badge plain">{pr.sector}</span>}
           </div>
         </div>
       </div>
+
+      {/* The quote is one provider among several on this page. When it is
+          missing the page says so here and carries on: the ownership block,
+          the FAQ and the links below do not depend on it. */}
+      {(quoteMissing || quoteStale) && (
+        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }} role="status">
+          <span className="small">
+            <Ico icon={TriangleAlert} size={14} />{' '}
+            {quoteMissing ? t('stock.priceUnavailable') : t('stock.priceStale')}
+            {error && <span className="muted"> · {String(error.message)}</span>}
+          </span>
+          {error && (
+            <button className="btn ghost sm" style={{ marginLeft: 12 }} onClick={() => refetch()}>
+              {t('common.retry')}
+            </button>
+          )}
+        </div>
+      )}
 
       <AnswerBox text={seo.answer} />
 
@@ -192,7 +219,7 @@ export default function Stock() {
         </div>
       </div>
 
-      {data.source !== 'quoteSummary' && (
+      {!quoteMissing && !quoteStale && data.source !== 'quoteSummary' && (
         <div
           className="card"
           style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}
@@ -203,7 +230,7 @@ export default function Stock() {
 
       <YearTable
         title={t('stock.income')}
-        rows={data.income}
+        rows={data?.income}
         t={t}
         cols={[
           ['revenue', 'stock.revenue'],
@@ -214,7 +241,7 @@ export default function Stock() {
       />
       <YearTable
         title={t('stock.balance')}
-        rows={data.balance}
+        rows={data?.balance}
         t={t}
         cols={[
           ['totalAssets', 'stock.assets'],
@@ -226,7 +253,7 @@ export default function Stock() {
       />
       <YearTable
         title={t('stock.cashflow')}
-        rows={data.cashflow}
+        rows={data?.cashflow}
         t={t}
         cols={[
           ['operating', 'stock.opCf'],
@@ -236,7 +263,7 @@ export default function Stock() {
         ]}
       />
 
-      {data.earnings?.length > 0 && (
+      {data?.earnings?.length > 0 && (
         <div className="card mt16">
           <h3>{t('stock.earnings')}</h3>
           <div className="table-wrap">
@@ -324,7 +351,7 @@ export default function Stock() {
           truncated={guru.holdersTruncated}
           options={guru.options}
           ownedPct={
-            guru.stock.totalShares && tr.sharesOutstanding
+            guru.stock?.totalShares && tr.sharesOutstanding
               ? (guru.stock.totalShares / tr.sharesOutstanding) * 100
               : null
           }

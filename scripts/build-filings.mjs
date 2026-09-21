@@ -16,10 +16,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 import { parseFilingIndex, mergeFilings, joinUniverse, quartersOf } from '../api/_lib/filings.js';
+import { fetchCoverPage, fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
 
 const DAYS = Number(process.env.FILINGS_DAYS || 10);
 const WINDOW = Number(process.env.FILINGS_WINDOW || 120);
 const META_BUDGET = Number(process.env.FILER_META_BUDGET || 400);
+// 13F-HR/A rows read their own cover page and table (three requests each) so
+// the feed can say what the amendment did: the period it corrects, whether
+// it restates the book or adds to it, and how many positions it carries.
+const AMEND_BUDGET = Number(process.env.FILINGS_AMEND_BUDGET || 150);
 const UA = process.env.SEC_USER_AGENT || 'Fundocap filings build (contact via fundocap.com)';
 
 const root = process.cwd();
@@ -176,6 +181,34 @@ rows = rows.map((r) => {
     state: m?.state ?? null,
   };
 });
+
+// Amendments: the period from the document's own cover page (it corrects
+// an arbitrary earlier quarter, never "the quarter it was filed in"), the
+// kind of correction, and the row count of its table. Read once per
+// accession and kept in the row; the merge above preserves it on re-reads.
+const toEnrich = rows.filter((r) => r.amended && !r.amendmentType && r.positions == null).slice(0, AMEND_BUDGET);
+if (toEnrich.length) {
+  console.log(`Reading ${toEnrich.length} amendments…`);
+  const enriched = new Map();
+  for (const r of toEnrich) {
+    try {
+      const [cover, xml] = await Promise.all([fetchCoverPage(r.cik, r.acc), fetchInfoTableXml(r.cik, r.acc)]);
+      const { aum, positions } = aggregatePositions(await parse13F(xml), r.filed);
+      enriched.set(r.acc, {
+        reportDate: cover?.periodOfReport || r.reportDate || null,
+        amendmentType: cover?.amendmentType || null,
+        // the amendment's own figures: the whole restated book, or only the
+        // lines a NEW HOLDINGS amendment adds
+        aum: Math.round(aum),
+        positions: positions.length,
+      });
+    } catch (e) {
+      console.warn(`  ${r.acc}: ${e.message}`);
+    }
+  }
+  rows = rows.map((r) => (enriched.has(r.acc) ? { ...r, ...enriched.get(r.acc) } : r));
+  console.log(`  ${enriched.size} amendments read (${[...enriched.values()].filter((e) => e.amendmentType).length} with a stated type)`);
+}
 rows = joinUniverse(rows, universe.rows || []);
 
 fs.mkdirSync(pub, { recursive: true });
@@ -202,5 +235,5 @@ fs.writeFileSync(
 console.log(`filer-states.json: ${Object.keys(byCik).length} filers with an address`);
 
 console.log(
-  `filings.json: ${rows.length} filings (${rows.filter((r) => r.amended).length} amendments, ${rows.filter((r) => r.reportDate).length} with a period, ${rows.filter((r) => r.aum != null).length} with figures)`
+  `filings.json: ${rows.length} filings (${rows.filter((r) => r.amended).length} amendments, ${rows.filter((r) => r.amended && r.amendmentType).length} typed, ${rows.filter((r) => r.reportDate).length} with a period, ${rows.filter((r) => r.aum != null).length} with figures)`
 );

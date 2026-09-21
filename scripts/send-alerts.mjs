@@ -18,9 +18,10 @@ import path from 'node:path';
 import axios from 'axios';
 import { svcSelect, svcUpdate, hasServiceKey } from '../api/_lib/auth.js';
 import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject } from '../api/_lib/alerts.js';
+import { CANONICAL_SITE } from '../api/_lib/site.js';
 
 const DRY = process.argv.includes('--dry-run');
-const SITE = (process.env.SITE_URL || 'https://fundocap.com').replace(/\/$/, '');
+const SITE = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');
 const FROM = process.env.ALERT_FROM || 'Fundocap <alerts@fundocap.com>';
 const MAIL_KEY = process.env.RESEND_API_KEY || '';
 

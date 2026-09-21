@@ -13,7 +13,7 @@ const dist = path.join(process.cwd(), 'client', 'dist');
 
 app.use(async (req, res, next) => {
   // sitemap / robots live behind the API function in production (vercel.json)
-  const sm = /^\/(sitemap(?:-([a-z]+))?\.xml|robots\.txt)$/.exec(req.path);
+  const sm = /^\/(sitemap(?:-([a-z0-9-]+))?\.xml|robots\.txt)$/.exec(req.path);
   if (sm) {
     req.query.route = ['sitemap'];
     req.query.type = sm[1] === 'robots.txt' ? 'robots' : sm[2] || 'index';

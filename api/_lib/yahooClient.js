@@ -6,8 +6,16 @@ const UA =
 const HOSTS = ['https://query2.finance.yahoo.com', 'https://query1.finance.yahoo.com'];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// A request on Vercel is answered from cache after a short budget whatever
+// happens here (see _handlers/stock.js), so the sockets are kept short there:
+// a retry loop against 15-second timeouts would hold the instance for a
+// minute after the response has gone out. Batch scripts keep the long leash.
+const onVercel = Boolean(process.env.VERCEL);
+const TIMEOUT = Number(process.env.YAHOO_TIMEOUT_MS) || (onVercel ? 4000 : 15000);
+const ATTEMPTS = Math.max(1, Number(process.env.YAHOO_ATTEMPTS) || (onVercel ? 2 : 4));
+
 const http = axios.create({
-  timeout: 15000,
+  timeout: TIMEOUT,
   headers: {
     'User-Agent': UA,
     Accept: 'application/json, text/plain, */*',
@@ -70,7 +78,7 @@ async function yahooGet(path, params = {}, { withCrumb = true } = {}) {
   let lastErr = null;
   let refreshed = false;
 
-  for (let attempt = 0; attempt < 4; attempt++) {
+  for (let attempt = 0; attempt < ATTEMPTS; attempt++) {
     const host = HOSTS[attempt % HOSTS.length];
     try {
       const r = await http.get(`${host}${path}`, {
@@ -90,7 +98,7 @@ async function yahooGet(path, params = {}, { withCrumb = true } = {}) {
     } catch (e) {
       lastErr = e;
     }
-    await sleep(400 * (attempt + 1) + Math.random() * 300);
+    if (attempt + 1 < ATTEMPTS) await sleep(400 * (attempt + 1) + Math.random() * 300);
   }
   throw new Error(`Yahoo request failed: ${lastErr?.message || lastErr}`);
 }

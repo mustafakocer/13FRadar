@@ -61,6 +61,7 @@ export function aumHistoryFromGuru(guru, limit = 12) {
     reportDate: q.reportDate,
     aum: q.aum,
     positions: q.count,
+    ...(q.amended ? { amended: true } : {}),
   }));
   return annotateAum(history);
 }
@@ -90,10 +91,15 @@ export function managerStatsFromGuru(guru, { window = 8 } = {}) {
   const books = quarters.map((q) => bookAt(guru, q.reportDate));
   const latest = books[books.length - 1];
   const before = books[books.length - 2];
+  // the build counts over the complete book (turnover.js); the stored
+  // positions are a subset, so its counts win when it stored them
+  const lastQ = quarters[quarters.length - 1];
   let newCount = 0;
   let exitCount = 0;
   for (const c of latest.keys()) if (!before.has(c)) newCount++;
   for (const c of before.keys()) if (!latest.has(c)) exitCount++;
+  if (Number.isFinite(lastQ.newCount)) newCount = lastQ.newCount;
+  if (Number.isFinite(lastQ.exitCount)) exitCount = lastQ.exitCount;
 
   const top50 = [...latest.entries()].sort((a, b) => b[1] - a[1]).slice(0, 50);
   let heldSum = 0;

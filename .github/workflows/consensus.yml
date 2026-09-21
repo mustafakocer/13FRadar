@@ -20,6 +20,10 @@ on:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
         default: false
+      force_history:
+        description: 'Rebuild every guru history from EDGAR (after a snapshot-logic change; ~25 min)'
+        type: boolean
+        default: false
   # Runs when the nightly universe build finishes (01:23 UTC + ~25 min), so
   # the per-stock table is built on the day's universe and the two never
   # race each other for the same commit. workflow_run only fires for runs on
@@ -95,6 +99,7 @@ jobs:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
+          GURU_HISTORY_FORCE: ${{ inputs.force_history == true && '1' || '0' }}
       # pivots guru-history by quarter for /report; sector, market cap and
       # the ETF flag come from the sector map the step above just refreshed
       - name: Build guru-activity.json

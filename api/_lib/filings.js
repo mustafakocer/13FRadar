@@ -81,8 +81,10 @@ export function joinUniverse(rows, universeRows = []) {
     const u = byAcc.get(r.acc);
     return {
       ...r,
-      aum: u?.aum ?? null,
-      positions: u?.positions ?? null,
+      // the universe's measurement, else what the feed itself read for the
+      // row (an amendment's own table, see build-filings.mjs), else nothing
+      aum: u?.aum ?? r.aum ?? null,
+      positions: u?.positions ?? r.positions ?? null,
       reportDate: u?.reportDate ?? r.reportDate ?? null,
     };
   });

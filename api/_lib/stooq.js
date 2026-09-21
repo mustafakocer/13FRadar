@@ -4,7 +4,7 @@ import { cached, TTL } from './cache.js';
 // Stooq serves free daily OHLC CSV without auth and doesn't block datacenter
 // IPs — used as the fallback when Yahoo rate-limits the serverless region.
 const http = axios.create({
-  timeout: 15000,
+  timeout: Number(process.env.PROVIDER_TIMEOUT_MS) || (process.env.VERCEL ? 4000 : 15000),
   headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Fundocap/1.0)' },
 });
 

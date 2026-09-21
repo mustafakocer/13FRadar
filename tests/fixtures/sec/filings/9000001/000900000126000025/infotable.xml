@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<informationTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable><nameOfIssuer>COCA COLA CO</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>191216100</cusip><value>3200000000</value><shrsOrPrnAmt><sshPrnamt>50000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt><investmentDiscretion>SOLE</investmentDiscretion><votingAuthority><Sole>50000000</Sole><Shared>0</Shared><None>0</None></votingAuthority></infoTable>
+  <infoTable><nameOfIssuer>CHEVRON CORP NEW</nameOfIssuer><titleOfClass>COM</titleOfClass><cusip>166764100</cusip><value>2900000000</value><shrsOrPrnAmt><sshPrnamt>20000000</sshPrnamt><sshPrnamtType>SH</sshPrnamtType></shrsOrPrnAmt><investmentDiscretion>SOLE</investmentDiscretion><votingAuthority><Sole>20000000</Sole><Shared>0</Shared><None>0</None></votingAuthority></infoTable>
+</informationTable>

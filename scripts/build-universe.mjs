@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
-import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
+import { fetchInfoTableXml, parse13F, aggregatePositions, getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
 
@@ -74,7 +74,7 @@ async function main() {
       if (!acc) continue;
       const existing = latestByCik.get(cik);
       if (!existing || existing.filed <= filed) {
-        latestByCik.set(cik, { cik, name, filed, acc });
+        latestByCik.set(cik, { cik, name, filed, acc, form });
       }
     }
   }
@@ -90,30 +90,61 @@ async function main() {
   const stockAgg = new Map(); // cusip -> {issuer, value, funds}
   let done = 0;
   let failed = 0;
+  let amended = 0;
   const CONCURRENCY = 3;
   let i = 0;
+
+  // The latest document of a filer, as the index lists it. When that is a
+  // 13F-HR/A, the numbers to publish are not the amendment's own table (a
+  // NEW HOLDINGS amendment is a handful of lines) but the effective snapshot
+  // of the newest period: the original with the amendment applied. That
+  // needs the filer's submissions feed for the period and the accessions —
+  // one extra request for the few percent of filers whose latest is an
+  // amendment. Everything else reads the one table as before.
+  async function latestSnapshot(e) {
+    if (e.form !== '13F-HR/A') {
+      const xml = await fetchInfoTableXml(e.cik, e.acc);
+      const parsed = await parse13F(xml);
+      const { aum, positions } = aggregatePositions(parsed, e.filed);
+      return { acc: e.acc, filed: e.filed, reportDate: null, aum, positions, amendments: null };
+    }
+    const filings = list13F(await getSubmissions(e.cik));
+    const f = filings[0];
+    if (!f) throw new Error('no 13F in the submissions feed');
+    const { aum, positions, amendments } = await getEffectiveHoldings(e.cik, f);
+    amended++;
+    return { acc: f.acc, filed: f.filingDate, reportDate: f.reportDate, aum, positions, amendments: amendments || null };
+  }
 
   await Promise.all(
     Array.from({ length: CONCURRENCY }, async () => {
       while (i < entries.length) {
         const e = entries[i++];
         try {
-          const xml = await fetchInfoTableXml(e.cik, e.acc);
-          const parsed = await parse13F(xml);
-          const { aum, positions } = aggregatePositions(parsed, e.filed);
+          const snap = await latestSnapshot(e);
+          const { aum, positions } = snap;
           const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
           rows.push({
             cik: e.cik.padStart(10, '0'),
             name: e.name,
-            filed: e.filed,
-            // the accession these numbers were computed from, so the filings
-            // feed can attach them to that filing and not to a later amendment
-            acc: e.acc,
+            filed: snap.filed,
+            // the accession these numbers were computed from (the period's
+            // base document), so the filings feed can attach them to that
+            // filing and not to a later amendment
+            acc: snap.acc,
+            ...(snap.reportDate ? { reportDate: snap.reportDate } : {}),
             aum: Math.round(aum),
             positions: positions.length,
             top10: Number(top10.toFixed(1)),
           });
-          snapshot[e.cik.padStart(10, '0')] = snapshotEntry({ acc: e.acc, filed: e.filed, aum, positions });
+          snapshot[e.cik.padStart(10, '0')] = snapshotEntry({
+            acc: snap.acc,
+            filed: snap.filed,
+            reportDate: snap.reportDate,
+            aum,
+            positions,
+            amendments: snap.amendments,
+          });
           // whale-heatmap aggregate across ALL filers (equity positions only)
           for (const p of positions) {
             if (p.putCall) continue;
@@ -153,7 +184,7 @@ async function main() {
     path.join(pub, 'universe.json'),
     JSON.stringify({ updatedAt: new Date().toISOString(), count: rows.length, rows })
   );
-  console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed})`);
+  console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed}, ${amended} whose latest document is an amendment, folded into their period)`);
   const snapDir = path.join(process.cwd(), 'api', '_data');
   fs.mkdirSync(snapDir, { recursive: true });
   fs.writeFileSync(

@@ -1,4 +1,4 @@
-import { getHoldings, getSubmissions, list13F } from '../_lib/sec.js';
+import { getHoldings, getEffectiveHoldings, getSubmissions, list13F, filingForAcc } from '../_lib/sec.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { isPro, noStore } from '../_lib/auth.js';
 import { latestHoldings } from '../_lib/latestHoldings.js';
@@ -10,6 +10,12 @@ import { latestHoldings } from '../_lib/latestHoldings.js';
 //             belongs to a Pro user
 //   cusips=   free clients may ask for up to 10 specific CUSIPs (used to
 //             compute quarter-over-quarter changes for the visible top 10)
+//
+// The accession names a period: the response is that period's effective
+// snapshot — the original 13F-HR with its 13F-HR/A amendments applied (see
+// _lib/amendments.js). An amendment's own accession lands on the same
+// snapshot, so old links keep working; `amended` / `amendments` say what was
+// applied.
 //
 // Free tier: the top FREE_ROWS positions plus the true totals (aum, count).
 // Everything below that line is Pro data and never leaves the server.
@@ -35,19 +41,23 @@ export default async function handler(req, res) {
     // universe build stored for this filing, when it is the filer's latest.
     // That answers without EDGAR; everything else reads the filing.
     const snap = !wantFull && !cusipFilter.length ? latestHoldings(cik, acc) : null;
-    // The filing date decides the ×1000 rule, so it is derived from EDGAR,
-    // never taken from the client (a wrong value would poison the cache).
-    const { aum, positions, count: snapCount } = snap || (await getHoldings(cik, acc, null));
-
+    let holdings = snap;
     let meta = { filingDate: snap?.filingDate || null, reportDate: snap?.reportDate || null };
-    if (!meta.reportDate) {
+    let filing = null;
+    if (!snap || !meta.reportDate) {
+      // The filing date decides the ×1000 rule and the amendments decide the
+      // snapshot, so both come from EDGAR, never from the client.
       try {
-        const f = list13F(await getSubmissions(cik)).find((x) => x.acc === acc);
-        if (f) meta = { filingDate: f.filingDate, reportDate: f.reportDate };
+        filing = filingForAcc(list13F(await getSubmissions(cik)), acc);
       } catch {
-        /* non-fatal */
+        /* non-fatal: the accession is read on its own below */
       }
+      if (filing) meta = { filingDate: filing.filingDate, reportDate: filing.reportDate };
     }
+    if (!holdings) holdings = filing ? await getEffectiveHoldings(cik, filing) : await getHoldings(cik, acc, null);
+    const { aum, positions, count: snapCount } = holdings;
+    const amended = Boolean(holdings.amended || snap?.amended);
+    const amendments = holdings.amendments || snap?.amendments || (filing?.amendments || []).map((a) => ({ acc: a.acc, filingDate: a.filingDate }));
 
     const pro = wantFull ? await isPro(req) : false;
     let out = positions;
@@ -70,11 +80,15 @@ export default async function handler(req, res) {
     else res.setHeader('Cache-Control', 's-maxage=21600, stale-while-revalidate=604800');
     res.status(200).json({
       cik,
-      acc,
+      // the period's base accession, whichever accession was asked for
+      acc: filing?.acc || acc,
       ...meta,
       aum,
       count: total,
       locked,
+      amended,
+      ...(amended ? { amendments } : {}),
+      ...(holdings.unitFix ? { unitFix: true } : {}),
       positions: out.map((p) => ({ ...p, ticker: tickers[p.cusip] ?? null })),
     });
   } catch (err) {

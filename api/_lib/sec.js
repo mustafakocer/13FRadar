@@ -4,6 +4,7 @@ import path from 'node:path';
 import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from './cache.js';
 import { storedHoldings } from './holdingsStore.js';
+import { effectiveFilings, effectiveSnapshot, isAmendmentForm, parseCoverPage } from './amendments.js';
 
 // SEC requires a descriptive User-Agent with contact info.
 const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
@@ -90,9 +91,9 @@ export function getSubmissions(cik) {
   });
 }
 
-// Extract the list of 13F-HR filings (deduped by report period; the most
-// recently filed document per quarter wins, so amendments replace originals).
-export function list13F(sub) {
+// Every 13F-HR and 13F-HR/A in the submissions feed, one row per accession,
+// newest filed first — the raw list, for the audit trail and the filing feed.
+export function list13FAll(sub) {
   const r = sub?.filings?.recent;
   if (!r) return [];
   const out = [];
@@ -103,14 +104,31 @@ export function list13F(sub) {
       form: r.form[i],
       filingDate: r.filingDate[i],
       reportDate: r.reportDate[i],
+      amended: isAmendmentForm(r.form[i]),
     });
   }
-  out.sort((a, b) => (a.filingDate < b.filingDate ? 1 : -1));
-  const seen = new Set();
-  return out.filter((f) => {
-    if (seen.has(f.reportDate)) return false;
-    seen.add(f.reportDate);
-    return true;
+  return out.sort((a, b) => (a.filingDate === b.filingDate ? String(b.acc).localeCompare(String(a.acc)) : a.filingDate < b.filingDate ? 1 : -1));
+}
+
+// One filing per period of report, newest period first: the original 13F-HR
+// with its 13F-HR/A amendments attached (see amendments.js). This used to
+// keep "the most recently filed document per quarter", which let a
+// four-line NEW HOLDINGS amendment stand in for the whole quarter.
+export function list13F(sub) {
+  return effectiveFilings(list13FAll(sub));
+}
+
+// The directory listing of one submission, cached: the info table and the
+// cover page are both picked out of it.
+function filingIndex(cik, acc) {
+  const cikN = numCik(cik);
+  const accNo = acc.replace(/-/g, '');
+  const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;
+  return cached(`idx:${cikN}:${accNo}`, TTL.DAY_7, async () => {
+    const { data: idx } = await secGet(`${base}/index.json`);
+    let items = idx?.directory?.item || [];
+    if (!Array.isArray(items)) items = [items];
+    return { base, items };
   });
 }
 
@@ -119,10 +137,7 @@ export async function fetchInfoTableXml(cik, acc) {
   const accNo = acc.replace(/-/g, '');
   const fx = fixture(`filings/${cikN}/${accNo}/infotable.xml`);
   if (fx) return fx;
-  const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;
-  const { data: idx } = await secGet(`${base}/index.json`);
-  let items = idx?.directory?.item || [];
-  if (!Array.isArray(items)) items = [items];
+  const { base, items } = await filingIndex(cik, acc);
   const xmls = items.filter(
     (i) => /\.xml$/i.test(i.name) && !/primary_doc/i.test(i.name)
   );
@@ -135,6 +150,31 @@ export async function fetchInfoTableXml(cik, acc) {
     transformResponse: [(d) => d],
   });
   return xml;
+}
+
+// The cover page of a submission (primary_doc.xml): the period of report
+// the filer wrote, and for an amendment whether it restates the table or
+// adds to it. Null when the document cannot be read — the caller then
+// infers the kind from the table (amendments.js). Cached for a week like
+// the table: a filed document does not change.
+//   fixture: $SEC_FIXTURE_DIR/filings/<cik>/<acc>/primary_doc.xml
+export function fetchCoverPage(cik, acc) {
+  const cikN = numCik(cik);
+  const accNo = acc.replace(/-/g, '');
+  return cached(`cover:${cikN}:${accNo}`, TTL.DAY_7, async () => {
+    const fx = fixture(`filings/${cikN}/${accNo}/primary_doc.xml`);
+    if (fx) return parseCoverPage(fx);
+    if (FIXTURES) return null; // offline: no cover page in the fixture set
+    try {
+      const { base, items } = await filingIndex(cik, acc);
+      const doc = items.find((i) => /primary_doc\.xml$/i.test(i.name)) || items.find((i) => /^primary_doc/i.test(i.name));
+      if (!doc) return null;
+      const { data } = await secGet(`${base}/${doc.name}`, { responseType: 'text', transformResponse: [(d) => d] });
+      return parseCoverPage(data);
+    } catch {
+      return null;
+    }
+  });
 }
 
 export async function parse13F(xml) {
@@ -247,10 +287,48 @@ export function getHoldings(cik, acc, filingDate) {
     let fd = filingDate;
     if (!fd) {
       const sub = await getSubmissions(cik);
-      fd = list13F(sub).find((f) => f.acc === acc)?.filingDate;
+      fd = list13FAll(sub).find((f) => f.acc === acc)?.filingDate;
     }
     return aggregatePositions(rows, fd);
   });
+}
+
+// The effective snapshot of one period: the filing's base document with its
+// amendments applied in filing order (amendments.js). `filing` is an entry
+// from list13F — { acc, filingDate, amendments: [{ acc, filingDate }] }.
+// This is what every derived number (positions, changes, turnover, time
+// held, AUM history, consensus) reads; getHoldings stays the raw read of one
+// accession for the audit trail.
+//
+// An amendment whose table cannot be read is skipped rather than failing the
+// quarter: the original alone is the better answer than no answer.
+export function getEffectiveHoldings(cik, filing) {
+  const amendments = filing?.amendments || [];
+  if (!amendments.length) return getHoldings(cik, filing.acc, filing.filingDate);
+  const stamp = amendments.map((a) => a.acc).join('+');
+  return cached(`ehold:${numCik(cik)}:${filing.acc}:${stamp}`, TTL.DAY_7, async () => {
+    const base = await getHoldings(cik, filing.acc, filing.filingDate);
+    const read = await Promise.all(
+      amendments.map(async (a) => {
+        const [holdings, cover] = await Promise.all([
+          getHoldings(cik, a.acc, a.filingDate).catch((e) => {
+            console.warn(`amendment ${a.acc} for ${filing.acc} could not be read: ${e.message}`);
+            return null;
+          }),
+          fetchCoverPage(cik, a.acc),
+        ]);
+        return { acc: a.acc, filingDate: a.filingDate, holdings, cover };
+      })
+    );
+    return effectiveSnapshot(base, read);
+  });
+}
+
+// The filing (from list13F) an accession belongs to: the entry itself or
+// the entry whose amendments include it, so a link to an amendment's
+// accession lands on the effective snapshot of its period.
+export function filingForAcc(filings, acc) {
+  return filings.find((f) => f.acc === acc || (f.amendments || []).some((a) => a.acc === acc)) || null;
 }
 
 // EDGAR full-text search (the backend behind efts.sec.gov/LATEST/search-index).

@@ -40,9 +40,10 @@ opsiyonel tarihsel depodur. Karar:
   (bu paket). Depo ilk kez kurulduğunda tek dosya yeter; ayrı migration'a
   gerek yok.
 - PR-B'den `supabase/migrations/2026-09-20-amendments.{up,down}.sql` ve
-  README'deki "Depo: …migrations…" satırı çıkarılmalı (`git rm` + bir satır).
-  PR-B'nin geri kalanı (`holdingsStore.js`'in `period_of_report` okuması,
-  `backfill-13f.mjs`'in yazması) history-schema ile uyumludur.
+  README'deki "Depo: …migrations…" satırı **çıkarıldı** (rebase sırasında,
+  2026-09-21). PR-B'nin geri kalanı (`holdingsStore.js`'in
+  `period_of_report` okuması, `backfill-13f.mjs`'in yazması) history-schema
+  ile uyumludur.
 - Sonuç: PR-B diff'inde canlı Supabase'e dokunan dosya kalmaz; `migrations/`
   dizini yalnız canlı hesap tablolarının migration'larını taşır.
 

@@ -208,7 +208,6 @@ Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. 
 - **Devir tanımı** tek yerde, `api/_lib/turnover.js`: `(açılan pozisyon değeri + kapatılan pozisyonların önceki değeri + ortak pozisyonlarda |Δadet| × fiyat) / iki çeyreğin ortalama portföy değeri`. Fiyat hareketi devir sayılmaz; herhangi bir işlem olan çeyrek asla "%0" göstermez (`<0.1%`). `newCount`/`exitCount` aynı fonksiyondan gelir.
 - **Elde tutma süresi** ticker üzerinden sayılır (CUSIP değişimi kırılma değildir; `api/_data/cusip-tickers.json` eşlemesi).
 - UI: "(A)" satırı yok; düzeltme uygulanan çeyrek `✎` ve "Düzeltme içerir (13F-HR/A, tarih)" rozeti taşır; `/filings` HR/A satırları dönem, tür (yeniden beyan / yeni pozisyonlar) ve tablo satır sayısını gösterir (`FILINGS_AMEND_BUDGET`, varsayılan 150/koşu).
-- Depo: `supabase/migrations/2026-09-20-amendments.up.sql` (`period_of_report`, `amendment_type`, `effective_filings` view) — geri alma: `…down.sql`.
 - **Yeniden hesaplama (backfill):** `npm run rebuild` (`--dry` planı ve maliyeti yazar; `--only=history,consensus`; `REBUILD_CIKS=…`). Guru geçmişi parmak izi `v2|…` sürümlü olduğu için ilk gece Action'ı da tüm guruları kendiliğinden yeniden okur; elle tetiklemek için `Build consensus & returns → force_history`. Tahmini maliyet: geçmiş ~8–9k EDGAR isteği (~25 dk), konsensüs ~10 dk, evren ~1 saat (gece zaten çalışır); bellek <1 GB.
 
 ### Tarihsel depo (opsiyonel, henüz doldurulmadı)

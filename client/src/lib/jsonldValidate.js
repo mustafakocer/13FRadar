@@ -107,7 +107,7 @@ export function validateJsonLd(block) {
 
 // Validate every ld+json block embedded in an HTML document.
 export function validateHtmlJsonLd(html) {
-  const blocks = [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
+  const blocks = [...html.matchAll(/<script type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1].replace(/\\u003c/g, '<')));
   const problems = [];
   for (const b of blocks) for (const err of validateJsonLd(b)) problems.push(`${b['@type']}: ${err}`);
   return { blocks, problems };

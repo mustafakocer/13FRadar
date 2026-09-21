@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect } from 'react';
 import { useI18n } from './i18n.jsx';
 import { withLang } from './lib/locale.js';
+import { scriptText, domTagSpec, planHead } from './lib/head.js';
+export { tagSignature, domTagSpec, planHead } from './lib/head.js';
 
 // Per-page <head> data. On the server the page's spec is collected during
 // renderToString and turned into tags by buildHead(); on the client the same
@@ -91,7 +93,13 @@ export function buildHead(spec, opts) {
   return headTags(spec, opts)
     .map((t) => {
       if (t.tag === 'title') return `<title>${esc(t.text)}</title>`;
-      if (t.tag === 'script') return `<script type="application/ld+json">${t.text.replace(/</g, '\\u003c')}</script>`;
+      // Every tag the page owns carries data-seo — the JSON-LD scripts
+      // included. The scripts used to go out without the marker, so the
+      // client-side mirror could not recognise them as its own: it removed
+      // the marked meta/link tags, appended a fresh set of everything, and
+      // every structured-data block ended up in the DOM twice (SSR copy +
+      // client copy) on every server-rendered page.
+      if (t.tag === 'script') return `<script type="application/ld+json" data-seo>${scriptText(t.text)}</script>`;
       const attrs = Object.entries(t)
         .filter(([k]) => k !== 'tag')
         .map(([k, v]) => `${k}="${esc(v)}"`)
@@ -103,15 +111,19 @@ export function buildHead(spec, opts) {
 
 function applyToDocument(spec) {
   const siteUrl = window.location.origin;
-  document.querySelectorAll('[data-seo]').forEach((n) => n.remove());
-  document.title = spec.title || DEFAULT_TITLE[spec.lang || 'en'];
+  const title = spec.title || DEFAULT_TITLE[spec.lang || 'en'];
+  if (document.title !== title) document.title = title;
+  const desired = headTags(spec, { siteUrl }).filter((t) => t.tag !== 'title');
+  const existing = [...document.querySelectorAll('head [data-seo]')];
+  const plan = planHead(existing.map(domTagSpec), desired);
+  if (plan.same) return;
+  existing.forEach((n) => n.remove());
   const frag = document.createDocumentFragment();
-  for (const t of headTags(spec, { siteUrl })) {
-    if (t.tag === 'title') continue;
+  for (const t of plan.replace) {
     const el = document.createElement(t.tag);
     for (const [k, v] of Object.entries(t)) {
       if (k === 'tag') continue;
-      if (k === 'text') el.textContent = v;
+      if (k === 'text') el.textContent = t.tag === 'script' ? scriptText(v) : v;
       else el.setAttribute(k, v);
     }
     el.setAttribute('data-seo', '');

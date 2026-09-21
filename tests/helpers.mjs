@@ -37,6 +37,6 @@ export async function ssr(url, headers = {}) {
 }
 
 export const jsonLd = (html) =>
-  [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
+  [...html.matchAll(/<script type="application\/ld\+json"[^>]*>(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
 export const count = (html, re) => (html.match(re) || []).length;
 export const attr = (html, re) => [...html.matchAll(new RegExp(re.source, re.flags.includes('g') ? re.flags : re.flags + 'g'))].map((m) => m[1]);

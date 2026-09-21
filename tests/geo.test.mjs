@@ -79,7 +79,7 @@ test('GPTBot and ClaudeBot get the answer box text and JSON-LD on five public pa
       assert.equal(status, 200, `${ua} ${page}`);
       const box = /<p class="answer-box" data-answer-box[^>]*>([^<]{80,})<\/p>/.exec(html);
       assert.ok(box, `${ua} ${page} answer box`);
-      assert.ok((html.match(/<script type="application\/ld\+json">/g) || []).length >= 1, `${ua} ${page} JSON-LD`);
+      assert.ok((html.match(/<script type="application\/ld\+json"[^>]*>/g) || []).length >= 1, `${ua} ${page} JSON-LD`);
     }
   }
 });

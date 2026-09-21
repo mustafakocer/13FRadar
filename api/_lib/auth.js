@@ -80,7 +80,7 @@ export async function requirePro(req, res) {
   return false;
 }
 
-// ---- service-role access (payment webhook / checkout only) -----------------
+// ---- service-role access (payment webhook / checkout / jobs only) ----------
 const svcHeaders = () => ({
   apikey: service(),
   Authorization: `Bearer ${service()}`,
@@ -97,15 +97,29 @@ async function svcPatch(userId, fields) {
   if (r.status >= 300) throw new Error(`profiles update HTTP ${r.status}: ${JSON.stringify(r.data)}`);
 }
 
-// Update a user's plan from the payment webhook (service role).
-export function setUserPlan(userId, plan, expires = null) {
-  return svcPatch(userId, { plan, plan_expires: expires });
+// Stripe webhook bookkeeping (service role). Has this delivery been seen?
+export async function stripeEventSeen(eventId) {
+  const r = await axios.get(`${url()}/rest/v1/stripe_events`, {
+    timeout: 8000,
+    validateStatus: () => true,
+    params: { id: `eq.${eventId}`, select: 'id' },
+    headers: svcHeaders(),
+  });
+  if (r.status !== 200) throw new Error(`stripe_events read HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+  return Array.isArray(r.data) && r.data.length > 0;
 }
 
-// Extra billing columns (stripe_customer_id, …). Callers treat failure as
-// non-fatal so an older schema without the columns keeps working.
-export function setProfileFields(userId, fields) {
-  return svcPatch(userId, fields);
+// Record the event and apply the profile patch in one database transaction
+// (public.apply_stripe_event). Resolves to 'duplicate' when another delivery
+// of the same id got there first, otherwise to the outcome passed in.
+export async function applyStripeEvent({ id, type, userId = null, patch = {}, outcome = 'applied' }) {
+  const r = await axios.post(
+    `${url()}/rest/v1/rpc/apply_stripe_event`,
+    { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome },
+    { timeout: 8000, validateStatus: () => true, headers: svcHeaders() }
+  );
+  if (r.status !== 200) throw new Error(`apply_stripe_event HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+  return String(r.data);
 }
 
 export async function getProfile(userId, select = 'plan,plan_expires') {

@@ -58,8 +58,8 @@ jobs:
         run: bash scripts/db-test.sh
         env:
           DATABASE_URL: postgresql://postgres@localhost:5432/postgres
-      - name: Remote RLS (skips without secrets)
-        run: node --test tests/supabase-rls.test.mjs
+      - name: Webhook idempotency and remote RLS (the latter skips without secrets)
+        run: node --test tests/stripe-webhook.test.mjs tests/supabase-rls.test.mjs
         env:
           SUPABASE_TEST_URL: ${{ secrets.SUPABASE_TEST_URL }}
           SUPABASE_TEST_ANON_KEY: ${{ secrets.SUPABASE_TEST_ANON_KEY }}

@@ -149,3 +149,47 @@ zaten CDN'de; gerçekten Pro olacaksa dosyalar `api/_data`'ya taşınıp bir
 Doğrulama: `tests/sql/0002_constraints.test.sql` (plan CHECK, kolon yok,
 UNIQUE, dolgu + CHECK, ve migration'ın onarım adımlarının dolgusuz tohum
 satırlarda yeniden koşusu).
+
+## 4. Stripe webhook: idempotency ve plan senkronu (S4) — `migrations/0003_stripe_events`
+
+- `stripe_events (id text PK = Stripe event id, type, user_id, outcome,
+  processed_at)`; RLS açık, policy yok, `anon`/`authenticated` yetkisi yok —
+  yalnız service role.
+- `apply_stripe_event(event_id, type, user_id, patch jsonb, outcome)`:
+  SECURITY DEFINER, yalnız `service_role` çalıştırır. Event satırını yazar
+  (`on conflict do nothing`; varsa `'duplicate'` döner, hiçbir şey yapmaz) ve
+  aynı transaction'da profil patch'ini uygular. Profil yoksa event
+  `skipped:no-profile` olarak kaydedilir (Stripe 3 gün boşuna retry etmesin).
+- Handler (`api/_handlers/stripe-webhook.js`): imza → event id (`evt_…`
+  zorunlu) → `stripe_events`'te var mı (varsa `200 duplicate`) → karar →
+  RPC. Herhangi bir hata `500` (Stripe retry eder).
+- Event → profil eşlemesi ve kullanıcı eşleme kuralı: `docs/STRIPE-KURULUM.md`
+  §2. E-posta ile eşleme yok; `client_reference_id`/`metadata.user_id`
+  (`/api/checkout` yazar) ve yedek olarak `stripe_customer_id`.
+- `invoice.payment_failed`: yalnız log; ödemesiz süre Stripe Smart Retries
+  (§3b). `past_due` abonelik dönem sonuna kadar Pro kalır.
+- Pro tanımı: `is_pro()`; `plan === 'pro'` karşılaştırması sunucuda kalmadı
+  (`getUser().pro`, `isPro()`).
+
+### Doğrulama
+
+Stripe CLI bu ortamda yok, Stripe ve Supabase'e ağ erişimi yok. Aynı akış
+`tests/stripe-webhook.test.mjs` ile koşuyor: gerçek handler, gerçek imza
+doğrulaması, gerçek axios çağrıları; karşı tarafta `apply_stripe_event`'i
+birebir taklit eden yerel bir Supabase ve `GET /v1/subscriptions` cevaplayan
+yerel bir Stripe (`STRIPE_API_BASE`). Çıktı:
+
+| event | http | result | plan | plan_expires | stripe_customer_id | stripe_subscription_id |
+|---|---|---|---|---|---|---|
+| checkout.session.completed | 200 | applied | pro | 2027-01-15T08:00:00Z | cus_1 | sub_1 |
+| customer.subscription.updated (active, yeni dönem) | 200 | applied | pro | 2027-02-15T08:00:00Z | cus_1 | sub_1 |
+| customer.subscription.updated (past_due) | 200 | applied | pro | 2027-03-18T08:00:00Z | cus_1 | sub_1 |
+| invoice.payment_failed | 200 | logged | pro | 2027-03-18T08:00:00Z | cus_1 | sub_1 |
+| customer.subscription.updated (canceled) | 200 | applied | free | null | cus_1 | sub_1 |
+| customer.subscription.deleted | 200 | applied | free | null | cus_1 | null |
+| checkout.session.completed (**aynı event id, tekrar**) | 200 | duplicate | free | null | cus_1 | null |
+
+Son satır: ikinci teslimat 200, DB değişmedi, Stripe'a istek gitmedi. SQL
+tarafı: `tests/sql/0003_stripe_events.test.sql` (aynı id iki kez → ikinci
+`duplicate`, satır aynı; kullanıcı token'ı fonksiyonu çağıramaz, tabloyu
+okuyamaz).

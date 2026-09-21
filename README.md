@@ -61,7 +61,10 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 |---|---|---|
 | `SITE_URL` | opsiyonel (`scripts/check-env.mjs` yalnız `*.vercel.app` değerinde build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://www.fundocap.co` (prod varsayılanı; `*.vercel.app` değerleri prod'da yok sayılır). Preview'da `VERCEL_URL`'den türetilir. |
 | `SEC_USER_AGENT` | önerilir | SEC'in istediği iletişim bilgisi |
-| `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı (varsayılan 8/sn) ve 429/403 sonrası bekleme süreleri (sn, virgülle). Batch script'lerde 10 dakikalık SEC bloğunu aşacak kadar uzun, Vercel'de kısa (`1,2`). |
+| `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı tavanı (batch'te 6/sn, Vercel'de 8/sn; 429/403/503'te otomatik yarıya iner, temiz koşuda toparlanır — `api/_lib/edgarClock.js`) ve retry bekleme süreleri (sn, virgülle). |
+| `EDGAR_CACHE_DIR` | opsiyonel | EDGAR belge cache'i (varsayılan `.cache/edgar`, git dışı; boş string kapatır; Vercel'de kapalı). Aynı accession ikinci kez indirilmez; Action'da `actions/cache` ile koşular arası korunur. |
+| `GURU_HISTORY_DRY`, `GURU_HISTORY_INCREMENTAL`, `GURU_HISTORY_FORCE` | opsiyonel | history yürüyüşü: kuru koşu planı (istek/cache/dakika), artımlı okuma (varsayılan açık), zorunlu tam okuma. |
+| `STOCK_UPSTREAM_MS`, `STOCK_SNAPSHOT_MS` | opsiyonel | /api/stock sağlayıcı yarışı bütçesi (ms; varsayılan 3000, snapshot varken 1500). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
 | `FMP_API_KEY`, `TWELVEDATA_API_KEY` | opsiyonel | fiyat/rasyo sağlayıcıları |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | prod'da zorunlu | sunucu tarafı plan kontrolü (`api/_lib/auth.js`); yoksa herkes çıkış yapmış sayılır, Pro kilitli; production build durur |
@@ -117,7 +120,9 @@ Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, so
 | `api/_data/splits.json` | `scripts/build-splits.mjs` | günlük | bölünme olayları (adetler split-adjusted) |
 | `client/public/insiders-teaser.json`, `api/_data/insiders.json` | `scripts/build-insiders.mjs` | günlük | Form 4 akışı; sınıflandırma: güçlü sinyal / likidite / gürültü, 10b5-1 bayrağı |
 | `client/public/universe.json`, `universe-summary.json`, `api/_data/slugs.json` | `scripts/build-universe.mjs` + `build-slugs.mjs` | haftalık | tüm 13F evreni ve slug tablosu |
-| `api/_data/guru-stocks.json` | `scripts/build-consensus.mjs` | günlük | menkul bazında guru sahipliği: sıra, tutan fon sayısı, ağırlıklar, çeyrek aktivitesi, PUT/CALL satırları |
+| `api/_data/guru-stocks.json` | `scripts/build-consensus.mjs` | günlük | menkul bazında guru sahipliği: sıra, tutan fon sayısı, ağırlıklar, çeyrek aktivitesi (`netActivity()`), `exited` (panelin tamamen çıktığı isimler), `quarter`, `coverage`, PUT/CALL satırları |
+| `api/_data/security-master.json` (+ türetilen `cusip-tickers.json`) | `build-consensus.mjs`, `build-guru-history.mjs`, `build-universe.mjs` (`securityMaster.persist`) | her build | CUSIP/CINS → {ticker, name, exchange, figi, validFrom/To, source}; çözülemeyenler deneme sayısı ve tarihiyle, günlük yeniden denenir (`FIGI_RETRY_BUDGET`) |
+| `client/public/guru-activity.json` (+ çeyrek dosyaları) | `scripts/build-guru-activity.mjs` | günlük | /report pivotu: en yeni çeyrek `guru-stocks.json`'dan (rankings ile aynı satırlar), eski çeyrekler history'den aynı panel + aynı fonksiyonla; `coverage` çeyrek başına |
 | `api/_data/sector-map.json` | `scripts/build-consensus.mjs` | günlük (artımlı) | ticker→sektör; her koşuda en çok `SECTOR_BUDGET` yeni sembol sorulur |
 | `client/public/filings.json`, `client/public/filer-states.json`, `api/_data/filer-meta.json` | `scripts/build-filings.mjs` | günlük | 13F bildirim akışı (13F-HR / 13F-HR/A), bildirilen dönem, fon adresleri |
 
@@ -208,9 +213,28 @@ Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. 
 - `api/_lib/amendments.js`: saf mantık — `effectiveFilings` (CIK, dönem) başına tek giriş, sıralama **dönem tarihine** göre; `parseCoverPage` (`periodOfReport`, `amendmentType`); `applyAmendment` / `effectiveSnapshot`. Tip okunamazsa tablo boyutundan çıkarılır (orijinalin yarısından fazla satır → restatement) ve `inferred: true` işaretlenir.
 - `api/_lib/sec.js`: `list13FAll` ham liste (denetim), `list13F` etkin liste (`amendments` ekli), `getEffectiveHoldings(cik, filing)` = orijinal + sıralı düzeltmeler, `fetchCoverPage`. **Tüm türev hesaplar** (holdings, consensus, guru-history, aum-history, manager-stats, position-history, backtest, stock-ownership, universe snapshot) yalnız etkin snapshot'tan beslenir; ham accession `getHoldings` ile ayrıca okunabilir.
 - **Devir tanımı** tek yerde, `api/_lib/turnover.js`: `(açılan pozisyon değeri + kapatılan pozisyonların önceki değeri + ortak pozisyonlarda |Δadet| × fiyat) / iki çeyreğin ortalama portföy değeri`. Fiyat hareketi devir sayılmaz; herhangi bir işlem olan çeyrek asla "%0" göstermez (`<0.1%`). `newCount`/`exitCount` aynı fonksiyondan gelir.
-- **Elde tutma süresi** ticker üzerinden sayılır (CUSIP değişimi kırılma değildir; `api/_data/cusip-tickers.json` eşlemesi).
+- **Elde tutma süresi** ve devir security master ticker'ı üzerinden sayılır (CUSIP değişimi kırılma/işlem değildir; `api/_lib/securityMaster.js`). `/api/guru-history` saklı ham CUSIP'leri okuma anında master ile çözer, çözülemeyeni 13F `nameOfIssuer` ile gösterir.
 - UI: "(A)" satırı yok; düzeltme uygulanan çeyrek `✎` ve "Düzeltme içerir (13F-HR/A, tarih)" rozeti taşır; `/filings` HR/A satırları dönem, tür (yeniden beyan / yeni pozisyonlar) ve tablo satır sayısını gösterir (`FILINGS_AMEND_BUDGET`, varsayılan 150/koşu).
-- **Yeniden hesaplama (backfill):** `npm run rebuild` (`--dry` planı ve maliyeti yazar; `--only=history,consensus`; `REBUILD_CIKS=…`). Guru geçmişi parmak izi `v2|…` sürümlü olduğu için ilk gece Action'ı da tüm guruları kendiliğinden yeniden okur; elle tetiklemek için `Build consensus & returns → force_history`. Tahmini maliyet: geçmiş ~8–9k EDGAR isteği (~25 dk), konsensüs ~10 dk, evren ~1 saat (gece zaten çalışır); bellek <1 GB.
+- **Yeniden hesaplama (backfill):** `npm run rebuild` (`--dry` planı ve maliyeti yazar; `--only=history,consensus`; `REBUILD_CIKS=…`). Guru geçmişi parmak izi `v2|…` sürümlü olduğu için eski format girişler kendiliğinden tam okunur; elle tetiklemek için `Build consensus & returns → force_history`. Yürüyüş artımlıdır (`api/_lib/historyPlan.js`: yalnız belge seti değişen dönemler + öncesindeki 1 dönem) ve EDGAR belgeleri disk cache'inden okunur (`.cache/edgar`, Action'da `actions/cache`); `GURU_HISTORY_DRY=1` istek sayısını, cache oranını ve tahmini dakikayı önceden yazar. Cache soğukken tam koşu ≈ 7.5k belge / 6 rps ≈ 22 dk; sonraki geceler <100 istek.
+
+### Usta yatırımcı seti, net alım/satım ve kapsam satırı
+
+- **Tek kayıt:** `api/_lib/gurus.js` — 100 fon; `category`, `activeFrom/activeTo` (kapanan fon silinmez, "takip edilen" sayılmaz), `consensus:false` (geniş/kantitatif defter, konsensüs oyu değil), `history:false`. `client/src/data/popular.js` ve `api/_lib/consensusList.js` buradan re-export eder.
+- **Tek hesap:** `api/_lib/netActivity.js` — net_$ = Σ_fon (adet_t − adet_{t−1}) × dönem sonu fiyat (Σdeğer_t/Σadet_t); yeni pozisyon tamamıyla, çıkış önceki adedin tamamı, fiyat hareketi işlem değil. `consensusBuild` (anasayfa, /consensus, /rankings, hisse sayfası) ve `build-guru-activity` (/report) yalnız bunu kullanır; `tests/net-activity.test.mjs` üç çıktıyı ticker bazında karşılaştırır.
+- **Kapsam:** her dosyada `coverage = { quarter, tracked, filed, included, excluded: { not-filed, wide-book } }`; `<CoverageLine>` anasayfa, /consensus, /rankings/*, /report ve /calendar'da aynı cümleyi basar ("98 usta takip ediliyor · 82'si 2026 Q2 bildirdi · 72'si hesaba dahil — …").
+
+### Fiyat sağlayıcı zinciri (`/api/stock/:ticker`)
+
+Sağlayıcılar (Yahoo quoteSummary → FMP → Yahoo quote → TwelveData → Yahoo chart → Stooq) bütçe içinde **aynı anda** yarışır; en iyi sıralı cevap bütçe dolunca (ya da en üst sıradaki gelince) döner, kalanı arka planda cache'i günceller. Üst üste 3 kez düşen sağlayıcı 5 dakika atlanır (`api/_lib/providerHealth.js`). Her cevapta:
+
+| Başlık | Anlam |
+|---|---|
+| `X-Stock-Source` | `live` / `stale` (bu instance'ın son canlı cevabı) / `snapshot` (gece kapanışı, `priceStale`) / `none` |
+| `X-Stock-Provider` | cevabı veren sağlayıcı |
+| `X-Stock-Chain` | sağlayıcı başına sonuç: `ok:ms` ya da `throttle` / `forbidden` / `key` / `timeout` / `parse` / `upstream` / `network` / `open` (devre kesici) |
+| `X-Stock-Served` | instance başından beri dağılım: `live=…,stale=…,snapshot=…,none=…` |
+
+`/api/diag` bölgeden ham probe'ları, hangi anahtarların tanımlı olduğunu ve sağlayıcı sağlığını döner. Function log'unda satır başına: `stock AAPL: <sağlayıcı> <sınıf> in <ms>: <hata>` ve `stock AAPL: served <kaynak> (<sağlayıcı>) in <ms> [<zincir>] totals …`.
 
 ### Tarihsel depo (opsiyonel, henüz doldurulmadı)
 

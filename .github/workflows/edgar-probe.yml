@@ -8,7 +8,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-      - claude/laughing-franklin-1dykuv
+      - main
     paths:
       - '.github/workflows/edgar-probe.yml'
       - 'scripts/probe-market-data.mjs'

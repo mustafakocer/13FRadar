@@ -38,7 +38,7 @@ on:
     # — through the shared concurrency group — the real run on the deployment
     # branch left queued behind it.
     branches:
-      - claude/13f-intelligence-features-nejb1h
+      - main
     paths:
       - 'scripts/build-consensus.mjs'
       - 'scripts/build-stock-meta.mjs'

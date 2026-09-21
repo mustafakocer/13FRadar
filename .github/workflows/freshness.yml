@@ -19,7 +19,7 @@ on:
     # — through the shared concurrency group — the real run on the deployment
     # branch left queued behind it.
     branches:
-      - claude/13f-intelligence-features-nejb1h
+      - main
     paths:
       - 'scripts/check-freshness.mjs'
       - '.github/workflows/freshness.yml'

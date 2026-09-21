@@ -21,7 +21,7 @@ on:
     # — through the shared concurrency group — the real run on the deployment
     # branch left queued behind it.
     branches:
-      - claude/13f-intelligence-features-nejb1h
+      - main
     paths:
       - 'scripts/build-insiders.mjs'
       - 'api/_lib/insiderModel.js'

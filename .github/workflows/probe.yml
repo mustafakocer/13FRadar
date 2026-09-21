@@ -4,7 +4,7 @@ on:
   workflow_dispatch: {}
   push:
     branches:
-      - claude/13f-intelligence-features-nejb1h
+      - main
     paths:
       - '.github/workflows/probe.yml'
 

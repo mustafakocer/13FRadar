@@ -1,0 +1,101 @@
+name: Database backup
+
+# Weekly logical dump of the live Supabase project: the whole public schema
+# (tables, policies, functions, triggers) and auth.users — password hashes
+# included, which is the one thing that cannot be rebuilt from anywhere else.
+# The file is encrypted with a passphrase and kept as a workflow artifact for
+# 90 days. The free plan has no automatic backups; this is the backup.
+#
+# Secrets
+#   SUPABASE_DB_URL    the *session pooler* connection string (Settings →
+#                      Database → Connection string → Session; IPv4, port
+#                      5432). The direct db.<ref>.supabase.co host is
+#                      IPv6-only and unreachable from GitHub's runners.
+#   BACKUP_PASSPHRASE  for gpg --symmetric. Keep a copy outside GitHub: an
+#                      artifact nobody can decrypt is not a backup.
+#
+# Restore: README.md → "Yedekten geri yükleme".
+on:
+  schedule:
+    - cron: '17 3 * * 1' # Mondays 03:17 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: db-backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # A backup job that quietly skips is worse than one that fails: red
+      # here means "there is no backup", which is exactly what to know.
+      - name: Check configuration
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          PASS: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          [ -n "$DB_URL" ] || { echo "::error::SUPABASE_DB_URL is not set"; exit 1; }
+          [ -n "$PASS" ] || { echo "::error::BACKUP_PASSPHRASE is not set"; exit 1; }
+
+      # pg_dump must be at least the server's major version. Supabase runs
+      # Postgres 15 or 17 depending on the project's age; client 17 covers both.
+      - name: Install pg_dump 17
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-common >/dev/null
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
+          sudo apt-get install -y -qq postgresql-client-17 >/dev/null
+          /usr/lib/postgresql/17/bin/pg_dump --version
+
+      - name: Dump public + auth.users
+        id: dump
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          PSQL=/usr/lib/postgresql/17/bin/psql
+          PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump
+          stamp=$(date -u +%Y%m%dT%H%M%SZ)
+          out="fundocap-$stamp.sql"
+
+          echo "server: $($PSQL "$SUPABASE_DB_URL" -Atc 'show server_version')"
+          $PSQL "$SUPABASE_DB_URL" -Atc "
+            select 'profiles   ' || count(*) from public.profiles
+            union all select 'watchlists ' || count(*) from public.watchlists
+            union all select 'auth.users ' || count(*) from auth.users"
+
+          # --exclude-table='auth.[^u]*' keeps auth.users and drops every
+          # other auth table (sessions, refresh tokens, audit log, …); the
+          # auth schema's functions and types still come along, so the
+          # policies that reference auth.uid() restore cleanly.
+          $PG_DUMP "$SUPABASE_DB_URL" \
+            --no-owner --no-privileges \
+            --schema=public --schema=auth \
+            --exclude-table='auth.[^u]*' \
+            --file "$out"
+
+          grep -q 'CREATE TABLE public.profiles' "$out"
+          grep -q 'CREATE TABLE auth.users' "$out"
+          ! grep -q 'CREATE TABLE auth.sessions' "$out"
+          echo "dump: $(wc -c < "$out") bytes, $(grep -c '^CREATE TABLE' "$out") tables"
+
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+            --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            -o "$out.gpg" "$out"
+          shred -u "$out"
+          echo "stamp=$stamp" >> "$GITHUB_OUTPUT"
+          echo "file=$out.gpg" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ steps.dump.outputs.stamp }}
+          path: ${{ steps.dump.outputs.file }}
+          retention-days: 90
+          if-no-files-found: error
+          compression-level: 0

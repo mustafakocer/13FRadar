@@ -193,3 +193,41 @@ Son satır: ikinci teslimat 200, DB değişmedi, Stripe'a istek gitmedi. SQL
 tarafı: `tests/sql/0003_stripe_events.test.sql` (aynı id iki kez → ikinci
 `duplicate`, satır aynı; kullanıcı token'ı fonksiyonu çağıramaz, tabloyu
 okuyamaz).
+
+## 5. Yedekleme (S5) — `.github/workflows/db-backup.yml`
+
+Free planda otomatik yedek yok. Haftalık (pazartesi 03:17 UTC) ve elle
+tetiklenen workflow:
+
+- `pg_dump --schema=public --schema=auth --exclude-table='auth.[^u]*'
+  --no-owner --no-privileges`: `public`'in tamamı (tablolar, policy'ler,
+  fonksiyonlar, trigger'lar) + `auth` şemasının fonksiyon/tipleri +
+  **yalnız `auth.users`** (şifre hash'leri dahil; sessions, refresh token,
+  audit log dışarıda). `auth.uid()` de dump'ta olduğu için policy'ler boş
+  bir Postgres'e geri yüklenebiliyor.
+- pg_dump 17 (PGDG) kurulur: sunucu 15 ya da 17 olabilir, istemci sürümü
+  sunucudan küçük olamaz.
+- `gpg --symmetric AES256` + `BACKUP_PASSPHRASE`; düz dosya `shred` ile
+  silinir; artifact `db-backup-<zaman>`, 90 gün.
+- Secret yoksa job **kırmızı** biter (sessiz skip yok: kırmızı = yedek yok).
+- Secret'lar: `SUPABASE_DB_URL` (**session pooler**, IPv4; doğrudan
+  `db.<ref>.supabase.co` IPv6-only, runner'dan erişilemez),
+  `BACKUP_PASSPHRASE` (GitHub dışında da saklanmalı).
+
+Geri yükleme adımları: README → "Veritabanı yedeği ve geri yükleme".
+
+### Doğrulama
+
+Workflow'u tetiklemek için `SUPABASE_DB_URL` bu ortamda yok; komut satırı
+yerel Postgres 16'da aynı bayraklarla koşuldu (shim + tüm migration'lar,
+7 kullanıcı, 1 Pro, 7 izleme satırı, `auth.sessions` tuzak tablosu):
+
+| Adım | Sonuç |
+|---|---|
+| `pg_dump … --exclude-table='auth.[^u]*'` | 17 KB, 4 tablo (`profiles`, `watchlists`, `stripe_events`, `auth.users`), 6 policy, 12 fonksiyon; `auth.sessions` yok |
+| gpg şifrele → sil → çöz | özdeş dosya |
+| boş DB'ye `psql -f` | 1 beklenen hata (`schema "public" already exists`), başka yok |
+| `select count(*) from profiles` | 7 · `is_pro` 1 · watchlists 7 · `auth.users` 7 (hash'ler korundu) · policy 6 |
+
+Canlı ilk koşuda kontrol: artifact boyutu > 10 KB, log'da `dump: … tables`
+satırı ve `CREATE TABLE auth.users` grep'i geçmiş olmalı.

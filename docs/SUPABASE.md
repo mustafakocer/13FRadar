@@ -134,3 +134,18 @@ zaten CDN'de; gerçekten Pro olacaksa dosyalar `api/_data`'ya taşınıp bir
   `SUPABASE_TEST_ANON_KEY`, `SUPABASE_TEST_SERVICE_KEY` ile iki geçici
   kullanıcı açar, aynı üç senaryoyu PostgREST üzerinden koşar, kullanıcıları
   siler; secret yoksa skip.
+
+## 3. Şema temizliği ve kısıtlar (S3) — `migrations/0002_constraints`
+
+| Konu | Karar |
+|---|---|
+| `profiles.plan` | `CHECK (plan in ('free','pro'))`, default `'free'`, NOT NULL. Migration önce `select distinct plan` eşdeğeri bir ön-kontrol yapar; `free`/`pro` dışı değer varsa **değeri yazarak durur**, satırı sessizce değiştirmez. Canlıda uygulamadan önce: `select plan, count(*) from public.profiles group by 1;` |
+| `plan_expires IS NULL` + `plan='pro'` | **Süresiz (manuel/ömür boyu) hak.** `is_pro()` aktif sayar. Stripe'tan gelen her satır `current_period_end` taşır; NULL yalnız SQL'den verilen bir hakta görülür. Kolon yorumlarına yazıldı. |
+| `is_pro(uid)` | `0001`'de tanımlı (watchlist sınırı ona bağlı). Sunucu (`api/_lib/auth.js`), istemci (`client/src/auth.jsx`) ve watchlist trigger'ı aynı fonksiyonu çağırır; koddaki `plan === 'pro'` karşılaştırmaları yalnız bu fonksiyonun döndürdüğü değeri UI'a taşır. |
+| `ls_customer_id` | Repoda okuyan/yazan yok (`grep -rn ls_customer_id` → yalnız bu doküman). `DROP COLUMN`; down dosyası boş olarak geri ekler. |
+| `stripe_customer_id`, `stripe_subscription_id` | Kısmi UNIQUE index (`where … is not null`). Ön-kontrol çift kayıt varsa durur. |
+| `watchlists.cik` | Site 10 haneli sıfır dolgulu kullanır (`client/src/lib/paths.js`, `api/_lib/slugs.js`); alert eşleştirmesi "iki biçimde de gelebilir" diyordu, yani canlıda dolgusuz satır olabilir. Migration: dolgulu eşi olan dolgusuz satırı siler, kalanları `lpad(btrim(cik),10,'0')` yapar, hâlâ 10 hane olmayan varsa **durur**; sonra `watchlists_00_normalize_cik` BEFORE INSERT/UPDATE trigger'ı (gelen değeri doldurur) ve `CHECK (cik ~ '^[0-9]{10}$')`. Trigger adı `watchlists_10_cap`'ten önce çalışacak şekilde seçildi (Postgres trigger'ları ad sırasıyla çalıştırır). |
+
+Doğrulama: `tests/sql/0002_constraints.test.sql` (plan CHECK, kolon yok,
+UNIQUE, dolgu + CHECK, ve migration'ın onarım adımlarının dolgusuz tohum
+satırlarda yeniden koşusu).

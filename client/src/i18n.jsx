@@ -404,6 +404,8 @@ const dict = {
     'compare.common': 'Ortak Pozisyonlar',
     'compare.onlyA': 'Sadece A',
     'compare.onlyB': 'Sadece B',
+    'compare.noFilings': 'Bu yöneticinin 13F bildirimi bulunamadı.',
+    'compare.loadFailed': 'Portföy yüklenemedi',
 
     'watchlist.title': 'İzleme Listesi',
     'watchlist.empty':
@@ -1308,6 +1310,8 @@ const dict = {
     'compare.common': 'Common Positions',
     'compare.onlyA': 'Only A',
     'compare.onlyB': 'Only B',
+    'compare.noFilings': 'No 13F filings found for this manager.',
+    'compare.loadFailed': 'Could not load the portfolio',
 
     'watchlist.title': 'Watchlist',
     'watchlist.empty': 'No favorites yet. Add managers with the star button on their pages.',

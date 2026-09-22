@@ -44,9 +44,14 @@ export const api = {
   portal: () => post('/api/portal'),
   search: (q) => get(`/api/search?q=${encodeURIComponent(q)}`),
   manager: (cik) => get(`/api/manager/${cik}`),
+  // The free view answers from the stored snapshot; a Pro request for the
+  // whole book reads the filing from EDGAR (submissions, index, the info
+  // table XML — tens of MB for the largest filers) and resolves tickers, so
+  // it earns the same 30s leash as the backtest (the function's own limit).
   holdings: (cik, acc, opts = {}) => {
     const qs = new URLSearchParams(opts).toString();
-    return get(`/api/holdings/${cik}/${acc}${qs ? `?${qs}` : ''}`);
+    const full = opts.full === '1';
+    return get(`/api/holdings/${cik}/${acc}${qs ? `?${qs}` : ''}`, full ? { timeoutMs: 30000 } : undefined);
   },
   aumHistory: (cik) => get(`/api/aum-history/${cik}`),
   returns: (symbols) => get(`/api/returns?symbols=${symbols.join(',')}`),

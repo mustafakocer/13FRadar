@@ -112,6 +112,10 @@ function StockCompare({ t }) {
   );
 }
 
+// One side of the comparison: the manager's filing list, then the latest
+// quarter's portfolio. `status` is what the page shows for that side —
+// 'idle' (nothing picked), 'loading', 'empty' (a filer with no 13F),
+// 'error' (either request failed; `error` says which) or 'ready'.
 function useLatestHoldings(mgr) {
   const { isPro } = useAuth();
   const info = useQuery({
@@ -126,7 +130,39 @@ function useLatestHoldings(mgr) {
     enabled: !!filing,
     staleTime: 6 * 60 * 60 * 1000,
   });
-  return { info, filing, holdings };
+  let status = 'idle';
+  if (mgr) {
+    if (info.error || holdings.error) status = 'error';
+    else if (holdings.data) status = 'ready';
+    else if (info.data && !filing) status = 'empty';
+    else status = 'loading';
+  }
+  const error = info.error || holdings.error || null;
+  const retry = () => (info.error ? info.refetch() : holdings.refetch());
+  return { info, filing, holdings, status, error, retry };
+}
+
+// What went wrong on one side, with a way to try that side again — a failed
+// request used to leave the page blank under the two pickers.
+function SideStatus({ side, mgr, t }) {
+  if (side.status === 'empty') {
+    return (
+      <div className="muted small">
+        <b>{mgr.name}</b>: {t('compare.noFilings')}
+      </div>
+    );
+  }
+  if (side.status !== 'error') return null;
+  return (
+    <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+      <span className="muted small">
+        <Ico icon={TriangleAlert} /> <b>{mgr.name}</b>: {t('compare.loadFailed')} ({String(side.error?.message || side.error)})
+      </span>
+      <button className="btn ghost" onClick={side.retry} disabled={side.info.isFetching || side.holdings.isFetching}>
+        {t('common.retry')}
+      </button>
+    </div>
+  );
 }
 
 function Picker({ label, mgr, setMgr, t }) {
@@ -210,7 +246,8 @@ export default function Compare() {
     common.sort((x, y) => y.wA + y.wB - (x.wA + x.wB));
   }
 
-  const loading = (a && !A.holdings.data && !A.holdings.error) || (b && !B.holdings.data && !B.holdings.error);
+  const loading = A.status === 'loading' || B.status === 'loading';
+  const problem = (a && A.status !== 'loading' && A.status !== 'ready') || (b && B.status !== 'loading' && B.status !== 'ready');
 
   return (
     <div>
@@ -244,10 +281,17 @@ export default function Compare() {
         </>
       )}
 
-      {mode === 'managers' && loading && (
+      {mode === 'managers' && isPro && loading && (
         <div className="loading">
           <div className="spinner" />
           {t('common.loading')}
+        </div>
+      )}
+
+      {mode === 'managers' && isPro && problem && (
+        <div className="card mt16" style={{ display: 'grid', gap: 8 }}>
+          {a && <SideStatus side={A} mgr={a} t={t} />}
+          {b && <SideStatus side={B} mgr={b} t={t} />}
         </div>
       )}
 

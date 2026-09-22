@@ -1,7 +1,8 @@
-// Sends the alert digest: new 13F filings from the funds a reader follows,
-// and insider trades matching the filters they saved.
+// Sends the alert digest: new 13F filings from the filers a reader has an
+// alert on, and insider trades matching the filters they saved.
 //
 //   node scripts/send-alerts.mjs --dry-run    prints what would be sent
+//   node scripts/send-alerts.mjs --force      ignore the weekly cadence
 //   node scripts/send-alerts.mjs              sends it
 //
 // Env:
@@ -10,17 +11,20 @@
 //   RESEND_API_KEY, ALERT_FROM                required to actually send
 //   SITE_URL                                  links in the body
 //
-// Without a mail key the run still matches and reports; it just cannot post.
-// That is the useful half in CI, and it is how this is verified without
-// sending anyone an email.
+// Who gets mail: readers whose notification_prefs.email_digest is true (opt-in,
+// migrations/0004_alerts). What they get: the targets in their alerts rows —
+// kind 'filing' (a CIK) and kind 'insider' (a ticker or '*' with the saved
+// filters). Without a mail key the run matches, reports what it would have
+// sent, and exits 0: that is a configuration state, not a failure.
 import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 import { svcSelect, svcUpdate, hasServiceKey } from '../api/_lib/auth.js';
-import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject } from '../api/_lib/alerts.js';
+import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject, recipients, filingTargets, dueForDigest } from '../api/_lib/alerts.js';
 import { CANONICAL_SITE } from '../api/_lib/site.js';
 
 const DRY = process.argv.includes('--dry-run');
+const FORCE = process.argv.includes('--force');
 const SITE = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');
 const FROM = process.env.ALERT_FROM || 'Fundocap <alerts@fundocap.com>';
 const MAIL_KEY = process.env.RESEND_API_KEY || '';
@@ -29,6 +33,7 @@ if (!hasServiceKey()) {
   console.error('SUPABASE_SERVICE_ROLE_KEY is not set — the digest cannot read anyone’s alerts.');
   process.exit(1);
 }
+if (!MAIL_KEY && !DRY) console.log('RESEND_API_KEY is not set — matching and reporting only, nothing will be sent.');
 
 const read = (file, fallback) => {
   try {
@@ -41,12 +46,11 @@ const read = (file, fallback) => {
 const filings = read('client/public/filings.json', { rows: [] }).rows || [];
 const insiders = read('api/_data/insiders.json', { rows: [] }).rows || [];
 if (!filings.length && !insiders.length) {
-  console.error('Neither dataset is present — nothing to alert on.');
-  process.exit(1);
+  console.log('Neither dataset is present — nothing to alert on.');
+  process.exit(0);
 }
 
 async function send(to, subject, text) {
-  if (!MAIL_KEY) return { skipped: 'no RESEND_API_KEY' };
   const r = await axios.post(
     'https://api.resend.com/emails',
     { from: FROM, to: [to], subject, text },
@@ -56,51 +60,54 @@ async function send(to, subject, text) {
   return { id: r.data?.id };
 }
 
-// Everyone who has asked to hear from us. A reader with no preference row has
-// not opted out — the default in the schema is on — so the join is a left one
-// in spirit: prefs narrow the set, they do not define it.
-const prefs = await svcSelect('notification_prefs', { select: 'user_id,email_enabled,cadence' });
-const optedOut = new Set(prefs.filter((p) => !p.email_enabled).map((p) => p.user_id));
-
-const alerts = await svcSelect('alerts', { select: '*', enabled: 'is.true' });
-const watchRows = await svcSelect('watchlists', { select: 'user_id,cik,name' });
-
-const byUser = new Map();
-const touch = (id) => {
-  if (!byUser.has(id)) byUser.set(id, { watch: [], alerts: [] });
-  return byUser.get(id);
-};
-for (const w of watchRows) touch(w.user_id).watch.push(w);
-for (const a of alerts) touch(a.user_id).alerts.push(a);
-
-// Email addresses come from the profile table the signup trigger fills.
-const profiles = await svcSelect('profiles', { select: 'id,email' });
+// Opt-in readers only; their alerts; their addresses from the profile table
+// the signup trigger fills.
+const prefs = await svcSelect('notification_prefs', { select: 'user_id,email_digest,digest_frequency', email_digest: 'is.true' });
+const wanted = recipients(prefs);
+if (!wanted.size) {
+  console.log(`${DRY ? '[dry run] ' : ''}0 readers have opted into the digest — nothing to send.`);
+  process.exit(0);
+}
+const alerts = await svcSelect('alerts', { select: 'id,user_id,kind,target,label,filters,last_seen,last_fired_at', user_id: `in.(${[...wanted.keys()].join(',')})` });
+const profiles = await svcSelect('profiles', { select: 'id,email', id: `in.(${[...wanted.keys()].join(',')})` });
 const emailOf = new Map(profiles.map((p) => [p.id, p.email]));
 
+const byUser = new Map();
+for (const a of alerts) {
+  if (!byUser.has(a.user_id)) byUser.set(a.user_id, []);
+  byUser.get(a.user_id).push(a);
+}
+
+const now = new Date();
 let sent = 0;
 let empty = 0;
+let notDue = 0;
 const marks = [];
 
-for (const [userId, bundle] of byUser) {
-  if (optedOut.has(userId)) continue;
+for (const [userId, frequency] of wanted) {
   const to = emailOf.get(userId);
-  if (!to) continue;
+  const mine = byUser.get(userId) || [];
+  if (!to || !mine.length) {
+    empty++;
+    continue;
+  }
+  if (!FORCE && !dueForDigest(mine, frequency, now)) {
+    notDue++;
+    continue;
+  }
 
-  // One filing alert per reader, driven by the watchlist; its high-water mark
-  // is stored on the alert row so a second run the same day repeats nothing.
-  const filingAlert = bundle.alerts.find((a) => a.kind === 'filing');
-  const ciks = bundle.watch.map((w) => w.cik);
-  const newFilings = filingAlert || ciks.length
-    ? matchFilings(filings, {
-        ciks,
-        since: filingAlert?.last_seen || null,
-        seenAccessions: filingAlert?.params?.seen || [],
-      })
-    : [];
+  // Filing alerts share one high-water mark: the newest filing date already
+  // reported across the reader's filers, plus that day's accessions.
+  const filingAlerts = mine.filter((a) => a.kind === 'filing');
+  const since = filingAlerts.map((a) => a.last_seen).filter(Boolean).sort().pop() || null;
+  const seen = filingAlerts.flatMap((a) => a.filters?.seen || []);
+  const newFilings = filingAlerts.length ? matchFilings(filings, { ciks: filingTargets(filingAlerts), since, seenAccessions: seen }) : [];
 
   const insiderHits = [];
-  for (const a of bundle.alerts.filter((x) => x.kind === 'insider')) {
-    const hits = matchInsiders(insiders, a.params || {}, { since: a.last_seen || null });
+  for (const a of mine.filter((x) => x.kind === 'insider')) {
+    const filters = { ...(a.filters || {}) };
+    if (a.target && a.target !== '*') filters.tickers = [a.target];
+    const hits = matchInsiders(insiders, filters, { since: a.last_seen || null });
     if (hits.length) {
       insiderHits.push(...hits);
       marks.push({ id: a.id, last_seen: nextMark(hits, 'f', a.last_seen) });
@@ -115,35 +122,34 @@ for (const [userId, bundle] of byUser) {
     continue;
   }
 
-  if (DRY) {
-    console.log(`\n--- ${to}\n${subject}\n${body}`);
+  if (DRY || !MAIL_KEY) {
+    console.log(`\n--- ${to} (${frequency})\n${subject}\n${body}`);
   } else {
-    const r = await send(to, subject, body);
-    if (r.skipped) console.log(`${to}: ${subject} (not sent — ${r.skipped})`);
+    await send(to, subject, body);
   }
   sent++;
 
-  if (filingAlert && newFilings.length) {
-    marks.push({
-      id: filingAlert.id,
-      last_seen: nextMark(newFilings, 'filed', filingAlert.last_seen),
-      // accessions of the newest day, so re-reading that day does not repeat
-      params: {
-        ...(filingAlert.params || {}),
-        seen: newFilings.filter((f) => f.filed === newFilings[0].filed).map((f) => f.acc),
-      },
-    });
+  if (newFilings.length) {
+    const newest = newFilings[0].filed;
+    for (const a of filingAlerts) {
+      marks.push({
+        id: a.id,
+        last_seen: nextMark(newFilings, 'filed', a.last_seen),
+        // accessions of the newest day, so re-reading that day does not repeat
+        filters: { ...(a.filters || {}), seen: newFilings.filter((f) => f.filed === newest).map((f) => f.acc) },
+      });
+    }
   }
 }
 
-// Marks move only after a successful send, and never on a dry run.
+// Marks move only after a real send: never on a dry run, never without a key.
 if (!DRY && MAIL_KEY) {
   for (const m of marks) {
     const { id, ...fields } = m;
-    await svcUpdate('alerts', { id: `eq.${id}` }, { ...fields, last_fired_at: new Date().toISOString() });
+    await svcUpdate('alerts', { id: `eq.${id}` }, { ...fields, last_fired_at: now.toISOString() });
   }
 }
 
 console.log(
-  `${DRY ? '[dry run] ' : ''}${sent} digests${MAIL_KEY ? '' : ' (no mail key — nothing posted)'}, ${empty} readers had nothing new, ${marks.length} marks ${DRY || !MAIL_KEY ? 'left alone' : 'advanced'}`
+  `${DRY ? '[dry run] ' : ''}${wanted.size} opted-in readers: ${sent} digests${MAIL_KEY && !DRY ? ' sent' : ' (not sent — no RESEND_API_KEY)'}, ${empty} had nothing new, ${notDue} not due yet (weekly), ${marks.length} marks ${DRY || !MAIL_KEY ? 'left alone' : 'advanced'}`
 );

@@ -1,5 +1,5 @@
 import { getUser, getProfile, noStore } from '../_lib/auth.js';
-import { hasStripe, stripePost, stripeGet } from '../_lib/stripe.js';
+import { hasStripe, stripePost } from '../_lib/stripe.js';
 
 // POST /api/portal  (bearer token required)
 // Opens the Stripe customer portal (change card, cancel, invoices).
@@ -15,20 +15,11 @@ export default async function handler(req, res) {
   const origin = process.env.SITE_URL || `${proto}://${req.headers.host}`;
 
   try {
-    let customer = null;
-    try {
-      customer = (await getProfile(user.id, 'stripe_customer_id'))?.stripe_customer_id || null;
-    } catch {
-      /* column may not exist yet */
-    }
-    if (!customer) {
-      // fallback: the customer created by Checkout carries our user id
-      const found = await stripeGet('/v1/customers/search', {
-        query: `metadata['user_id']:'${user.id}'`,
-        limit: 1,
-      });
-      customer = found?.data?.[0]?.id || null;
-    }
+    // The portal is for Stripe customers. The profile row is the record
+    // (S3 makes the column unique; the webhook fills it): an account without
+    // a customer id — a manual or open-ended Pro grant, a free account — has
+    // nothing there, and used to reach Stripe's customer search anyway.
+    const customer = (await getProfile(user.id, 'stripe_customer_id'))?.stripe_customer_id || null;
     if (!customer) return res.status(404).json({ error: 'no-subscription' });
 
     const session = await stripePost('/v1/billing_portal/sessions', {

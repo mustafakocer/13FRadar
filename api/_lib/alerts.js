@@ -101,3 +101,30 @@ export function digestSubject({ filings = [], insiders = [] }, lang = 'en') {
   if (!parts.length) return null;
   return `Fundocap — ${parts.join(', ')}`;
 }
+
+// ---- who, what, when (migrations/0004_alerts) ------------------------------
+
+// Opt-in readers: Map user_id → digest_frequency, from notification_prefs
+// rows. A row with email_digest false, or no row at all, is not a recipient.
+export function recipients(prefs = []) {
+  const out = new Map();
+  for (const p of prefs) if (p?.user_id && p.email_digest === true) out.set(p.user_id, p.digest_frequency === 'daily' ? 'daily' : 'weekly');
+  return out;
+}
+
+// The CIKs a reader's filing alerts point at, padded, de-duplicated.
+export function filingTargets(alerts = []) {
+  return [...new Set(alerts.filter((a) => a?.kind === 'filing' && a.target).map((a) => str(a.target).padStart(10, '0')))];
+}
+
+// A weekly reader is due when nothing was sent to them in the last six
+// days (the job runs daily; six keeps a Monday send on Mondays); a daily
+// reader is always due. The newest last_fired_at across the reader's alerts
+// is the last send.
+export function dueForDigest(alerts = [], frequency = 'weekly', now = new Date()) {
+  if (frequency !== 'weekly') return true;
+  let last = null;
+  for (const a of alerts) if (a?.last_fired_at && (!last || a.last_fired_at > last)) last = a.last_fired_at;
+  if (!last) return true;
+  return now.getTime() - Date.parse(last) >= 6 * 86400 * 1000;
+}

@@ -23,6 +23,7 @@ on:
           - 0001_rls
           - 0002_constraints
           - 0003_stripe_events
+          - 0004_alerts
 
 permissions:
   contents: read
@@ -112,11 +113,11 @@ jobs:
           set -euo pipefail
           source .github/scripts/db-url.sh
           case "$MIGRATION" in
-            all|0001_rls|0002_constraints|0003_stripe_events) ;;
+            all|0001_rls|0002_constraints|0003_stripe_events|0004_alerts) ;;
             *) echo "::error::unknown migration '$MIGRATION'"; exit 1 ;;
           esac
           if [ "$MIGRATION" = "all" ]; then
-            files="0001_rls 0002_constraints 0003_stripe_events"
+            files="0001_rls 0002_constraints 0003_stripe_events 0004_alerts"
           else
             files="$MIGRATION"
           fi
@@ -149,7 +150,9 @@ jobs:
             -c '\d public.profiles' \
             -c '\d public.watchlists' \
             -c '\d public.stripe_events' \
-            -c "select p.proname, pg_get_function_identity_arguments(p.oid) as args, p.prosecdef as security_definer from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('is_pro','apply_stripe_event','profiles_guard_columns','watchlists_enforce_cap','watchlists_normalize_cik','handle_new_user','handle_user_email_change') order by 1" \
-            -c "select tgrelid::regclass as table, tgname from pg_trigger where not tgisinternal and (tgrelid = 'public.profiles'::regclass or tgrelid = 'public.watchlists'::regclass or tgrelid = 'auth.users'::regclass) order by 1, 2" \
-            -c "select 'profiles   ' || count(*) from public.profiles union all select 'watchlists ' || count(*) from public.watchlists union all select 'auth.users ' || count(*) from auth.users" \
+            -c '\d public.notification_prefs' \
+            -c '\d public.alerts' \
+            -c "select p.proname, pg_get_function_identity_arguments(p.oid) as args, p.prosecdef as security_definer from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname in ('is_pro','apply_stripe_event','profiles_guard_columns','watchlists_enforce_cap','watchlists_normalize_cik','handle_new_user','handle_user_email_change','alerts_enforce_cap','alerts_normalize_target','touch_updated_at') order by 1" \
+            -c "select tgrelid::regclass as table, tgname from pg_trigger where not tgisinternal and (tgrelid = 'public.profiles'::regclass or tgrelid = 'public.watchlists'::regclass or tgrelid = 'auth.users'::regclass or tgrelid = 'public.alerts'::regclass or tgrelid = 'public.notification_prefs'::regclass) order by 1, 2" \
+            -c "select 'profiles   ' || count(*) from public.profiles union all select 'watchlists ' || count(*) from public.watchlists union all select 'auth.users ' || count(*) from auth.users union all select 'prefs      ' || count(*) from public.notification_prefs union all select 'alerts     ' || count(*) from public.alerts" \
             || true

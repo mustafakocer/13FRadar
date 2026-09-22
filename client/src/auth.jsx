@@ -10,6 +10,9 @@ const AuthCtx = createContext(null);
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [plan, setPlan] = useState('free');
+  // the own profile row (RLS: select own): plan_expires and the Stripe ids
+  // decide what the account page offers
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(supabaseConfigured);
 
   const loadProfile = useCallback(async (session) => {
@@ -17,6 +20,7 @@ export function AuthProvider({ children }) {
     setAuthToken(session?.access_token ?? null);
     if (!session?.user) {
       setPlan('free');
+      setProfile(null);
       setLoading(false);
       return;
     }
@@ -29,6 +33,16 @@ export function AuthProvider({ children }) {
       setPlan(data === true ? 'pro' : 'free');
     } catch {
       setPlan('free');
+    }
+    try {
+      const { data: row } = await supabase
+        .from('profiles')
+        .select('plan,plan_expires,stripe_customer_id,stripe_subscription_id')
+        .eq('id', session.user.id)
+        .maybeSingle();
+      setProfile(row || null);
+    } catch {
+      setProfile(null);
     }
     setLoading(false);
 
@@ -118,6 +132,7 @@ export function AuthProvider({ children }) {
     configured: supabaseConfigured,
     user,
     plan,
+    profile,
     // Pro is a plan, never a side effect of missing configuration: the API
     // answers 402 to an anonymous caller either way, so the client must not
     // draw the Pro view when the SDK is simply not configured.

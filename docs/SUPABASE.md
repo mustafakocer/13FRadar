@@ -232,3 +232,38 @@ yerel Postgres 16'da aynı bayraklarla koşuldu (shim + tüm migration'lar,
 
 Canlı ilk koşuda kontrol: artifact boyutu > 10 KB, log'da `dump: … tables`
 satırı ve `CREATE TABLE auth.users` grep'i geçmiş olmalı.
+
+## 6. Uyarılar ve bildirim tercihleri (S6) — `migrations/0004_alerts`
+
+Belirti: `schema.sql`'de tanımlı `alerts` / `notification_prefs` canlıda yoktu;
+`useAlerts.js` ve `send-alerts.mjs` 404 alıyor, /account'taki "E-posta özeti"
+kutusu işaretli görünüp hiçbir yere yazmıyordu.
+
+| Tablo | Kolonlar | Not |
+|---|---|---|
+| `notification_prefs` | `user_id` PK → auth.users (cascade), `email_digest` bool **default false**, `digest_frequency` 'daily'\|'weekly' (CHECK), `updated_at` (trigger) | opt-in; `handle_new_user` profil ile birlikte açar; mevcut hesaplar migration'da backfill |
+| `alerts` | `id` uuid, `user_id`, `kind` CHECK ('filing'\|'insider'), `target` (filing: 10 haneli CIK; insider: ticker ya da `*`), `label`, `filters` jsonb, `last_seen`, `last_fired_at`, `created_at` | UNIQUE (user_id, kind, target) → "bildirim aç" idempotent; BEFORE trigger CIK'i doldurur, ticker'ı büyütür; `last_*` digest'in yüksek su işareti (service role yazar) |
+
+Policy tablosu (her ikisi için aynı desen, `authenticated`'a; `anon`'da hiçbir hak yok; service role RLS'i geçer):
+
+| Tablo | Policy | Komut | using / with check |
+|---|---|---|---|
+| notification_prefs | notification_prefs_select_own | SELECT | auth.uid() = user_id |
+| notification_prefs | notification_prefs_insert_own | INSERT | with check auth.uid() = user_id |
+| notification_prefs | notification_prefs_update_own | UPDATE | her ikisi |
+| notification_prefs | notification_prefs_delete_own | DELETE | auth.uid() = user_id |
+| alerts | alerts_select_own / _insert_own / _update_own / _delete_own | 4 | aynı |
+
+Satır sınırı: `alerts_05_cap` — AFTER INSERT … FOR EACH STATEMENT, `watchlists_10_cap`
+ile aynı desen (advisory lock + `is_pro()`), free 5 / pro 100, hint `alert-cap`.
+
+Uygulama: `useAlerts.js` DB değerini gösterir (kutu opt-in, `prefsLoaded` gelene kadar
+devre dışı); "Kayıtlı uyarı yok" yerine takip listesindeki fonlar için tek tıkla
+"Bildirim aç" (tekil ya da tümü; sınır hatası plan mesajı). `send-alerts.mjs` yalnız
+`email_digest=true` okuyuculara, hedefleri `alerts`'ten okur; haftalık okuyucu 6 günde
+bir; `RESEND_API_KEY` yoksa eşleştirip loglar, 0 ile çıkar.
+
+Doğrulama: `tests/sql/0004_alerts.test.sql` (12 opt-in varsayılan + kendi upsert +
+frequency CHECK + başka kullanıcı 0 satır; 13 CRUD/normalizasyon/CHECK/unique/anon;
+14 sınır 5/100 toplu insert; 15 service role); `npm run test:db` up → test → down →
+up ×2 temiz. Canlı: "Database migrate" workflow'u `0004_alerts` seçeneğiyle.

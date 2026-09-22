@@ -264,10 +264,13 @@ export default function Insiders() {
     ]
       .filter(Boolean)
       .join(' · ');
+    // target = the ticker when the feed is filtered to one, '*' otherwise;
+    // the rest of the filter travels in `filters` (migrations/0004_alerts)
     await saveAlert({
       kind: 'insider',
+      target: search ? search.toUpperCase() : '*',
       label: label || t('ins.tab.latest'),
-      params: {
+      filters: {
         tickers: search ? [search.toUpperCase()] : [],
         roles: tab === 'ceo' ? ['ceo'] : tab === 'cfo' ? ['cfo'] : [],
         codes: adv.codes ? adv.codes.split(',').filter(Boolean) : [],

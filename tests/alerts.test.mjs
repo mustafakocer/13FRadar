@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject } from '../api/_lib/alerts.js';
+import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject, recipients, filingTargets, dueForDigest } from '../api/_lib/alerts.js';
 
 // What an alert reports, and what it must not report twice.
 
@@ -88,4 +88,37 @@ test('nothing to say means no email, not an empty one', () => {
   assert.equal(renderDigest({ filings: [], insiders: [] }), null);
   assert.equal(digestSubject({ filings: [], insiders: [] }), null);
   assert.equal(digestSubject({ filings: [1], insiders: [1, 2] }), 'Fundocap — 1 new 13F, 2 insider trades');
+});
+
+// S6 — who gets the digest, from which targets, and when
+test('recipients are the opt-in rows only; no row or false is no mail', () => {
+  const r = recipients([
+    { user_id: 'a', email_digest: true, digest_frequency: 'daily' },
+    { user_id: 'b', email_digest: false, digest_frequency: 'daily' },
+    { user_id: 'c', email_digest: true, digest_frequency: 'monthly' },
+    { user_id: 'd', email_digest: true },
+  ]);
+  assert.deepEqual([...r], [['a', 'daily'], ['c', 'weekly'], ['d', 'weekly']]);
+  assert.equal(recipients([]).size, 0);
+});
+
+test('filing targets come from the alerts rows, padded and de-duplicated', () => {
+  assert.deepEqual(
+    filingTargets([
+      { kind: 'filing', target: '1067983' },
+      { kind: 'filing', target: '0001067983' },
+      { kind: 'insider', target: 'AAPL' },
+      { kind: 'filing', target: '0001336528' },
+    ]),
+    ['0001067983', '0001336528']
+  );
+});
+
+test('a weekly reader is due six days after the last send; a daily reader always', () => {
+  const now = new Date('2026-09-22T08:23:00Z');
+  const sent = (daysAgo) => [{ last_fired_at: new Date(now.getTime() - daysAgo * 86400 * 1000).toISOString() }];
+  assert.equal(dueForDigest([], 'weekly', now), true, 'never sent');
+  assert.equal(dueForDigest(sent(2), 'weekly', now), false);
+  assert.equal(dueForDigest(sent(6), 'weekly', now), true);
+  assert.equal(dueForDigest(sent(0.5), 'daily', now), true);
 });

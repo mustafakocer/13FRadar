@@ -86,7 +86,7 @@ export default function Account() {
   if (!user) {
     return (
       <div style={{ maxWidth: 440, margin: '32px auto' }}>
-        <AuthForm next={next} initialMode={next === '/pricing' ? 'signup' : 'signin'} />
+        <AuthForm next={next} initialMode={next?.startsWith('/pricing') ? 'signup' : 'signin'} />
       </div>
     );
   }

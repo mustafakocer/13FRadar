@@ -14,7 +14,7 @@ import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
 import { LAZY_PAGES } from './pages/lazyPages.js';
 
-const { Insiders, PennyStocks, Screen, StockScreen, Compare, Report, Watchlist, Pricing, Account, Filers, GuruTicker, Calendar, Filings, Emerging, ReportPage, ContentPage } = Object.fromEntries(
+const { Insiders, PennyStocks, Screen, StockScreen, Compare, Report, Watchlist, Pricing, Checkout, Account, Filers, GuruTicker, Calendar, Filings, Emerging, ReportPage, ContentPage } = Object.fromEntries(
   Object.entries(LAZY_PAGES).map(([k, v]) => [k, v.component])
 );
 // Split pages get their own boundary: entity pages hydrate synchronously with
@@ -93,6 +93,7 @@ export default function App() {
           <Route path="/compare" element={<Lazy><Compare /></Lazy>} />
           <Route path="/watchlist" element={<Lazy><Watchlist /></Lazy>} />
           <Route path="/pricing" element={<Lazy><Pricing /></Lazy>} />
+          <Route path="/checkout/:outcome" element={<Lazy><Checkout /></Lazy>} />
           <Route path="/account" element={<Lazy><Account /></Lazy>} />
         </Routes>
         </ErrorBoundary>

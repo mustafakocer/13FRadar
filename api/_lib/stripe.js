@@ -9,6 +9,9 @@ import axios from 'axios';
 //   STRIPE_PRICE_YEARLY       price_… ($199 / year)
 //   STRIPE_PRICE_MONTHLY_TR   price_… ($10 / month, shown to visitors from Türkiye)
 //   STRIPE_PRICE_YEARLY_TR    price_… ($100 / year)
+//   STRIPE_PRICE_MONTHLY_TRY  price_… (₺, Türkiye; wins over the _TR USD price when set)
+//   STRIPE_PRICE_YEARLY_TRY   price_… (₺)
+// Which of these a visitor gets is decided in plans.js (planCatalog).
 // STRIPE_API_BASE points the client at a stand-in during tests.
 const apiBase = () => (process.env.STRIPE_API_BASE || 'https://api.stripe.com').replace(/\/$/, '');
 

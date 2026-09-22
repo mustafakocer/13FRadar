@@ -41,6 +41,7 @@ const post = (url, opts) => request(url, { ...opts, method: 'POST' });
 
 export const api = {
   checkout: (cycle) => post(`/api/checkout?cycle=${cycle === 'y' ? 'y' : 'm'}`),
+  plans: () => get('/api/plans'),
   portal: () => post('/api/portal'),
   search: (q) => get(`/api/search?q=${encodeURIComponent(q)}`),
   manager: (cik) => get(`/api/manager/${cik}`),

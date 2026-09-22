@@ -157,7 +157,7 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
   }
 
   // ---- form ----------------------------------------------------------------
-  const forPro = next === '/pricing';
+  const forPro = Boolean(next && next.startsWith('/pricing'));
   const subtitle = forPro ? t('account.sub.forPro') : t(`account.sub.${mode}`);
 
   return (

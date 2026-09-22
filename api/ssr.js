@@ -58,7 +58,8 @@ export default async function handler(req, res) {
   let cache = CACHE.none;
   if (matched) {
     try {
-      const out = await matched.route.load(matched.params);
+      // the visitor's country rides along for loaders whose answer depends on it (pricing)
+      const out = await matched.route.load({ ...matched.params, _country: String(req.headers['x-vercel-ip-country'] || '').toUpperCase() });
       if (Array.isArray(out)) seeds = out;
       else {
         if (out.redirect) {

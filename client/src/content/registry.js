@@ -33,8 +33,16 @@ export const COMPARES = [
   { id: '13radar', paths: { en: '/compare/13f-radar-vs-13radar', tr: '/karsilastir/13f-radar-vs-13radar' }, title: { en: 'Fundocap vs 13radar.com', tr: 'Fundocap vs 13radar.com' } },
 ];
 
+// Privacy notice and terms of use (content in legal.js). Required for the
+// Google OAuth consent screen and Stripe; linked from the footer.
+export const LEGAL = [
+  { id: 'privacy', paths: { en: '/privacy', tr: '/gizlilik' }, title: { en: 'Privacy Notice', tr: 'Gizlilik Bildirimi' } },
+  { id: 'terms', paths: { en: '/terms', tr: '/kullanim-sartlari' }, title: { en: 'Terms of Use', tr: 'Kullanım Şartları' } },
+];
+
 export const contentByPath = (path) => {
   for (const g of GUIDES) for (const lang of ['en', 'tr']) if (g.paths[lang] === path) return { kind: 'guide', entry: g, lang };
   for (const c of COMPARES) for (const lang of ['en', 'tr']) if (c.paths[lang] === path) return { kind: 'compare', entry: c, lang };
+  for (const l of LEGAL) for (const lang of ['en', 'tr']) if (l.paths[lang] === path) return { kind: 'legal', entry: l, lang };
   return null;
 };

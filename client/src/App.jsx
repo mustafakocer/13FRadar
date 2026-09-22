@@ -81,6 +81,9 @@ export default function App() {
           <Route path="/rehber/:slug" element={<Lazy><ContentPage /></Lazy>} />
           <Route path="/compare/:slug" element={<Lazy><ContentPage /></Lazy>} />
           <Route path="/karsilastir/:slug" element={<Lazy><ContentPage /></Lazy>} />
+          {['/privacy', '/terms', '/gizlilik', '/kullanim-sartlari'].map((p) => (
+            <Route key={p} path={p} element={<Lazy><ContentPage /></Lazy>} />
+          ))}
           <Route path="/reports/:id" element={<Lazy><ReportPage /></Lazy>} />
           <Route path="/emerging-managers" element={<Lazy><Emerging /></Lazy>} />
           <Route path="/stock/:ticker" element={<Stock />} />

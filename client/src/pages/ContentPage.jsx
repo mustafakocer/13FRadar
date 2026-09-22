@@ -3,9 +3,10 @@ import { Link, Navigate, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { breadcrumbs, faqJsonLd } from '../lib/seoTemplates.js';
-import { article } from '../lib/jsonld.js';
-import { contentByPath, GUIDES, COMPARES } from '../content/registry.js';
+import { article, webPage } from '../lib/jsonld.js';
+import { contentByPath, GUIDES, COMPARES, LEGAL } from '../content/registry.js';
 import { GUIDE_CONTENT } from '../content/guides.js';
+import { LEGAL_CONTENT, CONTACT_EMAIL, LEGAL_UPDATED } from '../content/legal.js';
 import { COMPARE_CONTENT, BEST_TRACKERS, MATRIX_ROWS, MATRIX_LABEL, US } from '../content/compare.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
@@ -30,6 +31,55 @@ function Matrix({ lang, columns, cells }) {
   );
 }
 
+// The privacy notice and the terms: sections, the contact line, WebPage
+// JSON-LD — no answer box, no FAQ, no matrix.
+function LegalPage({ entry, lang, t }) {
+  const content = LEGAL_CONTENT[entry.id][lang];
+  const path = entry.paths[lang];
+  useSeo(
+    useMemo(
+      () => ({
+        title: `${content.title} | Fundocap`,
+        description: content.lead.slice(0, 155),
+        path,
+        paths: entry.paths,
+        dateModified: LEGAL_UPDATED,
+        jsonLd: [
+          webPage({ name: content.title, description: content.lead.slice(0, 300), lang, path, dateModified: LEGAL_UPDATED }),
+          breadcrumbs(lang, [[content.title, path]]),
+        ],
+      }),
+      [content, lang, path, entry]
+    )
+  );
+  return (
+    <article data-legal={entry.id}>
+      <div className="page-head">
+        <div>
+          <h1>{content.title}</h1>
+          <div className="sub">{t('legal.updated').replace('{d}', LEGAL_UPDATED)}</div>
+        </div>
+      </div>
+      <div className="card"><p className="about-text">{content.lead}</p></div>
+      {content.sections.map((s) => (
+        <section key={s.h2} className="card mt16">
+          <h2 style={{ fontSize: 20, marginBottom: 10 }}>{s.h2}</h2>
+          {s.p.map((p, i) => <p key={i} className="about-text" style={{ marginBottom: 10 }}>{p}</p>)}
+        </section>
+      ))}
+      <div className="card mt16" data-legal-contact>
+        <b>{t('legal.contactTitle')}</b>
+        <p className="about-text" style={{ marginTop: 6 }}>
+          {t('legal.contact')} <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>
+        </p>
+        <div className="row mt8">
+          {LEGAL.filter((l) => l.id !== entry.id).map((l) => <Link key={l.id} to={l.paths[lang]} className="chip">{l.title[lang]}</Link>)}
+        </div>
+      </div>
+    </article>
+  );
+}
+
 // Static guides and comparison pages. Slugs differ per language; a URL in
 // the other language's slug redirects to the right one.
 export default function ContentPage() {
@@ -38,6 +88,7 @@ export default function ContentPage() {
   const hit = contentByPath(pathname);
   if (!hit) return <div className="error-box">{t('common.error')}</div>;
   if (hit.lang !== lang) return <Navigate to={hit.entry.paths[lang]} replace />;
+  if (hit.kind === 'legal') return <LegalPage entry={hit.entry} lang={lang} t={t} />;
   const { kind, entry } = hit;
   const content = kind === 'guide' ? (entry.id === 'best-13f-trackers' ? BEST_TRACKERS[lang] : GUIDE_CONTENT[entry.id][lang]) : COMPARE_CONTENT[entry.id][lang];
   const path = entry.paths[lang];

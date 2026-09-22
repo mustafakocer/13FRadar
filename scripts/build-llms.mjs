@@ -11,7 +11,7 @@ import { slugTable } from '../api/_lib/slugs.js';
 import { historyTable } from '../api/_lib/history.js';
 import { guruAnswerFromHistory, biggestMove } from '../client/src/lib/answerBox.js';
 import { fmtMoney } from '../client/src/lib/format.js';
-import { GUIDES, COMPARES } from '../client/src/content/registry.js';
+import { GUIDES, COMPARES, LEGAL } from '../client/src/content/registry.js';
 
 const root = process.cwd();
 const out = path.join(root, 'client', 'dist');
@@ -110,6 +110,7 @@ function sections(lang, full) {
   H('Guides', 'Rehberler');
   for (const g of GUIDES) L.push(link(lang, g.paths[lang], g.title[lang], g.summary[lang]));
   for (const c of COMPARES) L.push(link(lang, c.paths[lang], c.title[lang]));
+  for (const l of LEGAL) L.push(link(lang, l.paths[lang], l.title[lang]));
   if (full) {
     L.push('');
     H('Guru summaries', 'Usta yatırımcı özetleri');

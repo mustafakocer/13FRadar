@@ -3,6 +3,9 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ isSsrBuild }) => ({
   plugins: [react()],
+  // The contact address on the legal pages and in the footer, from the
+  // build environment (CONTACT_EMAIL); a placeholder until it is set.
+  define: { __CONTACT_EMAIL__: JSON.stringify(process.env.CONTACT_EMAIL || '') },
   server: {
     port: 5173,
     proxy: {

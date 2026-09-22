@@ -2,8 +2,10 @@
 // VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (Vercel → Environment
 // Variables, then redeploy — Vite inlines them at build time). Nothing is
 // baked in here; without them auth is off and the site is the free tier.
-const url = import.meta.env.VITE_SUPABASE_URL || '';
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+// (import.meta.env exists under Vite; node tests import this module too)
+const env = (typeof import.meta !== 'undefined' && import.meta.env) || {};
+const url = env.VITE_SUPABASE_URL || '';
+const anonKey = env.VITE_SUPABASE_ANON_KEY || '';
 
 export const supabaseConfigured = Boolean(url && anonKey);
 

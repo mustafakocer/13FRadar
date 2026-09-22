@@ -489,6 +489,10 @@ th.sortable { cursor: pointer; user-select: none; }
 .alert.err { background: var(--popover); color: var(--text); border: 1px solid var(--border-strong); }
 .alert.ok { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
 .auth-submit { width: 100%; padding: 13px 16px; font-size: 15px; }
+.auth-google { width: 100%; padding: 12px 16px; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: var(--card); color: var(--text); border: 1px solid var(--border-strong); }
+.auth-google:hover { background: var(--popover); }
+.auth-divider { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; color: var(--text-2); font-size: 12.5px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 /* --text-3: placeholders, captions and disabled states only — never inside data tables */
 .btn:disabled, .btn[disabled] { cursor: not-allowed; color: var(--text-3); border-color: var(--border); background: transparent; }
 .auth-links { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 16px; font-size: 13.5px; color: var(--text-2); flex-wrap: wrap; }

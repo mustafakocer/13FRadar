@@ -1,11 +1,12 @@
 import { Link } from 'react-router-dom';
 import { fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { securityLabel } from '../lib/label.js';
 import Ico from './Ico.jsx';
 import { Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 
 function Row({ p, badge, delta }) {
-  const name = p.ticker || p.cusip;
+  const name = securityLabel(p).text;
   const body = (
     <>
       <div style={{ minWidth: 0 }}>

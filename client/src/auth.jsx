@@ -118,8 +118,10 @@ export function AuthProvider({ children }) {
     configured: supabaseConfigured,
     user,
     plan,
-    // paywall disabled until auth infra is live
-    isPro: !supabaseConfigured || plan === 'pro',
+    // Pro is a plan, never a side effect of missing configuration: the API
+    // answers 402 to an anonymous caller either way, so the client must not
+    // draw the Pro view when the SDK is simply not configured.
+    isPro: plan === 'pro',
     loading,
     signInEmail,
     signInPassword,

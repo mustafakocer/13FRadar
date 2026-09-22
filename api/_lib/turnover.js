@@ -16,9 +16,14 @@
 // The counts travel with the number so a page can never show "0% turnover"
 // next to "1 new · 1 exited": a quarter with any opened or closed position
 // has a positive turnover, however small.
-export function turnover(prev, cur) {
+//
+// `idOf(position)` names the security: the ticker from the security master
+// when the caller has one, so a CUSIP that changed under a position (a
+// reorganisation, a new share class) is the same holding and not an exit
+// plus a new position — which would count the whole stake twice.
+export function turnover(prev, cur, { idOf = null } = {}) {
   if (!prev || !cur) return { turnover: null, traded: null, newCount: 0, exitCount: 0, addCount: 0, reduceCount: 0 };
-  const key = (p) => `${String(p.cusip || '').toUpperCase()}`;
+  const key = (p) => (idOf && idOf(p)) || `${String(p.cusip || '').toUpperCase()}`;
   const before = new Map();
   for (const p of prev.positions || []) before.set(key(p), p);
   const after = new Map();
@@ -58,6 +63,17 @@ export function turnover(prev, cur) {
     reduceCount,
   };
 }
+
+// Quarters whose turnover is implausible for a discretionary book. The
+// amendment-as-a-quarter bug produced 185–200% (a four-line 13F-HR/A read
+// as the whole book: every real position "exited", then "opened" again next
+// quarter). Above this line the build logs the quarter so a regression is
+// seen in the Action log rather than on the page. 60% is deliberately high
+// — a real rotation of a third of a concentrated book in one quarter lands
+// well under it — so what trips it is data, not investing.
+export const TURNOVER_OUTLIER = 60;
+export const turnoverOutliers = (quarters, limit = TURNOVER_OUTLIER) =>
+  (quarters || []).filter((q) => Number.isFinite(q?.turnover) && q.turnover > limit).map((q) => ({ reportDate: q.reportDate, turnover: q.turnover }));
 
 // Consecutive quarters a security has been held up to and including the
 // latest one, over a series of held-security sets (oldest first). A

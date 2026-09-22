@@ -8,3 +8,4 @@ client/dist/
 .DS_Store
 geo-monitor/*.json
 geo-monitor/results.csv
+.cache/

@@ -1,7 +1,11 @@
 import axios from 'axios';
+import { snapshot } from '../_lib/providerHealth.js';
+import { hasFmp, hasTd } from '../_lib/providers.js';
 
-// Temporary diagnostics: what do the upstream data providers return from
-// THIS serverless region's IPs? Helps choose the right data source/fallback.
+// Diagnostics: what the upstream data providers return from THIS serverless
+// region's IPs, which keys the instance has, and the quote chain's health
+// since the instance started (api/_lib/providerHealth.js) — the three things
+// needed to read a day of X-Stock-Source: snapshot.
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
@@ -29,5 +33,16 @@ export default async function handler(req, res) {
     probe('stooq_com', 'https://stooq.com/q/d/l/?s=aapl.us&i=d'),
     probe('stooq_pl', 'https://stooq.pl/q/d/l/?s=aapl.us&i=d'),
   ]);
-  res.status(200).json(out);
+  res.status(200).json({
+    probes: out,
+    config: {
+      FMP_API_KEY: hasFmp(),
+      TWELVEDATA_API_KEY: hasTd(),
+      OPENFIGI_API_KEY: Boolean(process.env.OPENFIGI_API_KEY),
+      STOCK_UPSTREAM_MS: Number(process.env.STOCK_UPSTREAM_MS) || 3000,
+      STOCK_SNAPSHOT_MS: Number(process.env.STOCK_SNAPSHOT_MS) || null,
+      region: process.env.VERCEL_REGION || null,
+    },
+    health: snapshot(),
+  });
 }

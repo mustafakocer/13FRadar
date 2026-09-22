@@ -10,6 +10,8 @@ import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import { consensusSeo } from '../lib/seoTemplates.js';
 import AnswerBox from '../components/AnswerBox.jsx';
+import CoverageLine from '../components/CoverageLine.jsx';
+import { securityLabel } from '../lib/label.js';
 import Paywall from '../components/Paywall.jsx';
 import HoldersPanel from '../components/HoldersPanel.jsx';
 import { managerPath } from '../lib/paths.js';
@@ -41,7 +43,7 @@ const Sym = ({ r }) =>
       {r.ticker}
     </Link>
   ) : (
-    <span className="muted small">{r.cusip}</span>
+    <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
   );
 
 // A handful of tickers as links — the fund segment's cells.
@@ -189,7 +191,16 @@ export default function Consensus() {
       {/* ---- the four numbers that frame the quarter — on the front only --- */}
       {tab === 'held' && (
       <div className="grid grid-4" style={{ marginBottom: 16 }}>
-        <Kpi label={t('consensus.kpi.funds')} value={fmtNum(managers.length)} sub={<Link to="/gurus">{t('consensus.seeFunds')} →</Link>} />
+        <Kpi
+          label={t('consensus.kpi.funds')}
+          value={fmtNum(data?.coverage?.included ?? managers.length)}
+          sub={
+            <>
+              <CoverageLine coverage={data?.coverage} className="small muted" />
+              <Link to="/gurus">{t('consensus.seeFunds')} →</Link>
+            </>
+          }
+        />
         <Kpi label={t('consensus.kpi.period')} value={latest ? quarterLabel(latest) : '—'} sub={t('consensus.kpi.periodNote')} />
         <Kpi
           label={t('consensus.kpi.topHeld')}

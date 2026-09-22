@@ -4,16 +4,19 @@ import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClie
 import { stooqDaily } from '../_lib/stooq.js';
 import { hasFmp, hasTd, fmpStock, tdStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
+import { noteOk, noteFail, noteServed, shouldSkip, servedHeader } from '../_lib/providerHealth.js';
 
 // GET /api/stock/:ticker — the quote board of a stock page.
 //
-// This answer is cache-first and always 200. The live providers are asked,
-// but they get a fixed wall-clock budget for the whole chain, and when it
-// runs out the request is answered from the freshest of: the last live
-// answer this instance saw (`remember`), the nightly price file (dated, with
-// `priceStale: true`), or a payload whose price fields are all null. The
-// provider chain keeps running after the response so the next request on a
-// warm instance finds it in the cache.
+// This answer is cache-first and always 200. The live providers are asked
+// all at once (raceProviders) inside a fixed wall-clock budget; the answer
+// is the best-ranked one that lands in time, and when none does the request
+// is answered from the freshest of: the last live answer this instance saw
+// (`remember`), the nightly price file (dated, with `priceStale: true`), or
+// a payload whose price fields are all null. The race keeps running after
+// the response so the next request on a warm instance finds a better
+// answer in the cache. Every answer says which provider served it and how
+// each one did (X-Stock-* headers, api/_lib/providerHealth.js).
 //
 // Why the budget exists: the chain below used to run to completion before
 // answering. Each Yahoo call retried four times against a 15-second socket
@@ -261,76 +264,167 @@ function shapeStooqFallback(symbol, prices) {
   };
 }
 
-// The provider chain, most complete answer first. Each step is timed so the
-// log says which provider is slow, not just that the page was.
-async function fromProviders(ticker, log) {
-  const step = async (name, fn) => {
-    const t0 = Date.now();
-    try {
-      const out = await fn();
-      if (out) {
-        log(`${name} ok in ${Date.now() - t0}ms`);
-        return out;
-      }
-      log(`${name} empty in ${Date.now() - t0}ms`);
-    } catch (e) {
-      log(`${name} failed in ${Date.now() - t0}ms: ${String(e?.message || e).slice(0, 120)}`);
+// The providers, most complete answer first. Each is a thunk so a test can
+// hand in its own list; `needs` says which key must be present.
+const PROVIDERS = [
+  { name: 'yahoo:quoteSummary', run: async (t) => shapeFull(await yahooQuoteSummary(t, MODULES)) },
+  { name: 'fmp', needs: hasFmp, run: (t) => fmpStock(t) },
+  {
+    name: 'yahoo:quote',
+    run: async (t) => {
+      const [q] = await yahooQuote([t]);
+      return q ? shapeQuoteFallback(q) : null;
+    },
+  },
+  { name: 'twelvedata', needs: hasTd, run: (t) => tdStock(t) },
+  {
+    name: 'yahoo:chart',
+    run: async (t) => {
+      const chart = await yahooChart(t, { range: '5d' });
+      return chart?.meta ? shapeChartFallback(chart.meta) : null;
+    },
+  },
+  { name: 'stooq', run: async (t) => shapeStooqFallback(t, await stooqDaily(t)) },
+];
+
+// The chain used to run one provider after another and the first one —
+// Yahoo, which throttles this region — spent the whole budget by itself, so
+// every answer came from the nightly file although FMP or the chart
+// endpoint would have answered in under a second. Now every provider that
+// is configured and not circuit-broken starts at once; the answer is the
+// best-ranked success available when the budget lapses (or as soon as the
+// top-ranked one lands), and the rest keep running so a better-ranked
+// answer that arrives later upgrades the cache for the next request.
+//
+// Returns { data, provider, chain } — `chain` is one line per provider:
+// name=outcome:ms, outcome being ok, or the failure class
+// (throttle / forbidden / key / timeout / parse / upstream / network).
+export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTREAM_BUDGET_MS, log = () => {}, now = Date.now } = {}) {
+  const outcomes = new Map(providers.map((p) => [p.name, 'pending']));
+  const line = () => [...outcomes].map(([n, o]) => `${n}=${o}`).join(';');
+  const eligible = providers.filter((p) => {
+    if (p.needs && !p.needs()) {
+      outcomes.set(p.name, 'key:0');
+      return false;
+    }
+    if (shouldSkip(p.name, now())) {
+      outcomes.set(p.name, 'open:0');
+      return false;
+    }
+    return true;
+  });
+  const results = eligible.map((p) => {
+    const t0 = now();
+    return Promise.resolve()
+      .then(() => p.run(ticker))
+      .then((out) => {
+        const ms = now() - t0;
+        if (out) {
+          noteOk(p.name, ms);
+          outcomes.set(p.name, `ok:${ms}`);
+          log(`${p.name} ok in ${ms}ms`);
+          return out;
+        }
+        noteFail(p.name, new Error('empty'), ms);
+        outcomes.set(p.name, `parse:${ms}`);
+        log(`${p.name} empty in ${ms}ms`);
+        return null;
+      })
+      .catch((e) => {
+        const ms = now() - t0;
+        const kind = noteFail(p.name, e, ms);
+        outcomes.set(p.name, `${kind}:${ms}`);
+        log(`${p.name} ${kind} in ${ms}ms: ${String(e?.message || e).slice(0, 120)}`);
+        return null;
+      });
+  });
+  const settled = results.map(() => false);
+  const values = results.map(() => null);
+  results.forEach((r, i) => r.then((v) => {
+    settled[i] = true;
+    values[i] = v;
+  }));
+  // the best-ranked answer settled so far; null while a better-ranked
+  // provider could still answer within the budget
+  const bestNow = () => {
+    for (let i = 0; i < results.length; i++) {
+      if (!settled[i]) return undefined; // a better-ranked one is still running
+      if (values[i]) return { data: values[i], provider: eligible[i].name };
     }
     return null;
   };
-  return (
-    (await step('yahoo:quoteSummary', async () => shapeFull(await yahooQuoteSummary(ticker, MODULES)))) ||
-    // Yahoo blocks datacenter IPs — keyed providers are the reliable path.
-    (hasFmp() && (await step('fmp', () => fmpStock(ticker)))) ||
-    (await step('yahoo:quote', async () => {
-      const [q] = await yahooQuote([ticker]);
-      return q ? shapeQuoteFallback(q) : null;
-    })) ||
-    (hasTd() && (await step('twelvedata', () => tdStock(ticker)))) ||
-    (await step('yahoo:chart', async () => {
-      const chart = await yahooChart(ticker, { range: '5d' });
-      return chart?.meta ? shapeChartFallback(chart.meta) : null;
-    })) ||
-    (await step('stooq', async () => shapeStooqFallback(ticker, await stooqDaily(ticker)))) ||
-    null
-  );
+  const anyNow = () => {
+    for (let i = 0; i < results.length; i++) if (settled[i] && values[i]) return { data: values[i], provider: eligible[i].name };
+    return null;
+  };
+  // resolves when the best possible answer is known, or at the budget with
+  // the best answer so far
+  const withinBudget = new Promise((resolve) => {
+    if (!results.length) return resolve(null);
+    let done = false;
+    const finish = (v) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve(v);
+    };
+    const timer = setTimeout(() => finish(anyNow()), budgetMs);
+    results.forEach((r) => r.then(() => {
+      const b = bestNow();
+      if (b !== undefined) finish(b);
+    }));
+  });
+  // the eventual best answer, after every provider settled (for the cache
+  // and for the next request on this instance, which serves it as live)
+  const race = { withinBudget, eventual: null, settledBest: null, chain: line };
+  race.eventual = Promise.all(results).then(() => {
+    race.settledBest = anyNow();
+    return race.settledBest;
+  });
+  return race;
 }
 
 // Live within the budget, else the freshest fallback: last live answer on
 // this instance → nightly price file → all-null price block. Exported so the
 // SSR loader and tests exercise the same decision the HTTP handler makes.
-export async function stockPayload(ticker, { budgetMs = null, log = () => {} } = {}) {
+export async function stockPayload(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {
   const key = `stock:${ticker}`;
   const started = Date.now();
   const snap = priceSnapshot(ticker);
   if (budgetMs == null) budgetMs = snap ? SNAPSHOT_BUDGET_MS : UPSTREAM_BUDGET_MS;
-  // One in-flight chain per symbol per instance; a second request within the
+  // One in-flight race per symbol per instance; a second request within the
   // TTL joins it rather than starting another round of provider calls.
-  const live = cached(key, TTL.MIN_5 * 2, async () => {
-    const data = await fromProviders(ticker, log);
-    if (!data) throw new Error('no provider answered');
-    remember(key, data);
-    return data;
+  const race = await cached(key, TTL.MIN_5 * 2, async () => {
+    const r = raceProviders(ticker, { providers, budgetMs, log });
+    // whatever lands last and ranks best becomes the last-known-good answer
+    r.eventual.then((best) => {
+      if (best) remember(key, { ...best.data, provider: best.provider });
+    });
+    return r;
   });
-  live.catch(() => {});
-  let timer;
-  const budget = new Promise((resolve) => {
-    timer = setTimeout(() => resolve(undefined), budgetMs);
-  });
-  const data = await Promise.race([live.catch(() => null), budget]).finally(() => clearTimeout(timer));
-  if (data) return { data, served: 'live', ms: Date.now() - started };
-  const why = data === null ? 'every provider failed' : `budget of ${budgetMs}ms exceeded`;
+  // a race that missed its budget on the first request may have finished
+  // since; that answer is this instance's live one
+  const best = (await race.withinBudget) || race.settledBest;
+  const chain = race.chain();
+  if (best) {
+    noteServed('live');
+    return { data: { ...best.data, provider: best.provider }, served: 'live', provider: best.provider, chain, ms: Date.now() - started };
+  }
+  const why = 'no provider answered within the budget';
   const stale = recall(key);
   if (stale) {
-    log(`${why} → last live answer`);
-    return { data: { ...stale, stale: true, priceStale: true }, served: 'stale', ms: Date.now() - started };
+    log(`${why} → last live answer (${stale.provider || stale.source})`);
+    noteServed('stale');
+    return { data: { ...stale, stale: true, priceStale: true }, served: 'stale', provider: stale.provider || null, chain, ms: Date.now() - started };
   }
   if (snap) {
     log(`${why} → nightly snapshot (${snap.priceAsOf})`);
-    return { data: snap, served: 'snapshot', ms: Date.now() - started };
+    noteServed('snapshot');
+    return { data: snap, served: 'snapshot', provider: null, chain, ms: Date.now() - started };
   }
   log(`${why} → no price`);
-  return { data: priceUnavailable(ticker), served: 'none', ms: Date.now() - started };
+  noteServed('none');
+  return { data: priceUnavailable(ticker), served: 'none', provider: null, chain, ms: Date.now() - started };
 }
 
 export default async function handler(req, res) {
@@ -343,14 +437,21 @@ export default async function handler(req, res) {
   }
 
   const log = (msg) => console.log(`stock ${ticker}: ${msg}`);
-  const { data, served, ms } = await stockPayload(ticker, { log });
-  log(`served ${served} in ${ms}ms`);
+  const { data, served, provider, chain, ms } = await stockPayload(ticker, { log });
+  log(`served ${served}${provider ? ` (${provider})` : ''} in ${ms}ms [${chain}] totals ${servedHeader()}`);
   // A fallback answer is kept only briefly at the CDN so the live one takes
   // over as soon as a provider answers.
   res.setHeader(
     'Cache-Control',
     served === 'live' ? 's-maxage=600, stale-while-revalidate=3600' : 's-maxage=60, stale-while-revalidate=600'
   );
+  // live | stale | snapshot | none — and which provider, how each one did,
+  // and the instance's running distribution, so a day of "snapshot" is
+  // diagnosable from the response alone.
   res.setHeader('X-Stock-Source', served);
+  if (provider) res.setHeader('X-Stock-Provider', provider);
+  res.setHeader('X-Stock-Chain', chain || 'none');
+  res.setHeader('X-Stock-Served', servedHeader());
+  res.setHeader('X-Stock-Ms', String(ms));
   res.status(200).json(data);
 }

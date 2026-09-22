@@ -4,6 +4,7 @@ import { mapLimit } from '../_lib/yahooClient.js';
 import { guruHistory } from '../_lib/history.js';
 import { managerStatsFromGuru } from '../_lib/managerHistory.js';
 import { turnover as turnoverOf, heldQuarters } from '../_lib/turnover.js';
+import { tickerFor } from '../_lib/securityMaster.js';
 
 // Portfolio characteristics over the last 8 quarters (WhaleWisdom-style):
 // turnover %, average holding period, new/exited counts. Turnover is the
@@ -27,14 +28,17 @@ export default async function handler(req, res) {
         await mapLimit(filings, 4, async (f) => {
           const { aum, positions } = await getEffectiveHoldings(cik, f);
           const equity = positions.filter((p) => !p.putCall);
-          return { reportDate: f.reportDate, aum, positions: equity, held: new Set(equity.map((p) => p.cusip)) };
+          return { reportDate: f.reportDate, aum, positions: equity, held: new Set(equity.map((p) => tickerFor(p.cusip) || p.cusip)) };
         })
       ).filter(Boolean);
 
+      // securities are identified by ticker where the master knows one, so a
+      // CUSIP change is not a trade
+      const idOf = (p) => tickerFor(p.cusip) || String(p.cusip || '').toUpperCase();
       const turnovers = [];
       let last = null;
       for (let i = 1; i < snaps.length; i++) {
-        last = turnoverOf(snaps[i - 1], snaps[i]);
+        last = turnoverOf(snaps[i - 1], snaps[i], { idOf });
         turnovers.push(last.turnover);
       }
       const tvals = turnovers.filter((x) => x != null);
@@ -43,7 +47,7 @@ export default async function handler(req, res) {
       const latest = snaps[snaps.length - 1];
       const sets = snaps.map((s) => s.held);
       const top50 = [...latest.positions].sort((a, b) => b.value - a.value).slice(0, 50);
-      const heldSum = top50.reduce((s, p) => s + heldQuarters(sets, p.cusip), 0);
+      const heldSum = top50.reduce((s, p) => s + heldQuarters(sets, tickerFor(p.cusip) || p.cusip), 0);
 
       return {
         quarters: snaps.length,

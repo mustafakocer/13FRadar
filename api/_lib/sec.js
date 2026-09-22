@@ -5,6 +5,8 @@ import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from './cache.js';
 import { storedHoldings } from './holdingsStore.js';
 import { effectiveFilings, effectiveSnapshot, isAmendmentForm, parseCoverPage } from './amendments.js';
+import { RateClock } from './edgarClock.js';
+import { cacheGet, cachePut, cacheStats } from './edgarCache.js';
 
 // SEC requires a descriptive User-Agent with contact info.
 const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
@@ -19,14 +21,18 @@ const http = axios.create({
 });
 
 // EDGAR fair-access policy: at most 10 requests per second per IP, and a
-// temporary block (429 or 403 "Request Rate Threshold Exceeded") once it is
-// exceeded. Every EDGAR call goes through one process-wide token clock, and
-// rate-limit / transient failures are retried with backoff. The batch
-// scripts (GitHub Actions) wait long enough to outlast a ten-minute block;
-// on Vercel a request can only afford a couple of short retries.
-//   SEC_RPS            requests per second (default 8)
+// temporary block (429 or 403 "Request Rate Threshold Exceeded", 503 on a
+// bad day) once it is exceeded. Every EDGAR call goes through one
+// process-wide adaptive clock (edgarClock.js): a rate-limit answer halves
+// the rate for a cool-down and a clean run walks it back up, so a retry
+// never goes back in at the rate that was just rejected. Rate-limit and
+// transient failures are retried with backoff. The batch scripts (GitHub
+// Actions) wait long enough to outlast a ten-minute block; on Vercel a
+// request can only afford a couple of short retries.
+//   SEC_RPS            ceiling, requests per second (default 6 in a batch
+//                      run, 8 on Vercel — the safe band is 6–8)
 //   SEC_RETRY_BACKOFF  comma-separated seconds between retries
-const RPS = Math.max(1, Number(process.env.SEC_RPS) || 8);
+const RPS = Math.max(1, Number(process.env.SEC_RPS) || (process.env.VERCEL ? 8 : 6));
 const BACKOFF = (
   process.env.SEC_RETRY_BACKOFF ||
   (process.env.VERCEL ? '1' : '5,15,30,60,120,300')
@@ -34,17 +40,16 @@ const BACKOFF = (
   .split(',')
   .map(Number)
   .filter((n) => n >= 0);
-let nextSlot = 0;
+const clock = new RateClock({ rps: RPS });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 async function slot() {
-  const now = Date.now();
-  const at = Math.max(now, nextSlot);
-  nextSlot = at + 1000 / RPS;
-  if (at > now) await sleep(at - now);
+  const wait = clock.take();
+  if (wait > 0) await sleep(wait);
 }
+const rateLimited = (st) => st === 429 || st === 403 || st === 503;
 function retriable(e) {
   const st = e.response?.status;
-  if (st === 429 || st === 403) return true;
+  if (rateLimited(st)) return true;
   if (st >= 500 && st < 600) return true;
   return !st && /ECONNRESET|ETIMEDOUT|ECONNABORTED|EAI_AGAIN|timeout|socket hang up/i.test(e.message || '');
 }
@@ -52,18 +57,25 @@ export async function secGet(url, opts) {
   for (let attempt = 0; ; attempt++) {
     await slot();
     try {
-      return await http.get(url, opts);
+      const r = await http.get(url, opts);
+      clock.noteOk();
+      return r;
     } catch (e) {
+      if (rateLimited(e.response?.status)) clock.noteRateLimited();
       if (!retriable(e) || attempt >= BACKOFF.length) throw e;
+      clock.noteRetry();
       const ra = Number(e.response?.headers?.['retry-after']);
       const wait = (ra > 0 ? ra : BACKOFF[attempt]) * 1000;
       console.warn(
-        `EDGAR ${e.response?.status || e.code || 'error'} for ${url} — retry ${attempt + 1}/${BACKOFF.length} in ${wait / 1000}s`
+        `EDGAR ${e.response?.status || e.code || 'error'} for ${url} — retry ${attempt + 1}/${BACKOFF.length} in ${wait / 1000}s (rate now ${clock.rate.toFixed(1)}/s)`
       );
       await sleep(wait);
     }
   }
 }
+// Requests made, rate-limit answers, retries, and the disk cache's hit
+// ratio — the build logs print this at the end.
+export const edgarStats = () => ({ ...clock.snapshot(), cache: cacheStats() });
 // Test hook: lets a test swap the transport without touching the network.
 export const secHttp = http;
 
@@ -118,25 +130,35 @@ export function list13F(sub) {
   return effectiveFilings(list13FAll(sub));
 }
 
-// The directory listing of one submission, cached: the info table and the
-// cover page are both picked out of it.
+// The directory listing of one submission, cached in memory and on disk:
+// the info table and the cover page are both picked out of it.
 function filingIndex(cik, acc) {
   const cikN = numCik(cik);
   const accNo = acc.replace(/-/g, '');
   const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;
   return cached(`idx:${cikN}:${accNo}`, TTL.DAY_7, async () => {
-    const { data: idx } = await secGet(`${base}/index.json`);
+    const onDisk = cacheGet(cikN, accNo, 'index.json');
+    let idx;
+    if (onDisk) idx = JSON.parse(onDisk);
+    else {
+      idx = (await secGet(`${base}/index.json`)).data;
+      cachePut(cikN, accNo, 'index.json', JSON.stringify(idx));
+    }
     let items = idx?.directory?.item || [];
     if (!Array.isArray(items)) items = [items];
     return { base, items };
   });
 }
 
+// A filed document never changes, so the table is read from disk when a
+// previous run stored it; the directory listing is only needed on a miss.
 export async function fetchInfoTableXml(cik, acc) {
   const cikN = numCik(cik);
   const accNo = acc.replace(/-/g, '');
   const fx = fixture(`filings/${cikN}/${accNo}/infotable.xml`);
   if (fx) return fx;
+  const onDisk = cacheGet(cikN, accNo, 'infotable.xml');
+  if (onDisk) return onDisk;
   const { base, items } = await filingIndex(cik, acc);
   const xmls = items.filter(
     (i) => /\.xml$/i.test(i.name) && !/primary_doc/i.test(i.name)
@@ -149,6 +171,7 @@ export async function fetchInfoTableXml(cik, acc) {
     responseType: 'text',
     transformResponse: [(d) => d],
   });
+  cachePut(cikN, accNo, 'infotable.xml', xml);
   return xml;
 }
 
@@ -165,11 +188,14 @@ export function fetchCoverPage(cik, acc) {
     const fx = fixture(`filings/${cikN}/${accNo}/primary_doc.xml`);
     if (fx) return parseCoverPage(fx);
     if (FIXTURES) return null; // offline: no cover page in the fixture set
+    const onDisk = cacheGet(cikN, accNo, 'primary_doc.xml');
+    if (onDisk) return parseCoverPage(onDisk);
     try {
       const { base, items } = await filingIndex(cik, acc);
       const doc = items.find((i) => /primary_doc\.xml$/i.test(i.name)) || items.find((i) => /^primary_doc/i.test(i.name));
       if (!doc) return null;
       const { data } = await secGet(`${base}/${doc.name}`, { responseType: 'text', transformResponse: [(d) => d] });
+      cachePut(cikN, accNo, 'primary_doc.xml', data);
       return parseCoverPage(data);
     } catch {
       return null;

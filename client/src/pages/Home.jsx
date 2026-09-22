@@ -6,6 +6,7 @@ import SearchBox from '../components/SearchBox.jsx';
 import { POPULAR_MANAGERS } from '../data/popular.js';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
+import CoverageLine from '../components/CoverageLine.jsx';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -13,6 +14,7 @@ import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
+import { securityLabel } from '../lib/label.js';
 import Ico from '../components/Ico.jsx';
 import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star } from 'lucide-react';
 
@@ -413,7 +415,7 @@ function ConvictionCard({ icon, title, rows, value, sub }) {
             {r.ticker ? (
               <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tick">{r.ticker}</Link>
             ) : (
-              <span className="tick">{r.cusip}</span>
+              <span className="tick" title={r.cusip}>{securityLabel(r).text}</span>
             )}
             <div className="issuer">{niceName(r.issuer)}</div>
           </div>
@@ -574,18 +576,25 @@ function PortfolioUpdates({ updates }) {
 
 // ---- quarterly market activity --------------------------------------------
 
-function MarketActivity({ mostHeld, managers, returns }) {
+// The quarter's biggest net buys and sells. The rows are the build's own
+// `activity` lists — the head of the same table /rankings/most-bought and
+// /rankings/most-sold rank — so the number here is the number there. The
+// page used to filter the thirty most-held names by sign instead, which
+// was a different list computed in the browser.
+function MarketActivity({ activity, mostHeld, managers, coverage, returns }) {
   const { t } = useI18n();
   const [side, setSide] = useState('buys');
   const rows = useMemo(() => {
+    if (activity?.[side]?.length) return activity[side].slice(0, 5);
+    // a consensus file from before `activity` existed: the old fallback
     const src = mostHeld || [];
     return side === 'buys'
       ? src.filter((r) => r.netValue > 0).sort((a, b) => b.netValue - a.netValue).slice(0, 5)
       : src.filter((r) => r.netValue < 0).sort((a, b) => a.netValue - b.netValue).slice(0, 5);
-  }, [mostHeld, side]);
-  if (!mostHeld?.length) return null;
+  }, [activity, mostHeld, side]);
+  if (!rows.length) return null;
 
-  const latest = (managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
+  const latest = coverage?.quarter || (managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
   const q = latest ? quarterLabel(latest) : '';
 
   return (
@@ -626,7 +635,7 @@ function MarketActivity({ mostHeld, managers, returns }) {
                       {r.ticker ? (
                         <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 800 }}>{r.ticker}</Link>
                       ) : (
-                        <span className="muted small">{r.cusip}</span>
+                        <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
                       )}
                     </td>
                     <td className="l">{niceName(r.issuer)}</td>
@@ -642,11 +651,12 @@ function MarketActivity({ mostHeld, managers, returns }) {
           </table>
         </div>
         <div className="upd-more">
-          <Link to="/consensus" className="btn navy" style={{ textDecoration: 'none' }}>
+          <Link to={`/rankings/${side === 'buys' ? 'most-bought' : 'most-sold'}`} className="btn navy" style={{ textDecoration: 'none' }}>
             {t('landing.act.more')}
           </Link>
         </div>
         <p className="muted small note">{t('landing.act.note')}</p>
+        <CoverageLine coverage={coverage} className="muted small note" />
       </div>
     </section>
   );
@@ -694,9 +704,11 @@ export default function Home() {
 
       <div className="section-title">{t('search.popular')}</div>
       <div className="chip-grid">
-        {POPULAR_MANAGERS.map((m) => (
-          <Link key={m.cik} to={managerPath(m.cik)} className="chip" onMouseEnter={() => prefetch(m.cik)}>
+        {/* the registry, closed funds last and labelled — never dropped */}
+        {[...POPULAR_MANAGERS.filter((m) => !m.activeTo), ...POPULAR_MANAGERS.filter((m) => m.activeTo)].map((m) => (
+          <Link key={m.cik} to={managerPath(m.cik)} className={`chip${m.activeTo ? ' muted' : ''}`} onMouseEnter={() => prefetch(m.cik)}>
             {m.name}
+            {m.activeTo && <> {t('guru.closed')}</>}
           </Link>
         ))}
       </div>
@@ -704,7 +716,7 @@ export default function Home() {
       <InsiderSignals teaser={teaser.data} />
       <GuruConviction mostHeld={consensus.data?.mostHeld} />
       <PortfolioUpdates updates={consensus.data?.updates} />
-      <MarketActivity mostHeld={consensus.data?.mostHeld} managers={consensus.data?.managers} returns={returns.data} />
+      <MarketActivity activity={consensus.data?.activity} mostHeld={consensus.data?.mostHeld} managers={consensus.data?.managers} coverage={consensus.data?.coverage} returns={returns.data} />
 
       <div className="section-title">{t('landing.features')}</div>
       <div className="grid grid-3 mt16">

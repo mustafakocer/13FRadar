@@ -11,6 +11,7 @@ import path from 'node:path';
 import axios from 'axios';
 import { fetchInfoTableXml, parse13F, aggregatePositions, getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
+import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
@@ -210,18 +211,14 @@ async function main() {
   } catch (e) {
     console.warn('FIGI mapping failed:', e.message);
   }
-  const map = {};
-  let mapped = 0;
-  for (const [c, t] of Object.entries(tickers)) {
-    if (t) {
-      map[c] = t;
-      mapped++;
-    }
-  }
-  const dataDir = path.join(process.cwd(), 'api', '_data');
-  fs.mkdirSync(dataDir, { recursive: true });
-  fs.writeFileSync(path.join(dataDir, 'cusip-tickers.json'), JSON.stringify(map));
-  console.log(`Wrote ${mapped} mappings -> api/_data/cusip-tickers.json`);
+  // The answers went into the security master; it writes itself and the
+  // derived flat map (api/_data/cusip-tickers.json). The map used to be
+  // rewritten from this run's 6,000 names alone, dropping every mapping the
+  // history and consensus builds had learnt in between.
+  const mapped = Object.values(tickers).filter(Boolean).length;
+  persistMaster({ force: true });
+  const ms = masterStats();
+  console.log(`security master: ${mapped} of ${Object.keys(tickers).length} universe names mapped; ${ms.resolved} resolved, ${ms.unresolved} unresolved -> api/_data/security-master.json (+ cusip-tickers.json)`);
 
   const topStocks = ranked.slice(0, 500);
   fs.writeFileSync(

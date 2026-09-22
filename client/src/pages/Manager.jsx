@@ -14,6 +14,7 @@ import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
 import { managerPath } from '../lib/paths.js';
+import { securityLabel } from '../lib/label.js';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
@@ -410,11 +411,13 @@ export default function Manager({ segment = 'portfolio' }) {
                 </div>
                 <div className="card">
                   <h3>{t('manager.sectors')}</h3>
-                  {sectors.isLoading ? (
-                    <Loading t={t} />
-                  ) : (
-                    <ChartBox height={300}><SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} /></ChartBox>
-                  )}
+                  {/* The box stays mounted while the sector lookup runs: the
+                      chart takes a `loading` flag instead of being swapped
+                      for a spinner and re-created when the answer lands. */}
+                  <ChartBox height={300}>
+                    <SectorPie positions={positions.slice(0, 25)} sectors={sectors.data} loading={sectors.isLoading} />
+                  </ChartBox>
+                  <p className="muted small mt8">{t('manager.sectorsNote')}</p>
                 </div>
               </div>
               {benchSeries && (
@@ -453,7 +456,7 @@ export default function Manager({ segment = 'portfolio' }) {
                               {p.ticker ? (
                                 <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
                               ) : (
-                                <span className="muted small">{p.cusip}</span>
+                                <span className="muted small" title={p.cusip}>{securityLabel(p).text}</span>
                               )}
                             </td>
                             <td className="l">{p.issuer}</td>

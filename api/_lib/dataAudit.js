@@ -188,6 +188,14 @@ export const DATASETS = [
     floors: { tickers: 1000 },
   },
   {
+    key: 'security-master',
+    path: 'api/_data/security-master.json',
+    optional: true,
+    require: ['byCusip'],
+    metrics: (d) => ({ resolved: size(d.byCusip), unresolved: size(d.unresolved) }),
+    floors: { resolved: 3000 },
+  },
+  {
     key: 'related',
     path: 'api/_data/related.json',
     require: ['related'],

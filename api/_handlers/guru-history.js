@@ -1,9 +1,14 @@
 import { guruHistory, timeHeldLabel } from '../_lib/history.js';
+import { resolveQuarters, resolveTimeHeld, findPositionByTicker, tickerOfPosition } from '../_lib/historyResolve.js';
 
 // GET /api/guru-history/:cik            → quarters + timeHeld per CUSIP (public)
 // GET /api/guru-history/:cik/:ticker    → one security's quarter-by-quarter series
 // Served from the precomputed api/_data/guru-history.json; 404 for filers
 // outside the curated set (their history stays behind /api/position-history).
+// Tickers are resolved against the security master on every read
+// (_lib/historyResolve.js): a CUSIP the nightly build could not map is
+// shown by its issuer name, and picks up its ticker the day the master
+// learns it, without waiting for the history to be rebuilt.
 export default function handler(req, res) {
   const cik = String(req.query.cik || '').replace(/\D/g, '').padStart(10, '0');
   const g = guruHistory(cik);
@@ -12,7 +17,7 @@ export default function handler(req, res) {
 
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   if (ticker) {
-    const hit = Object.entries(g.positions).find(([, e]) => e.ticker === ticker);
+    const hit = findPositionByTicker(g, ticker);
     if (!hit) return res.status(404).json({ error: 'Security not in this portfolio history' });
     const [cusip, e] = hit;
     const byDate = new Map(e.series.map((r) => [r[0], r]));
@@ -41,7 +46,7 @@ export default function handler(req, res) {
       cik,
       name: g.name,
       cusip,
-      ticker: e.ticker,
+      ticker: tickerOfPosition(cusip, e),
       issuer: e.issuer,
       heldQuarters: e.heldQuarters,
       timeHeld: timeHeldLabel(e.heldQuarters),
@@ -51,9 +56,7 @@ export default function handler(req, res) {
     });
   }
 
-  const timeHeld = {};
-  for (const [cusip, e] of Object.entries(g.positions)) {
-    if (e.heldQuarters > 0) timeHeld[cusip] = { quarters: e.heldQuarters, ticker: e.ticker, firstSeen: e.firstSeen };
-  }
-  res.status(200).json({ cik, name: g.name, quarters: g.quarters, timeHeld, lookback: g.quarters.length });
+  const { quarters, unresolved } = resolveQuarters(g);
+  if (unresolved) console.log(`guru-history ${cik}: ${unresolved} top-10 entries without a ticker (shown by issuer name)`);
+  res.status(200).json({ cik, name: g.name, quarters, timeHeld: resolveTimeHeld(g), lookback: g.quarters.length, unresolvedTop10: unresolved });
 }

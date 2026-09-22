@@ -8,6 +8,7 @@ import { fmtMoney, fmtNum, quarterLabel } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import { article, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
+import CoverageLine from '../components/CoverageLine.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
@@ -94,6 +95,7 @@ export default function Calendar() {
           <span className="stat-label">{t('cal.filedStatus')} · {d.period.quarter}</span>
           <span className="stat-value">{d.filedCount} / {d.gurus.length}</span>
           <span className="stat-sub">{t('cal.gurusFiled')}</span>
+          <CoverageLine coverage={d.coverage} className="small muted" />
         </div>
         <div className="card stat-card">
           <span className="stat-label">{t('cal.recent7d')}</span>

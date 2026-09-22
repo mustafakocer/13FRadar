@@ -75,7 +75,8 @@ export default async function handler(req, res) {
     available: true,
     updatedAt: table.updatedAt,
     managers: table.managers?.length ?? 0,
-    reportDate: (table.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), ''),
+    coverage: table.coverage ?? null,
+    reportDate: table.quarter || (table.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), ''),
     universe: table.stocks.length,
   };
 

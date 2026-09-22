@@ -92,7 +92,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   dataUpdatedAt: pro.updatedAt,
   managers: managers.map((m) => ({ name: m.name, cik: m.cik, filed: updates.find((u) => u.cik === m.cik)?.filed || null })),
-  coverage: { onQuarter: managers.length, tracked: pro.managers.length },
+  coverage: { onQuarter: managers.length, tracked: pro.coverage?.tracked ?? pro.managers.length, ...(pro.coverage || {}) },
   topBuysByValue,
   topSellsByValue,
   topBuysByCount,

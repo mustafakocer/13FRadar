@@ -27,6 +27,7 @@ export function useGuruStocks({ limit = 500, sector, cap, minHolders, strongBuy 
     universe: q.data?.universe ?? null,
     reportDate: q.data?.reportDate ?? null,
     managers: q.data?.managers ?? 0,
+    coverage: q.data?.coverage ?? null,
   };
 }
 

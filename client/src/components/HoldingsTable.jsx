@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
+import { securityLabel } from '../lib/label.js';
 import { useAuth } from '../auth.jsx';
 import { Suspense } from 'react';
 import { SparkBar } from './Charts/index.js';
@@ -187,7 +188,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                         {p.ticker}
                       </Link>
                     ) : (
-                      <span className="muted small">{p.cusip}</span>
+                      <span className="muted small" title={`${p.issuer} · ${p.cusip}`}>{securityLabel(p).text}</span>
                     )}
                   </td>
                   <td className="l" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>

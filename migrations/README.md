@@ -1,7 +1,8 @@
 # migrations/
 
 Migrations for the **live** Supabase project (`public.profiles`,
-`public.watchlists`, `public.stripe_events`). Each one is an `up`/`down` pair,
+`public.watchlists`, `public.stripe_events`, `public.notification_prefs`,
+`public.alerts`). Each one is an `up`/`down` pair,
 plain SQL, safe to re-run. The opt-in historical store has its own single file
 (`supabase/history-schema.sql`) and is not applied anywhere yet.
 
@@ -11,6 +12,7 @@ plain SQL, safe to re-run. The opt-in historical store has its own single file
 | `0001_rls` | S2 · policies, `is_pro()`, server-only billing columns, watchlist cap |
 | `0002_constraints` | S3 · `plan` CHECK, `ls_customer_id` dropped, Stripe id UNIQUE, CIK normalisation |
 | `0003_stripe_events` | S4 · webhook idempotency table + `apply_stripe_event()` |
+| `0004_alerts` | S6 · `notification_prefs` (opt-in digest, frequency) + `alerts` (filing/insider targets), RLS 4 policies each, cap free 5 / pro 100, signup trigger opens the preference row |
 
 ## Apply to the live project
 
@@ -20,7 +22,7 @@ IPv6-only on the free plan.
 
 ```bash
 export SUPABASE_DB_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres'
-for f in migrations/0001_rls migrations/0002_constraints migrations/0003_stripe_events; do
+for f in migrations/0001_rls migrations/0002_constraints migrations/0003_stripe_events migrations/0004_alerts; do
   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -1 -f "$f.up.sql"
 done
 ```

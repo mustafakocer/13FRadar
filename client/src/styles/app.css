@@ -502,6 +502,27 @@ th.sortable { cursor: pointer; user-select: none; }
 
 /* ---- compare pickers -------------------------------------------------- */
 .picker-row { align-items: stretch; }
+/* compare page: the metric strip and the two-sided sector bars */
+.cmp-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+@media (max-width: 1000px) { .cmp-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px) { .cmp-strip { grid-template-columns: repeat(2, 1fr); } }
+.cmp-strip .k { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+.cmp-strip .v { font-weight: 700; font-size: 17px; margin-top: 2px; }
+.cmp-strip .ab { font-size: 12px; color: var(--text-2); }
+.cmp-sectors { display: grid; gap: 6px; }
+.cmp-sector { display: grid; grid-template-columns: 1fr 140px 1fr; align-items: center; gap: 8px; font-size: 12.5px; }
+.cmp-sector .name { text-align: center; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-sector .bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cmp-sector .bar.a { justify-content: flex-end; }
+.cmp-sector .bar i { display: block; height: 10px; border-radius: 4px; background: var(--chart-1); }
+.cmp-sector .bar.b i { background: var(--chart-3); }
+.cmp-sector .bar span { font-variant-numeric: tabular-nums; min-width: 38px; }
+.cmp-sector .bar.a span { text-align: right; }
+.dir-up { color: var(--buy); font-weight: 700; }
+.dir-down { color: var(--sell); font-weight: 700; }
+.dir-new { color: var(--info); font-weight: 700; }
+.dir-flat { color: var(--text-2); }
+
 .picker-card {
   display: flex; align-items: center; min-height: 76px;
   padding: 16px; box-sizing: border-box;

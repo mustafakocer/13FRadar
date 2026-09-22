@@ -11,6 +11,7 @@ import calendarHandler from '../../_handlers/calendar.js';
 import emergingHandler from '../../_handlers/emerging.js';
 import reportHandler from '../../_handlers/report.js';
 import relatedHandler from '../../_handlers/related.js';
+import insiderFeedHandler from '../../_handlers/insider-feed.js';
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
@@ -243,6 +244,40 @@ async function loadTeaserOnly() {
   return t ? [[['insiders-teaser'], t]] : [];
 }
 
+// The insider page's free preview — the cards and the first rows of the
+// tab — under the exact key a signed-out reader's query uses ({ tab } and
+// nothing else), so the rows are in the HTML and hydrate in place.
+const INSIDER_TABS = ['latest', 'ceo', 'cfo', 'cluster', 'penny', 'sells'];
+async function loadInsiders({ tab }) {
+  const seeds = await loadTeaserOnly();
+  const t = INSIDER_TABS.includes(tab) ? tab : 'latest';
+  const f = ok(await withBudget(invoke(insiderFeedHandler, { tab: t }), 6000));
+  if (f) seeds.push([['insider-feed', { tab: t }], f]);
+  return seeds;
+}
+
+// The compare page's sample — two curated funds a signed-out reader sees —
+// under the free keys the page asks for, so the overlap table is in the
+// HTML. The stock tab is not the default and is fetched after hydration.
+const COMPARE_SAMPLE = ['0001067983', '0001709323'];
+async function loadCompare() {
+  const seeds = [];
+  const r = staticReturns();
+  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  await Promise.all(
+    COMPARE_SAMPLE.map(async (cik) => {
+      const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 6000));
+      if (!mgr) return;
+      seeds.push([['manager', cik], mgr]);
+      const acc = mgr.filings?.[0]?.acc;
+      if (!acc) return;
+      const hold = ok(await withBudget(invoke(holdingsHandler, { cik, acc }), 6000));
+      if (hold) seeds.push([['holdings', cik, acc, false], hold]);
+    })
+  );
+  return seeds;
+}
+
 // Public routes rendered on the server. Anything else renders the shell
 // (client-only pages) with a no-store header.
 export const ROUTES = [
@@ -264,11 +299,11 @@ export const ROUTES = [
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
-  { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },
+  { kind: 'insiders', re: /^\/insiders$/, params: (m, qs) => ({ tab: qs.get('tab') }), load: loadInsiders, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: async () => [], cache: 'day' },
   { kind: 'report', re: /^\/report$/, params: (m, qs) => ({ quarter: qs.get('q') }), load: loadReport, cache: 'hour' },
   { kind: 'screen', re: /^\/screen$/, load: async () => [], cache: 'hour' },
-  { kind: 'compare', re: /^\/compare$/, load: async () => [], cache: 'hour' },
+  { kind: 'compare', re: /^\/compare$/, load: loadCompare, cache: 'hour' },
   { kind: 'watchlist', re: /^\/watchlist$/, load: async () => [], cache: 'none' },
   { kind: 'account', re: /^\/account$/, load: async () => [], cache: 'none' },
 ];

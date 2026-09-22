@@ -11,7 +11,7 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - 💹 Hisse detay sayfası: fiyat (FMP / TwelveData / Finnhub yarışı), değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
 - 📈 1Y / YTD / 1G getiriler ve fiyat grafiği: gece üretilen 10 yıllık kapanış cache'inden (`api/_data/prices/`, aşağıya bakın)
 - 🏷️ CUSIP → ticker çözümleme (OpenFIGI)
-- ⚖️ İki yönetici karşılaştırma + 2-3 hisse rasyo karşılaştırma, 📋 tarayıcı, ⭐ izleme listesi (localStorage)
+- ⚖️ İki yönetici karşılaştırma (Jaccard ve ağırlıklı örtüşme, ortak pozisyonlarda Δ ve son çeyrek yönü, sektör kıyası, devir) + 2-3 hisse karşılaştırma (usta sayısı, usta $ değeri, net alım, 1Y/YBB, rasyolar); ücretsizde Berkshire vs Himalaya / AAPL-MSFT-GOOGL örneği SSR ile, kendi seçimi Pro. 📋 tarayıcı, ⭐ izleme listesi
 - 🧭 **Süper Yatırımcı Konsensüsü** — seçili fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan/satılan, yeni pozisyon radarı
 - 🎯 Opsiyon görünümü (PUT/CALL pozisyonları ayrı tablo + toplam ağırlıklar)
 - 🧪 Kopyalama backtesti (deneysel): "13F'i her çeyrek kopyalasaydım" vs SPY — kapsam yüzdesi ve atlanan pozisyonlar açık; SPY serisi yoksa karşılaştırma gizlenir
@@ -49,7 +49,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 
 - `vercel.json`: `/api/*` dışındaki her yol `api/ssr.js`'e yönlenir (statik dosyalar önce gelir).
 - `api/_lib/ssr/routes.js`: rota → veri yükleyici. Yükleyiciler API handler'larını **süreç içinde** çağırır (HTTP yok) ve TanStack Query önbelleğini sayfanın kullandığı anahtarlarla doldurur; istemci `window.__STATE__` üzerinden hydrate olur.
-- Ücretsiz katman sunucuda render edilir; Pro bölümler (tam tablolar, insider akışı, backtest) istemcide yüklenir.
+- Ücretsiz katman sunucuda render edilir; Pro bölümler (tam tablolar, insider akışının tamamı, backtest) istemcide yüklenir. Kilitli her bölüm tek bileşenle gösterilir: `<ProGate>` (`client/src/components/ProGate.jsx`) — önizleme (ilk satırlar / örnek) sayfada kalır, kilit kutusu **altında** durur ve "Kalan N işlem Pro ile" der. /insiders ücretsizde: Piyasa Nabzı + Güçlü Sinyaller + En Büyük İşlemler kartları tam, Son İşlemler ilk 10 satır, rol/küme sekmelerinde ilk 5 (`/api/insider-feed` `full=1` olmadan önizleme; filtreler yok sayılır, CDN cache'lenir; `full=1` Pro ve `no-store`). /insiders/cluster, /csuite, /penny: ilk 10 satır.
 - **ISR eşdeğeri (CDN cache):** fon/hisse/guru×hisse sayfaları `s-maxage=86400, stale-while-revalidate=604800` (günlük tazelenir, 7 gün eskisi sunulabilir); ana sayfa, konsensüs, sıralamalar ve insider sinyal sayfaları `s-maxage=3600` + 1 gün SWR; hesap/izleme listesi `no-store`. Politika `CACHE` sabitinde (`routes.js`).
 - **Dil yolları:** her URL `/en/…` veya `/tr/…`. Öneksiz URL'ler 302 ile yönlenir: `lang` çerezi → Vercel ülke başlığı (`TR` → tr) → `Accept-Language` → en. `hreflang` en/tr/x-default her sayfada; canonical kendine işaret eder.
 - **Slug'lar:** `api/_data/slugs.json` (`npm run slugs`) her 13F dosyalayıcı için kalıcı, ASCII, benzersiz slug tutar; `/manager/<cik>` 301 ile `/guru/<slug>` (küratörlü) veya `/filer/<slug>`'a gider. Bir kez atanmış slug asla değişmez; yeni çakışmalar CIK sonekiyle çözülür.

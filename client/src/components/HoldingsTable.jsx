@@ -10,6 +10,7 @@ import { useAuth } from '../auth.jsx';
 import { Suspense } from 'react';
 import { SparkBar } from './Charts/index.js';
 import Paywall from './Paywall.jsx';
+import ProGate from './ProGate.jsx';
 import Ico from './Ico.jsx';
 import { Download } from 'lucide-react';
 import { timeHeldLabel } from '../lib/timeHeld.js';
@@ -245,14 +246,11 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         </table>
       </div>
       {!isPro && (locked || rows.length > 10) && (
-        <div className="mt16">
-          {locked && total > rows.length && (
-            <p className="muted small" style={{ marginBottom: 8 }}>
-              {t('table.lockedNote').replace('{n}', String(total - rows.length))}
-            </p>
-          )}
-          <Paywall compact>{null}</Paywall>
-        </div>
+        <ProGate
+          remaining={locked && total > rows.length ? total - rows.length : rows.length - 10}
+          unit={t('paywall.unit.positions')}
+          note={t('table.lockedNote').replace('{n}', String(Math.max(total - rows.length, rows.length - 10)))}
+        />
       )}
       {isPro && !showAll && rows.length > 100 && (
         <button className="btn ghost mt16" onClick={() => setShowAll(true)}>

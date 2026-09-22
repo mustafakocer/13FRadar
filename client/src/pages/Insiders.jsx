@@ -6,7 +6,8 @@ import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
-import Paywall from '../components/Paywall.jsx';
+import ProGate from '../components/ProGate.jsx';
+import { dataset, webPage } from '../lib/jsonld.js';
 import FilterSelect from '../components/FilterSelect.jsx';
 import { useAlerts } from '../hooks/useAlerts.js';
 import InfoTip from '../components/InfoTip.jsx';
@@ -189,6 +190,19 @@ export default function Insiders() {
         title: lang === 'tr' ? 'Insider İşlemleri: SEC Form 4 Alım-Satım Akışı | Fundocap' : 'Insider Trading: SEC Form 4 Buy & Sell Feed | Fundocap',
         description: lang === 'tr' ? 'CEO, CFO ve yönetim kurulu üyelerinin kendi şirket hisselerindeki açık piyasa alım-satımları; küme alımları, filtreler ve getiri takibi.' : 'Open-market buys and sells by CEOs, CFOs and directors in their own companies; cluster buys, filters and return tracking.',
         path: '/insiders',
+        jsonLd: [
+          webPage({ name: lang === 'tr' ? 'Insider İşlemleri' : 'Insider Trading', lang, path: '/insiders' }),
+          dataset({
+            name: lang === 'tr' ? 'SEC Form 4 insider işlemleri akışı' : 'SEC Form 4 insider transactions feed',
+            description:
+              lang === 'tr'
+                ? 'ABD borsalarında CEO, CFO, yönetim kurulu üyesi ve %10 ortakların kendi şirket hisselerindeki açık piyasa alım-satımları; SEC Form 4 bildirimlerinden günlük derlenir, küme alımları ve işlem başına getiri ile.'
+                : 'Open-market buys and sells by CEOs, CFOs, directors and 10% owners in their own companies, compiled daily from SEC Form 4 filings, with cluster buys and per-trade returns.',
+            lang,
+            path: '/insiders',
+            keywords: ['Form 4', 'insider trading', 'SEC EDGAR', 'cluster buys'],
+          }),
+        ],
       }),
       [lang, t]
     )
@@ -224,8 +238,12 @@ export default function Insiders() {
   }, [q]);
   useEffect(() => setPage(1), [tab, search, period, minValue, adv, sort]);
 
+  // A free reader's query is the preview the server rendered — the tab and
+  // nothing else — so the HTML's rows are what hydrates; a Pro reader's
+  // carries every filter and asks for the full feed.
   const params = useMemo(
-    () => ({
+    () => (!isPro ? { tab } : {
+      full: '1',
       tab,
       period,
       page: String(page),
@@ -247,7 +265,7 @@ export default function Insiders() {
       ...(adv.clusterMin ? { clusterMin: adv.clusterMin } : {}),
       ...(adv.density ? { density: adv.density } : {}),
     }),
-    [tab, period, page, sort, search, minValue, adv]
+    [isPro, tab, period, page, sort, search, minValue, adv]
   );
 
   // "Save as alert" stores the filters as they stand, so the digest re-runs
@@ -286,7 +304,6 @@ export default function Insiders() {
   const feed = useQuery({
     queryKey: ['insider-feed', params],
     queryFn: () => api.insiderFeed(params),
-    enabled: isPro,
     placeholderData: keepPreviousData,
     staleTime: 30 * 60 * 1000,
     retry: 0,
@@ -322,14 +339,7 @@ export default function Insiders() {
     </div>
   );
 
-  if (!isPro) {
-    return (
-      <div>
-        {header}
-        <Paywall />
-      </div>
-    );
-  }
+  const preview = Boolean(feed.data?.preview) || (!isPro && !feed.data);
 
   return (
     <div>
@@ -422,6 +432,14 @@ export default function Insiders() {
 
       {/* ---- toolbar ----------------------------------------------------- */}
       <div className="card ins-toolbar">
+        {!isPro && (
+          <div className="row" style={{ gap: 8, marginBottom: 10, alignItems: 'center' }}>
+            <span className="badge pro sm">PRO</span>
+            <span className="muted small">{t('paywall.filtersPro')}</span>
+            <Link to="/pricing" className="btn ghost sm" style={{ marginLeft: 'auto', textDecoration: 'none' }}>{t('paywall.cta')}</Link>
+          </div>
+        )}
+        <fieldset disabled={!isPro} style={{ border: 0, padding: 0, margin: 0, minWidth: 0, opacity: isPro ? 1 : 0.55 }}>
         <input
           className="search-input sm"
           placeholder={t('ins.searchPlaceholder')}
@@ -464,6 +482,7 @@ export default function Insiders() {
             </button>
           )}
         </div>
+        </fieldset>
       </div>
 
       {/* ---- table ------------------------------------------------------- */}
@@ -564,7 +583,7 @@ export default function Insiders() {
               </tbody>
             </table>
           </div>
-          {pages > 1 && (
+          {!preview && pages > 1 && (
             <div className="row mt16" style={{ justifyContent: 'center', gap: 10 }}>
               <button className="btn ghost" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>← {t('ins.prev')}</button>
               <span className="muted small">{page} / {pages}</span>
@@ -575,6 +594,9 @@ export default function Insiders() {
       )}
       {!feed.isLoading && !feed.isError && !rows.length && !feed.data?.empty && (
         <div className="card mt16 muted">{t('ins.noResults')}</div>
+      )}
+      {preview && feed.data && (
+        <ProGate remaining={Math.max(0, total - rows.length)} unit={t('paywall.unit.trades')} note={t('paywall.previewFeed')} />
       )}
 
       <p className="muted small mt16">{t('ins.note')}</p>

@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
+import { useAuth } from '../auth.jsx';
+import ProGate from '../components/ProGate.jsx';
 import { useSeo } from '../seo.jsx';
 import { fmtMoney } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
@@ -16,6 +18,7 @@ const ROLE_LABEL = { ceo: 'CEO', cfo: 'CFO', director: 'DIR', officer: 'OFF', ow
 export default function InsiderSignal() {
   const { signal } = useParams();
   const { t, lang } = useI18n();
+  const { isPro } = useAuth();
   const kind = SIGNALS.includes(signal) ? signal : 'cluster';
   const teaser = useQuery({
     queryKey: ['insiders-teaser'],
@@ -26,6 +29,8 @@ export default function InsiderSignal() {
     staleTime: Infinity,
   });
   const rows = teaser.data?.signals?.[kind] || [];
+  const FREE = 10;
+  const shown = isPro ? rows : rows.slice(0, FREE);
   const title = t(`landing.ins.tab.${kind}`);
   useSeo(
     useMemo(
@@ -72,7 +77,7 @@ export default function InsiderSignal() {
               {!rows.length && (
                 <tr><td className="l muted" colSpan={4}>{t('landing.ins.empty')}</td></tr>
               )}
-              {rows.map((r) => (
+              {shown.map((r) => (
                 <tr key={`${r.t}-${r.n || ''}`}>
                   <td className="l">
                     <Link to={`/stock/${r.t}`} className="sig-tick">{r.t}</Link>
@@ -101,6 +106,7 @@ export default function InsiderSignal() {
           <p className="muted small mt8">{t('landing.ins.asOf')}: {teaser.data.lastDay} · {t('ins.note')}</p>
         )}
       </div>
+      {rows.length > 0 && <ProGate remaining={rows.length - shown.length} unit={t('paywall.unit.signals')} note={t('paywall.previewSignals')} />}
     </div>
   );
 }

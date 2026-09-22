@@ -10,7 +10,14 @@ import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES, KEPT_CO
 } from '../_lib/insiderModel.js';
 import { isPenny } from '../_lib/insiderTeaser.js';
 
-// GET /api/insider-feed — SEC Form 4 open-market transactions (Pro only).
+// GET /api/insider-feed — SEC Form 4 open-market transactions.
+//
+// ?full=1 is the Pro feed: every filter below, every row, paginated, private
+// cache. Without it the answer is the free preview the page renders for a
+// signed-out reader (and the server renders into the HTML): the same three
+// cards, the first FREE_ROWS rows of the tab (FREE_ROWS_TAB on the role and
+// cluster tabs), no filter honoured, `preview: true` and the real `total`
+// so the lock box can say how much is behind it — cacheable on the CDN.
 //
 // Query
 //   tab      latest | ceo | cfo | cluster | penny | sells
@@ -47,6 +54,9 @@ function loadMeta() {
     return {};
   }
 }
+
+const FREE_ROWS = 10;
+const FREE_ROWS_TAB = 5;
 
 const PERIOD_DAYS = { '1d': 1, '3d': 3, '1w': 7, '1m': 31, '3m': 92, '6m': 184, '1y': 366 };
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
@@ -164,7 +174,11 @@ function buildStats(all, meta, scope = null) {
 }
 
 export default async function handler(req, res) {
-  if (!(await requirePro(req, res))) return;
+  const wantFull = req.query.full === '1';
+  if (wantFull && !(await requirePro(req, res))) return;
+  const free = !wantFull;
+  // the preview knows only the tab: a filter a free reader typed is ignored
+  const query = free ? { tab: req.query.tab } : req.query;
 
   const db = load();
   const meta = loadMeta();
@@ -173,46 +187,46 @@ export default async function handler(req, res) {
     return res.status(200).json({ rows: [], total: 0, stats: null, updatedAt: null, empty: true });
   }
 
-  const q = String(req.query.q || '').trim().toUpperCase();
-  const tab = String(req.query.tab || 'latest');
-  const period = String(req.query.period || '1y');
+  const q = String(query.q || '').trim().toUpperCase();
+  const tab = String(query.tab || 'latest');
+  const period = String(query.period || '1y');
   const days = PERIOD_DAYS[period] ?? 366;
-  const from = /^\d{4}-\d{2}-\d{2}$/.test(req.query.from || '') ? req.query.from : iso(Date.now() - days * 86400000);
-  const to = /^\d{4}-\d{2}-\d{2}$/.test(req.query.to || '') ? req.query.to : null;
-  const minValue = numQ(req.query.minValue);
-  const maxValue = numQ(req.query.maxValue);
-  const minPrice = numQ(req.query.minPrice);
-  const maxPrice = numQ(req.query.maxPrice);
-  const lagMin = numQ(req.query.lagMin);
-  const lagMax = numQ(req.query.lagMax);
-  const size = String(req.query.size || '');
-  const sector = String(req.query.sector || '');
-  const change = String(req.query.change || '');
-  const includeLate = req.query.late === '1';
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(query.from || '') ? query.from : iso(Date.now() - days * 86400000);
+  const to = /^\d{4}-\d{2}-\d{2}$/.test(query.to || '') ? query.to : null;
+  const minValue = numQ(query.minValue);
+  const maxValue = numQ(query.maxValue);
+  const minPrice = numQ(query.minPrice);
+  const maxPrice = numQ(query.maxPrice);
+  const lagMin = numQ(query.lagMin);
+  const lagMax = numQ(query.lagMax);
+  const size = String(query.size || '');
+  const sector = String(query.sector || '');
+  const change = String(query.change || '');
+  const includeLate = query.late === '1';
   // Rule 10b5-1 trades are scheduled months ahead, so they carry no view on
   // today's price. The flag is stored per row; this is the switch that acts
   // on it.
-  const excludePlanned = req.query.excludePlanned === '1';
+  const excludePlanned = query.excludePlanned === '1';
   // Transaction codes, so a reader can ask for exercise-and-hold or tax
   // withholding specifically instead of the three broad classes.
   const codes = new Set(
-    String(req.query.codes || '')
+    String(query.codes || '')
       .toUpperCase()
       .split(',')
       .map((c) => c.trim())
       .filter((c) => KEPT_CODES.has(c))
   );
-  const clusterMin = Number(req.query.clusterMin) || 0;
-  const density = CLUSTER_DENSITY.includes(String(req.query.density)) ? String(req.query.density) : '';
+  const clusterMin = Number(query.clusterMin) || 0;
+  const density = CLUSTER_DENSITY.includes(String(query.density)) ? String(query.density) : '';
   const classes = new Set(
-    String(req.query.cls || 'conviction,liquidity')
+    String(query.cls || 'conviction,liquidity')
       .split(',')
       .filter((c) => ['conviction', 'liquidity', 'noise'].includes(c))
   );
-  const sort = ['date', 'value', 'return', 'shares', 'lag'].includes(req.query.sort) ? req.query.sort : 'date';
-  const dir = req.query.dir === 'asc' ? 1 : -1;
-  const perPage = Math.min(Math.max(Number(req.query.perPage) || 50, 10), 200);
-  const page = Math.max(Number(req.query.page) || 1, 1);
+  const sort = ['date', 'value', 'return', 'shares', 'lag'].includes(query.sort) ? query.sort : 'date';
+  const dir = query.dir === 'asc' ? 1 : -1;
+  const perPage = free ? (tab === 'latest' || tab === 'sells' ? FREE_ROWS : FREE_ROWS_TAB) : Math.min(Math.max(Number(query.perPage) || 50, 10), 200);
+  const page = free ? 1 : Math.max(Number(query.page) || 1, 1);
 
   // Clusters are computed over the whole window, not the filtered slice, so a
   // cluster is still recognised when the user narrows by role or value.
@@ -310,11 +324,14 @@ export default async function handler(req, res) {
   });
   const sectors = [...new Set(Object.values(meta).map((m) => m.sector).filter(Boolean))].sort();
 
+  if (free) res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=7200');
   res.status(200).json({
     rows: slice,
     total,
     page,
     perPage,
+    preview: free,
+    locked: free && total > slice.length,
     updatedAt: db.updatedAt,
     lastDay: db.lastDay,
     stats: page === 1 ? buildStats(rows, meta, tab === 'penny' ? isPenny : null) : null,

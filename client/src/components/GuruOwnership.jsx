@@ -35,9 +35,9 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
   const list = (title, rows, showWeight) => (
     <div style={{ flex: '1 1 280px', minWidth: 0 }}>
       <div className="small muted" style={{ marginBottom: 6 }}>{title}</div>
-      <table className="data">
+      <div className="table-wrap"><table className="data">
         <tbody>{rows.map((h) => row(h, showWeight))}</tbody>
-      </table>
+      </table></div>
     </div>
   );
 
@@ -109,7 +109,7 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
               ))}
             </div>
           </div>
-          <table className="data mt8">
+          <div className="table-wrap"><table className="data mt8">
             <thead>
               <tr>
                 <th className="l">{t('filings.reportFor')}</th>
@@ -128,7 +128,7 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
 
@@ -141,7 +141,7 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
       {options?.length > 0 && (
         <>
           <div className="small muted mt16">{t('guru.options')}</div>
-          <table className="data mt8">
+          <div className="table-wrap"><table className="data mt8">
             <tbody>
               {options.map((o) => (
                 <tr key={`${o.cusip}-${o.putCall}`}>
@@ -153,7 +153,7 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
                 </tr>
               ))}
             </tbody>
-          </table>
+          </table></div>
         </>
       )}
     </div>

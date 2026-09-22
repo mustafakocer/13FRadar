@@ -149,6 +149,10 @@ body { overflow-x: clip; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
 
 .grid { display: grid; gap: 16px; }
+/* A grid item's default min-width is its content's width, so a card that
+   holds a wide table (a scroller) or a long row pushed the whole grid past
+   the phone's edge. Items may shrink; what is wide inside scrolls or wraps. */
+.grid > *, .ins-grid > *, .upd-grid > *, .cmp-strip > *, .picker-row > * { min-width: 0; }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 /* the four-number strip at the top of a page: two-up on a tablet, stacked on a phone */
@@ -245,7 +249,7 @@ body { overflow-x: clip; }
 .page-head .sub { color: var(--text-2); font-size: 14px; margin-top: 2px; }
 .head-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
-.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 8px 0 20px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid var(--border); margin: 8px 0 20px; }
 .tab {
   padding: 10px 18px; border: none; background: none; cursor: pointer;
   font-weight: 700; font-size: 14.5px; color: var(--text-2); font-family: inherit;
@@ -283,7 +287,28 @@ body { overflow-x: clip; }
 .pos-row .d { font-size: 12px; }
 
 /* ---------- tables ---------- */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Narrow screens: a wide table scrolls sideways inside its card, and the
+   first column (the symbol) stays put so the row keeps its name while the
+   value, weight and change columns scroll under it. Chosen over collapsing
+   columns behind an expand: every column stays sortable and comparable,
+   and nothing is hidden behind a tap. */
+@media (max-width: 720px) {
+  .table-wrap table.data th:first-child, .table-wrap table.data td:first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  .table-wrap table.data tbody tr:hover td:first-child { background: var(--popover); }
+  /* the positions table: rank, company and type fold under the symbol,
+     and the symbol column is the one that stays */
+  table.data.positions [data-col="rank"], table.data.positions [data-col="issuer"], table.data.positions [data-col="putCall"] { display: none; }
+  table.data.positions td[data-col="ticker"], table.data.positions th[data-col="ticker"] {
+    position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); max-width: 150px;
+  }
+  table.data.positions tbody tr:hover td[data-col="ticker"] { background: var(--popover); }
+  table.data.positions .only-narrow { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+}
+.only-narrow { display: none; }
 table.data {
   width: 100%; border-collapse: collapse; font-size: 13.5px;
   font-variant-numeric: tabular-nums;
@@ -681,7 +706,8 @@ th.sortable { cursor: pointer; user-select: none; }
 
 .sig-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .sig-head b { font-size: 17px; display: flex; align-items: center; gap: 8px; }
-.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--popover); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: var(--popover); max-width: 100%; }
+@media (max-width: 720px) { .seg { border-radius: 14px; } }
 .seg button {
   border: 0; background: transparent; color: var(--text-2); font-weight: 700; font-size: 13px;
   padding: 7px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; white-space: nowrap;

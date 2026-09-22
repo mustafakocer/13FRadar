@@ -155,11 +155,13 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         )}
       </div>
       <div className="table-wrap">
-        <table className="data">
+        {/* On a phone the rank, company and type columns fold under the symbol,
+            which stays fixed while value, weight, Δ and the rest scroll (app.css) */}
+        <table className="data positions">
           <thead>
             <tr>
               {cols.map((c) => (
-                <th key={c.key} className={c.left ? 'l' : ''} onClick={() => onSort(c.key)}>
+                <th key={c.key} className={c.left ? 'l' : ''} data-col={c.key} onClick={() => onSort(c.key)}>
                   {t(c.tKey)}
                   {sort.key === c.key ? (sort.dir === -1 ? ' ↓' : ' ↑') : ''}
                 </th>
@@ -176,11 +178,11 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                   style={cik ? { cursor: 'pointer' } : undefined}
                   title={cik ? t('table.history') : undefined}
                 >
-                  <td className="l muted">
+                  <td className="l muted" data-col="rank">
                     {cik ? (expanded === rowKey ? '▾ ' : '▸ ') : ''}
                     {p.rank}
                   </td>
-                  <td className="l" onClick={(e) => e.stopPropagation()}>
+                  <td className="l" data-col="ticker" onClick={(e) => e.stopPropagation()}>
                     {p.ticker ? (
                       <Link
                         to={`/stock/${p.ticker}?cusip=${p.cusip}`}
@@ -191,26 +193,27 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     ) : (
                       <span className="muted small" title={`${p.issuer} · ${p.cusip}`}>{securityLabel(p).text}</span>
                     )}
+                    <span className="only-narrow muted small">{p.issuer}{p.putCall ? ` · ${p.putCall.toUpperCase()}` : ''}</span>
                   </td>
-                  <td className="l" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <td className="l" data-col="issuer" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {p.issuer}
                   </td>
-                  <td>
+                  <td data-col="putCall">
                     {p.putCall ? (
                       <span className="badge type">{p.putCall.toUpperCase()}</span>
                     ) : (
                       <span className="muted small">SH</span>
                     )}
                   </td>
-                  <td className="num">{fmtMoney(p.value)}</td>
-                  <td className="num">
+                  <td className="num" data-col="value">{fmtMoney(p.value)}</td>
+                  <td className="num" data-col="weight">
                     {fmtPct(p.weight, { sign: false, digits: 2 })}
                     <span className="wbar-track">
                       <i style={{ width: `${Math.min(100, (p.weight / maxWeight) * 100)}%` }} />
                     </span>
                   </td>
                   {hasPrev && (
-                    <td className={`num ${deltaClass(p.delta)}`}>
+                    <td className={`num ${deltaClass(p.delta)}`} data-col="delta">
                       {p.isNew ? (
                         <span className="badge type">{t('manager.newBadge')}</span>
                       ) : (
@@ -229,9 +232,9 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                       )}
                     </td>
                   )}
-                  <td className="num">{fmtNum(p.shares)}</td>
-                  <td className={`num ${deltaClass(p.ret1y)}`}>{fmtPct(p.ret1y)}</td>
-                  <td className={`num ${deltaClass(p.retYtd)}`}>{fmtPct(p.retYtd)}</td>
+                  <td className="num" data-col="shares">{fmtNum(p.shares)}</td>
+                  <td className={`num ${deltaClass(p.ret1y)}`} data-col="ret1y">{fmtPct(p.ret1y)}</td>
+                  <td className={`num ${deltaClass(p.retYtd)}`} data-col="retYtd">{fmtPct(p.retYtd)}</td>
                 </tr>,
                 cik && expanded === rowKey ? (
                   <tr key={`${rowKey}-hist`}>

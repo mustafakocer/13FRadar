@@ -32,7 +32,7 @@ export default function HoldersPanel({ ticker, cusip, holders: inline = [], hold
           <span className="muted small">{t('consensus.noHolders')}</span>
         ) : (
           <>
-            <table className="data">
+            <div className="table-wrap"><table className="data">
               <thead>
                 <tr>
                   <th className="l">{t('screen.manager')}</th>
@@ -60,7 +60,7 @@ export default function HoldersPanel({ ticker, cusip, holders: inline = [], hold
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             {truncated && (
               <div className="small muted mt8">
                 {useFull ? (

@@ -1,0 +1,57 @@
+name: Mobile layout
+
+# Renders the public pages at two phone widths (390×844, 360×800) against
+# the built site served locally on fixtures, and fails when any page scrolls
+# sideways (scripts/mobile-overflow.mjs). Screenshots are attached to the
+# run, and the step summary lists every page × viewport with the widest
+# element when one sticks out.
+on:
+  pull_request:
+    paths:
+      - 'client/**'
+      - 'api/_lib/ssr/**'
+      - 'scripts/mobile-overflow.mjs'
+      - '.github/workflows/mobile.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'client/**'
+      - 'api/_lib/ssr/**'
+      - 'scripts/mobile-overflow.mjs'
+      - '.github/workflows/mobile.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  overflow:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm ci --prefix client
+      - run: npm run build
+      - name: Install Chromium for playwright-core
+        run: npx playwright-core install --with-deps chromium
+      - name: Serve the built site on fixtures
+        run: |
+          SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec GURU_HISTORY_FILE=$PWD/api/_data/guru-history.json STOCK_UPSTREAM_MS=300 PORT=3001 node server.js > server.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf -o /dev/null http://localhost:3001/tr && break; sleep 1; done
+          curl -sf -o /dev/null http://localhost:3001/tr || { cat server.log; exit 1; }
+      - name: Check every page at 390×844 and 360×800
+        run: node scripts/mobile-overflow.mjs
+        env:
+          BASE: http://localhost:3001
+          SHOTS: mobile-shots
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mobile-screenshots
+          path: mobile-shots
+          if-no-files-found: ignore

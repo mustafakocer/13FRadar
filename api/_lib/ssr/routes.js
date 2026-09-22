@@ -28,6 +28,7 @@ const json = (file) => {
 // Static files written by the GitHub Actions (same files the client fetches).
 const staticConsensus = () => json('../../../client/public/consensus.json');
 const staticActivity = () => json('../../../client/public/guru-activity.json');
+const staticActivityQuarter = (q) => (/^\d{4}-\d{2}-\d{2}$/.test(String(q || '')) ? json(`../../../client/public/guru-activity-${q}.json`) : null);
 const staticTeaser = () => json('../../../client/public/insiders-teaser.json');
 const staticReturns = () => json('../../../client/public/returns.json');
 const staticSummary = () => json('../../../client/public/universe-summary.json');
@@ -167,12 +168,17 @@ async function loadConsensusPage() {
 }
 
 // /report renders its whole table from the activity pivot, so that file has to
-// be seeded or the page ships empty to crawlers.
-async function loadReport() {
+// be seeded or the page ships empty to crawlers. An older quarter (?q=) lives
+// in its own file and is seeded under the key the page asks for, so its rows
+// — and its coverage line — are in the HTML too, not fetched after hydration.
+async function loadReport({ quarter } = {}) {
   const seeds = await loadConsensus();
-  // the index alone: it carries the newest quarter, which is what renders
   const a = staticActivity();
   if (a) seeds.push([['guru-activity'], a]);
+  if (quarter && a?.quarters?.includes(quarter) && quarter !== a.quarters[0]) {
+    const q = staticActivityQuarter(quarter);
+    if (q) seeds.push([['guru-activity', quarter], q]);
+  }
   return seeds;
 }
 
@@ -260,7 +266,7 @@ export const ROUTES = [
   { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, load: loadTeaserOnly, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: async () => [], cache: 'day' },
-  { kind: 'report', re: /^\/report$/, load: loadReport, cache: 'hour' },
+  { kind: 'report', re: /^\/report$/, params: (m, qs) => ({ quarter: qs.get('q') }), load: loadReport, cache: 'hour' },
   { kind: 'screen', re: /^\/screen$/, load: async () => [], cache: 'hour' },
   { kind: 'compare', re: /^\/compare$/, load: async () => [], cache: 'hour' },
   { kind: 'watchlist', re: /^\/watchlist$/, load: async () => [], cache: 'none' },

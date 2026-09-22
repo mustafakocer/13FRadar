@@ -1,193 +1,199 @@
-// One-off reachability and shape probe for the free data sources the batch
-// builds could use, meant to run from a GitHub runner (the sandbox that writes
-// the code cannot reach any of them). Prints, never writes.
+// Reachability and shape probe for every upstream the site reads, meant to
+// run from a GitHub runner (the sandbox that writes the code cannot reach any
+// of them). Prints, never writes. Each section is on its own: an upstream
+// that hangs or answers garbage is one row in the summary, not a crash of the
+// run — the last red run died on an unhandled 30s timeout from EDGAR's legacy
+// company-search CGI before it reached the price providers at all.
 //
 //   node scripts/probe-market-data.mjs
+//   PROBE_SYMBOLS=AAPL,BRK-B node scripts/probe-market-data.mjs
+//
+// Sections:
+//   · EDGAR — submissions (SIC fields), XBRL frames (shares outstanding),
+//     company_tickers, full-text search: what the nightly builds read.
+//   · OpenFIGI — CINS vs CUSIP mapping, the ingest path of the security master.
+//   · Price chain — FMP, TwelveData, Finnhub, each through the same function
+//     the live /api/stock handler calls, then the handler's own race, then
+//     the daily-close chain behind /api/chart and /api/returns.
+//     Yahoo and Stooq are not probed: they are out of the live chain for good
+//     (Yahoo 429s Vercel's IPs, Stooq serves a JS challenge), see
+//     api/_handlers/stock.js.
+//
+// Exit code: 1 only when every price provider that has a key failed — the
+// live quote board would be answering from the snapshot. Missing keys are
+// reported and skipped, EDGAR/FIGI trouble is reported; neither turns the
+// run red on its own.
+import fs from 'node:fs';
 import axios from 'axios';
+import { hasFmp, hasTd, hasFinnhub, fmpStock, tdStock, finnhubStock, dailyCloses } from '../api/_lib/providers.js';
+import { raceProviders } from '../api/_handlers/stock.js';
+import { classify, snapshot } from '../api/_lib/providerHealth.js';
+import { openfigiLookup } from '../api/_lib/figi.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap probe (kocergpt@gmail.com)';
+const SYMBOLS = (process.env.PROBE_SYMBOLS || 'AAPL').split(',').map((s) => s.trim()).filter(Boolean);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const http = axios.create({ timeout: 30000, validateStatus: () => true });
+const http = axios.create({ timeout: 20000, validateStatus: () => true, headers: { 'User-Agent': UA } });
+const short = (x, n = 300) => JSON.stringify(x).slice(0, n);
 const section = (t) => console.log(`\n=== ${t} ===`);
-const short = (x, n = 600) => JSON.stringify(x).slice(0, n);
 
-// 1. EDGAR: where did Greenlight and Scion go?
-section('EDGAR full-text search: 13F-HR filers named Greenlight / Scion since 2024');
-for (const q of ['"Greenlight Capital"', '"Scion Asset Management"', 'Einhorn', 'Burry']) {
-  const r = await http.get('https://efts.sec.gov/LatestSearch/', {
-    params: { q, forms: '13F-HR', dateRange: 'custom', startdt: '2024-01-01', enddt: '2026-12-31' },
-    headers: { 'User-Agent': UA },
-  });
-  console.log(`q=${q} HTTP ${r.status}`);
-  const hits = r.data?.hits?.hits || [];
-  const seen = new Map();
-  for (const h of hits) {
-    const s = h._source || {};
-    const key = (s.ciks || []).join(',');
-    if (!seen.has(key)) seen.set(key, { names: s.display_names, ciks: s.ciks, latest: s.file_date, period: s.period_ending, n: 0 });
-    seen.get(key).n++;
-  }
-  for (const v of seen.values()) console.log('  ', short(v, 300));
-  await sleep(300);
-}
-section('EDGAR submissions for the two known CIKs');
-for (const cik of ['0001079114', '0001649339']) {
-  const r = await http.get(`https://data.sec.gov/submissions/CIK${cik}.json`, { headers: { 'User-Agent': UA } });
-  const d = r.data || {};
-  const rec = d.filings?.recent || {};
-  const forms = rec.form || [];
-  const last13f = forms.findIndex((f) => f === '13F-HR' || f === '13F-HR/A');
-  const lastAny = 0;
-  console.log(
-    `CIK ${cik} HTTP ${r.status} name=${d.name} formerNames=${short(d.formerNames || [], 300)} ` +
-      `last13F=${last13f >= 0 ? rec.filingDate[last13f] + ' ' + forms[last13f] : 'none'} ` +
-      `lastAny=${forms.length ? rec.filingDate[lastAny] + ' ' + forms[lastAny] : 'none'}`
-  );
-  await sleep(300);
-}
-section('EDGAR company search (atom) by name');
-for (const name of ['greenlight capital', 'scion asset', 'dme capital', 'einhorn', 'greenlight', 'dme', 'scion']) {
-  const r = await http.get('https://www.sec.gov/cgi-bin/browse-edgar', {
-    params: { company: name, action: 'getcompany', output: 'atom', count: 40 },
-    headers: { 'User-Agent': UA },
-  });
-  const body = String(r.data || '');
-  const entries = [...body.matchAll(/<entry>[\s\S]*?<title>([^<]+)<\/title>[\s\S]*?CIK=(\d+)/g)].map((m) => `${m[1].trim()} (CIK ${m[2]})`);
-  const companies = [...body.matchAll(/<company-info>[\s\S]*?<cik>(\d+)<\/cik>[\s\S]*?<conformed-name>([^<]+)<\/conformed-name>/g)].map((m) => `${m[2]} (CIK ${m[1]})`);
-  console.log(`${name}: companies=${companies.slice(0, 20).join(' | ')}`);
-  console.log(`${name}: HTTP ${r.status} ${entries.length ? entries.slice(0, 15).join(' | ') : body.slice(0, 300)}`);
-  await sleep(300);
-}
-
-section('EDGAR cik-lookup-data.txt: every registrant name matching the fund families');
-{
-  const r = await http.get('https://www.sec.gov/Archives/edgar/cik-lookup-data.txt', {
-    headers: { 'User-Agent': UA },
-    responseType: 'text',
-    transformResponse: [(d) => d],
-    maxContentLength: 200 * 1024 * 1024,
-    maxBodyLength: 200 * 1024 * 1024,
-  });
-  const text = String(r.data || '');
-  console.log(`  HTTP ${r.status} ${Math.round(text.length / 1e6)} MB`);
-  const hits = text.split('\n').filter((l) => /GREENLIGHT|DME CAPITAL|EINHORN|SCION ASSET/i.test(l));
-  for (const h of hits.slice(0, 40)) console.log('  ', h.trim());
-  // last 13F-HR per candidate CIK
-  const ciks = [...new Set(hits.map((l) => /:(\d{10}):/.exec(l)?.[1]).filter(Boolean))].slice(0, 25);
-  for (const cik of ciks) {
-    const sr = await http.get(`https://data.sec.gov/submissions/CIK${cik}.json`, { headers: { 'User-Agent': UA } });
-    const d = sr.data || {};
-    const rec = d.filings?.recent || {};
-    const forms = rec.form || [];
-    const ix = forms.findIndex((f) => f === '13F-HR' || f === '13F-HR/A');
-    if (ix < 0) continue;
-    console.log(`  CIK ${cik} ${d.name}: last 13F ${rec.filingDate[ix]} period ${rec.reportDate?.[ix]} (${forms.filter((f) => f.startsWith('13F-HR')).length} 13F filings on file)`);
-    await sleep(150);
+// One row per upstream call: { name, ok, ms, note }. `fn` returns the note
+// to print on success; anything it throws is the note of a failed row.
+const rows = [];
+async function probe(name, fn) {
+  const t0 = Date.now();
+  try {
+    const note = await fn();
+    rows.push({ name, ok: true, ms: Date.now() - t0, note: String(note ?? 'ok') });
+    console.log(`  ok   ${name} (${Date.now() - t0}ms) ${note ?? ''}`);
+  } catch (e) {
+    const note = `${classify(e)}: ${String(e?.message || e).slice(0, 160)}`;
+    rows.push({ name, ok: false, ms: Date.now() - t0, note });
+    console.log(`  FAIL ${name} (${Date.now() - t0}ms) ${note}`);
   }
 }
+const expect200 = (r, what) => {
+  if (r.status !== 200) throw new Error(`${what} HTTP ${r.status}`);
+  return r.data;
+};
 
-// 2. Yahoo chart from a runner: rate, fields.
-section('Yahoo chart v8 (30 symbols, sequential)');
-const syms = ['AAPL','MSFT','BRK-B','SPY','AMZN','GOOGL','META','NVDA','TSLA','JPM','V','UNH','XOM','PG','HD','MA','CVX','ABBV','PFE','KO','SPOT','ASML','NU','LIN','CRH','AON','ACN','TSM','BABA','QQQ'];
-let t0 = Date.now();
-let ok = 0;
-for (const s of syms) {
-  const r = await http.get(`https://query2.finance.yahoo.com/v8/finance/chart/${s}`, {
-    params: { range: '1y', interval: '1d' },
-    headers: { 'User-Agent': 'Mozilla/5.0' },
-  });
-  const res = r.data?.chart?.result?.[0];
-  const m = res?.meta || {};
-  const n = res?.timestamp?.length || 0;
-  if (r.status === 200 && n) ok++;
-  if (ok <= 3 || r.status !== 200)
-    console.log(`  ${s}: HTTP ${r.status} points=${n} price=${m.regularMarketPrice} prevClose=${m.chartPreviousClose} type=${m.instrumentType} cur=${m.currency} exch=${m.exchangeName}`);
-}
-console.log(`  ok ${ok}/${syms.length} in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
-section('Yahoo chart v8 (30 symbols, concurrency 4)');
-t0 = Date.now();
-let ok4 = 0;
-let s429 = 0;
-await Promise.all(
-  Array.from({ length: 4 }, async (_, w) => {
-    for (let i = w; i < syms.length; i += 4) {
-      const r = await http.get(`https://query2.finance.yahoo.com/v8/finance/chart/${syms[i]}`, {
-        params: { range: '5d', interval: '1d' },
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-      });
-      if (r.status === 200 && r.data?.chart?.result?.[0]) ok4++;
-      if (r.status === 429) s429++;
-    }
-  })
-);
-console.log(`  ok ${ok4}/${syms.length}, 429s ${s429}, in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
-
-// 3. SEC XBRL frames: shares outstanding / public float for every filer in one call.
-section('SEC XBRL frames');
-for (const f of [
-  'dei/EntityCommonStockSharesOutstanding/shares/CY2026Q2I',
-  'dei/EntityCommonStockSharesOutstanding/shares/CY2026Q1I',
-  'dei/EntityPublicFloat/USD/CY2025Q2I',
-  'dei/EntityPublicFloat/USD/CY2026Q2I',
-]) {
-  t0 = Date.now();
-  const r = await http.get(`https://data.sec.gov/api/xbrl/frames/${f}.json`, { headers: { 'User-Agent': UA } });
-  const d = r.data || {};
-  const rows = d.data || [];
-  const aapl = rows.find((x) => Number(x.cik) === 320193);
-  console.log(`  ${f}: HTTP ${r.status} rows=${rows.length} bytes~${JSON.stringify(d).length} ${(Date.now() - t0) / 1000}s AAPL=${short(aapl || null, 200)} first=${short(rows[0] || null, 200)}`);
-  await sleep(300);
-}
-section('SEC submissions: SIC fields');
+// ------------------------------------------------------------------ EDGAR
+section('EDGAR: submissions (SIC fields the sector map reads)');
 for (const cik of ['0000320193', '0000884394', '0001067983']) {
-  const r = await http.get(`https://data.sec.gov/submissions/CIK${cik}.json`, { headers: { 'User-Agent': UA } });
-  const d = r.data || {};
-  console.log(`  ${cik}: HTTP ${r.status} name=${d.name} sic=${d.sic} sicDescription=${d.sicDescription} tickers=${short(d.tickers)} exchanges=${short(d.exchanges)} category=${d.category} stateOfInc=${d.stateOfIncorporation}`);
-  await sleep(300);
-}
-section('SEC company_tickers.json / company_tickers_exchange.json');
-for (const u of ['https://www.sec.gov/files/company_tickers.json', 'https://www.sec.gov/files/company_tickers_exchange.json']) {
-  const r = await http.get(u, { headers: { 'User-Agent': UA } });
-  const d = r.data || {};
-  const first = Array.isArray(d.data) ? d.data[0] : Object.values(d)[0];
-  console.log(`  ${u}: HTTP ${r.status} fields=${short(d.fields || null, 200)} first=${short(first, 200)} count=${Array.isArray(d.data) ? d.data.length : Object.keys(d).length}`);
-}
-
-// 4. OpenFIGI: does ID_CINS resolve the foreign-domiciled names ID_CUSIP left blank?
-section('OpenFIGI CINS vs CUSIP');
-const cins = ['L8681T102', 'G25508105', 'N07059210', 'G6683N103', 'G54950103', 'G0403H108', 'G7997R103', 'G1151C101', 'H5919C104', 'H1467J104'];
-const figiKey = process.env.OPENFIGI_API_KEY;
-console.log(`  OPENFIGI_API_KEY ${figiKey ? 'set' : 'NOT set'}`);
-for (const idType of ['ID_CINS', 'ID_CUSIP']) {
-  const r = await http.post('https://api.openfigi.com/v3/mapping', cins.map((c) => ({ idType, idValue: c })), {
-    headers: { 'Content-Type': 'application/json', ...(figiKey ? { 'X-OPENFIGI-APIKEY': figiKey } : {}) },
+  await probe(`edgar submissions ${cik}`, async () => {
+    const d = expect200(await http.get(`https://data.sec.gov/submissions/CIK${cik}.json`), 'submissions');
+    if (!d?.name) throw new Error('no name in submissions');
+    const rec = d.filings?.recent || {};
+    return `${d.name} sic=${d.sic} (${d.sicDescription}) tickers=${short(d.tickers, 60)} recent=${rec.form?.length ?? 0} forms`;
   });
-  const out = Array.isArray(r.data)
-    ? r.data.map((res, i) => `${cins[i]}=${res?.data?.find((d) => d.exchCode === 'US')?.ticker || res?.data?.[0]?.ticker || res?.error || 'none'}`)
-    : short(r.data);
-  console.log(`  ${idType}: HTTP ${r.status} ${Array.isArray(out) ? out.join(' ') : out}`);
-  await sleep(3000);
+  await sleep(250);
 }
 
-// 5. FMP on the free plan: single-symbol calls.
-section('FMP single-symbol (free plan check)');
-const fmpKey = process.env.FMP_API_KEY;
-if (!fmpKey) console.log('  FMP_API_KEY not set');
-else {
-  for (const [ep, sym] of [['profile', 'AAPL'], ['quote', 'AAPL'], ['profile', 'AAPL,MSFT']]) {
-    const r = await http.get(`https://financialmodelingprep.com/stable/${ep}`, { params: { symbol: sym, apikey: fmpKey } });
-    console.log(`  ${ep}?symbol=${sym}: HTTP ${r.status} ${short(r.data, 300).split(fmpKey).join('***')}`);
-    await sleep(500);
+section('EDGAR: XBRL frames (shares outstanding for every filer in one call)');
+const y = new Date().getUTCFullYear();
+const q = Math.floor(new Date().getUTCMonth() / 3) + 1;
+const prevQ = q === 1 ? `CY${y - 1}Q4I` : `CY${y}Q${q - 1}I`;
+for (const f of [`dei/EntityCommonStockSharesOutstanding/shares/${prevQ}`, `dei/EntityPublicFloat/USD/CY${y - 1}Q2I`]) {
+  await probe(`edgar frames ${f.split('/')[1]} ${f.split('/').pop()}`, async () => {
+    const d = expect200(await http.get(`https://data.sec.gov/api/xbrl/frames/${f}.json`), 'frames');
+    const n = d?.data?.length || 0;
+    if (!n) throw new Error('frame has no rows');
+    const aapl = d.data.find((x) => Number(x.cik) === 320193);
+    return `rows=${n} AAPL=${aapl ? aapl.val : 'absent'}`;
+  });
+  await sleep(250);
+}
+
+section('EDGAR: company_tickers (CIK ↔ ticker for the universe)');
+for (const u of ['https://www.sec.gov/files/company_tickers.json', 'https://www.sec.gov/files/company_tickers_exchange.json']) {
+  await probe(`edgar ${u.split('/').pop()}`, async () => {
+    const d = expect200(await http.get(u), 'company_tickers');
+    const count = Array.isArray(d?.data) ? d.data.length : Object.keys(d || {}).length;
+    if (!count) throw new Error('empty ticker table');
+    return `entries=${count}`;
+  });
+}
+
+section('EDGAR: full-text search (13F-HR filers named Berkshire, this year)');
+await probe('edgar efts search', async () => {
+  const d = expect200(
+    await http.get('https://efts.sec.gov/LATEST/search-index', {
+      params: { q: '"Berkshire Hathaway"', forms: '13F-HR', dateRange: 'custom', startdt: `${y}-01-01`, enddt: `${y}-12-31` },
+    }),
+    'efts'
+  );
+  const hits = d?.hits?.hits || [];
+  if (!hits.length) throw new Error('search answered no hits');
+  return `hits=${hits.length} first=${short(hits[0]?._source?.display_names, 80)}`;
+});
+
+// --------------------------------------------------------------- OpenFIGI
+section('OpenFIGI: CINS vs CUSIP (the security-master ingest path)');
+console.log(`  OPENFIGI_API_KEY ${process.env.OPENFIGI_API_KEY ? 'set' : 'NOT set (10 per batch, slower)'}`);
+const ids = ['037833100', 'H1467J104', 'G25508105', '594918104'];
+for (const idType of ['ID_CUSIP', 'ID_CINS']) {
+  await probe(`openfigi ${idType}`, async () => {
+    const out = await openfigiLookup(ids.map((idValue) => ({ idType, idValue })));
+    if (!out) throw new Error('mapping request failed (null batch)');
+    const resolved = out.filter(Boolean).length;
+    return `${resolved}/${ids.length} resolved: ${ids.map((id, i) => `${id}=${out[i]?.ticker || '-'}`).join(' ')}`;
+  });
+  await sleep(1500);
+}
+
+// ------------------------------------------------------------ price chain
+section('Price chain: each keyed provider, the same call the live /api/stock makes');
+const PROVIDERS = [
+  { name: 'fmp', env: 'FMP_API_KEY', has: hasFmp, run: fmpStock },
+  { name: 'twelvedata', env: 'TWELVEDATA_API_KEY', has: hasTd, run: tdStock },
+  { name: 'finnhub', env: 'FINNHUB_API_KEY', has: hasFinnhub, run: finnhubStock },
+];
+const keyed = PROVIDERS.filter((p) => p.has());
+for (const p of PROVIDERS) if (!p.has()) console.log(`  skip ${p.name}: ${p.env} not set`);
+for (const sym of SYMBOLS) {
+  for (const p of keyed) {
+    await probe(`${p.name} ${sym}`, async () => {
+      const out = await p.run(sym);
+      const px = out?.price?.price;
+      if (!(px > 0)) throw new Error('answered without a price');
+      return `price=${px} chg%=${out.price.changePercent ?? '-'} mcap=${out.price.marketCap ?? '-'} name=${out.price.name}`;
+    });
   }
 }
 
-// 6. Stooq bulk quotes.
-section('Stooq');
-for (const u of [
-  'https://stooq.com/q/l/?s=aapl.us+msft.us+spy.us&f=sd2t2ohlcv&h&e=csv',
-  'https://stooq.com/q/d/l/?s=aapl.us&i=d',
-]) {
-  const r = await http.get(u, { headers: { 'User-Agent': 'Mozilla/5.0' }, responseType: 'text', transformResponse: [(d) => d] });
-  console.log(`  ${u}: HTTP ${r.status} ${String(r.data).slice(0, 300).replace(/\n/g, ' | ')}`);
+section('Price chain: the handler’s race (X-Stock-Chain as the live function would print it)');
+for (const sym of SYMBOLS) {
+  await probe(`race ${sym}`, async () => {
+    const race = raceProviders(sym, { budgetMs: 8000, log: (m) => console.log(`       ${m}`) });
+    const first = await race.withinBudget;
+    await race.eventual;
+    const chain = race.chain();
+    if (!first) throw new Error(`no provider answered within budget: ${chain}`);
+    return `served by ${first.provider} price=${first.data.price.price} chain=${chain}`;
+  });
 }
-console.log('\nprobe done');
+const health = snapshot().providers;
+console.log(
+  '  quota:',
+  Object.entries(health)
+    .map(([n, h]) => `${n} ${h.quota.usedToday}/${h.quota.limit ?? '∞'} per ${h.quota.per ?? '-'}${h.quota.exhausted ? ' EXHAUSTED' : ''}${h.open ? ' breaker-open' : ''}`)
+    .join(' · ')
+);
+
+section('Daily closes (the chain behind /api/chart and /api/returns)');
+for (const sym of SYMBOLS) {
+  await probe(`closes ${sym}`, async () => {
+    const series = await dailyCloses(sym);
+    if (!series?.length) throw new Error('empty series');
+    const last = series[series.length - 1];
+    return `rows=${series.length} first=${series[0].date} last=${last.date} close=${last.close}`;
+  });
+}
+
+// ---------------------------------------------------------------- summary
+section('Summary');
+const width = Math.max(...rows.map((r) => r.name.length));
+for (const r of rows) console.log(`  ${r.ok ? 'ok  ' : 'FAIL'} ${r.name.padEnd(width)} ${String(r.ms).padStart(6)}ms  ${r.note}`);
+const failed = rows.filter((r) => !r.ok);
+console.log(`\n${rows.length - failed.length}/${rows.length} probes ok`);
+
+if (process.env.GITHUB_STEP_SUMMARY) {
+  const md = [
+    `## Market data probe — ${rows.length - failed.length}/${rows.length} ok`,
+    '',
+    '| probe | result | ms | note |',
+    '|---|---|---:|---|',
+    ...rows.map((r) => `| ${r.name} | ${r.ok ? '✅' : '❌'} | ${r.ms} | ${r.note.replace(/\|/g, '\\|')} |`),
+    '',
+  ].join('\n');
+  fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+}
+
+// The live quote board depends on this; nothing else here does.
+const priceProbes = rows.filter((r) => keyed.some((p) => r.name.startsWith(`${p.name} `)));
+if (keyed.length && priceProbes.length && priceProbes.every((r) => !r.ok)) {
+  console.error(`\nevery keyed price provider failed (${keyed.map((p) => p.name).join(', ')}) — /api/stock would be answering from the snapshot`);
+  process.exit(1);
+}
+if (!keyed.length) console.log('\nno price provider key is set — the price chain was not exercised');
+console.log('probe done');

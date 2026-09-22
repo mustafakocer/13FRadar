@@ -57,6 +57,8 @@ Fark = fon seti farkı; tanım (yeni pozisyon %100) her ikisinde aynı.
 
 | Yer | Kaynak | Not |
 |---|---|---|
+| Guru sayfası Backtest sekmesi | `/api/backtest/:cik` → `api/_lib/backtest.js` `simulate()`; fiyat serileri `dailyCloses` (gece cache `api/_data/prices/` → FMP/TwelveData → null) | kapsam = simüle edilen ağırlık / dosyalanan ağırlık (çeyrek ortalaması); `skipped` neden listesi; SPY yoksa `benchmark: null`, 0.0% basılmaz |
+| Hisse grafiği, getiri kolonları, AUM akış tahmini | `/api/chart`, `/api/returns`, `/api/aum-history` → aynı `dailyCloses` | `returns.json` gece build'de cache'ten yenilenir (`build-prices.mjs`) |
 | Guru sayfası Dağılım sekmesi | `/api/sectors?symbols=` → `sector-map.json.bySymbol` (SIC→sektör) + Yahoo `assetProfile` (bilinmeyen) | ETF → `null`; bileşen null'ı atıyordu; kapsanan alt kümeye normalize |
 | /rankings, /screen/stocks filtreleri | `guru-stocks.json.sector` (`stockMetaBuild.applyStockMeta`) | |
 | /report sektör sütunu | `guru-activity.json.rows[].sec` (sector-map) | |

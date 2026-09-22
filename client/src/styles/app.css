@@ -172,6 +172,13 @@ body { overflow-x: clip; }
 .badge.neg { background: color-mix(in srgb, var(--sell) 14%, transparent); color: var(--sell); }
 .badge.plain { background: var(--popover); color: var(--text-2); }
 .badge.info { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
+/* a number that is true but incomplete (backtest coverage under 70%) */
+.badge.warn { background: color-mix(in srgb, #d97706 16%, transparent); color: #b45309; }
+.notice.warn {
+  padding: 8px 12px; border-radius: 8px; line-height: 1.45;
+  background: color-mix(in srgb, #d97706 10%, transparent); color: var(--text);
+  border-left: 3px solid #d97706;
+}
 /* premium / locked state only — never a CTA */
 .badge.pro { background: color-mix(in srgb, var(--pro) 14%, transparent); color: var(--pro); }
 .badge.type { background: var(--popover); color: var(--text); border: 1px solid var(--border); font-size: 11px; padding: 2px 8px; }

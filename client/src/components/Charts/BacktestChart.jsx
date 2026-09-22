@@ -11,7 +11,7 @@ import {
 import { getVar, tooltipStyle } from './chartUtils.js';
 
 // Copy-the-13F NAV vs SPY, both indexed to 1.0 at the first rebalance.
-export default function BacktestChart({ points, labels }) {
+export default function BacktestChart({ points, labels, benchmark = 'SPY' }) {
   const c1 = getVar('--chart-1');
   const c2 = getVar('--chart-3');
   return (
@@ -40,7 +40,7 @@ export default function BacktestChart({ points, labels }) {
         />
         <Legend formatter={(v) => <span style={{ color: getVar('--text'), fontSize: 13 }}>{v}</span>} />
         <Line type="monotone" dataKey="port" name={labels.port} stroke={c1} strokeWidth={2} dot={{ r: 3 }} />
-        <Line type="monotone" dataKey="spy" name="SPY" stroke={c2} strokeWidth={2} dot={{ r: 3 }} />
+        {benchmark && <Line type="monotone" dataKey="spy" name={benchmark} stroke={c2} strokeWidth={2} dot={{ r: 3 }} />}
       </LineChart>
     </ResponsiveContainer>
   );

@@ -511,6 +511,11 @@ const dict = {
     'manager.backtestNote':
       'Her çeyrek, dosyalama kamuya açıldığında (dönem sonu + 46 gün) ilk 15 hisse pozisyonu dosyalanan ağırlıklarla alınıp bir sonraki dosyalamaya kadar tutulsaydı senaryosu. Fiyat verisi bulunamayan pozisyonlar atlanır; temettüler dahil değildir. Yatırım tavsiyesi değildir.',
     'manager.backtestCoverage': 'Kapsam',
+    'manager.backtestLowCoverage': 'Fiyat verisi eksik, sonuç güvenilir değil: portföyün yalnızca {pct}’i simüle edildi.',
+    'manager.backtestSkipped': 'Atlanan pozisyonlar',
+    'manager.backtestNoBenchmark': 'SPY serisi bulunamadı; karşılaştırma gösterilmiyor.',
+    'manager.backtestReason.no-prices': 'fiyat serisi yok',
+    'manager.backtestReason.no-ticker': 'sembol çözülemedi',
 
     'compare.mode.managers': 'Yöneticiler',
     'compare.mode.stocks': 'Hisseler',
@@ -1433,6 +1438,11 @@ const dict = {
     'manager.backtestNote':
       'Scenario: each quarter, buy the top 15 equity positions at filed weights once the filing is public (quarter end + 46 days) and hold until the next filing. Positions without price data are skipped; dividends excluded. Not investment advice.',
     'manager.backtestCoverage': 'Coverage',
+    'manager.backtestLowCoverage': 'Price data is incomplete, treat the result with caution: only {pct} of the portfolio was simulated.',
+    'manager.backtestSkipped': 'Skipped positions',
+    'manager.backtestNoBenchmark': 'No SPY series available; the benchmark is not shown.',
+    'manager.backtestReason.no-prices': 'no price series',
+    'manager.backtestReason.no-ticker': 'ticker unresolved',
 
     'compare.mode.managers': 'Managers',
     'compare.mode.stocks': 'Stocks',

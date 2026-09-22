@@ -568,15 +568,36 @@ export default function Manager({ segment = 'portfolio' }) {
                     <span className={`badge ${backtest.data.totalPort >= 0 ? 'pos' : 'neg'}`}>
                       {t('manager.portfolioSeries')} {fmtPct(backtest.data.totalPort)}
                     </span>
-                    <span className={`badge ${backtest.data.totalSpy >= 0 ? 'pos' : 'neg'}`}>SPY {fmtPct(backtest.data.totalSpy)}</span>
+                    {backtest.data.benchmark && backtest.data.totalSpy != null && (
+                      <span className={`badge ${backtest.data.totalSpy >= 0 ? 'pos' : 'neg'}`}>{backtest.data.benchmark} {fmtPct(backtest.data.totalSpy)}</span>
+                    )}
                     {backtest.data.coverage != null && (
-                      <span className="badge plain">
+                      <span
+                        className={`badge ${backtest.data.coverage < 70 ? 'warn' : 'plain'}`}
+                        title={
+                          backtest.data.skipped?.length
+                            ? `${t('manager.backtestSkipped')}: ${backtest.data.skipped.map((s) => `${s.ticker || s.issuer || s.cusip} (${t(`manager.backtestReason.${s.reason}`)})`).join(', ')}`
+                            : undefined
+                        }
+                      >
                         {t('manager.backtestCoverage')}: {fmtPct(backtest.data.coverage, { sign: false, digits: 0 })}
                       </span>
                     )}
                   </div>
+                  {backtest.data.coverage != null && backtest.data.coverage < 70 && (
+                    <div className="notice warn small" style={{ marginBottom: 12 }}>
+                      {t('manager.backtestLowCoverage').replace('{pct}', fmtPct(backtest.data.coverage, { sign: false, digits: 0 }))}
+                      {backtest.data.skipped?.length > 0 && (
+                        <>
+                          {' '}
+                          {t('manager.backtestSkipped')}: {backtest.data.skipped.map((s) => s.ticker || s.issuer || s.cusip).join(', ')}
+                        </>
+                      )}
+                    </div>
+                  )}
+                  {!backtest.data.benchmark && <div className="muted small" style={{ marginBottom: 8 }}>{t('manager.backtestNoBenchmark')}</div>}
                   <ChartBox height={260}>
-                    <BacktestChart points={backtest.data.points} labels={{ port: t('manager.portfolioSeries') }} />
+                    <BacktestChart points={backtest.data.points} labels={{ port: t('manager.portfolioSeries') }} benchmark={backtest.data.benchmark} />
                   </ChartBox>
                   <p className="muted small mt8">{t('manager.backtestNote')}</p>
                 </>

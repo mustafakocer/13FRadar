@@ -1,15 +1,17 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { yahooChartReturns, mapLimit } from '../_lib/yahooClient.js';
-import { returnsFromSeries } from '../_lib/stooq.js';
+import { mapLimit } from '../_lib/yahooClient.js';
 import { dailyCloses } from '../_lib/providers.js';
+import { returnsFromSeries } from '../_lib/priceStore.js';
+import { priceSnapshot } from '../_lib/priceSnapshot.js';
 
+// One symbol's {price, ret1y, retYtd, ret1d}: from the close series (the
+// nightly cache, then a live provider), else the nightly return file the
+// build wrote (returns.json), else nulls.
 async function symbolReturns(sym) {
-  try {
-    return await yahooChartReturns(sym);
-  } catch {
-    const prices = await dailyCloses(sym);
-    return returnsFromSeries(sym, prices);
-  }
+  const prices = await dailyCloses(sym);
+  if (prices?.length) return returnsFromSeries(sym, prices);
+  const snap = priceSnapshot(sym);
+  return { symbol: sym, price: snap?.price?.price ?? null, asOf: snap?.priceAsOf || null, ret1y: snap?.history?.ret1y ?? null, retYtd: snap?.history?.retYtd ?? null, ret1d: snap?.history?.ret1d ?? null };
 }
 
 // GET /api/returns?symbols=AAPL,MSFT,...  (max 60)
@@ -23,9 +25,7 @@ export default async function handler(req, res) {
   if (!symbols.length) return res.status(400).json({ error: 'Missing symbols' });
 
   try {
-    const rows = await mapLimit(symbols, 6, (sym) =>
-      cached(`ret:${sym}`, TTL.HOUR_1, () => symbolReturns(sym))
-    );
+    const rows = await mapLimit(symbols, 6, (sym) => cached(`ret:${sym}`, TTL.HOUR_1, () => symbolReturns(sym)));
     const out = {};
     rows.forEach((r, i) => {
       if (r) out[symbols[i]] = r;

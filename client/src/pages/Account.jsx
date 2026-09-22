@@ -9,11 +9,14 @@ import { api } from '../lib/api.js';
 import { managerPath } from '../lib/paths.js';
 import AuthForm from '../components/AuthForm.jsx';
 
+const longDate = (iso, lang) =>
+  iso ? new Date(iso).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
+
 export default function Account() {
   const { t, lang } = useI18n();
   const { alerts, emailDigest, frequency, prefsLoaded, loading: alertsLoading, error: alertsError, removeAlert, setEmail, setPrefs, enableFilingAlerts } = useAlerts();
   const { favorites } = useFavorites();
-  const { configured, user, plan, loading, signOut, refreshPlan } = useAuth();
+  const { configured, user, plan, profile, loading, signOut, refreshPlan } = useAuth();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const justPaid = params.get('checkout') === 'success';
@@ -88,6 +91,12 @@ export default function Account() {
     );
   }
 
+  // The Stripe portal is for Stripe customers. A Pro account with no
+  // subscription id is a manual or open-ended grant: nothing to manage there.
+  const hasSubscription = Boolean(profile?.stripe_subscription_id);
+  const enterprise = plan === 'pro' && !hasSubscription;
+  const expires = plan === 'pro' ? longDate(profile?.plan_expires, lang) : null;
+
   // funds on the watchlist that have no filing alert yet — one click turns one on
   const alerted = new Set(alerts.filter((a) => a.kind === 'filing').map((a) => a.target));
   const pending = favorites.filter((f) => !alerted.has(String(f.cik).padStart(10, '0')));
@@ -111,7 +120,11 @@ export default function Account() {
         <span className="k">{t('account.plan')}</span>
         <span className="v">
           {plan === 'pro' ? (
-            <span className="badge pro">PRO</span>
+            <>
+              <span className="badge pro">PRO</span>
+              {enterprise && <span className="badge plain" style={{ marginLeft: 6 }}>{t('account.enterprise')}</span>}
+              {expires && <span className="muted small" style={{ marginLeft: 8 }}>{t('account.expires').replace('{d}', expires)}</span>}
+            </>
           ) : (
             <span className="badge plain">{t('pricing.free').toUpperCase()}</span>
           )}
@@ -123,7 +136,7 @@ export default function Account() {
             {t('paywall.cta')}
           </Link>
         )}
-        {plan === 'pro' && (
+        {hasSubscription && (
           <button className="btn ghost" onClick={openPortal} disabled={billingBusy}>
             {billingBusy ? '…' : t('account.manageBilling')}
           </button>

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
-import { managerStyle } from '../data/popular.js';
+import GuruBrowser from '../components/GuruBrowser.jsx';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import Ico from '../components/Ico.jsx';
 import { Compass } from 'lucide-react';
@@ -27,7 +27,7 @@ export default function Gurus() {
       [lang, t]
     )
   );
-  const rows = gurus.data?.rows || [];
+  const slugByCik = useMemo(() => new Map((gurus.data?.rows || []).map((r) => [r.cik, r.slug])), [gurus.data]);
   return (
     <div>
       <div className="page-head">
@@ -36,17 +36,9 @@ export default function Gurus() {
           <div className="sub">{t('gurus.subtitle')}</div>
         </div>
       </div>
-      {gurus.isLoading && <div className="loading"><div className="spinner" />{t('common.loading')}</div>}
-      <div className="grid grid-3">
-        {rows.map((g) => (
-          <Link key={g.slug} to={`/guru/${g.slug}`} className="card feature-card">
-            <h3>{g.name}</h3>
-            <p className="muted small">
-              {managerStyle(g.cik) ? t(`style.${managerStyle(g.cik)}`) + ' · ' : ''}CIK {g.cik}
-            </p>
-          </Link>
-        ))}
-      </div>
+      {/* the registry with the home page's category tabs and closed switch;
+          the slug table gives each card its canonical URL */}
+      <GuruBrowser variant="cards" pathFor={(g) => (slugByCik.get(g.cik) ? `/guru/${slugByCik.get(g.cik)}` : null)} />
       <p className="muted small mt16">
         <Link to="/filers">{t('gurus.allFilers')} →</Link>
       </p>

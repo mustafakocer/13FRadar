@@ -5,9 +5,9 @@
       "key": "consensus",
       "path": "client/public/consensus.json",
       "metrics": {
-        "managers": 67,
+        "managers": 72,
         "mostHeld": 30,
-        "updates": 67
+        "updates": 72
       },
       "findings": []
     },
@@ -15,7 +15,7 @@
       "key": "consensus-pro",
       "path": "api/_data/consensus-pro.json",
       "metrics": {
-        "managers": 67,
+        "managers": 72,
         "mostHeld": 30,
         "topBought": 20,
         "topSold": 20,
@@ -25,7 +25,7 @@
         {
           "rule": "lagging",
           "severity": "warn",
-          "message": "Pershing Square last reported 2026-03-31, panel median 2026-06-30"
+          "message": "Pershing Square (Bill Ackman) last reported 2026-03-31, panel median 2026-06-30"
         }
       ]
     },
@@ -33,12 +33,12 @@
       "key": "guru-stocks",
       "path": "api/_data/guru-stocks.json",
       "metrics": {
-        "managers": 67,
-        "stocks": 1630,
-        "options": 56,
-        "withTicker": 1616,
-        "withSector": 1482,
-        "withCap": 1209
+        "managers": 72,
+        "stocks": 1920,
+        "options": 57,
+        "withTicker": 1901,
+        "withSector": 1736,
+        "withCap": 1420
       },
       "findings": []
     },
@@ -55,7 +55,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 561
+        "names": 590
       },
       "findings": []
     },
@@ -107,7 +107,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 1889
+        "tickers": 1893
       },
       "findings": []
     },
@@ -116,6 +116,15 @@
       "path": "api/_data/splits.json",
       "metrics": {
         "tickers": 5298
+      },
+      "findings": []
+    },
+    {
+      "key": "security-master",
+      "path": "api/_data/security-master.json",
+      "metrics": {
+        "resolved": 6122,
+        "unresolved": 29
       },
       "findings": []
     },

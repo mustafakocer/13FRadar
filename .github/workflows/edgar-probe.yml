@@ -1,8 +1,13 @@
 name: Probe market data sources
 
-# Reachability and shape check for the free sources the batch builds lean on
-# (EDGAR search, SEC XBRL frames, Yahoo chart, OpenFIGI, FMP, Stooq). Prints
-# only; nothing is written or committed. Run it by hand when a build starts
+# Reachability and shape check for the upstreams the site reads: EDGAR
+# (submissions, XBRL frames, company_tickers, full-text search), OpenFIGI, and
+# the live price chain the /api/stock handler races — FMP, TwelveData,
+# Finnhub. Yahoo and Stooq are out of that chain for good and are not probed.
+# Prints only; nothing is written or committed. The step summary carries one
+# row per upstream. Red means every keyed price provider failed (the quote
+# board would be on the snapshot) or the script itself broke; an EDGAR or
+# FIGI hiccup is a row, not a failure. Run it by hand when a build starts
 # coming back empty and the question is "which upstream changed?".
 on:
   workflow_dispatch: {}
@@ -12,6 +17,9 @@ on:
     paths:
       - '.github/workflows/edgar-probe.yml'
       - 'scripts/probe-market-data.mjs'
+      - 'api/_lib/providers.js'
+      - 'api/_lib/providerHealth.js'
+      - 'api/_handlers/stock.js'
       - 'api/_lib/marketData.js'
       - 'api/_lib/stockMetaBuild.js'
       - 'scripts/build-insiders.mjs'
@@ -37,6 +45,8 @@ jobs:
           SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       # Dry runs of the enrichment over the committed data: what the real
       # builds would write, audited, and thrown away. Nothing is committed.
       - name: Dry run — sector, market cap, returns

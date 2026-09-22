@@ -38,7 +38,7 @@
         "options": 57,
         "withTicker": 1901,
         "withSector": 1736,
-        "withCap": 1415
+        "withCap": 1420
       },
       "findings": []
     },
@@ -55,7 +55,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 562
+        "names": 561
       },
       "findings": []
     },
@@ -115,7 +115,7 @@
       "key": "splits",
       "path": "api/_data/splits.json",
       "metrics": {
-        "tickers": 5292
+        "tickers": 5298
       },
       "findings": []
     },
@@ -140,7 +140,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 89
+        "rows": 97
       },
       "findings": []
     },
@@ -148,7 +148,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 35
+        "filers": 40
       },
       "findings": []
     },

@@ -66,7 +66,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `GURU_HISTORY_DRY`, `GURU_HISTORY_INCREMENTAL`, `GURU_HISTORY_FORCE` | opsiyonel | history yürüyüşü: kuru koşu planı (istek/cache/dakika), artımlı okuma (varsayılan açık), zorunlu tam okuma. |
 | `STOCK_UPSTREAM_MS`, `STOCK_SNAPSHOT_MS` | opsiyonel | /api/stock sağlayıcı yarışı bütçesi (ms; varsayılan 3000, snapshot varken 1500). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
-| `FMP_API_KEY`, `TWELVEDATA_API_KEY` | opsiyonel | fiyat/rasyo sağlayıcıları |
+| `FMP_API_KEY`, `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` | en az biri | /api/stock fiyat sağlayıcıları (FMP 250/gün: tam tablo; TwelveData 800/gün ve Finnhub 60/dk: fiyat). Yahoo ve Stooq Vercel'den çalışmaz, zincirde yoktur |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | prod'da zorunlu | sunucu tarafı plan kontrolü (`api/_lib/auth.js`); yoksa herkes çıkış yapmış sayılır, Pro kilitli; production build durur |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | prod'da zorunlu | aynı değerler, istemci paketine build'de gömülür (`client/src/lib/supabase.js`) |
 | Stripe | ödeme için | bkz. docs/STRIPE-KURULUM.md |
@@ -225,16 +225,16 @@ Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. 
 
 ### Fiyat sağlayıcı zinciri (`/api/stock/:ticker`)
 
-Sağlayıcılar (Yahoo quoteSummary → FMP → Yahoo quote → TwelveData → Yahoo chart → Stooq) bütçe içinde **aynı anda** yarışır; en iyi sıralı cevap bütçe dolunca (ya da en üst sıradaki gelince) döner, kalanı arka planda cache'i günceller. Üst üste 3 kez düşen sağlayıcı 5 dakika atlanır (`api/_lib/providerHealth.js`). Her cevapta:
+Yalnız anahtarlı sağlayıcılar (FMP → TwelveData → Finnhub) bütçe içinde **aynı anda** yarışır; en iyi sıralı cevap bütçe dolunca (ya da en üst sıradaki gelince) döner, kalanı arka planda cache'i günceller. Yahoo (üç uç da Vercel IP'lerinden 429) ve Stooq (CSV yerine JS-challenge HTML) zincirden kalıcı olarak çıkarıldı. Üst üste 3 kez düşen sağlayıcı 5 dakika atlanır; günlük kotalı bir sağlayıcının 429'u onu UTC gece yarısına kadar "quota" yapar, kotasının %90'ına gelen sağlayıcı ("conserve") kotası olan bir eş varken bekletilir, tek başına kaldığında yine sorulur (`api/_lib/providerHealth.js`; sayaçlar instance başına, alt sınır). Her cevapta:
 
 | Başlık | Anlam |
 |---|---|
 | `X-Stock-Source` | `live` / `stale` (bu instance'ın son canlı cevabı) / `snapshot` (gece kapanışı, `priceStale`) / `none` |
 | `X-Stock-Provider` | cevabı veren sağlayıcı |
-| `X-Stock-Chain` | sağlayıcı başına sonuç: `ok:ms` ya da `throttle` / `forbidden` / `key` / `timeout` / `parse` / `upstream` / `network` / `open` (devre kesici) |
+| `X-Stock-Chain` | sağlayıcı başına sonuç: `ok:ms` ya da `throttle` / `forbidden` / `timeout` / `parse` / `upstream` / `network`; çağrılmadıysa `key` / `open` (devre kesici) / `quota` (gün bitti) / `conserve` |
 | `X-Stock-Served` | instance başından beri dağılım: `live=…,stale=…,snapshot=…,none=…` |
 
-`/api/diag` bölgeden ham probe'ları, hangi anahtarların tanımlı olduğunu ve sağlayıcı sağlığını döner. Function log'unda satır başına: `stock AAPL: <sağlayıcı> <sınıf> in <ms>: <hata>` ve `stock AAPL: served <kaynak> (<sağlayıcı>) in <ms> [<zincir>] totals …`.
+`/api/diag` bölgeden ham probe'ları, hangi anahtarların tanımlı olduğunu, `quota` (limit, bugün kullanılan, bugün 429 sayısı, son 429, exhausted/conserve) ve sağlayıcı sağlığını döner. Function log'unda satır başına: `stock AAPL: <sağlayıcı> <sınıf> in <ms>: <hata>` ve `stock AAPL: served <kaynak> (<sağlayıcı>) in <ms> [<zincir>] totals …`.
 
 ### Tarihsel depo (opsiyonel, henüz doldurulmadı)
 

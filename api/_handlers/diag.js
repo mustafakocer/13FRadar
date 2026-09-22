@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { snapshot } from '../_lib/providerHealth.js';
-import { hasFmp, hasTd } from '../_lib/providers.js';
+import { hasFmp, hasTd, hasFinnhub } from '../_lib/providers.js';
 
 // Diagnostics: what the upstream data providers return from THIS serverless
 // region's IPs, which keys the instance has, and the quote chain's health
@@ -38,11 +38,17 @@ export default async function handler(req, res) {
     config: {
       FMP_API_KEY: hasFmp(),
       TWELVEDATA_API_KEY: hasTd(),
+      FINNHUB_API_KEY: hasFinnhub(),
+      chain: ['fmp', 'twelvedata', 'finnhub'],
       OPENFIGI_API_KEY: Boolean(process.env.OPENFIGI_API_KEY),
       STOCK_UPSTREAM_MS: Number(process.env.STOCK_UPSTREAM_MS) || 3000,
       STOCK_SNAPSHOT_MS: Number(process.env.STOCK_SNAPSHOT_MS) || null,
       region: process.env.VERCEL_REGION || null,
     },
+    // per provider: limit/per, usedToday (this instance), throttledToday,
+    // lastThrottleAt, exhausted (until UTC midnight after a 429 on a daily
+    // cap), conserve (past 90% of the cap: held back while a peer has room)
+    quota: Object.fromEntries(Object.entries(snapshot().providers).map(([name, p]) => [name, p.quota])),
     health: snapshot(),
   });
 }

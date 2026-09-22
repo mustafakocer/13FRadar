@@ -6,6 +6,7 @@ import { stooqDaily } from './stooq.js';
 // (Yahoo 429s Vercel; Stooq serves a JS-challenge page).
 //   FMP_API_KEY         financialmodelingprep.com  (free: 250 req/day)
 //   TWELVEDATA_API_KEY  twelvedata.com             (free: 800 req/day)
+//   FINNHUB_API_KEY     finnhub.io                 (free: 60 req/min, no daily cap)
 // Short sockets on Vercel: the stock handler answers from cache after a
 // fixed budget and these calls only warm it (see _handlers/stock.js).
 const http = axios.create({
@@ -16,9 +17,11 @@ const http = axios.create({
 const FMP_V3 = 'https://financialmodelingprep.com/api/v3';
 const FMP_STABLE = 'https://financialmodelingprep.com/stable';
 const TD = 'https://api.twelvedata.com';
+const FINNHUB = 'https://finnhub.io/api/v1';
 
 export const hasFmp = () => !!process.env.FMP_API_KEY;
 export const hasTd = () => !!process.env.TWELVEDATA_API_KEY;
+export const hasFinnhub = () => !!process.env.FINNHUB_API_KEY;
 
 async function fmpRaw(url, params) {
   const key = process.env.FMP_API_KEY;
@@ -218,4 +221,52 @@ export async function tdStock(symbol) {
     earnings: [],
     profile: {},
   };
+}
+
+// Finnhub's quote: { c: current, d: change, dp: change %, h, l, o, pc: previous
+// close, t: unix seconds }. A symbol it does not know answers all zeros with
+// a 200, which is why a zero price is "not found" here. Pure over the
+// parsed body so the shape is testable.
+export function shapeFinnhub(symbol, q) {
+  const price = num(q?.c);
+  if (!q || price == null || price <= 0) throw new Error('Finnhub: symbol not found');
+  return {
+    source: 'finnhub',
+    price: {
+      symbol,
+      name: symbol,
+      currency: 'USD',
+      price,
+      change: num(q.d),
+      changePercent: num(q.dp),
+      open: num(q.o),
+      high: num(q.h),
+      low: num(q.l),
+      prevClose: num(q.pc),
+      volume: null,
+      marketCap: null,
+      high52: null,
+      low52: null,
+    },
+    valuation: {},
+    fundamentals: {},
+    trading: {},
+    analyst: {},
+    income: [],
+    balance: [],
+    cashflow: [],
+    earnings: [],
+    profile: {},
+  };
+}
+
+// Basic price snapshot from Finnhub (1 call). 429 is a per-minute limit.
+export async function finnhubStock(symbol) {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) throw new Error('FINNHUB_API_KEY not set');
+  const r = await http.get(`${FINNHUB}/quote`, { params: { symbol, token: key } });
+  if (r.status === 429) throw new Error('Finnhub: rate limit (HTTP 429)');
+  if (r.status !== 200) throw new Error(`Finnhub HTTP ${r.status}`);
+  if (r.data?.error) throw new Error(`Finnhub: ${r.data.error}`);
+  return shapeFinnhub(symbol, r.data);
 }

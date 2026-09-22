@@ -1,14 +1,12 @@
 import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { readFixture } from '../_lib/fixtures.js';
-import { yahooQuoteSummary, yahooQuote, yahooChart, rv } from '../_lib/yahooClient.js';
-import { stooqDaily } from '../_lib/stooq.js';
-import { hasFmp, hasTd, fmpStock, tdStock } from '../_lib/providers.js';
+import { hasFmp, hasTd, hasFinnhub, fmpStock, tdStock, finnhubStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
-import { noteOk, noteFail, noteServed, shouldSkip, servedHeader } from '../_lib/providerHealth.js';
+import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
 // GET /api/stock/:ticker — the quote board of a stock page.
 //
-// This answer is cache-first and always 200. The live providers are asked
+// This answer is cache-first and always 200. The keyed providers are asked
 // all at once (raceProviders) inside a fixed wall-clock budget; the answer
 // is the best-ranked one that lands in time, and when none does the request
 // is answered from the freshest of: the last live answer this instance saw
@@ -18,18 +16,21 @@ import { noteOk, noteFail, noteServed, shouldSkip, servedHeader } from '../_lib/
 // answer in the cache. Every answer says which provider served it and how
 // each one did (X-Stock-* headers, api/_lib/providerHealth.js).
 //
-// Why the budget exists: the chain below used to run to completion before
-// answering. Each Yahoo call retried four times against a 15-second socket
-// timeout (plus a cookie/crumb refresh), then FMP tried two API generations,
-// then a second Yahoo endpoint, TwelveData, a third Yahoo endpoint and
-// Stooq — sequentially. From a region Yahoo throttles that is a minute of
-// wall clock against a 30-second function limit (the gateway's 502/504), and
-// when every provider failed fast the handler itself answered 502. The page
-// then had nothing to render and crashed on `price` of undefined.
+// The chain is keyed providers only. Yahoo (quoteSummary, quote, chart) and
+// Stooq are out for good: from Vercel's IP range Yahoo answers 429 on every
+// endpoint and Stooq serves a JavaScript-challenge HTML page instead of
+// CSV — a day of X-Stock-Chain said exactly that, on every request — so
+// they cost budget and never a price. The nightly builds still read Yahoo's
+// chart endpoint from GitHub runners, where it answers.
 //
-// Ownership data (which funds hold the name) never comes through here: it is
-// /api/guru-stocks, read from a committed file, so a quote outage cannot take
-// the ownership block down with it.
+//   FMP         quote + profile + TTM ratios (the complete board; 250/day free)
+//   TwelveData  quote (800/day free)
+//   Finnhub     quote (60/min free, no daily cap)
+//
+// Quotas are tracked per instance (providerHealth.js): a provider that
+// answered 429 today is exhausted until UTC midnight, and one that is near
+// its daily limit is held back while another keyed provider can answer, so
+// the last calls of the day are not spent while a peer sits idle.
 const UPSTREAM_BUDGET_MS = Math.max(500, Number(process.env.STOCK_UPSTREAM_MS) || 3000);
 // With a dated close on file the page has something true to show, so the
 // live chain gets half the budget before the file answers and the chain
@@ -37,284 +38,56 @@ const UPSTREAM_BUDGET_MS = Math.max(500, Number(process.env.STOCK_UPSTREAM_MS) |
 // the full budget for a live quote.
 const SNAPSHOT_BUDGET_MS = Math.max(500, Number(process.env.STOCK_SNAPSHOT_MS) || Math.round(UPSTREAM_BUDGET_MS / 2));
 
-const MODULES = [
-  'price',
-  'summaryDetail',
-  'defaultKeyStatistics',
-  'financialData',
-  'assetProfile',
-  'incomeStatementHistory',
-  'balanceSheetHistory',
-  'cashflowStatementHistory',
-  'earningsHistory',
-];
-
-function shapeFull(r) {
-  const p = r.price || {};
-  const sd = r.summaryDetail || {};
-  const ks = r.defaultKeyStatistics || {};
-  const fd = r.financialData || {};
-  const ap = r.assetProfile || {};
-
-  const changePct = rv(p.regularMarketChangePercent);
-
-  return {
-    source: 'quoteSummary',
-    price: {
-      symbol: p.symbol,
-      name: p.longName || p.shortName,
-      currency: p.currency,
-      price: rv(p.regularMarketPrice),
-      change: rv(p.regularMarketChange),
-      changePercent: changePct != null ? changePct * 100 : null,
-      open: rv(p.regularMarketOpen),
-      high: rv(p.regularMarketDayHigh),
-      low: rv(p.regularMarketDayLow),
-      prevClose: rv(p.regularMarketPreviousClose),
-      volume: rv(p.regularMarketVolume),
-      marketCap: rv(p.marketCap),
-      high52: rv(sd.fiftyTwoWeekHigh),
-      low52: rv(sd.fiftyTwoWeekLow),
-    },
-    valuation: {
-      trailingPE: rv(sd.trailingPE),
-      forwardPE: rv(sd.forwardPE) ?? rv(ks.forwardPE),
-      peg: rv(ks.pegRatio),
-      priceToSales: rv(sd.priceToSalesTrailing12Months),
-      priceToBook: rv(ks.priceToBook),
-      evToEbitda: rv(ks.enterpriseToEbitda),
-      evToRevenue: rv(ks.enterpriseToRevenue),
-      enterpriseValue: rv(ks.enterpriseValue),
-      bookValue: rv(ks.bookValue),
-    },
-    fundamentals: {
-      revenue: rv(fd.totalRevenue),
-      revenueGrowth: rv(fd.revenueGrowth),
-      earningsGrowth: rv(fd.earningsGrowth),
-      grossMargin: rv(fd.grossMargins),
-      operatingMargin: rv(fd.operatingMargins),
-      profitMargin: rv(fd.profitMargins),
-      ebitda: rv(fd.ebitda),
-      roe: rv(fd.returnOnEquity),
-      roa: rv(fd.returnOnAssets),
-      debtToEquity: rv(fd.debtToEquity),
-      currentRatio: rv(fd.currentRatio),
-      quickRatio: rv(fd.quickRatio),
-      totalCash: rv(fd.totalCash),
-      totalDebt: rv(fd.totalDebt),
-      freeCashflow: rv(fd.freeCashflow),
-      operatingCashflow: rv(fd.operatingCashflow),
-      dividendYield: rv(sd.dividendYield),
-      dividendRate: rv(sd.dividendRate),
-      payoutRatio: rv(sd.payoutRatio),
-      eps: rv(ks.trailingEps),
-      forwardEps: rv(ks.forwardEps),
-    },
-    trading: {
-      beta: rv(sd.beta),
-      avgVolume: rv(sd.averageVolume),
-      fiftyDayAvg: rv(sd.fiftyDayAverage),
-      twoHundredDayAvg: rv(sd.twoHundredDayAverage),
-      week52Change: rv(ks['52WeekChange']),
-      sharesOutstanding: rv(ks.sharesOutstanding),
-      floatShares: rv(ks.floatShares),
-      heldInsiders: rv(ks.heldPercentInsiders),
-      heldInstitutions: rv(ks.heldPercentInstitutions),
-      shortRatio: rv(ks.shortRatio),
-      shortPercentFloat: rv(ks.shortPercentOfFloat),
-    },
-    analyst: {
-      targetMean: rv(fd.targetMeanPrice),
-      targetHigh: rv(fd.targetHighPrice),
-      targetLow: rv(fd.targetLowPrice),
-      recommendation: fd.recommendationKey || null,
-      analysts: rv(fd.numberOfAnalystOpinions),
-    },
-    income: (r.incomeStatementHistory?.incomeStatementHistory || []).map((y) => ({
-      endDate: rv(y.endDate) ? new Date(rv(y.endDate) * 1000).toISOString().slice(0, 10) : null,
-      revenue: rv(y.totalRevenue),
-      grossProfit: rv(y.grossProfit),
-      operatingIncome: rv(y.operatingIncome),
-      netIncome: rv(y.netIncome),
-      ebit: rv(y.ebit),
-    })),
-    balance: (r.balanceSheetHistory?.balanceSheetStatements || []).map((y) => ({
-      endDate: rv(y.endDate) ? new Date(rv(y.endDate) * 1000).toISOString().slice(0, 10) : null,
-      totalAssets: rv(y.totalAssets),
-      totalLiabilities: rv(y.totalLiab),
-      equity: rv(y.totalStockholderEquity),
-      cash: rv(y.cash),
-      longTermDebt: rv(y.longTermDebt),
-    })),
-    cashflow: (r.cashflowStatementHistory?.cashflowStatements || []).map((y) => ({
-      endDate: rv(y.endDate) ? new Date(rv(y.endDate) * 1000).toISOString().slice(0, 10) : null,
-      operating: rv(y.totalCashFromOperatingActivities),
-      investing: rv(y.totalCashflowsFromInvestingActivities),
-      financing: rv(y.totalCashFromFinancingActivities),
-      capex: rv(y.capitalExpenditures),
-    })),
-    earnings: (r.earningsHistory?.history || []).map((q) => ({
-      quarter: rv(q.quarter) ? new Date(rv(q.quarter) * 1000).toISOString().slice(0, 10) : null,
-      epsEstimate: rv(q.epsEstimate),
-      epsActual: rv(q.epsActual),
-      surprisePercent: rv(q.surprisePercent),
-    })),
-    profile: {
-      sector: ap.sector || null,
-      industry: ap.industry || null,
-      employees: ap.fullTimeEmployees || null,
-      website: ap.website || null,
-      summary: ap.longBusinessSummary || null,
-      city: ap.city || null,
-      country: ap.country || null,
-    },
-  };
-}
-
-const EMPTY = {
-  valuation: {},
-  fundamentals: {},
-  trading: {},
-  analyst: {},
-  income: [],
-  balance: [],
-  cashflow: [],
-  earnings: [],
-  profile: {},
-};
-
-function shapeQuoteFallback(q) {
-  return {
-    ...EMPTY,
-    source: 'quote',
-    price: {
-      symbol: q.symbol,
-      name: q.longName || q.shortName,
-      currency: q.currency,
-      price: q.regularMarketPrice ?? null,
-      change: q.regularMarketChange ?? null,
-      changePercent: q.regularMarketChangePercent ?? null,
-      open: q.regularMarketOpen ?? null,
-      high: q.regularMarketDayHigh ?? null,
-      low: q.regularMarketDayLow ?? null,
-      prevClose: q.regularMarketPreviousClose ?? null,
-      volume: q.regularMarketVolume ?? null,
-      marketCap: q.marketCap ?? null,
-      high52: q.fiftyTwoWeekHigh ?? null,
-      low52: q.fiftyTwoWeekLow ?? null,
-    },
-    valuation: { trailingPE: q.trailingPE ?? null, forwardPE: q.forwardPE ?? null },
-    fundamentals: { eps: q.epsTrailingTwelveMonths ?? null },
-    trading: { avgVolume: q.averageDailyVolume3Month ?? null },
-  };
-}
-
-// Last-resort fallback: the v8 chart endpoint is the least rate-limited and
-// its meta block carries enough for a basic price header.
-function shapeChartFallback(meta) {
-  const price = meta.regularMarketPrice ?? null;
-  const prev = meta.chartPreviousClose ?? meta.previousClose ?? null;
-  return {
-    ...EMPTY,
-    source: 'chart',
-    price: {
-      symbol: meta.symbol,
-      name: meta.longName || meta.shortName || meta.symbol,
-      currency: meta.currency,
-      price,
-      change: price != null && prev != null ? price - prev : null,
-      changePercent: price != null && prev ? ((price - prev) / prev) * 100 : null,
-      open: null,
-      high: meta.regularMarketDayHigh ?? null,
-      low: meta.regularMarketDayLow ?? null,
-      prevClose: prev,
-      volume: meta.regularMarketVolume ?? null,
-      marketCap: null,
-      high52: meta.fiftyTwoWeekHigh ?? null,
-      low52: meta.fiftyTwoWeekLow ?? null,
-    },
-  };
-}
-
-// Absolute last resort: Stooq daily closes. Yahoo can block the entire
-// serverless region; this keeps the page rendering with real price data.
-function shapeStooqFallback(symbol, prices) {
-  const last = prices[prices.length - 1];
-  const prev = prices.length > 1 ? prices[prices.length - 2] : null;
-  const year = prices.slice(-252);
-  return {
-    ...EMPTY,
-    source: 'stooq',
-    price: {
-      symbol,
-      name: symbol,
-      currency: 'USD',
-      price: last.close,
-      change: prev ? last.close - prev.close : null,
-      changePercent: prev ? ((last.close - prev.close) / prev.close) * 100 : null,
-      open: null,
-      high: null,
-      low: null,
-      prevClose: prev?.close ?? null,
-      volume: null,
-      marketCap: null,
-      high52: Math.max(...year.map((p) => p.close)),
-      low52: Math.min(...year.map((p) => p.close)),
-    },
-  };
-}
-
 // The providers, most complete answer first. Each is a thunk so a test can
 // hand in its own list; `needs` says which key must be present.
 const PROVIDERS = [
-  { name: 'yahoo:quoteSummary', run: async (t) => shapeFull(await yahooQuoteSummary(t, MODULES)) },
   { name: 'fmp', needs: hasFmp, run: (t) => fmpStock(t) },
-  {
-    name: 'yahoo:quote',
-    run: async (t) => {
-      const [q] = await yahooQuote([t]);
-      return q ? shapeQuoteFallback(q) : null;
-    },
-  },
   { name: 'twelvedata', needs: hasTd, run: (t) => tdStock(t) },
-  {
-    name: 'yahoo:chart',
-    run: async (t) => {
-      const chart = await yahooChart(t, { range: '5d' });
-      return chart?.meta ? shapeChartFallback(chart.meta) : null;
-    },
-  },
-  { name: 'stooq', run: async (t) => shapeStooqFallback(t, await stooqDaily(t)) },
+  { name: 'finnhub', needs: hasFinnhub, run: (t) => finnhubStock(t) },
 ];
 
-// The chain used to run one provider after another and the first one —
-// Yahoo, which throttles this region — spent the whole budget by itself, so
-// every answer came from the nightly file although FMP or the chart
-// endpoint would have answered in under a second. Now every provider that
-// is configured and not circuit-broken starts at once; the answer is the
-// best-ranked success available when the budget lapses (or as soon as the
-// top-ranked one lands), and the rest keep running so a better-ranked
-// answer that arrives later upgrades the cache for the next request.
-//
-// Returns { data, provider, chain } — `chain` is one line per provider:
-// name=outcome:ms, outcome being ok, or the failure class
-// (throttle / forbidden / key / timeout / parse / upstream / network).
+// Which of the providers to call now. A provider without its key is never
+// called; one whose breaker is open (three failures in a row) or whose
+// daily quota is exhausted is skipped while another keyed provider can
+// answer; one near its daily limit (`conserve`) likewise steps aside for a
+// peer with room. When nothing else is left, the quota-limited provider is
+// still asked: a throttled answer costs one call, the nightly file costs a
+// day of staleness.
+export function eligibleProviders(providers, { now = Date.now(), quota = quotaState } = {}) {
+  const out = [];
+  const keyed = providers.filter((p) => !p.needs || p.needs());
+  for (const p of providers) if (!keyed.includes(p)) out.push({ p, why: 'key' });
+  const open = keyed.filter((p) => shouldSkip(p.name, now));
+  const fresh = keyed.filter((p) => !open.includes(p));
+  const exhausted = fresh.filter((p) => quota(p.name, now).exhausted);
+  const withRoom = fresh.filter((p) => !exhausted.includes(p));
+  const conserving = withRoom.filter((p) => quota(p.name, now).conserve);
+  const preferred = withRoom.filter((p) => !conserving.includes(p));
+  const run = preferred.length ? preferred : withRoom.length ? withRoom : fresh;
+  for (const p of keyed) {
+    if (run.includes(p)) out.push({ p, why: null });
+    else if (open.includes(p)) out.push({ p, why: 'open' });
+    else if (exhausted.includes(p)) out.push({ p, why: 'quota' });
+    else out.push({ p, why: 'conserve' });
+  }
+  return out;
+}
+
+// Returns { withinBudget, eventual, chain } — `chain` is one line per
+// provider: name=outcome:ms, outcome being ok, or the failure class
+// (throttle / forbidden / key / timeout / parse / upstream / network), or
+// why it was not called (key / open / quota / conserve).
 export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTREAM_BUDGET_MS, log = () => {}, now = Date.now } = {}) {
   const outcomes = new Map(providers.map((p) => [p.name, 'pending']));
   const line = () => [...outcomes].map(([n, o]) => `${n}=${o}`).join(';');
-  const eligible = providers.filter((p) => {
-    if (p.needs && !p.needs()) {
-      outcomes.set(p.name, 'key:0');
-      return false;
-    }
-    if (shouldSkip(p.name, now())) {
-      outcomes.set(p.name, 'open:0');
-      return false;
-    }
-    return true;
-  });
+  const eligible = [];
+  for (const { p, why } of eligibleProviders(providers, { now: now() })) {
+    if (why) outcomes.set(p.name, `${why}:0`);
+    else eligible.push(p);
+  }
   const results = eligible.map((p) => {
     const t0 = now();
+    noteCall(p.name, t0);
     return Promise.resolve()
       .then(() => p.run(ticker))
       .then((out) => {
@@ -332,7 +105,7 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
       })
       .catch((e) => {
         const ms = now() - t0;
-        const kind = noteFail(p.name, e, ms);
+        const kind = noteFail(p.name, e, ms, { now: now() });
         outcomes.set(p.name, `${kind}:${ms}`);
         log(`${p.name} ${kind} in ${ms}ms: ${String(e?.message || e).slice(0, 120)}`);
         return null;
@@ -340,15 +113,17 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
   });
   const settled = results.map(() => false);
   const values = results.map(() => null);
-  results.forEach((r, i) => r.then((v) => {
-    settled[i] = true;
-    values[i] = v;
-  }));
-  // the best-ranked answer settled so far; null while a better-ranked
+  results.forEach((r, i) =>
+    r.then((v) => {
+      settled[i] = true;
+      values[i] = v;
+    })
+  );
+  // the best-ranked answer settled so far; undefined while a better-ranked
   // provider could still answer within the budget
   const bestNow = () => {
     for (let i = 0; i < results.length; i++) {
-      if (!settled[i]) return undefined; // a better-ranked one is still running
+      if (!settled[i]) return undefined;
       if (values[i]) return { data: values[i], provider: eligible[i].name };
     }
     return null;
@@ -357,8 +132,6 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
     for (let i = 0; i < results.length; i++) if (settled[i] && values[i]) return { data: values[i], provider: eligible[i].name };
     return null;
   };
-  // resolves when the best possible answer is known, or at the budget with
-  // the best answer so far
   const withinBudget = new Promise((resolve) => {
     if (!results.length) return resolve(null);
     let done = false;
@@ -369,13 +142,13 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
       resolve(v);
     };
     const timer = setTimeout(() => finish(anyNow()), budgetMs);
-    results.forEach((r) => r.then(() => {
-      const b = bestNow();
-      if (b !== undefined) finish(b);
-    }));
+    results.forEach((r) =>
+      r.then(() => {
+        const b = bestNow();
+        if (b !== undefined) finish(b);
+      })
+    );
   });
-  // the eventual best answer, after every provider settled (for the cache
-  // and for the next request on this instance, which serves it as live)
   const race = { withinBudget, eventual: null, settledBest: null, chain: line };
   race.eventual = Promise.all(results).then(() => {
     race.settledBest = anyNow();
@@ -396,7 +169,6 @@ export async function stockPayload(ticker, { budgetMs = null, log = () => {}, pr
   // TTL joins it rather than starting another round of provider calls.
   const race = await cached(key, TTL.MIN_5 * 2, async () => {
     const r = raceProviders(ticker, { providers, budgetMs, log });
-    // whatever lands last and ranks best becomes the last-known-good answer
     r.eventual.then((best) => {
       if (best) remember(key, { ...best.data, provider: best.provider });
     });

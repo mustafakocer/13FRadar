@@ -5,9 +5,9 @@
       "key": "consensus",
       "path": "client/public/consensus.json",
       "metrics": {
-        "managers": 72,
+        "managers": 67,
         "mostHeld": 30,
-        "updates": 72
+        "updates": 67
       },
       "findings": []
     },
@@ -15,7 +15,7 @@
       "key": "consensus-pro",
       "path": "api/_data/consensus-pro.json",
       "metrics": {
-        "managers": 72,
+        "managers": 67,
         "mostHeld": 30,
         "topBought": 20,
         "topSold": 20,
@@ -33,12 +33,12 @@
       "key": "guru-stocks",
       "path": "api/_data/guru-stocks.json",
       "metrics": {
-        "managers": 72,
-        "stocks": 1920,
-        "options": 57,
-        "withTicker": 1901,
-        "withSector": 1736,
-        "withCap": 1420
+        "managers": 67,
+        "stocks": 1630,
+        "options": 56,
+        "withTicker": 1616,
+        "withSector": 1482,
+        "withCap": 1209
       },
       "findings": []
     },
@@ -107,7 +107,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 1893
+        "tickers": 1889
       },
       "findings": []
     },

@@ -37,8 +37,8 @@
         "stocks": 1920,
         "options": 57,
         "withTicker": 1901,
-        "withSector": 1736,
-        "withCap": 1420
+        "withSector": 1737,
+        "withCap": 1510
       },
       "findings": []
     },
@@ -123,8 +123,8 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6122,
-        "unresolved": 29
+        "resolved": 6124,
+        "unresolved": 82
       },
       "findings": []
     },
@@ -149,7 +149,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 97
+        "rows": 117
       },
       "findings": []
     },
@@ -157,7 +157,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 40
+        "filers": 44
       },
       "findings": []
     },

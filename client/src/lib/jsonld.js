@@ -130,6 +130,38 @@ export function stockDataset({ company, ticker, lang, path, description, reportD
   };
 }
 
+// A dataset the page is the front of: the insider feed, the comparison
+// tables. `isBasedOn` is the primary source (EDGAR).
+export function dataset({ name, description, lang, path, isBasedOn = 'https://www.sec.gov/cgi-bin/srch-edgar', dateModified = null, temporalCoverage = null, keywords = [] }) {
+  return {
+    '@context': CTX,
+    '@type': 'Dataset',
+    name,
+    description,
+    url: `__SITE__/${lang}${path}`,
+    license: LICENSE,
+    creator: publisher(),
+    isBasedOn,
+    ...(temporalCoverage ? { temporalCoverage } : {}),
+    ...(dateModified ? { dateModified: String(dateModified).slice(0, 10) } : {}),
+    ...(keywords.length ? { keywords } : {}),
+  };
+}
+
+export function webPage({ name, description, lang, path, dateModified = null }) {
+  return {
+    '@context': CTX,
+    '@type': 'WebPage',
+    name,
+    ...(description ? { description } : {}),
+    url: `__SITE__/${lang}${path}`,
+    inLanguage: lang,
+    isPartOf: { '@type': 'WebSite', name: 'Fundocap', url: `__SITE__/${lang}` },
+    publisher: publisher(),
+    ...(dateModified ? { dateModified: String(dateModified).slice(0, 10) } : {}),
+  };
+}
+
 export function article({ headline, description, lang, path, datePublished, dateModified, image }) {
   return {
     '@context': CTX,

@@ -181,6 +181,17 @@ export const DATASETS = [
     floors: { tickers: 100 },
   },
   {
+    // the nightly price cache's summary (the series themselves are one file
+    // per symbol next to it); optional until the first build has run
+    key: 'prices',
+    path: 'api/_data/prices/_index.json',
+    optional: true,
+    require: ['updatedAt', 'count'],
+    metrics: (d) => ({ series: d.count || 0, coveragePct: d.coveragePct || 0 }),
+    floors: { series: 50 },
+    drift: false,
+  },
+  {
     key: 'splits',
     path: 'api/_data/splits.json',
     require: ['updatedAt', 'byTicker'],

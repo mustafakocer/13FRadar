@@ -149,6 +149,10 @@ body { overflow-x: clip; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
 
 .grid { display: grid; gap: 16px; }
+/* A grid item's default min-width is its content's width, so a card that
+   holds a wide table (a scroller) or a long row pushed the whole grid past
+   the phone's edge. Items may shrink; what is wide inside scrolls or wraps. */
+.grid > *, .ins-grid > *, .upd-grid > *, .cmp-strip > *, .picker-row > * { min-width: 0; }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 /* the four-number strip at the top of a page: two-up on a tablet, stacked on a phone */
@@ -172,6 +176,13 @@ body { overflow-x: clip; }
 .badge.neg { background: color-mix(in srgb, var(--sell) 14%, transparent); color: var(--sell); }
 .badge.plain { background: var(--popover); color: var(--text-2); }
 .badge.info { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
+/* a number that is true but incomplete (backtest coverage under 70%) */
+.badge.warn { background: color-mix(in srgb, #d97706 16%, transparent); color: #b45309; }
+.notice.warn {
+  padding: 8px 12px; border-radius: 8px; line-height: 1.45;
+  background: color-mix(in srgb, #d97706 10%, transparent); color: var(--text);
+  border-left: 3px solid #d97706;
+}
 /* premium / locked state only — never a CTA */
 .badge.pro { background: color-mix(in srgb, var(--pro) 14%, transparent); color: var(--pro); }
 .badge.type { background: var(--popover); color: var(--text); border: 1px solid var(--border); font-size: 11px; padding: 2px 8px; }
@@ -238,7 +249,7 @@ body { overflow-x: clip; }
 .page-head .sub { color: var(--text-2); font-size: 14px; margin-top: 2px; }
 .head-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
-.tabs { display: flex; gap: 4px; border-bottom: 2px solid var(--border); margin: 8px 0 20px; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 2px solid var(--border); margin: 8px 0 20px; }
 .tab {
   padding: 10px 18px; border: none; background: none; cursor: pointer;
   font-weight: 700; font-size: 14.5px; color: var(--text-2); font-family: inherit;
@@ -276,7 +287,28 @@ body { overflow-x: clip; }
 .pos-row .d { font-size: 12px; }
 
 /* ---------- tables ---------- */
-.table-wrap { overflow-x: auto; }
+.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+/* Narrow screens: a wide table scrolls sideways inside its card, and the
+   first column (the symbol) stays put so the row keeps its name while the
+   value, weight and change columns scroll under it. Chosen over collapsing
+   columns behind an expand: every column stays sortable and comparable,
+   and nothing is hidden behind a tap. */
+@media (max-width: 720px) {
+  .table-wrap table.data th:first-child, .table-wrap table.data td:first-child {
+    position: sticky; left: 0; z-index: 1; background: var(--card);
+    box-shadow: 1px 0 0 var(--border);
+  }
+  .table-wrap table.data tbody tr:hover td:first-child { background: var(--popover); }
+  /* the positions table: rank, company and type fold under the symbol,
+     and the symbol column is the one that stays */
+  table.data.positions [data-col="rank"], table.data.positions [data-col="issuer"], table.data.positions [data-col="putCall"] { display: none; }
+  table.data.positions td[data-col="ticker"], table.data.positions th[data-col="ticker"] {
+    position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); max-width: 150px;
+  }
+  table.data.positions tbody tr:hover td[data-col="ticker"] { background: var(--popover); }
+  table.data.positions .only-narrow { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
+}
+.only-narrow { display: none; }
 table.data {
   width: 100%; border-collapse: collapse; font-size: 13.5px;
   font-variant-numeric: tabular-nums;
@@ -482,6 +514,10 @@ th.sortable { cursor: pointer; user-select: none; }
 .alert.err { background: var(--popover); color: var(--text); border: 1px solid var(--border-strong); }
 .alert.ok { background: color-mix(in srgb, var(--info) 14%, transparent); color: var(--info); }
 .auth-submit { width: 100%; padding: 13px 16px; font-size: 15px; }
+.auth-google { width: 100%; padding: 12px 16px; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; background: var(--card); color: var(--text); border: 1px solid var(--border-strong); }
+.auth-google:hover { background: var(--popover); }
+.auth-divider { display: flex; align-items: center; gap: 10px; margin: 14px 0 4px; color: var(--text-2); font-size: 12.5px; }
+.auth-divider::before, .auth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
 /* --text-3: placeholders, captions and disabled states only — never inside data tables */
 .btn:disabled, .btn[disabled] { cursor: not-allowed; color: var(--text-3); border-color: var(--border); background: transparent; }
 .auth-links { display: flex; gap: 8px; justify-content: center; align-items: center; margin-top: 16px; font-size: 13.5px; color: var(--text-2); flex-wrap: wrap; }
@@ -495,6 +531,27 @@ th.sortable { cursor: pointer; user-select: none; }
 
 /* ---- compare pickers -------------------------------------------------- */
 .picker-row { align-items: stretch; }
+/* compare page: the metric strip and the two-sided sector bars */
+.cmp-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+@media (max-width: 1000px) { .cmp-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 560px) { .cmp-strip { grid-template-columns: repeat(2, 1fr); } }
+.cmp-strip .k { font-size: 12px; color: var(--text-2); display: flex; align-items: center; gap: 4px; }
+.cmp-strip .v { font-weight: 700; font-size: 17px; margin-top: 2px; }
+.cmp-strip .ab { font-size: 12px; color: var(--text-2); }
+.cmp-sectors { display: grid; gap: 6px; }
+.cmp-sector { display: grid; grid-template-columns: 1fr 140px 1fr; align-items: center; gap: 8px; font-size: 12.5px; }
+.cmp-sector .name { text-align: center; color: var(--text-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cmp-sector .bar { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cmp-sector .bar.a { justify-content: flex-end; }
+.cmp-sector .bar i { display: block; height: 10px; border-radius: 4px; background: var(--chart-1); }
+.cmp-sector .bar.b i { background: var(--chart-3); }
+.cmp-sector .bar span { font-variant-numeric: tabular-nums; min-width: 38px; }
+.cmp-sector .bar.a span { text-align: right; }
+.dir-up { color: var(--buy); font-weight: 700; }
+.dir-down { color: var(--sell); font-weight: 700; }
+.dir-new { color: var(--info); font-weight: 700; }
+.dir-flat { color: var(--text-2); }
+
 .picker-card {
   display: flex; align-items: center; min-height: 76px;
   padding: 16px; box-sizing: border-box;
@@ -649,7 +706,8 @@ th.sortable { cursor: pointer; user-select: none; }
 
 .sig-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .sig-head b { font-size: 17px; display: flex; align-items: center; gap: 8px; }
-.seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--popover); }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: 999px; background: var(--popover); max-width: 100%; }
+@media (max-width: 720px) { .seg { border-radius: 14px; } }
 .seg button {
   border: 0; background: transparent; color: var(--text-2); font-weight: 700; font-size: 13px;
   padding: 7px 14px; border-radius: 999px; cursor: pointer; font-family: inherit; white-space: nowrap;

@@ -8,13 +8,13 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - 📊 AUM geçmişi grafiği, tahmini çeyreklik net fon akışı (SPY'a göre piyasa etkisinden arındırılmış)
 - 🃏 Portföy kartları: En Büyük Pozisyonlar · Yeni/Artırılan · Azaltılan/Çıkılan (önceki çeyrekle karşılaştırmalı)
 - 🧾 Sıralanabilir, filtrelenebilir tam pozisyon tablosu + Excel'e aktarma (SheetJS, code-split)
-- 💹 Hisse detay sayfası: Yahoo Finance verisiyle fiyat, değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
-- 📈 1Y / YTD / 1G getiriler (Yahoo v8 chart, regular close)
+- 💹 Hisse detay sayfası: fiyat (FMP / TwelveData / Finnhub yarışı), değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
+- 📈 1Y / YTD / 1G getiriler ve fiyat grafiği: gece üretilen 10 yıllık kapanış cache'inden (`api/_data/prices/`, aşağıya bakın)
 - 🏷️ CUSIP → ticker çözümleme (OpenFIGI)
-- ⚖️ İki yönetici karşılaştırma + 2-3 hisse rasyo karşılaştırma, 📋 tarayıcı, ⭐ izleme listesi (localStorage)
+- ⚖️ İki yönetici karşılaştırma (Jaccard ve ağırlıklı örtüşme, ortak pozisyonlarda Δ ve son çeyrek yönü, sektör kıyası, devir) + 2-3 hisse karşılaştırma (usta sayısı, usta $ değeri, net alım, 1Y/YBB, rasyolar); ücretsizde Berkshire vs Himalaya / AAPL-MSFT-GOOGL örneği SSR ile, kendi seçimi Pro. 📋 tarayıcı, ⭐ izleme listesi
 - 🧭 **Süper Yatırımcı Konsensüsü** — seçili fonların birleşik görünümü: en çok tutulan, bu çeyrek en çok alınan/satılan, yeni pozisyon radarı
 - 🎯 Opsiyon görünümü (PUT/CALL pozisyonları ayrı tablo + toplam ağırlıklar)
-- 🧪 Kopyalama backtesti (deneysel): "13F'i her çeyrek kopyalasaydım" vs SPY
+- 🧪 Kopyalama backtesti (deneysel): "13F'i her çeyrek kopyalasaydım" vs SPY — kapsam yüzdesi ve atlanan pozisyonlar açık; SPY serisi yoksa karşılaştırma gizlenir
 - 👤 İçeriden işlemler (Form 4) hisse sayfasında
 - 🔔 İzleme listesinde yeni 13F rozetleri, ⌘K komut paleti, 🖨 PDF/yazdır raporu
 - 🌍 Tam evren tarayıcı: haftalık GitHub Action tüm ~8.000 13F dosyalayıcısını tarayıp `client/public/universe.json` üretir
@@ -29,7 +29,7 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 | Rendering | SSR: `api/ssr.js` her herkese açık sayfayı sunucuda render eder (aşağıya bakın) |
 | API (Prod) | Vercel Serverless Functions (`api/` dizini) |
 | API (Dev) | Express (`server.js`, Vercel routing emülasyonu) |
-| Veri | SEC EDGAR (submissions + full-text search + Archives), Yahoo Finance (v7/v8/v10, cookie+crumb), OpenFIGI |
+| Veri | SEC EDGAR (submissions + full-text search + Archives), OpenFIGI, fiyat: FMP / TwelveData / Finnhub (canlı) + gece kapanış cache'i (Yahoo chart yalnız GitHub runner'dan, batch) |
 
 ```
 api/
@@ -49,7 +49,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 
 - `vercel.json`: `/api/*` dışındaki her yol `api/ssr.js`'e yönlenir (statik dosyalar önce gelir).
 - `api/_lib/ssr/routes.js`: rota → veri yükleyici. Yükleyiciler API handler'larını **süreç içinde** çağırır (HTTP yok) ve TanStack Query önbelleğini sayfanın kullandığı anahtarlarla doldurur; istemci `window.__STATE__` üzerinden hydrate olur.
-- Ücretsiz katman sunucuda render edilir; Pro bölümler (tam tablolar, insider akışı, backtest) istemcide yüklenir.
+- Ücretsiz katman sunucuda render edilir; Pro bölümler (tam tablolar, insider akışının tamamı, backtest) istemcide yüklenir. Kilitli her bölüm tek bileşenle gösterilir: `<ProGate>` (`client/src/components/ProGate.jsx`) — önizleme (ilk satırlar / örnek) sayfada kalır, kilit kutusu **altında** durur ve "Kalan N işlem Pro ile" der. /insiders ücretsizde: Piyasa Nabzı + Güçlü Sinyaller + En Büyük İşlemler kartları tam, Son İşlemler ilk 10 satır, rol/küme sekmelerinde ilk 5 (`/api/insider-feed` `full=1` olmadan önizleme; filtreler yok sayılır, CDN cache'lenir; `full=1` Pro ve `no-store`). /insiders/cluster, /csuite, /penny: ilk 10 satır.
 - **ISR eşdeğeri (CDN cache):** fon/hisse/guru×hisse sayfaları `s-maxage=86400, stale-while-revalidate=604800` (günlük tazelenir, 7 gün eskisi sunulabilir); ana sayfa, konsensüs, sıralamalar ve insider sinyal sayfaları `s-maxage=3600` + 1 gün SWR; hesap/izleme listesi `no-store`. Politika `CACHE` sabitinde (`routes.js`).
 - **Dil yolları:** her URL `/en/…` veya `/tr/…`. Öneksiz URL'ler 302 ile yönlenir: `lang` çerezi → Vercel ülke başlığı (`TR` → tr) → `Accept-Language` → en. `hreflang` en/tr/x-default her sayfada; canonical kendine işaret eder.
 - **Slug'lar:** `api/_data/slugs.json` (`npm run slugs`) her 13F dosyalayıcı için kalıcı, ASCII, benzersiz slug tutar; `/manager/<cik>` 301 ile `/guru/<slug>` (küratörlü) veya `/filer/<slug>`'a gider. Bir kez atanmış slug asla değişmez; yeni çakışmalar CIK sonekiyle çözülür.
@@ -66,7 +66,8 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `GURU_HISTORY_DRY`, `GURU_HISTORY_INCREMENTAL`, `GURU_HISTORY_FORCE` | opsiyonel | history yürüyüşü: kuru koşu planı (istek/cache/dakika), artımlı okuma (varsayılan açık), zorunlu tam okuma. |
 | `STOCK_UPSTREAM_MS`, `STOCK_SNAPSHOT_MS` | opsiyonel | /api/stock sağlayıcı yarışı bütçesi (ms; varsayılan 3000, snapshot varken 1500). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
-| `FMP_API_KEY`, `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` | en az biri | /api/stock fiyat sağlayıcıları (FMP 250/gün: tam tablo; TwelveData 800/gün ve Finnhub 60/dk: fiyat). Yahoo ve Stooq Vercel'den çalışmaz, zincirde yoktur |
+| `FMP_API_KEY`, `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` | en az biri | /api/stock fiyat sağlayıcıları (FMP 250/gün: tam tablo; TwelveData 800/gün ve Finnhub 60/dk: fiyat). Yahoo ve Stooq Vercel'den çalışmaz, zincirde yoktur. Aynı anahtarlar gece fiyat cache'ini de doldurur (`scripts/build-prices.mjs`) |
+| `PRICES_YAHOO`, `PRICES_TD_BUDGET`, `PRICES_FMP_BUDGET`, `PRICES_FINNHUB_BUDGET`, `PRICES_MAX_AGE_DAYS`, `PRICES_DRY` | opsiyonel | gece fiyat cache'i: runner'dan Yahoo chart (varsayılan açık), sağlayıcı başına gecelik çağrı bütçesi (400 / 60 / 300), bayat sayılma eşiği (1 gün), kuru koşu. `CLOSES_FRESH_DAYS` (4): dosyadaki seri bu kadar günden tazeyse canlı sağlayıcı sorulmaz |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | prod'da zorunlu | sunucu tarafı plan kontrolü (`api/_lib/auth.js`); yoksa herkes çıkış yapmış sayılır, Pro kilitli; production build durur |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | prod'da zorunlu | aynı değerler, istemci paketine build'de gömülür (`client/src/lib/supabase.js`) |
 | Stripe | ödeme için | bkz. docs/STRIPE-KURULUM.md |
@@ -222,6 +223,14 @@ Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. 
 - **Tek kayıt:** `api/_lib/gurus.js` — 100 fon; `category`, `activeFrom/activeTo` (kapanan fon silinmez, "takip edilen" sayılmaz), `consensus:false` (geniş/kantitatif defter, konsensüs oyu değil), `history:false`. `client/src/data/popular.js` ve `api/_lib/consensusList.js` buradan re-export eder.
 - **Tek hesap:** `api/_lib/netActivity.js` — net_$ = Σ_fon (adet_t − adet_{t−1}) × dönem sonu fiyat (Σdeğer_t/Σadet_t); yeni pozisyon tamamıyla, çıkış önceki adedin tamamı, fiyat hareketi işlem değil. `consensusBuild` (anasayfa, /consensus, /rankings, hisse sayfası) ve `build-guru-activity` (/report) yalnız bunu kullanır; `tests/net-activity.test.mjs` üç çıktıyı ticker bazında karşılaştırır.
 - **Kapsam:** her dosyada `coverage = { quarter, tracked, filed, included, excluded: { not-filed, wide-book } }`; `<CoverageLine>` anasayfa, /consensus, /rankings/*, /report ve /calendar'da aynı cümleyi basar ("98 usta takip ediliyor · 82'si 2026 Q2 bildirdi · 72'si hesaba dahil — …").
+
+### Mobil düzen kapısı (`scripts/mobile-overflow.mjs`)
+
+**Mobile layout** workflow'u (`.github/workflows/mobile.yml`; `client/**` ve SSR değişince, PR ve main) siteyi fixture'larla yerel sunar, 15 sayfayı 390×844 ve 360×800'de Chromium'da açar ve `document.scrollWidth` cihaz genişliğini aşan ya da kendi kaydırıcısı olmayan bir öğe kenardan taşan her sayfa×viewport için kırmızıya döner; en geniş öğe step summary'de, ekran görüntüleri artifact'ta. Yerelde: `node server.js` açıkken `PLAYWRIGHT_CHROMIUM=<chromium yolu> node scripts/mobile-overflow.mjs` (ya da `npx playwright-core install chromium`). Tablolar telefonda kart içinde yatay kayar; pozisyon tablosunda sıra/şirket/tür kolonları sembolün altına katlanır ve sembol kolonu sabit kalır (`table.data.positions`, app.css), grid hücreleri daralabilir (`.grid > * { min-width: 0 }`), sekme sıraları sarar.
+
+### Kapanış serileri: gece cache'i (`api/_data/prices/`)
+
+Backtest, fiyat grafiği (`/api/chart`), getiri kolonları (`/api/returns`, `returns.json`) ve AUM akış tahmini aynı seriyi okur: `dailyCloses(symbol)` (`api/_lib/providers.js`) önce `api/_data/prices/{SYMBOL}.json` dosyasına bakar (10 yıl günlük kapanış, sembol başına bir dosya; tarihler gün farkı olarak, kapanışlar gerekli hassasiyetle — `api/_lib/priceStore.js`), seri `CLOSES_FRESH_DAYS` içindeyse doğrudan cevaplar; bayatsa yalnız eksik günleri canlı sağlayıcıdan (FMP → TwelveData, kota ve devre kesici `providerHealth` üzerinden) ister; hiç dosya yoksa canlı; o da yoksa `null` (sayfa "seri yok" der, 0 basmaz). Dosyaları **Build consensus & returns** akışındaki `scripts/build-prices.mjs` üretir: evren = `guru-stocks.json` sembolleri + çıkılanlar + SPY/QQQ/IWM; artımlı (dosyadaki seri yalnız son kapanışından bu yana çekilir); log gece planıyla açılır (eksik / bayat / taze sayıları, bu gece hangi sağlayıcıdan kaç çağrı, tam dolum kaç gece). Kaynak sırası: Yahoo chart (runner'dan cevaplıyor, kotasız, ilk gece evrenin büyük kısmını doldurur) → TwelveData (dakikada 8, gecede `PRICES_TD_BUDGET`) → FMP (küçük dilim) → Finnhub candle (ücretsiz planda 403; ilk 403'te o gece için düşer). `api/_data/prices/_index.json` kapsamı özetler; `/api/diag` `priceCache` alanında gösterir; audit `prices` anahtarıyla denetler. Backtest cevabı `coverage` (simüle edilen ağırlık payı), `skipped` (atlanan pozisyonlar ve nedeni) ve `benchmark` (SPY serisi yoksa `null`) taşır; kapsam %70'in altındaysa sayfa sarı uyarı basar.
 
 ### Fiyat sağlayıcı zinciri (`/api/stock/:ticker`)
 

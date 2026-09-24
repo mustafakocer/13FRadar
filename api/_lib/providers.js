@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
-import { stooqDaily } from './stooq.js';
+import { readSeries, mergeSeries, seriesAgeDays } from './priceStore.js';
+import { noteCall, noteOk, noteFail, quotaState, shouldSkip } from './providerHealth.js';
 
 // Keyed free data providers — the reliable path from datacenter IPs
 // (Yahoo 429s Vercel; Stooq serves a JS-challenge page).
@@ -53,47 +54,83 @@ export async function tdGet(path, params = {}) {
   return r.data;
 }
 
-// Daily close series [{date, close}] ascending — provider chain, cached 12h.
-export function dailyCloses(symbol) {
-  return cached(`closes:${symbol}`, TTL.HOUR_6 * 2, async () => {
-    if (hasFmp()) {
-      try {
-        const d = await fmpGet('/historical-price-eod/light', symbol, '/historical-price-full', {
-          serietype: 'line',
-          timeseries: 1400,
-        });
-        // stable: [{date, price}] newest-first · v3: {historical: [{date, close}]}
-        const hist = Array.isArray(d) ? d : d?.historical || [];
-        if (hist.length) {
-          return hist
-            .map((h) => ({ date: h.date, close: h.close ?? h.price }))
-            .filter((h) => Number.isFinite(h.close))
-            .reverse();
-        }
-      } catch {
-        /* try next provider */
+// Daily close series [{date, close}] ascending, or null when nothing can
+// price the symbol. The nightly cache first (api/_data/prices, ten years,
+// see priceStore.js): a series whose last close is recent enough answers on
+// its own; an older one is extended from a live provider (only the days
+// since its last close) and answers as it is when none can; a symbol no
+// build has priced goes to the live providers for the whole history. Live
+// means the keyed ones — FMP, then TwelveData — through the same quota and
+// breaker bookkeeping the quote board uses, so a build night's calls and a
+// page's calls draw on one count. Yahoo and Stooq are not asked (see
+// _handlers/stock.js). Cached 12h per instance; a null answer is not
+// cached, so an outage does not pin a symbol empty for the day.
+export const CLOSES_FRESH_DAYS = Number(process.env.CLOSES_FRESH_DAYS) || 4;
+
+const LIVE = [
+  {
+    name: 'fmp',
+    has: hasFmp,
+    run: async (symbol, from) => {
+      const d = await fmpGet('/historical-price-eod/light', symbol, '/historical-price-full', {
+        serietype: 'line',
+        ...(from ? { from } : { timeseries: 2600 }),
+      });
+      // stable: [{date, price}] newest-first · v3: {historical: [{date, close}]}
+      const hist = Array.isArray(d) ? d : d?.historical || [];
+      return hist
+        .map((h) => ({ date: h.date, close: h.close ?? h.price }))
+        .filter((h) => Number.isFinite(h.close))
+        .reverse();
+    },
+  },
+  {
+    name: 'twelvedata',
+    has: hasTd,
+    run: async (symbol, from) => {
+      const d = await tdGet('/time_series', { symbol, interval: '1day', outputsize: 5000, order: 'ASC', ...(from ? { start_date: from } : {}) });
+      return (d?.values || [])
+        .map((v) => ({ date: String(v.datetime).slice(0, 10), close: Number(v.close) }))
+        .filter((v) => Number.isFinite(v.close));
+    },
+  },
+];
+
+async function liveCloses(symbol, from) {
+  for (const p of LIVE) {
+    if (!p.has() || shouldSkip(p.name) || quotaState(p.name).exhausted) continue;
+    const t0 = Date.now();
+    noteCall(p.name, t0);
+    try {
+      const rows = await p.run(symbol, from);
+      if (rows.length) {
+        noteOk(p.name, Date.now() - t0);
+        return rows;
       }
+      noteFail(p.name, new Error('empty'), Date.now() - t0);
+    } catch (e) {
+      noteFail(p.name, e, Date.now() - t0);
     }
-    if (hasTd()) {
-      try {
-        const d = await tdGet('/time_series', {
-          symbol,
-          interval: '1day',
-          outputsize: 1400,
-        });
-        const vals = d?.values || [];
-        if (vals.length) {
-          return vals
-            .map((v) => ({ date: v.datetime.slice(0, 10), close: Number(v.close) }))
-            .filter((v) => Number.isFinite(v.close))
-            .reverse();
-        }
-      } catch {
-        /* try next provider */
-      }
-    }
-    return stooqDaily(symbol);
-  });
+  }
+  return null;
+}
+
+class NoSeries extends Error {}
+
+export async function dailyCloses(symbol) {
+  try {
+    return await cached(`closes:${symbol}`, TTL.HOUR_6 * 2, async () => {
+      const stored = readSeries(symbol);
+      if (stored && seriesAgeDays(stored.asOf) <= CLOSES_FRESH_DAYS) return stored.prices;
+      const live = await liveCloses(symbol, stored?.asOf || null);
+      if (live?.length) return stored ? mergeSeries(stored.prices, live) : live;
+      if (stored) return stored.prices;
+      throw new NoSeries(`no close series for ${symbol}`);
+    });
+  } catch (e) {
+    if (e instanceof NoSeries) return null;
+    throw e;
+  }
 }
 
 const num = (x) => {

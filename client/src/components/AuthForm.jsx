@@ -3,10 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import Ico from './Ico.jsx';
+import GoogleButton from './GoogleButton.jsx';
 import { Mail } from 'lucide-react';
 
 // Sign-in / sign-up / magic-link / reset form with readable error messages
 // and a clear "check your inbox" state. `next` is where to go after auth.
+//
+// Order on the card: Google → the email link (no password) → "continue with
+// a password", which opens the password field and the sign-in / sign-up
+// tabs. Every path carries `next` through the round trip.
 
 // Supabase returns terse English errors; map them to something a customer
 // can act on. Falls back to a generic message plus the raw text.
@@ -20,6 +25,7 @@ function friendlyError(raw, t) {
   if (/invalid email|unable to validate email|valid email/.test(m)) return t('account.err.badEmail');
   if (/signup.*disabled|not allowed/.test(m)) return t('account.err.signupDisabled');
   if (/fetch|network|failed to/.test(m)) return t('account.err.network');
+  if (/unsupported provider|provider is not enabled|oauth/.test(m)) return t('account.err.oauth');
   return `${t('account.err.generic')} (${raw})`;
 }
 
@@ -30,7 +36,10 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
   const navigate = useNavigate();
   const { signInEmail, signInPassword, signUpPassword, resetPassword } = useAuth();
 
-  const [mode, setMode] = useState(initialMode); // signin | signup | magic | reset
+  // magic (the default) | signin | signup | reset; `pwMode` remembers which
+  // password tab to open when the reader asks for one
+  const [mode, setMode] = useState('magic');
+  const pwMode = initialMode === 'signin' ? 'signin' : 'signup';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -72,7 +81,7 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
         return;
       }
       if (mode === 'signup') {
-        const { data, error: err } = await signUpPassword(addr, password);
+        const { data, error: err } = await signUpPassword(addr, password, next);
         if (err) throw err;
         // With email confirmation on, Supabase answers an existing address
         // with a user that has no identities instead of an error.
@@ -89,7 +98,7 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
         return;
       }
       if (mode === 'magic') {
-        const { error: err } = await signInEmail(addr);
+        const { error: err } = await signInEmail(addr, next);
         if (err) throw err;
         setSent({ kind: 'magic', email: addr });
         setCooldown(RESEND_SECONDS);
@@ -116,9 +125,9 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
       const addr = sent.email;
       const r =
         sent.kind === 'signup'
-          ? await signUpPassword(addr, password)
+          ? await signUpPassword(addr, password, next)
           : sent.kind === 'magic'
-            ? await signInEmail(addr)
+            ? await signInEmail(addr, next)
             : await resetPassword(addr);
       if (r.error) throw r.error;
       setCooldown(RESEND_SECONDS);
@@ -157,13 +166,20 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
   }
 
   // ---- form ----------------------------------------------------------------
-  const forPro = next === '/pricing';
+  const forPro = Boolean(next && next.startsWith('/pricing'));
   const subtitle = forPro ? t('account.sub.forPro') : t(`account.sub.${mode}`);
 
   return (
-    <div className="card auth-card">
+    <div className="card auth-card" data-auth-mode={mode}>
       <h2 className="auth-title">{t(`account.hdr.${mode}`)}</h2>
       <p className="muted auth-sub">{subtitle}</p>
+
+      {mode !== 'reset' && (
+        <>
+          <GoogleButton next={next} onError={(e) => setError(friendlyError(e?.message || e, t))} />
+          <div className="auth-divider"><span>{t('account.or')}</span></div>
+        </>
+      )}
 
       {(mode === 'signin' || mode === 'signup') && (
         <div className="tabs" style={{ marginTop: 4 }}>
@@ -246,6 +262,11 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
       </form>
 
       <div className="auth-links">
+        {mode === 'magic' && (
+          <button type="button" className="linklike" onClick={() => switchMode(pwMode)} data-auth="with-password">
+            {t('account.withPassword')}
+          </button>
+        )}
         {mode === 'signin' && (
           <>
             <button type="button" className="linklike" onClick={() => switchMode('reset')}>
@@ -263,9 +284,13 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
             <button type="button" className="linklike" onClick={() => switchMode('signin')}>
               {t('account.signIn')}
             </button>
+            <span> · </span>
+            <button type="button" className="linklike" onClick={() => switchMode('magic')}>
+              {t('account.mode.magic')}
+            </button>
           </span>
         )}
-        {(mode === 'magic' || mode === 'reset') && (
+        {mode === 'reset' && (
           <button type="button" className="linklike" onClick={() => switchMode('signin')}>
             ← {t('account.backToSignin')}
           </button>

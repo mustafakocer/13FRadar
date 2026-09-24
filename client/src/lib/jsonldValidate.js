@@ -30,6 +30,11 @@ const RULES = {
       b.potentialAction['query-input'] === 'required name=search_term_string' || e.push('WebSite.potentialAction.query-input');
     }
   },
+  WebPage: (b, e) => {
+    nonEmpty(b.name) || e.push('WebPage.name');
+    isUrl(b.url) || e.push('WebPage.url');
+    b.dateModified && !isDate(b.dateModified) && e.push('WebPage.dateModified');
+  },
   Dataset: (b, e) => {
     nonEmpty(b.name) || e.push('Dataset.name');
     (nonEmpty(b.description) && b.description.length >= 50) || e.push('Dataset.description (≥50 chars)');

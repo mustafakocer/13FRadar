@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
+import { useAuth } from '../auth.jsx';
+import ProGate from '../components/ProGate.jsx';
 import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
 import { breadcrumbs, faqJsonLd } from '../lib/seoTemplates.js';
 import { article, itemList } from '../lib/jsonld.js';
@@ -130,6 +132,7 @@ function Row({ r, cols, t }) {
 
 export default function PennyStocks() {
   const { t, lang } = useI18n();
+  const { isPro } = useAuth();
   const teaser = useQuery({
     queryKey: ['insiders-teaser'],
     queryFn: async () => {
@@ -171,6 +174,10 @@ export default function PennyStocks() {
         return x === y ? 0 : (x < y ? -1 : 1) * mul;
       });
   }, [all, q, role, clusterOnly, newOnly, sort]);
+
+  // the first ten rows of whatever the reader sorted or filtered are free
+  const FREE = 10;
+  const shown = isPro ? rows : rows.slice(0, FREE);
 
   const onSort = (key) => setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }));
   const arrow = (key) => (sort.key === key ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : '');
@@ -434,7 +441,7 @@ export default function PennyStocks() {
                   </td>
                 </tr>
               )}
-              {rows.map((r) => (
+              {shown.map((r) => (
                 <Row key={`${r.t}-${r.n}-${r.d}`} r={r} cols={cols} t={t} />
               ))}
             </tbody>
@@ -446,6 +453,10 @@ export default function PennyStocks() {
       </div>
 
       {/* ---- the unabridged feed lives behind Pro ------------------------- */}
+      {!isPro && rows.length > 0 && (
+        <ProGate remaining={rows.length - shown.length} unit={t('paywall.unit.trades')} note={t('paywall.previewSignals')} />
+      )}
+      {isPro && (
       <div className="card mt16 row" style={{ justifyContent: 'space-between', gap: 16 }}>
         <div style={{ minWidth: 0 }}>
           <b>{t('penny.moreTitle')}</b>
@@ -457,6 +468,7 @@ export default function PennyStocks() {
           {t('penny.liveFeed')}
         </Link>
       </div>
+      )}
 
       <Faq items={faq} />
       <p className="muted small mt16">{t('ins.note')}</p>

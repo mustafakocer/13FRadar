@@ -1,6 +1,6 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
-import { yahooChartPrices, mapLimit } from '../_lib/yahooClient.js';
+import { mapLimit } from '../_lib/yahooClient.js';
 import { dailyCloses } from '../_lib/providers.js';
 import { guruHistory } from '../_lib/history.js';
 import { aumHistoryFromGuru, annotateAum, attachFlows } from '../_lib/managerHistory.js';
@@ -11,19 +11,19 @@ import { aumHistoryFromGuru, annotateAum, attachFlows } from '../_lib/managerHis
 // A curated guru answers from the nightly history file; anyone else is read
 // from EDGAR, a quarter at a time.
 
-// SPY closes since a date, for flow estimation. One fetch per instance and
-// a short leash: the benchmark column is decoration next to the AUM series,
-// and the page must not wait on a quote provider for it.
+// SPY closes since a date, for flow estimation: the nightly price cache
+// (a file read), a live provider only when the cache has nothing, and a
+// short leash either way — the benchmark column is decoration next to the
+// AUM series, and the page must not wait on a quote provider for it.
 function spyLookup(firstDate) {
-  const first = Math.floor(new Date(firstDate).getTime() / 1000) - 14 * 86400;
+  const since = new Date(new Date(firstDate).getTime() - 14 * 86400 * 1000).toISOString().slice(0, 10);
   return cached(`spy-closes:${firstDate}`, TTL.HOUR_6, async () => {
     const budget = new Promise((r) => setTimeout(() => r(null), 4000));
-    const fetched = yahooChartPrices('SPY', first, Date.now() / 1000)
-      .catch(() => dailyCloses('SPY').then((all) => ({ prices: all.filter((p) => p.date >= firstDate) })))
+    const fetched = dailyCloses('SPY')
+      .then((all) => (all ? all.filter((p) => p.date >= since) : null))
       .catch(() => null);
-    const got = await Promise.race([fetched, budget]);
-    if (!got?.prices?.length) throw new Error('SPY closes unavailable');
-    const prices = got.prices;
+    const prices = await Promise.race([fetched, budget]);
+    if (!prices?.length) throw new Error('SPY closes unavailable');
     return (date) => {
       let best = null;
       for (const p of prices) {

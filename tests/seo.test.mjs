@@ -217,8 +217,11 @@ test('SSR: penny board renders the full table, answer box and JSON-LD without JS
   const { status, html, headers } = await ssr('/en/insiders/penny');
   assert.equal(status, 200);
   assert.match(html, /<title>Penny Stock Insider Buys: Form 4 Signals Under \$5 \| Fundocap<\/title>/);
-  // the board ships inside the teaser, so every row is server-rendered
-  assert.ok(count(html, /<tr/g) >= 20, 'header plus board rows');
+  // the board ships inside the teaser: the first ten rows are server-rendered
+  // for a free reader, the lock box under them says how many follow
+  assert.ok(count(html, /<tr/g) >= 11, 'header plus ten board rows');
+  assert.match(html, /data-pro-gate/);
+  assert.match(html, /The remaining \d+ trades with Pro/);
   assert.match(html, /data-answer-box/);
   assert.match(html, /<meta name="description" content="[^"]*stocks trading under \$5[^"]*"/);
   const types = jsonLd(html).map((b) => b['@type']);

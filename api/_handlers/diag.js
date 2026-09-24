@@ -1,11 +1,14 @@
 import axios from 'axios';
 import { snapshot } from '../_lib/providerHealth.js';
 import { hasFmp, hasTd, hasFinnhub } from '../_lib/providers.js';
+import { priceCacheStatus } from '../_lib/priceStore.js';
 
-// Diagnostics: what the upstream data providers return from THIS serverless
-// region's IPs, which keys the instance has, and the quote chain's health
-// since the instance started (api/_lib/providerHealth.js) — the three things
-// needed to read a day of X-Stock-Source: snapshot.
+// Diagnostics: which keys the instance has, the quote chain's health and
+// quotas since the instance started (api/_lib/providerHealth.js), what the
+// nightly price cache holds (api/_data/prices/_index.json), and what the
+// keyed providers answer from THIS region's IPs — what it takes to read a
+// day of X-Stock-Source: snapshot. Yahoo and Stooq are not probed: they are
+// out of every chain (see _handlers/stock.js).
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
@@ -25,16 +28,15 @@ export default async function handler(req, res) {
       out[name] = { error: e.code || e.message };
     }
   };
+  // reachability only — no key is sent, so a 401/403 here is "reachable"
   await Promise.all([
-    probe('yahoo_chart_q1', 'https://query1.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d'),
-    probe('yahoo_chart_q2', 'https://query2.finance.yahoo.com/v8/finance/chart/AAPL?range=5d&interval=1d'),
-    probe('yahoo_fc', 'https://fc.yahoo.com/'),
-    probe('yahoo_quote', 'https://query1.finance.yahoo.com/v7/finance/quote?symbols=AAPL'),
-    probe('stooq_com', 'https://stooq.com/q/d/l/?s=aapl.us&i=d'),
-    probe('stooq_pl', 'https://stooq.pl/q/d/l/?s=aapl.us&i=d'),
+    probe('fmp', 'https://financialmodelingprep.com/stable/quote?symbol=AAPL'),
+    probe('twelvedata', 'https://api.twelvedata.com/quote?symbol=AAPL'),
+    probe('finnhub', 'https://finnhub.io/api/v1/quote?symbol=AAPL'),
   ]);
   res.status(200).json({
     probes: out,
+    priceCache: priceCacheStatus(),
     config: {
       FMP_API_KEY: hasFmp(),
       TWELVEDATA_API_KEY: hasTd(),

@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import SearchBox from '../components/SearchBox.jsx';
-import { POPULAR_MANAGERS } from '../data/popular.js';
+import GuruBrowser from '../components/GuruBrowser.jsx';
 import { useFavorites } from '../hooks/useFavorites.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import CoverageLine from '../components/CoverageLine.jsx';
@@ -703,15 +703,9 @@ export default function Home() {
       )}
 
       <div className="section-title">{t('search.popular')}</div>
-      <div className="chip-grid">
-        {/* the registry, closed funds last and labelled — never dropped */}
-        {[...POPULAR_MANAGERS.filter((m) => !m.activeTo), ...POPULAR_MANAGERS.filter((m) => m.activeTo)].map((m) => (
-          <Link key={m.cik} to={managerPath(m.cik)} className={`chip${m.activeTo ? ' muted' : ''}`} onMouseEnter={() => prefetch(m.cik)}>
-            {m.name}
-            {m.activeTo && <> {t('guru.closed')}</>}
-          </Link>
-        ))}
-      </div>
+      {/* the registry by category: the first 24 chips, closed funds behind a
+          switch, the rest on /gurus */}
+      <GuruBrowser limit={24} onPrefetch={prefetch} />
 
       <InsiderSignals teaser={teaser.data} />
       <GuruConviction mostHeld={consensus.data?.mostHeld} />

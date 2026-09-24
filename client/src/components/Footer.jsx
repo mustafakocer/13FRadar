@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import Logo from './Logo.jsx';
+import { LEGAL } from '../content/registry.js';
+import { CONTACT_EMAIL } from '../content/legal.js';
 
 const EXPLORE = [
   ['/gurus', 'nav.gurus'],
@@ -56,6 +58,10 @@ export default function Footer() {
           <Link to="/pricing">{t('nav.pricing')}</Link>
           <Link to="/report">{t('nav.report')}</Link>
           <Link to="/compare">{t('nav.compare')}</Link>
+          {LEGAL.map((l) => (
+            <Link key={l.id} to={l.paths[lang]} data-legal-link={l.id}>{l.title[lang]}</Link>
+          ))}
+          <a href={`mailto:${CONTACT_EMAIL}`}>{t('footer.contact')}</a>
         </div>
       </nav>
       <div className="footer-brand">

@@ -6,7 +6,7 @@
   "outputDirectory": "client/dist",
   "functions": {
     "api/ssr.js": { "includeFiles": "client/dist/**", "maxDuration": 30 },
-    "api/index.js": { "includeFiles": "{api/_data/reports/**,reports/**,api/_assets/**}", "maxDuration": 30 }
+    "api/index.js": { "includeFiles": "{api/_data/reports/**,api/_data/prices/**,reports/**,api/_assets/**}", "maxDuration": 30 }
   },
   "redirects": [
     {

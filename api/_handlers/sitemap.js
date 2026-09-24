@@ -4,7 +4,7 @@ import { siteUrl } from '../_lib/site.js';
 import { historyTable } from '../_lib/history.js';
 import { guruStockTable } from '../_lib/guruStocks.js';
 import { reportIndex } from './report.js';
-import { GUIDES, COMPARES } from '../../client/src/content/registry.js';
+import { GUIDES, COMPARES, LEGAL } from '../../client/src/content/registry.js';
 
 // Sitemap index + per-entity sitemaps + robots.txt.
 //   /sitemap.xml            → index (type=index)
@@ -121,7 +121,7 @@ export function entriesFor(type, ctx = context()) {
   if (type === 'guides') {
     const consensus = load('../../client/public/consensus.json');
     const lastmod = day(consensus?.updatedAt) || latestFiled;
-    return [...GUIDES, ...COMPARES].map((g) => ({ path: g.paths.en, paths: g.paths, lastmod: g.updatedAt || lastmod, changefreq: 'monthly', priority: '0.6' }));
+    return [...GUIDES, ...COMPARES, ...LEGAL].map((g) => ({ path: g.paths.en, paths: g.paths, lastmod: g.updatedAt || lastmod, changefreq: 'monthly', priority: g.id === 'privacy' || g.id === 'terms' ? '0.3' : '0.6' }));
   }
   if (type === 'insider') {
     const teaser = load('../../client/public/insiders-teaser.json');

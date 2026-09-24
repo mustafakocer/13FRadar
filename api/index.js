@@ -19,6 +19,7 @@ import managerStats from './_handlers/manager-stats.js';
 import diag from './_handlers/diag.js';
 import stripeWebhook from './_handlers/stripe-webhook.js';
 import checkout from './_handlers/checkout.js';
+import plans from './_handlers/plans.js';
 import portal from './_handlers/portal.js';
 import insiderFeed from './_handlers/insider-feed.js';
 import geo from './_handlers/geo.js';
@@ -38,6 +39,7 @@ const ROUTES = {
   diag: [diag],
   'stripe-webhook': [stripeWebhook],
   checkout: [checkout],
+  plans: [plans],
   'insider-feed': [insiderFeed],
   portal: [portal],
   geo: [geo],

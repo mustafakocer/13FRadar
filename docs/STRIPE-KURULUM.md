@@ -12,8 +12,15 @@ Tek bir ürün ("Fundocap Pro") altında dört **recurring** fiyat oluştur:
 | Pro Yıllık | $199 | yearly | `STRIPE_PRICE_YEARLY` |
 | Pro Aylık (TR) | $10 | monthly | `STRIPE_PRICE_MONTHLY_TR` |
 | Pro Yıllık (TR) | $100 | yearly | `STRIPE_PRICE_YEARLY_TR` |
+| Pro Aylık (TR, ₺) | ₺ — aşağıdaki formül | monthly | `STRIPE_PRICE_MONTHLY_TRY` |
+| Pro Yıllık (TR, ₺) | ₺ — aşağıdaki formül | yearly | `STRIPE_PRICE_YEARLY_TRY` |
 
-Her fiyatın `price_…` kimliğini kopyala. TR fiyatını hangi ziyaretçinin göreceğine sunucu, Vercel'in IP ülke başlığına bakarak karar verir; istemciden değiştirilemez.
+Her fiyatın `price_…` kimliğini kopyala. Hangi fiyatın gösterileceğine ve tahsil edileceğine sunucu tek yerde karar verir (`api/_lib/plans.js`, Vercel'in IP ülke başlığı); istemciden değiştirilemez ve sayfadaki tutar ile Checkout'taki tutar aynıdır. Türkiye'den gelen ziyaretçi:
+
+- `STRIPE_PRICE_*_TRY` ikisi de tanımlıysa fiyat **₺** olarak gösterilir ve tahsil edilir (tutarlar Stripe'tan okunur, 6 saat cache).
+- Tanımlı değilse `_TR` USD fiyatı gösterilir, yanında günlük kurla "≈ ₺X" ve "tahsilat USD" notu (kur: frankfurter.app → open.er-api.com, 24 saat cache).
+
+₺ fiyatı belirlemek için: `GET /api/plans` (TR IP'den ya da `x-vercel-ip-country: TR` başlığıyla) `suggestedTry` alanını verir = USD × kur × 1,03 (kur payı), yukarı …49/…99'a yuvarlanmış. Stripe'ta bu tutarlarla TRY fiyatları aç, kimlikleri env'e gir, redeploy.
 
 ## 2. Webhook (Developers → Webhooks → Add endpoint)
 
@@ -64,12 +71,14 @@ sonuna kadar Pro'dur; Stripe iptal edince `customer.subscription.updated`
 | `STRIPE_PRICE_YEARLY` | `price_…` |
 | `STRIPE_PRICE_MONTHLY_TR` | `price_…` |
 | `STRIPE_PRICE_YEARLY_TR` | `price_…` |
+| `STRIPE_PRICE_MONTHLY_TRY` | `price_…` (₺; isteğe bağlı, varsa TR'de ₺ gösterilir) |
+| `STRIPE_PRICE_YEARLY_TRY` | `price_…` (₺) |
 | `SUPABASE_URL` | Supabase → Settings → API → Project URL (sunucu: plan kontrolü `is_pro()`) |
 | `SUPABASE_ANON_KEY` | Supabase → Settings → API → anon public (sunucu) |
 | `VITE_SUPABASE_URL` | aynı Project URL — istemci paketine build'de gömülür |
 | `VITE_SUPABASE_ANON_KEY` | aynı anon key — istemci paketine build'de gömülür |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API → service_role (webhook'un plan yazabilmesi için) |
-| `SITE_URL` | isteğe bağlı, ör. `https://fundocap.com` (ödeme sonrası dönüş adresi) |
+| `SITE_URL` | isteğe bağlı, ör. `https://www.fundocap.co` (ödeme sonrası dönüş adresi: `/checkout/success`, `/checkout/cancel`) |
 
 Gizli anahtarları yalnızca Vercel'e gir; sohbete veya repoya yapıştırma. Değişkenleri kaydettikten sonra **Redeploy** yap. Kodda gömülü URL/anon key yoktur: dört Supabase değişkeni eksikse production build `scripts/check-env.mjs`'te durur; preview'da auth kapalı, Pro kilitli çalışır.
 

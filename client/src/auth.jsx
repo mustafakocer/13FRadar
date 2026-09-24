@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { getSupabase, supabaseConfigured } from './lib/supabase.js';
 import { setAuthToken } from './lib/api.js';
-import { mergeFavorites } from './hooks/useFavorites.js';
+import { mergeFavorites, addFavorite } from './hooks/useFavorites.js';
+import { consumePendingFavorite } from './lib/pendingFavorite.js';
+import { authReturnUrl } from './lib/authRedirect.js';
 
 const AuthCtx = createContext(null);
 
@@ -56,6 +58,9 @@ export function AuthProvider({ children }) {
     } catch {
       /* sync is optional */
     }
+    // the fund starred before signing in lands on the list now
+    const pending = consumePendingFavorite();
+    if (pending) addFavorite({ cik: pending.cik, name: pending.name });
   }, []);
 
   useEffect(() => {
@@ -76,11 +81,28 @@ export function AuthProvider({ children }) {
   // every auth action loads the SDK first (no-op once cached)
   const withSb = (fn) => async (...args) => fn(await getSupabase(), ...args);
 
+  // Every round trip that leaves the site (email link, OAuth) comes back to
+  // /account with the page that asked in ?next= (lib/authRedirect.js).
   const signInEmail = useCallback(
-    withSb((supabase, email) =>
+    withSb((supabase, email, next = null) =>
       supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin + '/account' },
+        options: { emailRedirectTo: authReturnUrl(window.location.origin, next) },
+      })
+    ),
+    []
+  );
+
+  // Google through Supabase (Authentication → Providers → Google). The
+  // browser leaves for Google and comes back to the redirect URL, which
+  // must be on the project's allow-list. Supabase links a Google identity
+  // whose (verified) address matches an existing email account to that
+  // account rather than creating a second user.
+  const signInGoogle = useCallback(
+    withSb((supabase, next = null) =>
+      supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: authReturnUrl(window.location.origin, next), queryParams: { prompt: 'select_account' } },
       })
     ),
     []
@@ -92,11 +114,11 @@ export function AuthProvider({ children }) {
   );
 
   const signUpPassword = useCallback(
-    withSb((supabase, email, password) =>
+    withSb((supabase, email, password, next = null) =>
       supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: window.location.origin + '/account' },
+        options: { emailRedirectTo: authReturnUrl(window.location.origin, next) },
       })
     ),
     []
@@ -139,6 +161,7 @@ export function AuthProvider({ children }) {
     isPro: plan === 'pro',
     loading,
     signInEmail,
+    signInGoogle,
     signInPassword,
     signUpPassword,
     resetPassword,

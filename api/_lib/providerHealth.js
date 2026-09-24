@@ -27,7 +27,6 @@ export const CONSERVE_AT = 0.9;
 
 // { limit, per: 'day' | 'minute' }; null = no known cap
 export const QUOTAS = {
-  fmp: { limit: 250, per: 'day' },
   twelvedata: { limit: 800, per: 'day' },
   finnhub: { limit: 60, per: 'minute' },
 };

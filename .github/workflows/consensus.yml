@@ -113,18 +113,16 @@ jobs:
       # Ten years of daily closes per symbol into api/_data/prices/ — what
       # the backtest, the price chart and the return columns read before any
       # live provider. Yahoo's chart answers from a runner (not from Vercel)
-      # and fills most of it in one night; TwelveData and FMP fill the rest
-      # within their free quotas. The log opens with the plan and how many
+      # and fills most of it in one night; TwelveData fills the rest within
+      # its free quota (FMP is out: 402 on its historical endpoint). The log opens with the plan and how many
       # nights a full fill takes. Best-effort: a provider outage leaves
       # yesterday's files in place.
       - name: Build the price cache (api/_data/prices)
         run: node scripts/build-prices.mjs
         env:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           PRICES_TD_BUDGET: '400'
-          PRICES_FMP_BUDGET: '60'
       # A dry run first: what the walk will fetch, how much of it the cache
       # already holds, and the minutes it should take — in the log before
       # the first request, so a two-hour run is never a surprise again.

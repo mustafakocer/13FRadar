@@ -49,8 +49,8 @@ const CHECKS = [
   { file: 'client/public/stocks.json', label: 'stock directory', maxWrittenDays: 7 },
   { file: 'api/_data/slugs.json', label: 'filer slugs', maxWrittenDays: 7 },
   // No timestamp to check: the price enrichment is optional and empties itself
-  // silently when FMP_API_KEY is unset, which blanks every price, market-cap
-  // and volume column on the site.
+  // silently when the chart source is blocked, which blanks every price,
+  // market-cap and volume column on the site.
   { file: 'api/_data/ticker-meta.json', label: 'ticker price meta', nonEmpty: true },
 ];
 

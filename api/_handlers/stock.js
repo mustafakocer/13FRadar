@@ -1,6 +1,6 @@
 import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { readFixture } from '../_lib/fixtures.js';
-import { hasFmp, hasTd, hasFinnhub, fmpStock, tdStock, finnhubStock } from '../_lib/providers.js';
+import { hasTd, hasFinnhub, tdStock, finnhubStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
 import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
@@ -23,9 +23,10 @@ import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedH
 // they cost budget and never a price. The nightly builds still read Yahoo's
 // chart endpoint from GitHub runners, where it answers.
 //
-//   FMP         quote + profile + TTM ratios (the complete board; 250/day free)
 //   TwelveData  quote (800/day free)
 //   Finnhub     quote (60/min free, no daily cap)
+// FMP is out: its free plan spent its 250 calls a day on the first visitors
+// and answered 402 on everything but the quote.
 //
 // Quotas are tracked per instance (providerHealth.js): a provider that
 // answered 429 today is exhausted until UTC midnight, and one that is near
@@ -41,7 +42,6 @@ const SNAPSHOT_BUDGET_MS = Math.max(500, Number(process.env.STOCK_SNAPSHOT_MS) |
 // The providers, most complete answer first. Each is a thunk so a test can
 // hand in its own list; `needs` says which key must be present.
 const PROVIDERS = [
-  { name: 'fmp', needs: hasFmp, run: (t) => fmpStock(t) },
   { name: 'twelvedata', needs: hasTd, run: (t) => tdStock(t) },
   { name: 'finnhub', needs: hasFinnhub, run: (t) => finnhubStock(t) },
 ];

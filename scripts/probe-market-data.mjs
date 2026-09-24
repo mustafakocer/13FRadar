@@ -12,7 +12,7 @@
 //   · EDGAR — submissions (SIC fields), XBRL frames (shares outstanding),
 //     company_tickers, full-text search: what the nightly builds read.
 //   · OpenFIGI — CINS vs CUSIP mapping, the ingest path of the security master.
-//   · Price chain — FMP, TwelveData, Finnhub, each through the same function
+//   · Price chain — TwelveData, Finnhub, each through the same function
 //     the live /api/stock handler calls, then the handler's own race, then
 //     the daily-close chain behind /api/chart and /api/returns.
 //     Yahoo and Stooq are not probed: they are out of the live chain for good
@@ -25,7 +25,7 @@
 // run red on its own.
 import fs from 'node:fs';
 import axios from 'axios';
-import { hasFmp, hasTd, hasFinnhub, fmpStock, tdStock, finnhubStock, dailyCloses } from '../api/_lib/providers.js';
+import { hasTd, hasFinnhub, tdStock, finnhubStock, dailyCloses } from '../api/_lib/providers.js';
 import { raceProviders } from '../api/_handlers/stock.js';
 import { classify, snapshot } from '../api/_lib/providerHealth.js';
 import { openfigiLookup } from '../api/_lib/figi.js';
@@ -124,7 +124,6 @@ for (const idType of ['ID_CUSIP', 'ID_CINS']) {
 // ------------------------------------------------------------ price chain
 section('Price chain: each keyed provider, the same call the live /api/stock makes');
 const PROVIDERS = [
-  { name: 'fmp', env: 'FMP_API_KEY', has: hasFmp, run: fmpStock },
   { name: 'twelvedata', env: 'TWELVEDATA_API_KEY', has: hasTd, run: tdStock },
   { name: 'finnhub', env: 'FINNHUB_API_KEY', has: hasFinnhub, run: finnhubStock },
 ];

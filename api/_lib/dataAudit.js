@@ -216,9 +216,11 @@ export const DATASETS = [
   {
     key: 'slugs',
     path: 'api/_data/slugs.json',
-    require: ['bySlug', 'byCik'],
-    metrics: (d) => ({ bySlug: size(d.bySlug), byCik: size(d.byCik) }),
-    floors: { bySlug: 3000, byCik: 3000 },
+    require: ['bySlug', 'byCik', 'aliases'],
+    // aliases: the redirects for renamed funds; build-slugs.mjs refuses to
+    // write fewer than before, the floor catches a table built without them
+    metrics: (d) => ({ bySlug: size(d.bySlug), byCik: size(d.byCik), aliases: size(d.aliases) }),
+    floors: { bySlug: 3000, byCik: 3000, aliases: 100 },
   },
   // The feed is a rolling window over filings as they land, and 13F filings
   // bunch around the 45-day deadline: 81 rows in the week after one, close to

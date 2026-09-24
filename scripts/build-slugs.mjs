@@ -104,6 +104,27 @@ for (const m of GURUS) {
   for (const v of variants(m.name)) alias(v, stored.slug);
 }
 
+// The guard. A redirect that is published is a URL someone holds; the
+// table may gain aliases, never lose one. Fewer than the committed file
+// carries, or any alias it carries missing from the new table, means this
+// run would kill URLs — the nightly of 2026-09-23 did exactly that, 34 of
+// them — so nothing is written and the process fails,
+// which fails the workflow before its commit step. Set
+// SLUGS_ALLOW_FEWER_ALIASES=1 to override after checking the list, when
+// an alias has legitimately become a live filer's slug.
+const before = Object.keys(prev.aliases || {});
+const after = Object.keys(aliases);
+const dropped = before.filter((k) => !aliases[k]);
+// the count may not fall, and no individual alias may vanish either — a
+// build that adds ninety derived variants while losing two published ones
+// still kills two URLs
+if ((after.length < before.length || dropped.length) && process.env.SLUGS_ALLOW_FEWER_ALIASES !== '1') {
+  console.error(`::error::slugs.json: ${after.length} aliases would replace ${before.length} — ${dropped.length} redirect(s) would die: ${dropped.join(', ')}`);
+  console.error('Nothing written. Fix the derivation or, if every dropped alias is now a live slug, re-run with SLUGS_ALLOW_FEWER_ALIASES=1.');
+  process.exit(1);
+}
+if (dropped.length) console.log(`::warning::slugs.json: ${dropped.length} alias(es) dropped (allowed): ${dropped.join(', ')}`);
+
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), bySlug, byCik, aliases }));
 
@@ -125,5 +146,5 @@ fs.writeFileSync(
 );
 
 const gurus = Object.keys(guruMap).length;
-console.log(`slugs.json: ${Object.keys(bySlug).length} slugs (${gurus} gurus), ${Object.keys(byCik).length} CIKs, ${Object.keys(aliases).length} aliases`);
+console.log(`slugs.json: ${Object.keys(bySlug).length} slugs (${gurus} gurus), ${Object.keys(byCik).length} CIKs, ${Object.keys(aliases).length} aliases (${before.length} before, +${after.length - before.length})`);
 console.log(`guru-slugs.js: ${gurus} curated slugs for the client`);

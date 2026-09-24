@@ -7,6 +7,10 @@ on:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
         default: false
+      allow_fewer_aliases:
+        description: 'Let slugs.json lose aliases (only after checking the dropped list: each must now be a live slug)'
+        type: boolean
+        default: false
   schedule:
     # Daily at 01:23 UTC (04:23 Istanbul), first in the nightly chain: the
     # consensus build runs when this finishes (workflow_run), the insider
@@ -34,6 +38,15 @@ jobs:
         env:
           SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      # The slug table, before the audit so the audit sees it. Its own guard:
+      # fewer aliases than the committed file carries means published URLs
+      # would die — the script writes nothing and fails the run here, with
+      # the previous table still live (SLUGS_ALLOW_FEWER_ALIASES=1 overrides
+      # after the dropped list has been checked).
+      - name: Build slugs.json
+        run: node scripts/build-slugs.mjs
+        env:
+          SLUGS_ALLOW_FEWER_ALIASES: ${{ inputs.allow_fewer_aliases == true && '1' || '0' }}
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
@@ -46,7 +59,6 @@ jobs:
         run: |
           git config user.name 'universe-bot'
           git config user.email 'actions@github.com'
-          node scripts/build-slugs.mjs
           # Stage only what this run actually produced. `git add` fails on a
           # pathspec that matches nothing, and some outputs are optional —
           # sector-map.json is written only when the sector lookup found

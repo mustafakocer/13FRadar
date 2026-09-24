@@ -6,11 +6,11 @@
 //
 //   node scripts/build-prices.mjs
 //   PRICES_DRY=1 node scripts/build-prices.mjs        plan only, nothing fetched
-//   PRICES_YAHOO=0 PRICES_TD_BUDGET=750 …             keyed providers only
+//   PRICES_YAHOO=0 PRICES_TD_BUDGET=750 …             TwelveData only
 //
-// Env: TWELVEDATA_API_KEY, FMP_API_KEY, FINNHUB_API_KEY (any subset);
+// Env: TWELVEDATA_API_KEY, FINNHUB_API_KEY (any subset);
 // PRICES_YAHOO (default 1: Yahoo chart from the runner), PRICES_TD_BUDGET
-// (400), PRICES_FMP_BUDGET (60), PRICES_FINNHUB_BUDGET (300),
+// (400), PRICES_FINNHUB_BUDGET (300),
 // PRICES_MAX_AGE_DAYS (1). The log opens with the plan: how many symbols
 // are missing or stale, what tonight covers, and how many nights a full
 // fill takes at this budget.

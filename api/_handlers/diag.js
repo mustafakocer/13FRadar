@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { snapshot } from '../_lib/providerHealth.js';
-import { hasFmp, hasTd, hasFinnhub } from '../_lib/providers.js';
+import { hasTd, hasFinnhub } from '../_lib/providers.js';
 import { priceCacheStatus } from '../_lib/priceStore.js';
 
 // Diagnostics: which keys the instance has, the quote chain's health and
@@ -30,7 +30,6 @@ export default async function handler(req, res) {
   };
   // reachability only — no key is sent, so a 401/403 here is "reachable"
   await Promise.all([
-    probe('fmp', 'https://financialmodelingprep.com/stable/quote?symbol=AAPL'),
     probe('twelvedata', 'https://api.twelvedata.com/quote?symbol=AAPL'),
     probe('finnhub', 'https://finnhub.io/api/v1/quote?symbol=AAPL'),
   ]);
@@ -38,10 +37,9 @@ export default async function handler(req, res) {
     probes: out,
     priceCache: priceCacheStatus(),
     config: {
-      FMP_API_KEY: hasFmp(),
       TWELVEDATA_API_KEY: hasTd(),
       FINNHUB_API_KEY: hasFinnhub(),
-      chain: ['fmp', 'twelvedata', 'finnhub'],
+      chain: ['twelvedata', 'finnhub'],
       OPENFIGI_API_KEY: Boolean(process.env.OPENFIGI_API_KEY),
       STOCK_UPSTREAM_MS: Number(process.env.STOCK_UPSTREAM_MS) || 3000,
       STOCK_SNAPSHOT_MS: Number(process.env.STOCK_SNAPSHOT_MS) || null,

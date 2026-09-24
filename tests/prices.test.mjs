@@ -113,22 +113,22 @@ test('buildPrices runs the plan through the providers in order, drops a provider
   fs.writeFileSync(path.join(root, 'api/_data/guru-stocks.json'), JSON.stringify({ stocks, exited: [] }));
   fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ updatedAt: '2026-09-01T00:00:00Z', returns: { AAPL: { ret1y: 1, retYtd: 1, ret1d: 1, asOf: '2026-09-01' } } }));
   const now = Date.parse('2026-09-22T22:00:00Z');
-  const calls = { yahoo: [], twelvedata: [], fmp: [] };
+  const calls = { yahoo: [], twelvedata: [], finnhub: [] };
   const full = (sym) => series('2016-09-22', '2026-09-22', { start: 50 + sym.length, seed: sym.length });
   const providers = [
     // Yahoo knows everything but the benchmarks' cousin QQQ, and 429s after three calls
     { name: 'yahoo', budget: Infinity, pauseMs: 0, concurrency: 2, fetch: async (sym) => { calls.yahoo.push(sym); if (calls.yahoo.length > 3) throw Object.assign(new Error('Yahoo HTTP 429'), { quota: true }); return sym === 'QQQ' ? null : full(sym); } },
     { name: 'twelvedata', budget: 3, pauseMs: 0, concurrency: 1, fetch: async (sym) => { calls.twelvedata.push(sym); return full(sym); } },
-    { name: 'fmp', budget: 1, pauseMs: 0, concurrency: 1, fetch: async (sym) => { calls.fmp.push(sym); return full(sym); } },
+    { name: 'finnhub', budget: 1, pauseMs: 0, concurrency: 1, fetch: async (sym) => { calls.finnhub.push(sym); return full(sym); } },
   ];
   const log = [];
   const r = await buildPrices({ root, now, providers, log: (m) => log.push(m) });
   assert.match(log[0], /8 symbols in the universe, 1 on file — 8 missing/, 'BRK-B from the earlier test is on file but not in this universe');
-  assert.match(log[0], /yahoo → twelvedata \(3\) → fmp \(1\)/);
+  assert.match(log[0], /yahoo → twelvedata \(3\) → finnhub \(1\)/);
   assert.ok(calls.yahoo.length <= 5 && calls.yahoo.length >= 3, `yahoo stopped at the 429 (${calls.yahoo.length} calls)`);
   assert.equal(calls.twelvedata.length, 3, 'twelvedata spent its budget on what yahoo left');
-  assert.equal(calls.fmp.length, 1);
-  assert.equal(r.written, 6, `2 yahoo + 3 twelvedata + 1 fmp (${JSON.stringify(r.bySource)})`);
+  assert.equal(calls.finnhub.length, 1);
+  assert.equal(r.written, 6, `2 yahoo + 3 twelvedata + 1 finnhub (${JSON.stringify(r.bySource)})`);
   assert.equal(r.unknown, 2, 'two symbols left for another night');
   assert.ok(log.some((m) => /yahoo: Yahoo HTTP 429 — done for tonight/.test(m)));
   const idx = JSON.parse(fs.readFileSync(path.join(dir, '_index.json'), 'utf8'));

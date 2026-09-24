@@ -77,6 +77,10 @@ export default function Manager({ segment = 'portfolio' }) {
   const tab = TABS.includes(segment) ? segment : 'portfolio';
   const [selAcc, setSelAcc] = useState(null);
   const [btOn, setBtOn] = useState(false);
+  // the backtest button is inert in the server HTML: a click before hydration
+  // went nowhere, so it stays disabled until the effect runs on the client
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
 
   const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik), enabled: !!cik });
 
@@ -552,13 +556,18 @@ export default function Manager({ segment = 'portfolio' }) {
             <div className="card no-print">
               <h3><Ico icon={FlaskConical} /> {t('manager.backtest')}</h3>
               {!isPro && <Paywall compact />}
-              {isPro && !btOn && (
+              {isPro && !backtest.data && (
                 <>
                   <p className="muted small" style={{ marginBottom: 12 }}>{t('manager.backtestNote')}</p>
-                  <button className="btn" onClick={() => setBtOn(true)}>{t('manager.backtestRun')}</button>
+                  <button className="btn" onClick={() => setBtOn(true)} disabled={!hydrated || (btOn && backtest.isFetching)} data-backtest-run>
+                    {btOn && backtest.isFetching ? (
+                      <><span className="spinner inline" aria-hidden="true" /> {t('common.loading')}</>
+                    ) : (
+                      t('manager.backtestRun')
+                    )}
+                  </button>
                 </>
               )}
-              {btOn && backtest.isLoading && <Loading t={t} />}
               {btOn && backtest.error && (
                 <div className="muted small">{t('common.error')}: {String(backtest.error.message)}</div>
               )}

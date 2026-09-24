@@ -13,14 +13,12 @@
 //               minute on the free plan (a batch call is one credit per
 //               symbol, so batching buys nothing): the build paces at the
 //               minute limit and spends PRICES_TD_BUDGET a night.
-//   fmp         /historical-price-eod/light, 250 a day shared with the live
-//               quote board: a small slice.
 //   finnhub     /stock/candle — off the free plan since 2024 (403); asked
 //               once a run and dropped for the night on a 403.
 import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fmpGet, tdGet, hasFmp, hasTd, hasFinnhub } from './providers.js';
+import { tdGet, hasTd, hasFinnhub } from './providers.js';
 import { readSeries, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir } from './priceStore.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -113,21 +111,6 @@ export async function twelveDataSeries(symbol, from, { now = Date.now() } = {}) 
   return out.length ? out : null;
 }
 
-export async function fmpSeries(symbol, from, { now = Date.now() } = {}) {
-  let d;
-  try {
-    d = await fmpGet('/historical-price-eod/light', symbol, '/historical-price-full', { from: from || tenYearsAgo(now), to: isoDay(now), serietype: 'line' });
-  } catch (e) {
-    const msg = String(e.message || e);
-    if (/429|limit/i.test(msg)) throw quotaError(msg);
-    if (/empty|not found/i.test(msg)) return null;
-    throw e;
-  }
-  const hist = Array.isArray(d) ? d : d?.historical || [];
-  const out = hist.map((h) => ({ date: h.date, close: Number(h.close ?? h.price) })).filter((h) => Number.isFinite(h.close));
-  return out.length ? out : null;
-}
-
 export async function finnhubSeries(symbol, from, { now = Date.now() } = {}) {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new Error('FINNHUB_API_KEY not set');
@@ -150,7 +133,6 @@ export function providerPlan(env = process.env) {
   return [
     { name: 'yahoo', enabled: env.PRICES_YAHOO !== '0', budget: n('PRICES_YAHOO_BUDGET', Infinity), pauseMs: 250, concurrency: 4, fetch: yahooSeries },
     { name: 'twelvedata', enabled: hasTd(), budget: n('PRICES_TD_BUDGET', 400), pauseMs: 7600, concurrency: 1, fetch: twelveDataSeries },
-    { name: 'fmp', enabled: hasFmp(), budget: n('PRICES_FMP_BUDGET', 60), pauseMs: 300, concurrency: 1, fetch: fmpSeries },
     { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 300), pauseMs: 1100, concurrency: 1, fetch: finnhubSeries },
   ].filter((p) => p.enabled && p.budget > 0);
 }
@@ -187,7 +169,7 @@ export async function buildPrices({
       `tonight: ${plan.jobs.length} of ${plan.total} jobs through ${providers.map((p) => `${p.name}${Number.isFinite(p.budget) ? ` (${p.budget})` : ''}`).join(' → ') || 'no provider'}; ` +
       `full fill at this rate: ${plan.nights} night${plan.nights === 1 ? '' : 's'}`
   );
-  if (!providers.length) log('  no price provider is enabled (Yahoo off, no TWELVEDATA/FMP/FINNHUB key) — nothing fetched');
+  if (!providers.length) log('  no price provider is enabled (Yahoo off, no TWELVEDATA/FINNHUB key) — nothing fetched');
   if (dryRun) return { plan, written: 0, unknown: 0, failed: 0, bySource: {}, dryRun: true };
 
   const tally = { written: 0, unknown: 0, failed: 0, bySource: {} };

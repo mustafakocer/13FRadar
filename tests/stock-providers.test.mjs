@@ -49,7 +49,7 @@ test('failures are classified, a missing key is never called, and a provider tha
   resetProviderHealth();
   assert.equal(classify(http(429)), 'throttle');
   assert.equal(classify(http(403)), 'forbidden');
-  assert.equal(classify(new Error('FMP_API_KEY not set')), 'key');
+  assert.equal(classify(new Error('TWELVEDATA_API_KEY not set')), 'key');
   assert.equal(classify(new Error('timeout of 4000ms exceeded')), 'timeout');
   assert.equal(classify(new Error('No data')), 'parse');
   assert.equal(classify(http(503)), 'upstream');
@@ -84,7 +84,7 @@ test('stockPayload serves live with the provider named, and the handler exposes 
   const res = await invoke(handler, { ticker: 'TSM' });
   assert.equal(res.status, 200);
   assert.ok(['snapshot', 'stale', 'none'].includes(res.headers['x-stock-source']));
-  assert.match(res.headers['x-stock-chain'], /^fmp=[a-z]+:\d+;twelvedata=[a-z]+:\d+;finnhub=[a-z]+:\d+$/, 'keyed providers only: no Yahoo, no Stooq');
+  assert.match(res.headers['x-stock-chain'], /^twelvedata=[a-z]+:\d+;finnhub=[a-z]+:\d+$/, 'keyed providers only: no Yahoo, no Stooq, no FMP');
   assert.match(res.headers['x-stock-served'], /live=\d+,stale=\d+,snapshot=\d+,none=\d+/);
   assert.ok(Number(res.headers['x-stock-ms']) >= 0);
 });
@@ -92,15 +92,15 @@ test('stockPayload serves live with the provider named, and the handler exposes 
 test('quota: a 429 from a daily-capped provider exhausts it until UTC midnight, a per-minute one for a minute', () => {
   resetProviderHealth();
   const now = Date.parse('2026-09-22T15:00:00Z');
-  noteCall('fmp', now);
-  noteFail('fmp', http(429), 22, { now });
-  const q = quotaState('fmp', now);
+  noteCall('twelvedata', now);
+  noteFail('twelvedata', http(429), 22, { now });
+  const q = quotaState('twelvedata', now);
   assert.equal(q.exhausted, true);
   assert.equal(q.throttledToday, 1);
   assert.equal(q.exhaustedUntil, '2026-09-23T00:00:00.000Z');
-  assert.equal(shouldSkip('fmp', now), false, 'a quota answer does not open the breaker');
-  assert.equal(quotaState('fmp', now + 10 * 3600 * 1000).exhausted, false, 'clear the next UTC day');
-  assert.equal(quotaState('fmp', now + 10 * 3600 * 1000).usedToday, 0, 'daily counters roll');
+  assert.equal(shouldSkip('twelvedata', now), false, 'a quota answer does not open the breaker');
+  assert.equal(quotaState('twelvedata', now + 10 * 3600 * 1000).exhausted, false, 'clear the next UTC day');
+  assert.equal(quotaState('twelvedata', now + 10 * 3600 * 1000).usedToday, 0, 'daily counters roll');
   noteFail('finnhub', http(429), 10, { now });
   assert.equal(quotaState('finnhub', now + 30_000).exhausted, true);
   assert.equal(quotaState('finnhub', now + 61_000).exhausted, false);
@@ -113,23 +113,22 @@ test('quota: a 429 from a daily-capped provider exhausts it until UTC midnight, 
   assert.equal(t.remaining, QUOTAS.twelvedata.limit - 720);
 });
 
-test('eligibility: near its daily limit TwelveData steps aside for FMP/Finnhub, and is still asked when it is the only one left', () => {
+test('eligibility: near its daily limit TwelveData steps aside for Finnhub, and is still asked when it is the only one left', () => {
   resetProviderHealth();
   const now = Date.parse('2026-09-22T15:00:00Z');
-  const providers = [P('fmp', 10, payload('fmp'), { needs: () => true }), P('twelvedata', 10, payload('td'), { needs: () => true }), P('finnhub', 10, payload('fh'), { needs: () => true })];
+  const providers = [P('twelvedata', 10, payload('td'), { needs: () => true }), P('finnhub', 10, payload('fh'), { needs: () => true })];
   const why = (list) => list.map((x) => `${x.p.name}:${x.why || 'run'}`).join(' ');
-  assert.equal(why(eligibleProviders(providers, { now })), 'fmp:run twelvedata:run finnhub:run');
+  assert.equal(why(eligibleProviders(providers, { now })), 'twelvedata:run finnhub:run');
   for (let i = 0; i < 720; i++) noteCall('twelvedata', now);
-  assert.equal(why(eligibleProviders(providers, { now })), 'fmp:run twelvedata:conserve finnhub:run', 'weight shifts to the peers with room');
-  // FMP exhausted for the day, Finnhub breaker open: TwelveData is asked after all
-  noteFail('fmp', http(429), 22, { now });
+  assert.equal(why(eligibleProviders(providers, { now })), 'twelvedata:conserve finnhub:run', 'weight shifts to the peer with room');
+  // Finnhub breaker open: TwelveData is asked after all, conserve or not
   for (let i = 0; i < FAILS_TO_OPEN; i++) noteFail('finnhub', http(500), 10, { now });
-  assert.equal(why(eligibleProviders(providers, { now })), 'fmp:quota twelvedata:run finnhub:open', 'better a metered call than the nightly file');
-  // everything exhausted: still ask rather than serve a day-old close
+  assert.equal(why(eligibleProviders(providers, { now })), 'twelvedata:run finnhub:open', 'better a metered call than the nightly file');
+  // TwelveData spent for the day too: still asked rather than serving a day-old close
   for (let i = 0; i < 80; i++) noteCall('twelvedata', now);
   noteFail('twelvedata', http(429), 5, { now });
   const all = eligibleProviders(providers, { now });
-  assert.deepEqual(all.filter((x) => !x.why).map((x) => x.p.name), ['fmp', 'twelvedata'], 'both spent providers are still asked; only the broken one is not');
+  assert.deepEqual(all.filter((x) => !x.why).map((x) => x.p.name), ['twelvedata'], 'the spent provider is still asked; only the broken one is not');
   // a missing key is never called
   const keyless = [P('finnhub', 10, payload('fh'), { needs: () => false })];
   assert.equal(why(eligibleProviders(keyless, { now })), 'finnhub:key');

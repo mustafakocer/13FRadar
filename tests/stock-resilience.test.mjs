@@ -5,7 +5,7 @@ import { invoke } from '../api/_lib/ssr/invoke.js';
 
 // The quote endpoint and the stock page when every price provider is down.
 //
-// This sandbox has no route to Yahoo, FMP, TwelveData or Stooq, which is the
+// This sandbox has no route to Yahoo, TwelveData, Finnhub or Stooq, which is the
 // production failure mode being tested: the chain must not be allowed to run
 // for a minute, the answer must be 200, and the page must render with the
 // price block saying the quote is unavailable rather than crashing on it.

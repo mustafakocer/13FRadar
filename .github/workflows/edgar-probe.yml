@@ -2,7 +2,7 @@ name: Probe market data sources
 
 # Reachability and shape check for the upstreams the site reads: EDGAR
 # (submissions, XBRL frames, company_tickers, full-text search), OpenFIGI, and
-# the live price chain the /api/stock handler races — FMP, TwelveData,
+# the live price chain the /api/stock handler races — TwelveData,
 # Finnhub. Yahoo and Stooq are out of that chain for good and are not probed.
 # Prints only; nothing is written or committed. The step summary carries one
 # row per upstream. Red means every keyed price provider failed (the quote
@@ -44,7 +44,6 @@ jobs:
         env:
           SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       # Dry runs of the enrichment over the committed data: what the real

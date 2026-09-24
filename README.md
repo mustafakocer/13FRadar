@@ -8,7 +8,7 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - 📊 AUM geçmişi grafiği, tahmini çeyreklik net fon akışı (SPY'a göre piyasa etkisinden arındırılmış)
 - 🃏 Portföy kartları: En Büyük Pozisyonlar · Yeni/Artırılan · Azaltılan/Çıkılan (önceki çeyrekle karşılaştırmalı)
 - 🧾 Sıralanabilir, filtrelenebilir tam pozisyon tablosu + Excel'e aktarma (SheetJS, code-split)
-- 💹 Hisse detay sayfası: fiyat (FMP / TwelveData / Finnhub yarışı), değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
+- 💹 Hisse detay sayfası: fiyat (TwelveData / Finnhub yarışı), değerleme oranları (F/K, PEG, PD/DD, EV/EBITDA…), temel veriler, gelir tablosu / bilanço / nakit akışı, kazanç geçmişi
 - 📈 1Y / YTD / 1G getiriler ve fiyat grafiği: gece üretilen 10 yıllık kapanış cache'inden (`api/_data/prices/`, aşağıya bakın)
 - 🏷️ CUSIP → ticker çözümleme (OpenFIGI)
 - ⚖️ İki yönetici karşılaştırma (Jaccard ve ağırlıklı örtüşme, ortak pozisyonlarda Δ ve son çeyrek yönü, sektör kıyası, devir) + 2-3 hisse karşılaştırma (usta sayısı, usta $ değeri, net alım, 1Y/YBB, rasyolar); ücretsizde Berkshire vs Himalaya / AAPL-MSFT-GOOGL örneği SSR ile, kendi seçimi Pro. 📋 tarayıcı, ⭐ izleme listesi
@@ -29,7 +29,7 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 | Rendering | SSR: `api/ssr.js` her herkese açık sayfayı sunucuda render eder (aşağıya bakın) |
 | API (Prod) | Vercel Serverless Functions (`api/` dizini) |
 | API (Dev) | Express (`server.js`, Vercel routing emülasyonu) |
-| Veri | SEC EDGAR (submissions + full-text search + Archives), OpenFIGI, fiyat: FMP / TwelveData / Finnhub (canlı) + gece kapanış cache'i (Yahoo chart yalnız GitHub runner'dan, batch) |
+| Veri | SEC EDGAR (submissions + full-text search + Archives), OpenFIGI, fiyat: TwelveData / Finnhub (canlı) + gece kapanış cache'i (Yahoo chart yalnız GitHub runner'dan, batch) |
 
 ```
 api/
@@ -66,8 +66,8 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `GURU_HISTORY_DRY`, `GURU_HISTORY_INCREMENTAL`, `GURU_HISTORY_FORCE` | opsiyonel | history yürüyüşü: kuru koşu planı (istek/cache/dakika), artımlı okuma (varsayılan açık), zorunlu tam okuma. |
 | `STOCK_UPSTREAM_MS`, `STOCK_SNAPSHOT_MS` | opsiyonel | /api/stock sağlayıcı yarışı bütçesi (ms; varsayılan 3000, snapshot varken 1500). |
 | `OPENFIGI_API_KEY` | önerilir | CUSIP→ticker |
-| `FMP_API_KEY`, `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` | en az biri | /api/stock fiyat sağlayıcıları (FMP 250/gün: tam tablo; TwelveData 800/gün ve Finnhub 60/dk: fiyat). Yahoo ve Stooq Vercel'den çalışmaz, zincirde yoktur. Aynı anahtarlar gece fiyat cache'ini de doldurur (`scripts/build-prices.mjs`) |
-| `PRICES_YAHOO`, `PRICES_TD_BUDGET`, `PRICES_FMP_BUDGET`, `PRICES_FINNHUB_BUDGET`, `PRICES_MAX_AGE_DAYS`, `PRICES_DRY` | opsiyonel | gece fiyat cache'i: runner'dan Yahoo chart (varsayılan açık), sağlayıcı başına gecelik çağrı bütçesi (400 / 60 / 300), bayat sayılma eşiği (1 gün), kuru koşu. `CLOSES_FRESH_DAYS` (4): dosyadaki seri bu kadar günden tazeyse canlı sağlayıcı sorulmaz |
+| `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` | en az biri | /api/stock fiyat sağlayıcıları (TwelveData 800/gün, Finnhub 60/dk). Yahoo, Stooq ve FMP zincirde yoktur (FMP ücretsiz planı historical uçlarda 402 veriyor, 250 çağrıyı ilk ziyaretçilere harcıyordu; yokluğu uyarı üretmez). `TWELVEDATA_API_KEY` gece fiyat cache'ini de doldurur (`scripts/build-prices.mjs`). `FMP_API_KEY` yalnız gece stock-meta'da piyasa değeri boşluklarını doldurmak için, isteğe bağlı |
+| `PRICES_YAHOO`, `PRICES_TD_BUDGET`, `PRICES_FINNHUB_BUDGET`, `PRICES_MAX_AGE_DAYS`, `PRICES_DRY` | opsiyonel | gece fiyat cache'i: runner'dan Yahoo chart (varsayılan açık), sağlayıcı başına gecelik çağrı bütçesi (400 / 300), bayat sayılma eşiği (1 gün), kuru koşu. `CLOSES_FRESH_DAYS` (4): dosyadaki seri bu kadar günden tazeyse canlı sağlayıcı sorulmaz |
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | prod'da zorunlu | sunucu tarafı plan kontrolü (`api/_lib/auth.js`); yoksa herkes çıkış yapmış sayılır, Pro kilitli; production build durur |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | prod'da zorunlu | aynı değerler, istemci paketine build'de gömülür (`client/src/lib/supabase.js`) |
 | Stripe | ödeme için | bkz. docs/STRIPE-KURULUM.md |
@@ -167,7 +167,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
 5. Environment Variables — `SITE_URL` production'da varsayılan olarak `https://www.fundocap.co` alınır; ayarlarsanız `*.vercel.app` olmamalı (build durur). Diğerleri:
    - `SEC_USER_AGENT` → `Fundocap/1.0 (sizin@email.com)` — SEC, istekler için iletişim bilgisi ister.
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
-   - `FMP_API_KEY`, `TWELVEDATA_API_KEY` → hisse fiyat/rasyo sağlayıcıları.
+   - `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` → hisse fiyat sağlayıcıları.
    - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
 
@@ -230,11 +230,11 @@ Bir 13F-HR/A ayrı bir çeyrek değil, aynı dönemin 13F-HR'ına düzeltmedir. 
 
 ### Kapanış serileri: gece cache'i (`api/_data/prices/`)
 
-Backtest, fiyat grafiği (`/api/chart`), getiri kolonları (`/api/returns`, `returns.json`) ve AUM akış tahmini aynı seriyi okur: `dailyCloses(symbol)` (`api/_lib/providers.js`) önce `api/_data/prices/{SYMBOL}.json` dosyasına bakar (10 yıl günlük kapanış, sembol başına bir dosya; tarihler gün farkı olarak, kapanışlar gerekli hassasiyetle — `api/_lib/priceStore.js`), seri `CLOSES_FRESH_DAYS` içindeyse doğrudan cevaplar; bayatsa yalnız eksik günleri canlı sağlayıcıdan (FMP → TwelveData, kota ve devre kesici `providerHealth` üzerinden) ister; hiç dosya yoksa canlı; o da yoksa `null` (sayfa "seri yok" der, 0 basmaz). Dosyaları **Build consensus & returns** akışındaki `scripts/build-prices.mjs` üretir: evren = `guru-stocks.json` sembolleri + çıkılanlar + SPY/QQQ/IWM; artımlı (dosyadaki seri yalnız son kapanışından bu yana çekilir); log gece planıyla açılır (eksik / bayat / taze sayıları, bu gece hangi sağlayıcıdan kaç çağrı, tam dolum kaç gece). Kaynak sırası: Yahoo chart (runner'dan cevaplıyor, kotasız, ilk gece evrenin büyük kısmını doldurur) → TwelveData (dakikada 8, gecede `PRICES_TD_BUDGET`) → FMP (küçük dilim) → Finnhub candle (ücretsiz planda 403; ilk 403'te o gece için düşer). `api/_data/prices/_index.json` kapsamı özetler; `/api/diag` `priceCache` alanında gösterir; audit `prices` anahtarıyla denetler. Backtest cevabı `coverage` (simüle edilen ağırlık payı), `skipped` (atlanan pozisyonlar ve nedeni) ve `benchmark` (SPY serisi yoksa `null`) taşır; kapsam %70'in altındaysa sayfa sarı uyarı basar.
+Backtest, fiyat grafiği (`/api/chart`), getiri kolonları (`/api/returns`, `returns.json`) ve AUM akış tahmini aynı seriyi okur: `dailyCloses(symbol)` (`api/_lib/providers.js`) önce `api/_data/prices/{SYMBOL}.json` dosyasına bakar (10 yıl günlük kapanış, sembol başına bir dosya; tarihler gün farkı olarak, kapanışlar gerekli hassasiyetle — `api/_lib/priceStore.js`), seri `CLOSES_FRESH_DAYS` içindeyse doğrudan cevaplar; bayatsa yalnız eksik günleri canlı sağlayıcıdan (TwelveData, kota ve devre kesici `providerHealth` üzerinden) ister; hiç dosya yoksa canlı; o da yoksa `null` (sayfa "seri yok" der, 0 basmaz). Dosyaları **Build consensus & returns** akışındaki `scripts/build-prices.mjs` üretir: evren = `guru-stocks.json` sembolleri + çıkılanlar + SPY/QQQ/IWM; artımlı (dosyadaki seri yalnız son kapanışından bu yana çekilir); log gece planıyla açılır (eksik / bayat / taze sayıları, bu gece hangi sağlayıcıdan kaç çağrı, tam dolum kaç gece). Kaynak sırası: Yahoo chart (runner'dan cevaplıyor, kotasız, ilk gece evrenin büyük kısmını doldurur) → TwelveData (dakikada 8, gecede `PRICES_TD_BUDGET`) → Finnhub candle (ücretsiz planda 403; ilk 403'te o gece için düşer). `api/_data/prices/_index.json` kapsamı özetler; `/api/diag` `priceCache` alanında gösterir; audit `prices` anahtarıyla denetler. Backtest cevabı `coverage` (simüle edilen ağırlık payı), `skipped` (atlanan pozisyonlar ve nedeni) ve `benchmark` (SPY serisi yoksa `null`) taşır; kapsam %70'in altındaysa sayfa sarı uyarı basar.
 
 ### Fiyat sağlayıcı zinciri (`/api/stock/:ticker`)
 
-Yalnız anahtarlı sağlayıcılar (FMP → TwelveData → Finnhub) bütçe içinde **aynı anda** yarışır; en iyi sıralı cevap bütçe dolunca (ya da en üst sıradaki gelince) döner, kalanı arka planda cache'i günceller. Yahoo (üç uç da Vercel IP'lerinden 429) ve Stooq (CSV yerine JS-challenge HTML) zincirden kalıcı olarak çıkarıldı. Üst üste 3 kez düşen sağlayıcı 5 dakika atlanır; günlük kotalı bir sağlayıcının 429'u onu UTC gece yarısına kadar "quota" yapar, kotasının %90'ına gelen sağlayıcı ("conserve") kotası olan bir eş varken bekletilir, tek başına kaldığında yine sorulur (`api/_lib/providerHealth.js`; sayaçlar instance başına, alt sınır). Her cevapta:
+Yalnız anahtarlı sağlayıcılar (TwelveData → Finnhub) bütçe içinde **aynı anda** yarışır; en iyi sıralı cevap bütçe dolunca (ya da en üst sıradaki gelince) döner, kalanı arka planda cache'i günceller. Yahoo (üç uç da Vercel IP'lerinden 429) ve Stooq (CSV yerine JS-challenge HTML) zincirden kalıcı olarak çıkarıldı. Üst üste 3 kez düşen sağlayıcı 5 dakika atlanır; günlük kotalı bir sağlayıcının 429'u onu UTC gece yarısına kadar "quota" yapar, kotasının %90'ına gelen sağlayıcı ("conserve") kotası olan bir eş varken bekletilir, tek başına kaldığında yine sorulur (`api/_lib/providerHealth.js`; sayaçlar instance başına, alt sınır). Her cevapta:
 
 | Başlık | Anlam |
 |---|---|

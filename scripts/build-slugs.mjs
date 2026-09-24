@@ -65,14 +65,43 @@ for (const r of [...uni.rows].sort((a, b) => b.aum - a.aum)) assign(r.cik, r.nam
 // Every slug a reader could reasonably have been sent to, pointing at the one
 // that exists. A derived slug that is itself a real filer's slug is left
 // alone: a live page always outranks a redirect.
+//
+// Two sources. First, every alias already published: an address that once
+// redirected keeps redirecting (the nightly build of 2026-09-23 derived the
+// list from the registry's current names alone and dropped the 34 short
+// names — berkshire-hathaway, pershing-square, … — the registry had carried
+// before the gurus were renamed, and those URLs died). Second, the names a
+// fund is or was known by: the registry name, the name without its
+// parenthetical ("Berkshire Hathaway (Warren Buffett)" → berkshire-hathaway)
+// and the name without a trailing corporate suffix (… Management LLC), so a
+// future rename never loses reachability either.
+const SUFFIX = /[\s,.]+(inc|incorporated|llc|l\.l\.c|lp|l\.p|llp|ltd|limited|plc|ag|sa|nv|co|corp|corporation|company|management|advisors|advisers|partners|group|capital management|asset management|investment management|investors)\.?$/i;
+const variants = (name) => {
+  const out = new Set();
+  const base = String(name).replace(/\s*\([^)]*\)\s*/g, ' ').trim();
+  for (const n of [name, base]) {
+    let cur = n;
+    for (let i = 0; i < 3; i++) {
+      out.add(slugify(cur));
+      const next = cur.replace(SUFFIX, '').trim();
+      if (next === cur || !next) break;
+      cur = next;
+    }
+  }
+  out.delete('');
+  return [...out];
+};
 const aliases = {};
+const alias = (from, to) => {
+  if (!from || from === to || bySlug[from] || !bySlug[to]) return;
+  aliases[from] = to;
+};
+for (const [from, to] of Object.entries(prev.aliases || {})) alias(from, to);
 for (const m of GURUS) {
   const cik = String(m.cik).padStart(10, '0');
   const stored = byCik[cik];
   if (!stored) continue;
-  const derived = slugify(m.name);
-  if (!derived || derived === stored.slug || bySlug[derived]) continue;
-  aliases[derived] = stored.slug;
+  for (const v of variants(m.name)) alias(v, stored.slug);
 }
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });

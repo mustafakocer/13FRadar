@@ -52,7 +52,7 @@ export const guruHistory = (cik) => historyTable()?.gurus?.[String(cik).padStart
 
 // "Time held": consecutive quarters up to and including the latest, as text.
 // Capped at ">10 Years" (the precompute looks 40 quarters back).
-export function timeHeldLabel(quarters, lang = 'en') {
+export function timeHeldLabel(quarters, lang = 'tr') {
   if (!quarters) return null;
   if (quarters >= 40) return lang === 'tr' ? '>10 Yıl' : '>10 Years';
   const years = quarters / 4;

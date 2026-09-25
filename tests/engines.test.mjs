@@ -20,7 +20,7 @@ test('13F deadlines: 45 days after quarter end, weekends roll forward', () => {
 });
 
 test('calendar and emerging pages render answer box, tables and valid JSON-LD; calendar cache follows the season', async () => {
-  for (const url of ['/en/calendar', '/tr/calendar', '/en/emerging-managers']) {
+  for (const url of ['/tr/calendar', '/tr/emerging-managers']) {
     const { status, html, headers } = await ssr(url);
     assert.equal(status, 200, url);
     assert.match(html, /data-answer-box/);
@@ -31,56 +31,55 @@ test('calendar and emerging pages render answer box, tables and valid JSON-LD; c
 });
 
 test('quarterly report page: generated data, chart pack links, markdown export', async () => {
-  const { status, html } = await ssr('/en/reports/2026-q2');
+  const { status, html } = await ssr('/tr/reports/2026-q2');
   assert.equal(status, 200);
-  assert.match(html, /Q2 2026 Superinvestor Report/);
-  assert.match(html, /data-answer-box[^>]*>The Q2 2026 report covers \d+ of \d+ tracked superinvestors/);
+  assert.match(html, /2026 Q2 Usta Yatırımcı Raporu/);
+  assert.match(html, /data-answer-box[^>]*>2026 Q2 raporu, takip edilen \d+ usta yatırımcıdan \d+/);
   assert.match(html, /\/api\/og\?type=report&amp;id=2026-q2&amp;chart=buys/);
   assert.match(html, /\/api\/report-id\/2026-q2\?format=md/);
   assert.deepEqual(validateHtmlJsonLd(html).problems, []);
-  assert.equal((await ssr('/en/reports/2030-q4')).status, 404);
+  assert.equal((await ssr('/tr/reports/2030-q4')).status, 404);
 });
 
-test('guides and comparison pages: real copy in both languages, question H2s, per-language slugs, TODO competitor cells', async () => {
+test('guides and comparison pages: real Turkish copy, question H2s, Turkish slugs, TODO competitor cells', async () => {
   for (const g of GUIDES) {
-    for (const lang of ['en', 'tr']) {
-      assert.deepEqual(contentByPath(g.paths[lang]), { kind: 'guide', entry: g, lang });
-      const c = g.id === 'best-13f-trackers' ? BEST_TRACKERS[lang] : GUIDE_CONTENT[g.id][lang];
-      assert.ok(c.lead.length > 200, `${g.id} ${lang} lead`);
-      for (const s of c.sections || []) assert.ok(s.h2.endsWith('?'), `H2 is a question: ${s.h2}`);
-      assert.ok(c.faq.length >= 2 && c.links.length === 3);
-      assert.doesNotMatch(JSON.stringify(c), /lorem|placeholder|TBD/i);
-    }
-    assert.ok(/[çğıöşü]/i.test(JSON.stringify(g.id === 'best-13f-trackers' ? BEST_TRACKERS.tr : GUIDE_CONTENT[g.id].tr)), 'Turkish copy uses Turkish letters');
+    assert.deepEqual(contentByPath(g.paths.tr), { kind: 'guide', entry: g, lang: 'tr' });
+    const c = g.id === 'best-13f-trackers' ? BEST_TRACKERS.tr : GUIDE_CONTENT[g.id].tr;
+    assert.ok(c.lead.length > 200, `${g.id} lead`);
+    for (const s of c.sections || []) assert.ok(s.h2.endsWith('?'), `H2 is a question: ${s.h2}`);
+    assert.ok(c.faq.length >= 2 && c.links.length === 3);
+    assert.doesNotMatch(JSON.stringify(c), /lorem|placeholder|TBD/i);
+    assert.ok(/[çğıöşü]/i.test(JSON.stringify(c)), 'Turkish copy uses Turkish letters');
   }
   for (const c of COMPARES) {
-    for (const lang of ['en', 'tr']) {
-      const m = COMPARE_CONTENT[c.id][lang].matrix;
-      assert.deepEqual(Object.keys(m).sort(), [...MATRIX_ROWS].sort());
-      assert.ok(Object.values(m).every((v) => v === 'TODO'), 'no invented competitor facts');
-    }
+    const m = COMPARE_CONTENT[c.id].tr.matrix;
+    assert.deepEqual(Object.keys(m).sort(), [...MATRIX_ROWS].sort());
+    assert.ok(Object.values(m).every((v) => v === 'TODO'), 'no invented competitor facts');
   }
-  const en = await ssr('/en/guides/what-is-13f');
-  assert.equal(en.status, 200);
-  assert.ok((en.html.match(/<h2/g) || []).length >= 5);
-  assert.match(en.html, /hreflang="tr" href="https:\/\/example\.test\/tr\/rehber\/13f-nedir"/);
-  assert.match(en.html, /<link rel="canonical" href="https:\/\/example\.test\/en\/guides\/what-is-13f"/);
-  assert.deepEqual(validateHtmlJsonLd(en.html).blocks.map((b) => b['@type']), ['Article', 'FAQPage', 'BreadcrumbList']);
-  const wrong = await ssr('/en/rehber/13f-nedir');
-  assert.equal(wrong.status, 301);
-  assert.equal(wrong.headers.location, '/en/guides/what-is-13f');
-  const tr = await ssr('/tr/rehber/form-4-nasil-okunur');
-  assert.match(tr.html, /Form 4 insider bildirimi nasıl okunur\?/);
+  const tr = await ssr('/tr/rehber/13f-nedir');
+  assert.equal(tr.status, 200);
+  assert.ok((tr.html.match(/<h2/g) || []).length >= 5);
+  assert.doesNotMatch(tr.html, /hreflang=/);
+  assert.match(tr.html, /<link rel="canonical" href="https:\/\/example\.test\/tr\/rehber\/13f-nedir"/);
+  assert.deepEqual(validateHtmlJsonLd(tr.html).blocks.map((b) => b['@type']), ['Article', 'FAQPage', 'BreadcrumbList']);
+  // a retired English slug, with or without the /en prefix, lands on the Turkish page
+  for (const from of ['/tr/guides/what-is-13f', '/en/guides/what-is-13f']) {
+    const wrong = await ssr(from);
+    assert.equal(wrong.status, 301, from);
+    assert.equal(wrong.headers.location, '/tr/rehber/13f-nedir', from);
+  }
+  const form4 = await ssr('/tr/rehber/form-4-nasil-okunur');
+  assert.match(form4.html, /Form 4 insider bildirimi nasıl okunur\?/);
 });
 
 test('Phase 5 linking: guru page has related managers, latest report and calendar links, dateModified', async () => {
-  const { html } = await ssr('/en/guru/berkshire-hathaway-warren-buffett');
-  assert.match(html, /Related managers/);
-  assert.match(html, /href="\/en\/reports\/2026-q2"/);
-  assert.match(html, /href="\/en\/calendar"/);
+  const { html } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
+  assert.match(html, /Benzer portföyler/);
+  assert.match(html, /href="\/tr\/reports\/2026-q2"/);
+  assert.match(html, /href="\/tr\/calendar"/);
   assert.match(html, /property="article:modified_time" content="2026-08-14"/);
   const rank = await ssr('/tr/rankings/most-bought');
   assert.match(rank.html, /href="\/tr\/calendar"/);
-  const guide = await ssr('/en/guides/13f-limitations');
-  assert.ok((guide.html.match(/href="\/en\/(guru|rankings|stock|calendar|guides)\//g) || []).length >= 3, 'guide links to entity pages');
+  const guide = await ssr('/tr/rehber/13f-sinirlari');
+  assert.ok((guide.html.match(/href="\/tr\/(guru|rankings|stock|calendar|rehber)\//g) || []).length >= 3, 'guide links to entity pages');
 });

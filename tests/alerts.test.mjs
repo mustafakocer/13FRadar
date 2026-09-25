@@ -72,14 +72,15 @@ test('the high-water mark advances to the newest match and never on an empty run
 });
 
 test('the digest names what happened, in the reader’s language', () => {
-  const body = renderDigest({ filings: matchFilings(FILINGS, { ciks: ['0001067983'] }), insiders: [ROWS[0]], siteUrl: 'https://fundocap.com' });
+  const body = renderDigest({ filings: matchFilings(FILINGS, { ciks: ['0001067983'] }), insiders: [ROWS[0]], siteUrl: 'https://fundocap.com' }, 'en');
   assert.match(body, /New 13F filings/);
   assert.match(body, /Berkshire Hathaway/);
   assert.match(body, /\(amendment\)/, 'an amendment is labelled as one');
   assert.match(body, /AAPL/);
   assert.match(body, /https:\/\/fundocap\.com\/en\/watchlist/);
 
-  const tr = renderDigest({ filings: [FILINGS[0]], insiders: [], siteUrl: 'https://fundocap.com' }, 'tr');
+  // the site is Turkish-only, so the digest defaults to Turkish
+  const tr = renderDigest({ filings: [FILINGS[0]], insiders: [], siteUrl: 'https://fundocap.com' });
   assert.match(tr, /yeni 13F bildirimleri/);
   assert.match(tr, /\/tr\/watchlist/);
 });
@@ -87,7 +88,8 @@ test('the digest names what happened, in the reader’s language', () => {
 test('nothing to say means no email, not an empty one', () => {
   assert.equal(renderDigest({ filings: [], insiders: [] }), null);
   assert.equal(digestSubject({ filings: [], insiders: [] }), null);
-  assert.equal(digestSubject({ filings: [1], insiders: [1, 2] }), 'Fundocap — 1 new 13F, 2 insider trades');
+  assert.equal(digestSubject({ filings: [1], insiders: [1, 2] }), 'Fundocap — 1 yeni 13F, 2 insider işlemi');
+  assert.equal(digestSubject({ filings: [1], insiders: [1, 2] }, 'en'), 'Fundocap — 1 new 13F, 2 insider trades');
 });
 
 // S6 — who gets the digest, from which targets, and when

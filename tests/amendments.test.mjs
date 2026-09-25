@@ -245,7 +245,7 @@ test('/api/manager-stats on effective snapshots: finite turnover, counts that ag
 });
 
 test('SSR: the fund page lists quarters, marks the amended ones and shows no "(A)" quarter', async () => {
-  const { status, html } = await ssr(`/en/manager/${CIK}`);
+  const { status, html } = await ssr(`/tr/manager/${CIK}`);
   assert.equal(status, 200);
   const plain = html.replace(/<!-- -->/g, '');
   assert.ok(!/\(A\)/.test(plain), 'no amendment shown as a quarter');

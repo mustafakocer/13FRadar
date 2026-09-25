@@ -71,9 +71,8 @@ function guruLine(g, lang) {
 function sections(lang, full) {
   const t = lang === 'tr';
   const L = [];
-  // llms.txt keeps a flat H2 → link-list structure; the language is part of
-  // each heading so EN and TR URLs stay in separate sections
-  const H = (en, tr) => L.push(`## ${t ? tr : en} (${t ? 'TR' : 'EN'})`);
+  // llms.txt keeps a flat H2 → link-list structure
+  const H = (en, tr) => L.push(`## ${t ? tr : en}`);
   H('Gurus', 'Usta Yatırımcılar');
   L.push(link(lang, '/gurus', t ? 'Usta yatırımcı rehberi' : 'Guru directory', t ? 'küratörlü 13F portföyleri' : 'curated 13F portfolios'));
   for (const g of gurus) L.push(link(lang, `/guru/${g.slug}`, g.name, guruLine(g, lang)));
@@ -128,7 +127,7 @@ function document(full) {
   const L = [];
   L.push('# Fundocap');
   L.push('');
-  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider signals. Pages are available in English (/en) and Turkish (/tr).`);
+  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider signals. All pages are in Turkish under the /tr prefix.`);
   L.push('');
   L.push(`Data: SEC EDGAR 13F-HR (quarter-end long positions in US-listed securities, filed up to 45 days after quarter end — positions are always at least that stale and never include shorts, most derivatives or non-US holdings) and SEC Form 4 (insider transactions). Refresh cadence: insider data daily; guru/consensus/rankings daily from the latest filings; the full filer universe weekly. Last data refresh: ${updatedAt}.`);
   L.push('');
@@ -136,13 +135,11 @@ function document(full) {
   L.push('');
   L.push('Attribution: cite pages as "Fundocap" with the page URL. Data is not investment advice.');
   L.push('');
-  L.push(...sections('en', full));
-  L.push('');
   L.push(...sections('tr', full));
   L.push('');
   L.push('## Optional');
   L.push(`- [Sitemap index](${site}/sitemap.xml)`);
-  L.push(`- [Pricing](${site}/en/pricing): free tier covers search, top-10 positions and all pages listed above; Pro adds full tables, insider feed and exports`);
+  L.push(`- [Pricing](${site}/tr/pricing): free tier covers search, top-10 positions and all pages listed above; Pro adds full tables, insider feed and exports`);
   L.push(`- [llms-full.txt](${site}/llms-full.txt)`);
   return L.join('\n') + '\n';
 }

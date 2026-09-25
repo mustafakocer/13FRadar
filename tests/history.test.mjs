@@ -8,11 +8,11 @@ import { invoke } from '../api/_lib/ssr/invoke.js';
 process.env.GURU_HISTORY_FILE = process.env.GURU_HISTORY_FILE || path.join(root, 'tests', 'fixtures', 'guru-history.fixture.json');
 
 test('time held labels and the >10 Years cap', () => {
-  assert.equal(timeHeldLabel(0), null);
-  assert.equal(timeHeldLabel(3), '3 Q');
-  assert.equal(timeHeldLabel(4), '1 Year');
-  assert.equal(timeHeldLabel(10), '2.5 Years');
-  assert.equal(timeHeldLabel(40), '>10 Years');
+  assert.equal(timeHeldLabel(0, 'en'), null);
+  assert.equal(timeHeldLabel(3, 'en'), '3 Q');
+  assert.equal(timeHeldLabel(4, 'en'), '1 Year');
+  assert.equal(timeHeldLabel(10, 'en'), '2.5 Years');
+  assert.equal(timeHeldLabel(40, 'en'), '>10 Years');
   assert.equal(timeHeldLabel(40, 'tr'), '>10 Yıl');
 });
 

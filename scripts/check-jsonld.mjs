@@ -15,15 +15,11 @@ const render = (url) =>
     handler({ url, headers: { host: 'example.test' }, query: {} }, res);
   });
 
-const PAGES = ['/en', '/tr', '/en/guru/berkshire-hathaway-warren-buffett', '/tr/guru/pershing-square-bill-ackman', '/en/stock/AAPL', '/tr/stock/AMZN', '/en/rankings/most-bought', '/tr/rankings/conviction', '/en/rankings/consensus'];
+const PAGES = ['/tr', '/tr/guru/berkshire-hathaway-warren-buffett', '/tr/guru/pershing-square-bill-ackman', '/tr/stock/AAPL', '/tr/stock/AMZN', '/tr/rankings/most-bought', '/tr/rankings/conviction', '/tr/rankings/consensus'];
 const EXPECT = {
-  '/en$': ['Organization', 'WebSite'],
   '/tr$': ['Organization', 'WebSite'],
-  '/en/guru/': ['Person', 'Dataset', 'BreadcrumbList', 'FAQPage'],
   '/tr/guru/': ['Person', 'Dataset', 'BreadcrumbList', 'FAQPage'],
-  '/en/stock/': ['Corporation', 'Dataset', 'BreadcrumbList', 'FAQPage'],
   '/tr/stock/': ['Corporation', 'Dataset', 'BreadcrumbList', 'FAQPage'],
-  '/en/rankings/': ['Article', 'ItemList', 'FAQPage', 'BreadcrumbList'],
   '/tr/rankings/': ['Article', 'ItemList', 'FAQPage', 'BreadcrumbList'],
 };
 let failed = 0;

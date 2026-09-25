@@ -69,7 +69,7 @@ export function nextMark(matches, field, current = null) {
 
 // Plain-text digest. Email clients mangle everything else, and a digest that
 // reads correctly as text reads correctly everywhere.
-export function renderDigest({ filings = [], insiders = [], siteUrl = '' }, lang = 'en') {
+export function renderDigest({ filings = [], insiders = [], siteUrl = '' }, lang = 'tr') {
   const tr = lang === 'tr';
   const lines = [];
   if (filings.length) {
@@ -93,7 +93,7 @@ export function renderDigest({ filings = [], insiders = [], siteUrl = '' }, lang
   return lines.join('\n');
 }
 
-export function digestSubject({ filings = [], insiders = [] }, lang = 'en') {
+export function digestSubject({ filings = [], insiders = [] }, lang = 'tr') {
   const tr = lang === 'tr';
   const parts = [];
   if (filings.length) parts.push(tr ? `${filings.length} yeni 13F` : `${filings.length} new 13F`);

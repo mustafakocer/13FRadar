@@ -1,4 +1,4 @@
-// Privacy notice and terms of use, in plain Turkish and English — not
+// Privacy notice and terms of use, in plain Turkish — not
 // contract prose. The operator is KOCERLER LTD (UK). The contact address
 // comes from the build (CONTACT_EMAIL → __CONTACT_EMAIL__ in
 // client/vite.config.js) with a placeholder until it is set.
@@ -36,34 +36,6 @@ export const LEGAL_CONTENT = {
         { h2: 'Değişiklikler', p: ['Bu bildirimi güncellediğimizde tarihini bu sayfada değiştiririz; önemli değişiklikleri hesabı olan kullanıcılara e-postayla bildiririz.'] },
       ],
     },
-    en: {
-      title: 'Privacy Notice',
-      lead: `Fundocap is operated by ${OPERATOR} (United Kingdom). This page says, in plain words, what data we collect and why, who processes it, and what your rights are.`,
-      sections: [
-        { h2: 'What we collect', p: [
-          'If you create an account: your email address and, for password sign-in, a hash of your password. If you sign in with Google, we receive only your name, email and profile picture URL from Google; your password never reaches us.',
-          'Usage data: your watchlist, the alerts you save, your plan (free / Pro) and your email digest preference. These are kept for you and not processed for any other purpose.',
-          'If you subscribe to Pro, your card details stay with Stripe; we store only the Stripe customer and subscription ids and the subscription status. We never see your card number.',
-          'Technical data: our hosting provider (Vercel) keeps standard server logs (IP address, browser, requested page, time) for a short period. A visitor’s country is used momentarily for regional pricing and language, and is not stored.',
-        ] },
-        { h2: 'Cookies and browser storage', p: [
-          'We use no advertising or behavioural tracking cookies. Only functional records exist: your language preference (a cookie), your theme and a copy of your watchlist on the device (browser storage), and, when signed in, your session key. No third-party analytics or ad network is loaded.',
-        ] },
-        { h2: 'Who processes the data', p: [
-          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), Resend (opt-in email digests) and GitHub (the nightly data builds). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
-        ] },
-        { h2: 'Where the site’s data comes from', p: [
-          'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Prices come from licensed providers (Financial Modeling Prep, Twelve Data, Finnhub) and, in the nightly builds, Yahoo Finance; security identifiers from OpenFIGI. This is not personal data; the names in insider transactions are public records published by the SEC.',
-        ] },
-        { h2: 'How long we keep it', p: [
-          'Account data for as long as your account exists. Write to us to delete your account: the account, watchlist and alerts are removed; invoice records stay with Stripe for the statutory period. Server logs are deleted after the provider’s standard retention (30 days at most).',
-        ] },
-        { h2: 'Your rights', p: [
-          'You can access, correct, delete and port your data and object to its processing (UK GDPR; KVKK for users in Türkiye). Write to the address below; we answer within 30 days. You may complain to the ICO in the United Kingdom or to KVKK in Türkiye.',
-        ] },
-        { h2: 'Changes', p: ['When we update this notice we change the date on this page; material changes are emailed to account holders.'] },
-      ],
-    },
   },
   terms: {
     tr: {
@@ -93,32 +65,6 @@ export const LEGAL_CONTENT = {
         ] },
         { h2: 'Değişiklikler ve hukuk', p: [
           'Şartları güncellediğimizde tarihini bu sayfada değiştiririz; önemli değişiklikleri hesabı olan kullanıcılara e-postayla bildiririz. Bu şartlar İngiltere ve Galler hukukuna tabidir; tüketicilerin kendi ülkesindeki zorunlu koruma hükümleri saklıdır.',
-        ] },
-      ],
-    },
-    en: {
-      title: 'Terms of Use',
-      lead: `By using Fundocap (fundocap.co) you accept these terms. The site is operated by ${OPERATOR} (United Kingdom).`,
-      sections: [
-        { h2: 'What this site does and does not do', p: [
-          'Fundocap compiles public filings made to the SEC (13F, Form 4, 13D/G) and price data into a readable form. Nothing on the site is investment advice, a recommendation to buy or sell, or a recommendation about any particular security. Your decisions are your own.',
-          '13F data is delayed by up to 45 days after quarter end, covers long positions only and can be amended; prices are shown as the providers deliver them. We present the data as it is and do not warrant its accuracy, completeness or timeliness.',
-        ] },
-        { h2: 'Accounts', p: ['You may create a free account; the email address must be real and yours. Do not share your account. You can close it at any time.'] },
-        { h2: 'Pro subscription, cancellation and refunds', p: [
-          'Pro is a monthly or yearly renewing subscription; payments are taken through Stripe at the currency and amount shown on the checkout page. The subscription renews automatically at the end of each period.',
-          'You can cancel at any time (Account → Manage subscription). After cancelling, Pro access continues until the end of the paid period; no partial refund is made for the remainder. For a payment made by mistake or a technical fault, write to us within 14 days of the payment; reasonable requests are refunded. Your statutory consumer rights are not affected.',
-          'If we change prices, existing subscribers are told by email before the next renewal.',
-        ] },
-        { h2: 'Acceptable use', p: [
-          'You may use the site for personal or internal research. Automated bulk downloading, reselling or republishing the data, circumventing security measures and disrupting other users’ access are not allowed. Pro exports are for your own use.',
-        ] },
-        { h2: 'Intellectual property', p: ['SEC filings are public domain. The site’s design, software, calculations and compiled datasets belong to Fundocap. Guides and page text may be quoted with attribution.'] },
-        { h2: 'Limitation of liability', p: [
-          'The site is provided “as is”. To the extent the law allows, we are not liable for losses arising from decisions taken on the basis of the site’s data. This does not limit liability that cannot be limited by law.',
-        ] },
-        { h2: 'Changes and governing law', p: [
-          'When we update these terms we change the date on this page; material changes are emailed to account holders. These terms are governed by the law of England and Wales; mandatory consumer protections of your own country are not affected.',
         ] },
       ],
     },

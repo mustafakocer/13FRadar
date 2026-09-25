@@ -13,10 +13,10 @@ import { GUIDES, COMPARES, LEGAL } from '../../client/src/content/registry.js';
 //   /sitemap-filers.xml     → every other 13F filer
 //   /sitemap-stocks.xml     → every security the curated funds hold, plus the
 //                             universe's most-held names
-//   /sitemap-guides.xml     → guides and comparisons (language-specific slugs)
+//   /sitemap-guides.xml     → guides and comparisons (Turkish slugs)
 //   /sitemap-insider.xml    → insider signal pages, lastmod = teaser build
 //   /robots.txt
-// Every URL is emitted once per language with xhtml:link alternates. A
+// Every URL is emitted under the /tr prefix (the site is Turkish-only). A
 // family that would exceed the protocol's 50,000-URL limit is split into
 // /sitemap-<type>-<n>.xml parts and the index lists each part.
 //
@@ -30,31 +30,25 @@ const load = (f) => {
     return null;
   }
 };
-const LANGS = ['en', 'tr'];
+const LANG = 'tr';
 export const URL_LIMIT = 50000;
 export const TYPES = ['pages', 'gurus', 'filers', 'stocks', 'guides', 'insider'];
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function urlset(site, entries) {
   const body = entries
-    .flatMap(({ path, paths, lastmod, changefreq, priority }) =>
-      LANGS.map((lang) => {
-        const p = (l) => {
-          const x = paths?.[l] || path;
-          return x === '/' ? '' : x;
-        };
-        const alts = LANGS.map((l) => `<xhtml:link rel="alternate" hreflang="${l}" href="${esc(`${site}/${l}${p(l)}`)}"/>`).join('');
-        const xdef = `<xhtml:link rel="alternate" hreflang="x-default" href="${esc(`${site}/en${p('en')}`)}"/>`;
-        return `<url><loc>${esc(`${site}/${lang}${p(lang)}`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}${changefreq ? `<changefreq>${changefreq}</changefreq>` : ''}${priority ? `<priority>${priority}</priority>` : ''}${alts}${xdef}</url>`;
-      })
-    )
+    .map(({ path, paths, lastmod, changefreq, priority }) => {
+      const x = paths?.[LANG] || path;
+      const p = x === '/' ? '' : x;
+      return `<url><loc>${esc(`${site}/${LANG}${p}`)}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}${changefreq ? `<changefreq>${changefreq}</changefreq>` : ''}${priority ? `<priority>${priority}</priority>` : ''}</url>`;
+    })
     .join('\n');
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n${body}\n</urlset>`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>`;
 }
 
 const day = (iso) => (iso ? String(iso).slice(0, 10) : null);
-// each entry becomes one URL per language
-const PER_PART = Math.floor(URL_LIMIT / LANGS.length);
+// each entry becomes one URL
+const PER_PART = URL_LIMIT;
 
 function context() {
   const slugs = slugTable();
@@ -64,7 +58,7 @@ function context() {
   return { slugs, filedByCik, latestFiled };
 }
 
-// The entries of one family, before language expansion and chunking.
+// The entries of one family, before chunking.
 export function entriesFor(type, ctx = context()) {
   const { slugs, filedByCik, latestFiled } = ctx;
   if (type === 'gurus' || type === 'filers') {
@@ -121,7 +115,7 @@ export function entriesFor(type, ctx = context()) {
   if (type === 'guides') {
     const consensus = load('../../client/public/consensus.json');
     const lastmod = day(consensus?.updatedAt) || latestFiled;
-    return [...GUIDES, ...COMPARES, ...LEGAL].map((g) => ({ path: g.paths.en, paths: g.paths, lastmod: g.updatedAt || lastmod, changefreq: 'monthly', priority: g.id === 'privacy' || g.id === 'terms' ? '0.3' : '0.6' }));
+    return [...GUIDES, ...COMPARES, ...LEGAL].map((g) => ({ path: g.paths.tr, paths: g.paths, lastmod: g.updatedAt || lastmod, changefreq: 'monthly', priority: g.id === 'privacy' || g.id === 'terms' ? '0.3' : '0.6' }));
   }
   if (type === 'insider') {
     const teaser = load('../../client/public/insiders-teaser.json');
@@ -159,7 +153,7 @@ export function entriesFor(type, ctx = context()) {
   return null;
 }
 
-// How many files a family needs: one URL per language per entry.
+// How many files a family needs: one URL per entry.
 export const partsOf = (entries) => Math.max(1, Math.ceil(entries.length / PER_PART));
 
 // "stocks" → { family: 'stocks', part: 1 }; "filers-3" → part 3.

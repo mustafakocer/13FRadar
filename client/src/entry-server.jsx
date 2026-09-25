@@ -16,7 +16,7 @@ export function preload() {
 
 // Server entry, called by api/ssr.js.
 //   render({ lang, url, seeds, siteUrl })
-//     lang    'en' | 'tr'
+//     lang    'tr' (the only locale)
 //     url     path WITHOUT the language prefix, query string included
 //     seeds   [[queryKey, data], …] — pre-fetched data keyed like the pages' useQuery calls
 // Returns { html, head, state } for the template.

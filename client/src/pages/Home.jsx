@@ -90,19 +90,6 @@ const daysBetween = (a, b) => {
 
 // ---------------------------------------------------------------------------
 
-function LangSwitch() {
-  const { lang, setLang, t } = useI18n();
-  return (
-    <div className="lang-switch" role="group" aria-label={t('landing.lang.hint')}>
-      {['tr', 'en'].map((l) => (
-        <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)} aria-pressed={lang === l}>
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 function PromoBanner() {
   const { t } = useI18n();
   const [closed, setClosed] = useState(false);
@@ -152,7 +139,6 @@ function Hero({ summary }) {
     <section className="hero-band">
       <div className="hero-topbar">
         <span className="hero-kicker">SEC 13F · Form 4</span>
-        <LangSwitch />
       </div>
       <h1>
         {t('landing.h1.pre')}

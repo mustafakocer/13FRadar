@@ -20,7 +20,7 @@ export function socialLinks() {
     .filter((s) => /^https?:\/\//.test(s));
 }
 
-export const publisher = () => ({ '@type': 'Organization', name: 'Fundocap', url: '__SITE__/en', logo: { '@type': 'ImageObject', url: '__SITE__/api/og' } });
+export const publisher = () => ({ '@type': 'Organization', name: 'Fundocap', url: '__SITE__/tr', logo: { '@type': 'ImageObject', url: '__SITE__/api/og' } });
 
 export function organization(lang) {
   const sameAs = socialLinks();

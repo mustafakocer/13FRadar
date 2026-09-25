@@ -317,15 +317,15 @@ export const ROUTES = [
   { kind: 'account', re: /^\/account$/, load: async () => [], cache: 'none' },
 ];
 
-// static content: language-specific slugs; a slug from the other language
-// 301s to the right one (handled in ssr.js via `redirect`)
+// static content: a retired English slug (/tr/guides/…) 301s to the Turkish
+// one (handled in ssr.js via `redirect`)
 function contentRoute(pathname, lang) {
   const hit = contentByPath(pathname);
   if (!hit) return null;
   return { route: { kind: 'content', load: async () => (hit.lang === lang ? [] : { redirect: hit.entry.paths[lang], status: 301 }), cache: 'day' }, params: {} };
 }
 
-export function matchRoute(pathname, search, lang = 'en') {
+export function matchRoute(pathname, search, lang = 'tr') {
   const c = contentRoute(pathname, lang);
   if (c) return c;
   const qs = new URLSearchParams(search || '');

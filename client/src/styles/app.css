@@ -653,14 +653,6 @@ th.sortable { cursor: pointer; user-select: none; }
   .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* language switch */
-.lang-switch { display: inline-flex; border: 1px solid var(--border); border-radius: 999px; padding: 3px; background: var(--popover); }
-.lang-switch button {
-  border: 0; background: transparent; color: var(--text-2); font-weight: 700; font-size: 12.5px;
-  padding: 5px 12px; border-radius: 999px; cursor: pointer; font-family: inherit; letter-spacing: .04em;
-}
-.lang-switch button.on { background: var(--card); color: var(--text); border: 1px solid var(--border-strong); }
-
 /* index strip */
 .mkt-strip {
   margin: 0 calc(var(--bleed-x) * -1);

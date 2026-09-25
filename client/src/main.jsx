@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, hydrate } from '@tanstack/react-query';
 import Root, { queryDefaults } from './Root.jsx';
-import { splitLang, withLang, isLang } from './lib/locale.js';
+import { splitLang, withLang, DEFAULT_LANG } from './lib/locale.js';
 import { preloadPagesFor } from './pages/lazyPages.js';
 import { preloadCharts } from './components/Charts/index.js';
 import './styles/tokens.css';
@@ -17,20 +17,13 @@ try {
   /* storage blocked */
 }
 
-// Language comes from the URL prefix. The server redirects bare URLs; when
-// the app is served without SSR (vite dev, static preview) do it here.
-let { lang } = splitLang(window.location.pathname);
-if (!lang) {
-  let pref = null;
-  try {
-    pref = localStorage.getItem('lang');
-  } catch {
-    /* ignore */
-  }
-  if (!isLang(pref)) pref = (navigator.language || '').toLowerCase().startsWith('tr') ? 'tr' : 'en';
-  lang = pref;
-  const { path } = splitLang(window.location.pathname);
-  window.history.replaceState(null, '', withLang(lang, path) + window.location.search + window.location.hash);
+// The site is Turkish-only and every page lives under /tr. The server
+// redirects bare and retired /en URLs; when the app is served without SSR
+// (vite dev, static preview) do it here.
+const lang = DEFAULT_LANG;
+const split = splitLang(window.location.pathname);
+if (split.lang !== lang) {
+  window.history.replaceState(null, '', withLang(lang, split.path) + window.location.search + window.location.hash);
 }
 document.documentElement.lang = lang;
 

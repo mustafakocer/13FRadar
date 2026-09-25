@@ -33,7 +33,7 @@ test('every listed sitemap builds and names only the canonical origin', () => {
   assert.deepEqual(parseType('filers-2'), { family: 'filers', part: 2 });
 });
 
-test('sitemap-gurus / sitemap-filers contain every stored slug once per language', () => {
+test('sitemap-gurus / sitemap-filers contain every stored slug once, under /tr', () => {
   const t = slugTable();
   const gurus = Object.values(t.bySlug).filter((v) => v.kind === 'guru').length;
   const filers = Object.values(t.bySlug).filter((v) => v.kind === 'filer').length;
@@ -44,15 +44,16 @@ test('sitemap-gurus / sitemap-filers contain every stored slug once per language
   const subs = gAll.filter((u) => /\/guru\/[a-z0-9-]+\/(changes|mix|history|backtest)$/.test(u));
   const fAll = locs(buildSitemap('filers', SITE).body);
   const f = fAll.filter((u) => /\/filer\/[a-z0-9-]+$/.test(u));
-  assert.equal(g.length, gurus * 2);
-  assert.equal(subs.length, gurus * 2 * 4, 'four sub-pages per guru per language');
+  assert.equal(g.length, gurus);
+  assert.ok(gAll.every((u) => u.startsWith(`${SITE}/tr/`)), 'Turkish-only: every URL is under /tr');
+  assert.equal(subs.length, gurus * 4, 'four sub-pages per guru');
   assert.equal(g.length + subs.length + pairs.length, gAll.length, 'only guru, guru sub-page and guru×ticker URLs');
-  assert.equal(f.length, filers * 2);
+  assert.equal(f.length, filers);
   assert.equal(fAll.length, f.length, 'filer sub-pages are not listed');
   assert.equal(new Set(gAll).size, gAll.length, 'no duplicate URLs');
   assert.ok(f.length < URL_LIMIT, 'under the 50k per-file limit');
   assert.match(buildSitemap('gurus', SITE).body, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
-  assert.match(buildSitemap('gurus', SITE).body, /hreflang="x-default"/);
+  assert.doesNotMatch(buildSitemap('gurus', SITE).body, /hreflang=/, 'a single-language site carries no alternates');
 });
 
 test('sitemap-stocks carries every symbol the curated funds hold', () => {
@@ -62,26 +63,25 @@ test('sitemap-stocks carries every symbol the curated funds hold', () => {
   assert.ok(held.size >= 10, 'the per-security table is available');
   for (const sym of held) {
     if (!/^[A-Z0-9.\-]{1,12}$/.test(sym)) continue;
-    assert.ok(urls.includes(`${SITE}/en/stock/${sym}`), `${sym} listed (en)`);
     assert.ok(urls.includes(`${SITE}/tr/stock/${sym}`), `${sym} listed (tr)`);
   }
-  assert.equal(new Set(urls).size, urls.length, 'each symbol once per language');
+  assert.equal(new Set(urls).size, urls.length, 'each symbol once');
   assert.match(s, /<lastmod>\d{4}-\d{2}-\d{2}<\/lastmod>/);
 });
 
-test('sitemap-guides lists guides and comparisons under their own language slugs', () => {
+test('sitemap-guides lists guides and comparisons under their Turkish slugs', () => {
   const urls = locs(buildSitemap('guides', SITE).body);
-  assert.ok(urls.includes(`${SITE}/en/guides/what-is-13f`));
   assert.ok(urls.includes(`${SITE}/tr/rehber/13f-nedir`));
   assert.ok(!urls.includes(`${SITE}/tr/guides/what-is-13f`), 'no English slug under /tr');
+  assert.ok(!urls.some((u) => u.includes('/en/')), 'no /en URLs');
   // and they are not repeated in the pages family
   assert.ok(!locs(buildSitemap('pages', SITE).body).some((u) => /\/(guides|rehber)\//.test(u)));
 });
 
 test('a family past the URL limit is split into numbered parts', () => {
   const entry = (i) => ({ path: `/stock/S${i}`, lastmod: '2026-09-01' });
-  assert.equal(partsOf(Array.from({ length: 25000 }, (_, i) => entry(i))), 1, '25,000 entries × 2 languages fit one file');
-  assert.equal(partsOf(Array.from({ length: 25001 }, (_, i) => entry(i))), 2, 'one more needs a second');
+  assert.equal(partsOf(Array.from({ length: URL_LIMIT }, (_, i) => entry(i))), 1, '50,000 entries fit one file');
+  assert.equal(partsOf(Array.from({ length: URL_LIMIT + 1 }, (_, i) => entry(i))), 2, 'one more needs a second');
   assert.equal(partsOf([]), 1, 'an empty family is still one (empty) file');
   const ctx = { slugs: { bySlug: {} }, filedByCik: new Map(), latestFiled: '2026-09-01' };
   assert.ok(entriesFor('pages', ctx).length > 10, 'entriesFor runs against a supplied context');
@@ -91,7 +91,7 @@ test('a family past the URL limit is split into numbered parts', () => {
 
 test('sitemap-insider has entries with lastmod', () => {
   const i = buildSitemap('insider', SITE).body;
-  assert.ok(locs(i).includes(`${SITE}/en/insiders/cluster`));
+  assert.ok(locs(i).includes(`${SITE}/tr/insiders/cluster`));
   assert.match(i, /<lastmod>/);
 });
 
@@ -100,7 +100,7 @@ test('robots.txt references the sitemap index and blocks private routes', () => 
   assert.equal(contentType, 'text/plain');
   assert.match(body, /^User-agent: \*\nAllow: \/\n/);
   assert.match(body, /Disallow: \/api\//);
-  assert.match(body, /Disallow: \/en\/account/);
+  assert.match(body, /Disallow: \/tr\/account/);
   assert.match(body, new RegExp(`Sitemap: ${SITE}/sitemap.xml`));
 });
 

@@ -15,7 +15,7 @@ test('SSR: a stock page is 200 with its H1 when the quote is unavailable', async
   assert.ok(/<h1>/.test(html), 'content without JS');
   assert.match(html, new RegExp(`\\(${SNAPSHOT_SYMBOL}\\)`), 'the symbol is in the heading');
   assert.match(html, /<link rel="canonical" href="https:\/\/example\.test\/tr\/stock\/TSM"/);
-  assert.match(html, /hreflang="en"/);
+  assert.match(html, /<meta property="og:locale" content="tr_TR"/);
   assert.match(html, /application\/ld\+json/, 'JSON-LD is server-rendered');
   assert.match(headers['cache-control'], /s-maxage=86400/);
   // the page says the quote is missing or dated rather than showing nothing
@@ -23,12 +23,12 @@ test('SSR: a stock page is 200 with its H1 when the quote is unavailable', async
 });
 
 test('SSR: a symbol no dataset has ever seen is a real 404', async () => {
-  const { status } = await ssr('/en/stock/ZZZZNOPE');
+  const { status } = await ssr('/tr/stock/ZZZZNOPE');
   assert.equal(status, 404);
 });
 
 test('SSR: the fixture-served symbol still renders its full quote board', async () => {
-  const { status, html } = await ssr('/en/stock/AAPL');
+  const { status, html } = await ssr('/tr/stock/AAPL');
   assert.equal(status, 200);
-  assert.doesNotMatch(html, /temporarily unavailable/, 'a live quote shows no outage banner');
+  assert.doesNotMatch(html, /geçici olarak alınamıyor/, 'a live quote shows no outage banner');
 });

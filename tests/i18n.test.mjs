@@ -24,11 +24,9 @@ const walk = (dir) =>
     return e.isDirectory() ? walk(full) : /\.jsx?$/.test(e.name) && e.name !== 'i18n.jsx' ? [full] : [];
   });
 
-test('every translation key exists in both locales', () => {
-  assert.equal(anchors.length, 2, 'tr and en dictionaries found');
-  const only = (a, b) => [...dicts[a]].filter((k) => !dicts[b].has(k));
-  assert.deepEqual(only('tr', 'en'), [], 'keys missing from en');
-  assert.deepEqual(only('en', 'tr'), [], 'keys missing from tr');
+test('the app ships a single Turkish dictionary', () => {
+  assert.deepEqual(anchors.map((m) => m[1]), ['tr'], 'only the tr dictionary is defined');
+  assert.ok(dicts.tr.size > 0);
 });
 
 test('every t() key used in the app is defined', () => {
@@ -37,7 +35,7 @@ test('every t() key used in the app is defined', () => {
     const txt = fs.readFileSync(file, 'utf8');
     // direct literals only; keys built with template strings are checked by use
     for (const m of txt.matchAll(/(?<![A-Za-z0-9_.])t\('([a-z][A-Za-z0-9]*\.[A-Za-z0-9.]+)'\)/g)) {
-      if (!dicts.en.has(m[1])) missing.push(`${path.basename(file)}: ${m[1]}`);
+      if (!dicts.tr.has(m[1])) missing.push(`${path.basename(file)}: ${m[1]}`);
     }
   }
   assert.deepEqual(missing, [], 'undefined keys would render as raw key text');

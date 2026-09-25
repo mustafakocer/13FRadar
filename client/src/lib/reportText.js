@@ -2,7 +2,7 @@ import { fmtMoney } from './format.js';
 
 // Answer box for a quarterly report page (shared by the generator, the page
 // and the markdown export).
-export function reportAnswer(r, lang = 'en') {
+export function reportAnswer(r, lang = 'tr') {
   const b = r.topBuysByValue?.[0];
   const s = r.topSellsByValue?.[0];
   const sym = (x) => (x ? x.ticker || x.issuer : '—');

@@ -44,15 +44,14 @@ const esc = (s) =>
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
 
-export const DEFAULT_TITLE = { en: 'Fundocap — Track the Smart Money & Insiders', tr: 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' };
+export const DEFAULT_TITLE = { tr: 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' };
 export const DEFAULT_DESC = {
-  en: "Follow the real money flows of Wall Street's top funds and corporate insiders with SEC 13F and Form 4 data.",
   tr: "Wall Street'in en büyük fonlarının ve şirket yöneticilerinin gerçek para akışını SEC 13F ve Form 4 verisiyle izleyin.",
 };
 
 // Tags shared by the server template and the client mirror.
 export function headTags(spec, { siteUrl }) {
-  const lang = spec.lang || 'en';
+  const lang = spec.lang || 'tr';
   const path = spec.path || '/';
   // per-language slugs (guides) override the shared path
   const pathFor = (l) => spec.paths?.[l] || path;
@@ -64,16 +63,12 @@ export function headTags(spec, { siteUrl }) {
     { tag: 'title', text: title },
     { tag: 'meta', name: 'description', content: description },
     { tag: 'link', rel: 'canonical', href: url },
-    { tag: 'link', rel: 'alternate', hreflang: 'en', href: `${siteUrl}${withLang('en', pathFor('en'))}` },
-    { tag: 'link', rel: 'alternate', hreflang: 'tr', href: `${siteUrl}${withLang('tr', pathFor('tr'))}` },
-    { tag: 'link', rel: 'alternate', hreflang: 'x-default', href: `${siteUrl}${withLang('en', pathFor('en'))}` },
     { tag: 'meta', property: 'og:title', content: title },
     { tag: 'meta', property: 'og:description', content: description },
     { tag: 'meta', property: 'og:url', content: url },
     { tag: 'meta', property: 'og:type', content: spec.type || 'website' },
     { tag: 'meta', property: 'og:site_name', content: 'Fundocap' },
-    { tag: 'meta', property: 'og:locale', content: lang === 'tr' ? 'tr_TR' : 'en_US' },
-    { tag: 'meta', property: 'og:locale:alternate', content: lang === 'tr' ? 'en_US' : 'tr_TR' },
+    { tag: 'meta', property: 'og:locale', content: 'tr_TR' },
     { tag: 'meta', property: 'og:image', content: image },
     { tag: 'meta', property: 'og:image:width', content: '1200' },
     { tag: 'meta', property: 'og:image:height', content: '630' },
@@ -111,7 +106,7 @@ export function buildHead(spec, opts) {
 
 function applyToDocument(spec) {
   const siteUrl = window.location.origin;
-  const title = spec.title || DEFAULT_TITLE[spec.lang || 'en'];
+  const title = spec.title || DEFAULT_TITLE[spec.lang || 'tr'];
   if (document.title !== title) document.title = title;
   const desired = headTags(spec, { siteUrl }).filter((t) => t.tag !== 'title');
   const existing = [...document.querySelectorAll('head [data-seo]')];

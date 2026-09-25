@@ -19,7 +19,7 @@ SEC 13F dosyalamalarıyla büyük fon yöneticilerinin portföylerini takip eden
 - 🔔 İzleme listesinde yeni 13F rozetleri, ⌘K komut paleti, 🖨 PDF/yazdır raporu
 - 🌍 Tam evren tarayıcı: haftalık GitHub Action tüm ~8.000 13F dosyalayıcısını tarayıp `client/public/universe.json` üretir
 - 🏠 **Landing:** akıllı para hero'su, endeks şeridi (SPY/QQQ/IWM), gerçek zamanlı insider sinyalleri (piyasa nabzı · küme / C-suite / kuruş hisse alımları), usta yatırımcı konsensüsü, yönetici bazlı portföy güncellemeleri (Yeni Alım / Artırdı / Azalttı / Çıktı), çeyreklik piyasa aktivitesi — tamamı statik CDN dosyalarından, paywall'suz
-- 🌗 Açık/koyu tema, 🇹🇷/🇬🇧 çift dil — dil otomatik seçilir: Türkiye'den gelen ziyaretçi TR, diğer ülkeler EN (`/api/geo`, Vercel ülke başlığı); TR/EN anahtarı ile yapılan seçim kalıcıdır
+- 🌗 Açık/koyu tema, 🇹🇷 yalnız Türkçe arayüz — İngilizce sürüm kaldırıldı; eski `/en/…` bağlantıları 301 ile `/tr/…` karşılığına yönlenir
 
 ## Mimari
 
@@ -51,7 +51,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 - `api/_lib/ssr/routes.js`: rota → veri yükleyici. Yükleyiciler API handler'larını **süreç içinde** çağırır (HTTP yok) ve TanStack Query önbelleğini sayfanın kullandığı anahtarlarla doldurur; istemci `window.__STATE__` üzerinden hydrate olur.
 - Ücretsiz katman sunucuda render edilir; Pro bölümler (tam tablolar, insider akışının tamamı, backtest) istemcide yüklenir. Kilitli her bölüm tek bileşenle gösterilir: `<ProGate>` (`client/src/components/ProGate.jsx`) — önizleme (ilk satırlar / örnek) sayfada kalır, kilit kutusu **altında** durur ve "Kalan N işlem Pro ile" der. /insiders ücretsizde: Piyasa Nabzı + Güçlü Sinyaller + En Büyük İşlemler kartları tam, Son İşlemler ilk 10 satır, rol/küme sekmelerinde ilk 5 (`/api/insider-feed` `full=1` olmadan önizleme; filtreler yok sayılır, CDN cache'lenir; `full=1` Pro ve `no-store`). /insiders/cluster, /csuite, /penny: ilk 10 satır.
 - **ISR eşdeğeri (CDN cache):** fon/hisse/guru×hisse sayfaları `s-maxage=86400, stale-while-revalidate=604800` (günlük tazelenir, 7 gün eskisi sunulabilir); ana sayfa, konsensüs, sıralamalar ve insider sinyal sayfaları `s-maxage=3600` + 1 gün SWR; hesap/izleme listesi `no-store`. Politika `CACHE` sabitinde (`routes.js`).
-- **Dil yolları:** her URL `/en/…` veya `/tr/…`. Öneksiz URL'ler 302 ile yönlenir: `lang` çerezi → Vercel ülke başlığı (`TR` → tr) → `Accept-Language` → en. `hreflang` en/tr/x-default her sayfada; canonical kendine işaret eder.
+- **Dil yolları:** site yalnız Türkçe; her URL `/tr/…`. Öneksiz URL'ler ve kaldırılan İngilizce `/en/…` URL'leri 301 ile `/tr/…`'ye yönlenir (İngilizce rehber/yasal slug'ları, ör. `/en/guides/what-is-13f` → `/tr/rehber/13f-nedir`, tek adımda Türkçe karşılığına gider). `hreflang` yok; canonical kendine işaret eder, `og:locale` `tr_TR`.
 - **Slug'lar:** `api/_data/slugs.json` (`npm run slugs`) her 13F dosyalayıcı için kalıcı, ASCII, benzersiz slug tutar; `/manager/<cik>` 301 ile `/guru/<slug>` (küratörlü) veya `/filer/<slug>`'a gider. Bir kez atanmış slug asla değişmez; yeni çakışmalar CIK sonekiyle çözülür.
 - `<head>`: `useSeo()` (client/src/seo.jsx) sunucuda toplanır, istemcide her gezinmede aynalanır. Şablonlar `client/src/lib/seoTemplates.js` (başlık/açıklama gerçek sayılarla, FAQ, breadcrumb, Organization/WebSite JSON-LD).
 
@@ -59,7 +59,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 
 | Değişken | Zorunlu | Açıklama |
 |---|---|---|
-| `SITE_URL` | opsiyonel (`scripts/check-env.mjs` yalnız `*.vercel.app` değerinde build'i durdurur) | Canonical, hreflang, sitemap ve OG görsel URL'lerinin kökü, ör. `https://www.fundocap.co` (prod varsayılanı; `*.vercel.app` değerleri prod'da yok sayılır). Preview'da `VERCEL_URL`'den türetilir. |
+| `SITE_URL` | opsiyonel (`scripts/check-env.mjs` yalnız `*.vercel.app` değerinde build'i durdurur) | Canonical, sitemap ve OG görsel URL'lerinin kökü, ör. `https://www.fundocap.co` (prod varsayılanı; `*.vercel.app` değerleri prod'da yok sayılır). Preview'da `VERCEL_URL`'den türetilir. |
 | `SEC_USER_AGENT` | önerilir | SEC'in istediği iletişim bilgisi |
 | `SEC_RPS`, `SEC_RETRY_BACKOFF` | opsiyonel | EDGAR istek hızı tavanı (batch'te 6/sn, Vercel'de 8/sn; 429/403/503'te otomatik yarıya iner, temiz koşuda toparlanır — `api/_lib/edgarClock.js`) ve retry bekleme süreleri (sn, virgülle). |
 | `EDGAR_CACHE_DIR` | opsiyonel | EDGAR belge cache'i (varsayılan `.cache/edgar`, git dışı; boş string kapatır; Vercel'de kapalı). Aynı accession ikinci kez indirilmez; Action'da `actions/cache` ile koşular arası korunur. |
@@ -83,7 +83,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | AI tarayıcılarına açık `robots.txt` (GPTBot, ChatGPT-User, OAI-SearchBot, ClaudeBot, Claude-User, anthropic-ai, PerplexityBot, Perplexity-User, Google-Extended, Bingbot, Applebot, CCBot) | `api/_handlers/sitemap.js` → `/robots.txt` | ✅ test: her UA ile 3 sayfa 200 + `<table>` |
 | UA'ya göre engelleme / JS challenge yok | `vercel.json`, `api/ssr.js` (UA okunmaz) — Vercel panelindeki "Bot Protection"/WAF ayarı **kapalı** kalmalı | ✅ kodda yok; panel ayarı manuel kontrol |
 | `/llms.txt`, `/llms-full.txt` | `scripts/build-llms.mjs`, build'de üretilir (`npm run llms` ile elle) | ✅ test: llmstxt.org yapısı |
-| Cevap kutusu (H1 altında 2–3 cümle, veri odaklı, EN+TR) | `client/src/lib/answerBox.js`, `<AnswerBox>` | ✅ guru, hisse, sıralama, takvim, rapor, rehber |
+| Cevap kutusu (H1 altında 2–3 cümle, veri odaklı) | `client/src/lib/answerBox.js`, `<AnswerBox>` | ✅ guru, hisse, sıralama, takvim, rapor, rehber |
 | Meta description = cevap kutusu (≤155) · JSON-LD `description` = cevap kutusu | `seoTemplates.js`, `jsonld.js` | ✅ |
 | JSON-LD yığını: Person/Organization + Dataset + FAQPage + Breadcrumb (guru); Corporation + Dataset + FAQ + Breadcrumb (hisse); Article + ItemList + FAQ + Breadcrumb (sıralama, takvim, rapor); Organization(sameAs) + WebSite/SearchAction (ana sayfa) | `client/src/lib/jsonld.js` | ✅ `scripts/check-jsonld.mjs` build'i durdurur |
 | `dateModified` (son işlenen bildirim) her varlık sayfasında + sitemap `lastmod` | `useSeo({dateModified})`, `sitemap.js` | ✅ |
@@ -95,7 +95,7 @@ Sosyal profiller (Organization `sameAs`): build ortamında `VITE_SOCIAL_LINKS="h
 
 **llms.txt'yi yeniden üretme:** `SITE_URL=https://alanadi npm run llms` (build sırasında otomatik). İçerik şu dosyalardan gelir: `slugs.json`, `consensus.json`, `stocks.json`, `insiders-teaser.json`, `guru-history.json`, `api/_data/reports/index.json`, `client/src/content/registry.js`.
 
-**Çeyrek raporu üretme:** `npm run report -- 2026 2` → `api/_data/reports/2026-q2.json` (sayfa: `/en/reports/2026-q2`, API: `/api/report-id/2026-q2`, markdown: `?format=md`, grafik paketi: `/api/og?type=report&id=2026-q2&chart=buys|sells|moves`) ve `reports/2026-q2.md`. Girdi: `api/_data/consensus-pro.json` (+ varsa `guru-history.json`). Çıktıyı commit'leyin; sitemap ve llms.txt indeksten otomatik güncellenir.
+**Çeyrek raporu üretme:** `npm run report -- 2026 2` → `api/_data/reports/2026-q2.json` (sayfa: `/tr/reports/2026-q2`, API: `/api/report-id/2026-q2`, markdown: `?format=md`, grafik paketi: `/api/og?type=report&id=2026-q2&chart=buys|sells|moves`) ve `reports/2026-q2.md`. Girdi: `api/_data/consensus-pro.json` (+ varsa `guru-history.json`). Çıktıyı commit'leyin; sitemap ve llms.txt indeksten otomatik güncellenir.
 
 **AI atıf izleme (aylık):**
 ```bash
@@ -131,12 +131,12 @@ Sorular `scripts/geo-monitor.config.json` (20 soru, EN+TR). Sütunlar: tarih, so
 
 ```bash
 npm run build      # client + SSR paketi
-npm test           # node:test — SSR çıktısı, meta/hreflang, FAQ JSON-LD, sitemap, slug, insider taksonomisi, geçmiş
+npm test           # node:test — SSR çıktısı, meta/canonical, FAQ JSON-LD, sitemap, slug, insider taksonomisi, geçmiş
 npm run fixtures   # tests/fixtures/sec fixture'larını yeniden üretir
 
 # Lighthouse (yerel SSR sunucusuna karşı; chromium yolu ortamınıza göre)
 SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev &
-npx lighthouse http://localhost:3001/en/guru/berkshire-hathaway-warren-buffett --only-categories=seo,performance --preset=desktop --view
+npx lighthouse http://localhost:3001/tr/guru/berkshire-hathaway-warren-buffett --only-categories=seo,performance --preset=desktop --view
 ```
 
 Son ölçüm (bu depo, fixture verisi, 2026-09-11): SEO **100** (ana sayfa, guru, hisse, takvim, çeyrek raporu, rehber EN/TR); performans masaüstü **100 / 98 / 98**, mobil simülasyonu **88 / 88 / 90** (takvim 87, rapor 81, rehber 88/89). Kritik JS paketi 221 KB (58 KB gzip); grafikler (Recharts, 430 KB) ve Supabase SDK (377 KB) ilk boyamadan sonra, yalnız gerektiğinde yüklenir; Google Fonts render'ı engellemez.

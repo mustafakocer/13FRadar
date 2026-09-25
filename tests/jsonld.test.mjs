@@ -7,13 +7,13 @@ const types = (html) => validateHtmlJsonLd(html).blocks.map((b) => b['@type']);
 
 test('validator catches missing fields, placeholders and relative URLs', () => {
   assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Dataset', name: 'x' }).length >= 3);
-  assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Person', name: 'A', url: '/en/x' }).some((e) => /absolute/.test(e)));
+  assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Person', name: 'A', url: '/tr/x' }).some((e) => /absolute/.test(e)));
   assert.ok(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Organization', name: '__SITE__' }).some((e) => /placeholder/.test(e)));
-  assert.deepEqual(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Fundocap', url: 'https://x.test/en' }), []);
+  assert.deepEqual(validateJsonLd({ '@context': 'https://schema.org', '@type': 'Organization', name: 'Fundocap', url: 'https://x.test/tr' }), []);
 });
 
 test('guru page stacks Person + Dataset + FAQPage + BreadcrumbList and validates', async () => {
-  const { html } = await ssr('/en/guru/berkshire-hathaway-warren-buffett');
+  const { html } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
   const { blocks, problems } = validateHtmlJsonLd(html);
   assert.deepEqual(problems, []);
   const t = types(html);
@@ -23,7 +23,7 @@ test('guru page stacks Person + Dataset + FAQPage + BreadcrumbList and validates
   assert.equal(person.worksFor.name, 'Berkshire Hathaway');
   assert.match(person.worksFor.sameAs, /sec\.gov.*CIK=0001067983/);
   const ds = blocks.find((b) => b['@type'] === 'Dataset');
-  assert.match(ds.description, /reported 11 positions worth \$198\.16B/);
+  assert.match(ds.description, /11 pozisyon ve \$198\.16B portföy değeri bildirdi/);
   assert.equal(ds.distribution[0].contentUrl, 'https://example.test/api/export/holdings/0001067983');
   assert.match(ds.temporalCoverage, /^2026-03-31\/2026-06-30$/);
   assert.equal(ds.dateModified, '2026-08-14');
@@ -43,21 +43,21 @@ test('stock page stacks Corporation + Dataset + FAQPage + BreadcrumbList', async
 });
 
 test('ranking page stacks Article + ItemList + FAQPage, items point at stock pages', async () => {
-  const { html } = await ssr('/en/rankings/most-bought');
+  const { html } = await ssr('/tr/rankings/most-bought');
   const { blocks, problems } = validateHtmlJsonLd(html);
   assert.deepEqual(problems, []);
   for (const want of ['Article', 'ItemList', 'FAQPage', 'BreadcrumbList']) assert.ok(types(html).includes(want), want);
   const list = blocks.find((b) => b['@type'] === 'ItemList');
   assert.ok(list.numberOfItems >= 5);
-  assert.match(list.itemListElement[0].url, /^https:\/\/example\.test\/en\/stock\/[A-Z]/);
+  assert.match(list.itemListElement[0].url, /^https:\/\/example\.test\/tr\/stock\/[A-Z]/);
   const art = blocks.find((b) => b['@type'] === 'Article');
-  assert.match(art.description, /^Most bought is based on Q2 2026 13F filings/);
-  assert.match(html, /<details open(="")?><summary>Which stock is #1/);
+  assert.match(art.description, /^En çok alınanlar listesi 2026 Q2 13F bildirimlerine dayanır/);
+  assert.match(html, /<details open(="")?><summary>2026 Q2 çeyreğinde usta yatırımcıların en çok alınanlar listesinde 1\. sırada/);
 });
 
 test('home carries Organization (sameAs from env) + WebSite with SearchAction', async () => {
   process.env.SOCIAL_LINKS = 'https://x.com/fundocap,https://www.linkedin.com/company/fundocap';
-  const { html } = await ssr('/en');
+  const { html } = await ssr('/tr');
   const { blocks, problems } = validateHtmlJsonLd(html);
   assert.deepEqual(problems, []);
   const org = blocks.find((b) => b['@type'] === 'Organization');

@@ -74,7 +74,7 @@ function Dropdown({ label, icon, items, active }) {
 }
 
 export default function TopBar({ theme, onToggleTheme }) {
-  const { t, lang, toggle } = useI18n();
+  const { t } = useI18n();
   const { configured, user, plan } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -143,9 +143,6 @@ export default function TopBar({ theme, onToggleTheme }) {
           <button className="toggle-btn" onClick={onToggleTheme} title="Theme" aria-label="Theme">
             <Ico icon={theme === 'dark' ? Sun : Moon} />
           </button>
-          <button className="toggle-btn" onClick={toggle} title="Language">
-            {lang === 'tr' ? 'EN' : 'TR'}
-          </button>
           {accountLink}
           <button
             className={`burger${mobileOpen ? ' on' : ''}`}
@@ -183,7 +180,6 @@ export default function TopBar({ theme, onToggleTheme }) {
           )}
           <div className="row" style={{ padding: '10px 12px', gap: 8 }}>
             <button className="toggle-btn" onClick={onToggleTheme} aria-label="Theme"><Ico icon={theme === 'dark' ? Sun : Moon} /></button>
-            <button className="toggle-btn" onClick={toggle}>{lang === 'tr' ? 'EN' : 'TR'}</button>
             <button className="toggle-btn" onClick={openPalette}><Ico icon={Search} /> ⌘K</button>
           </div>
         </div>

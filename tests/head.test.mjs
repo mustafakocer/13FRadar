@@ -10,7 +10,7 @@ import { planHead, tagSignature, scriptText } from '../client/src/lib/head.js';
 const ldTags = (html) => [...html.matchAll(/<script type="application\/ld\+json"([^>]*)>/g)].map((m) => m[1]);
 
 test('every server-rendered JSON-LD script carries the data-seo marker, one block per type', async () => {
-  for (const url of ['/en', '/en/guru/berkshire-hathaway-warren-buffett', '/en/stock/AAPL', '/en/rankings/most-bought', '/en/calendar', '/tr/rehber/13f-nedir']) {
+  for (const url of ['/tr', '/tr/guru/berkshire-hathaway-warren-buffett', '/tr/stock/AAPL', '/tr/rankings/most-bought', '/tr/calendar', '/tr/rehber/13f-nedir']) {
     const { html } = await ssr(url);
     const attrs = ldTags(html);
     assert.ok(attrs.length >= 1, `${url} has JSON-LD`);
@@ -27,14 +27,14 @@ test('every server-rendered JSON-LD script carries the data-seo marker, one bloc
 test('planHead keeps an identical head and replaces a different one', () => {
   const desired = [
     { tag: 'meta', name: 'description', content: 'A & B' },
-    { tag: 'link', rel: 'canonical', href: 'https://x.test/en' },
+    { tag: 'link', rel: 'canonical', href: 'https://x.test/tr' },
     { tag: 'script', type: 'application/ld+json', text: '{"@type":"Person","name":"<b>"}' },
   ];
   // what the browser reads back from the server-rendered head: attributes
   // unescaped, the script text in its escaped form, data-seo present
   const existing = [
     { tag: 'meta', 'data-seo': '', name: 'description', content: 'A & B' },
-    { tag: 'link', href: 'https://x.test/en', rel: 'canonical', 'data-seo': '' },
+    { tag: 'link', href: 'https://x.test/tr', rel: 'canonical', 'data-seo': '' },
     { tag: 'script', type: 'application/ld+json', text: scriptText('{"@type":"Person","name":"<b>"}') },
   ];
   assert.equal(planHead(existing, desired).same, true, 'identical head is kept');

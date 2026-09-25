@@ -11,8 +11,8 @@ const AI_BOTS = ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot', 'ClaudeBot', 'Claude
 // the quote provider returns financial statements, so its marker is the quote
 // board, which every ticker has.
 const PAGES = [
-  { path: '/en/guru/berkshire-hathaway-warren-buffett', marker: /<table/ },
-  { path: '/en/stock/AAPL', marker: /class="kv-grid quote-grid/ },
+  { path: '/tr/guru/berkshire-hathaway-warren-buffett', marker: /<table/ },
+  { path: '/tr/stock/AAPL', marker: /class="kv-grid quote-grid/ },
   { path: '/tr/rankings/most-bought', marker: /<table/ },
 ];
 
@@ -27,7 +27,7 @@ test('robots.txt allows every AI crawler explicitly and blocks only private/mach
   assert.match(body, /Disallow: \/api\//);
   assert.match(body, /Disallow: \/account/);
   assert.match(body, /Disallow: \/auth\//);
-  assert.doesNotMatch(body, /Disallow: \/en\/watchlist/, 'only /api, /user, /account, /auth are blocked');
+  assert.doesNotMatch(body, /Disallow: \/tr\/watchlist/, 'only /api, /user, /account, /auth are blocked');
   assert.match(body, /Sitemap: https:\/\/example\.test\/sitemap\.xml/);
 });
 
@@ -43,15 +43,15 @@ test('every AI crawler UA gets full HTML with the page data — no challenge, no
   }
 });
 
-test('llms.txt follows the llmstxt.org shape and lists EN/TR URLs separately', () => {
+test('llms.txt follows the llmstxt.org shape and lists the Turkish (/tr) URLs', () => {
   execFileSync('node', [path.join(root, 'scripts', 'build-llms.mjs')], { env: { ...process.env, SITE_URL: 'https://example.test' } });
   const txt = fs.readFileSync(path.join(root, 'client', 'dist', 'llms.txt'), 'utf8');
   const lines = txt.split('\n');
   assert.equal(lines[0], '# Fundocap', 'H1 title line');
   assert.ok(lines[2].startsWith('> '), 'blockquote summary');
   const h2 = lines.filter((l) => l.startsWith('## '));
-  assert.ok(h2.length >= 10, `H2 sections (${h2.length})`);
-  assert.ok(h2.some((h) => h === '## Gurus (EN)') && h2.some((h) => h === '## Usta Yatırımcılar (TR)'));
+  assert.ok(h2.length >= 7, `H2 sections (${h2.length})`);
+  assert.ok(h2.includes('## Usta Yatırımcılar') && h2.includes('## Sıralamalar'));
   assert.ok(!lines.some((l) => /^#{3,} /.test(l)), 'no H3 or deeper');
   // every section is followed by a link list
   for (let i = 0; i < lines.length; i++) {
@@ -62,17 +62,18 @@ test('llms.txt follows the llmstxt.org shape and lists EN/TR URLs separately', (
   }
   const links = lines.filter((l) => /^- \[/.test(l));
   assert.ok(links.length >= 60, `link count ${links.length}`);
-  assert.ok(links.some((l) => l.includes('https://example.test/en/guru/')) && links.some((l) => l.includes('https://example.test/tr/guru/')));
+  assert.ok(links.some((l) => l.includes('https://example.test/tr/guru/')));
+  assert.ok(!links.some((l) => l.includes('https://example.test/en/')), 'no retired /en URLs');
   assert.match(txt, /45 days/);
   assert.match(txt, /Time Held/);
   assert.match(txt, /Cluster buy/);
   assert.match(txt, /## Optional/);
   const full = fs.readFileSync(path.join(root, 'client', 'dist', 'llms-full.txt'), 'utf8');
-  assert.ok(full.length > txt.length && full.includes('## Guru summaries (EN)'));
+  assert.ok(full.length > txt.length && full.includes('## Usta yatırımcı özetleri'));
 });
 
 test('GPTBot and ClaudeBot get the answer box text and JSON-LD on five public pages', async () => {
-  const pages = ['/en/guru/berkshire-hathaway-warren-buffett', '/tr/stock/AAPL', '/en/rankings/consensus', '/en/calendar', '/tr/reports/2026-q2'];
+  const pages = ['/tr/guru/berkshire-hathaway-warren-buffett', '/tr/stock/AAPL', '/tr/rankings/consensus', '/tr/calendar', '/tr/reports/2026-q2'];
   for (const ua of ['GPTBot', 'ClaudeBot']) {
     for (const page of pages) {
       const { status, html } = await ssr(page, { 'user-agent': `Mozilla/5.0 (compatible; ${ua}/1.0)` });

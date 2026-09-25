@@ -138,7 +138,7 @@ table('Notable moves (largest % change in shares)', notableMoves, [['Manager', (
 // host no matter where the site was deployed. SITE_URL is what the rest of
 // the build uses.
 const site = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');
-md.push('', `---`, `Source: Fundocap${site ? ` · ${site}/en/reports/${id}` : ''}`);
+md.push('', `---`, `Source: Fundocap${site ? ` · ${site}/tr/reports/${id}` : ''}`);
 fs.mkdirSync(path.join(root, 'reports'), { recursive: true });
 fs.writeFileSync(path.join(root, 'reports', `${id}.md`), md.join('\n') + '\n');
 console.log(`report ${id}: ${managers.length}/${pro.managers.length} managers, ${topBuysByValue.length} buys, ${biggestExits.length} exits, ${notableMoves.length} notable moves${newConsensus ? `, ${newConsensus.length} new consensus` : ' (no history yet)'} → api/_data/reports/${id}.json, reports/${id}.md`);

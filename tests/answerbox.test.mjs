@@ -72,17 +72,15 @@ test('truncate155 keeps whole sentences under 155 chars', () => {
   assert.equal(truncate155('short'), 'short');
 });
 
-test('SSR: answer box text is in the HTML, the meta description and matches across languages', async () => {
-  const en = await ssr('/en/guru/berkshire-hathaway-warren-buffett');
-  const box = /<p class="answer-box" data-answer-box[^>]*>([^<]+)<\/p>/.exec(en.html);
-  assert.ok(box, 'answer box rendered');
-  assert.match(box[1], /reported 11 positions worth \$198\.16B as of June 30, 2026/);
-  const desc = /<meta name="description" content="([^"]+)"/.exec(en.html)[1];
-  assert.ok(desc.length <= 155 && box[1].replace(/&amp;/g, '&').startsWith(desc.replace(/&amp;/g, '&').replace(/…$/, '').slice(0, 40)));
+test('SSR: answer box text is in the HTML and the meta description', async () => {
   const tr = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
-  assert.match(tr.html, /data-answer-box[^>]*>[^<]*30 Haziran 2026 itibarıyla 11 pozisyon/);
-  const stock = await ssr('/en/stock/AAPL');
-  assert.match(stock.html, /data-answer-box[^>]*>Apple Inc\. \(AAPL\) is /);
+  const box = /<p class="answer-box" data-answer-box[^>]*>([^<]+)<\/p>/.exec(tr.html);
+  assert.ok(box, 'answer box rendered');
+  assert.match(box[1], /30 Haziran 2026 itibarıyla 11 pozisyon ve \$198\.16B portföy değeri bildirdi/);
+  const desc = /<meta name="description" content="([^"]+)"/.exec(tr.html)[1];
+  assert.ok(desc.length <= 155 && box[1].replace(/&amp;/g, '&').startsWith(desc.replace(/&amp;/g, '&').replace(/…$/, '').slice(0, 40)));
+  const stock = await ssr('/tr/stock/AAPL');
+  assert.match(stock.html, /data-answer-box[^>]*>Apple Inc\. \(AAPL\) hissesi, /);
   const rank = await ssr('/tr/rankings/most-bought');
   assert.match(rank.html, /data-answer-box[^>]*>En çok alınanlar listesi 2026 Q2/);
 });

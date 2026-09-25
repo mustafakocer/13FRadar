@@ -57,7 +57,7 @@ export function movesFromPositions(positions = [], prevPositions = null) {
 
 // Guru ----------------------------------------------------------------------
 // input: { name, firm, count, aum, reportDate, filingDate, top: {ticker, issuer, weight}, move: {kind, ticker, issuer, value} }
-export function guruAnswer(input, lang = 'en') {
+export function guruAnswer(input, lang = 'tr') {
   const { name, firm, count, aum, reportDate, filingDate, top, move } = input;
   if (!name || count == null || aum == null || !reportDate) return null;
   const firmPart = firm && firm !== name ? ` (${firm})` : '';
@@ -123,7 +123,7 @@ export function guruAnswerFromHistory({ name, firm, history, update, tickerOf = 
 
 // Stock ---------------------------------------------------------------------
 // input: { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder: {name, weight}, filers }
-export function stockAnswer(input, lang = 'en') {
+export function stockAnswer(input, lang = 'tr') {
   const { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder, price, currency, marketCap } = input;
   if (!company || !ticker) return null;
   // Outside the tracked set there is no ownership number worth stating, so the
@@ -197,7 +197,7 @@ export const RANK_NAME = {
   tr: { 'most-bought': 'En çok alınanlar', 'most-sold': 'En çok satılanlar', consensus: 'Konsensüs', conviction: 'Yüksek kanaat', options: 'Opsiyon sahipliği' },
 };
 
-export function rankingAnswer({ kind, reportDate, first, managers }, lang = 'en') {
+export function rankingAnswer({ kind, reportDate, first, managers }, lang = 'tr') {
   if (!first || !reportDate) return null;
   const q = quarterOf(reportDate, lang);
   const sym = first.ticker || first.issuer;

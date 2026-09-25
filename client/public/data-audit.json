@@ -149,8 +149,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 9026,
-        "byCik": 9026
+        "bySlug": 9027,
+        "byCik": 9027
       },
       "findings": []
     },

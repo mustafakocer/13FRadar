@@ -158,7 +158,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 127
+        "rows": 134
       },
       "findings": []
     },

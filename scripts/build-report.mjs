@@ -1,14 +1,14 @@
 // Quarterly report generator.
 //   npm run report -- 2026 2        → api/_data/reports/2026-q2.json (page + API)
-//                                     reports/2026-q2.md (distribution copy)
+//                                     reports/2026-q2.md (Turkish distribution copy)
 // Assembled from the precomputed consensus (buys/sells/new positions/update
 // cards) and, when present, guru-history.json (prior-quarter holder counts
 // for "new consensus positions"). No network access.
 import fs from 'node:fs';
 import path from 'node:path';
-import { fmtMoney } from '../client/src/lib/format.js';
 import { reportAnswer } from '../client/src/lib/reportText.js';
 import { CANONICAL_SITE } from '../api/_lib/site.js';
+import { reportMarkdown } from '../api/_lib/reportMarkdown.js';
 
 const [year, q] = process.argv.slice(2).map(Number);
 if (!year || !q || q < 1 || q > 4) {
@@ -113,32 +113,10 @@ fs.writeFileSync(path.join(dir, `${id}.json`), JSON.stringify(report));
 const ids = fs.readdirSync(dir).filter((f) => /^\d{4}-q[1-4]\.json$/.test(f)).map((f) => f.replace('.json', '')).sort().reverse();
 fs.writeFileSync(path.join(dir, 'index.json'), JSON.stringify({ reports: ids }));
 
-// markdown for distribution
-const md = [];
-const money = (v) => fmtMoney(v);
-md.push(`# Fundocap — Q${q} ${year} Superinvestor Report`);
-md.push('');
-md.push(`> ${report.answer.en}`);
-md.push('');
-md.push(`Generated ${report.generatedAt.slice(0, 10)} from SEC 13F-HR filings of ${managers.length} tracked funds (${managers.map((m) => m.name).join(', ')}). 13F data is delayed up to 45 days, long-only, US-listed. Not investment advice.`);
-const table = (title, rows, cols) => {
-  md.push('', `## ${title}`, '', `| ${cols.map((c) => c[0]).join(' | ')} |`, `| ${cols.map(() => '---').join(' | ')} |`);
-  for (const r of rows) md.push(`| ${cols.map((c) => c[1](r)).join(' | ')} |`);
-};
-table('Top 20 net buys by $', topBuysByValue, [['Ticker', (r) => r.ticker || r.issuer], ['Company', (r) => r.issuer], ['Net bought', (r) => money(r.netValue)], ['Buyers', (r) => r.buyers], ['Holders', (r) => r.holderCount]]);
-table('Top 20 net sells by $', topSellsByValue, [['Ticker', (r) => r.ticker || r.issuer], ['Company', (r) => r.issuer], ['Net sold', (r) => money(Math.abs(r.netValue))], ['Sellers', (r) => r.sellers], ['Holders', (r) => r.holderCount]]);
-table('Top 20 buys by number of gurus', topBuysByCount, [['Ticker', (r) => r.ticker || r.issuer], ['Buyers', (r) => r.buyers], ['Net bought', (r) => money(r.netValue)]]);
-table('Top 20 sells by number of gurus', topSellsByCount, [['Ticker', (r) => r.ticker || r.issuer], ['Sellers', (r) => r.sellers], ['Net sold', (r) => money(Math.abs(r.netValue))]]);
-if (newConsensus) table('New consensus positions (≥5 gurus for the first time)', newConsensus, [['Ticker', (r) => r.ticker || r.issuer], ['Holders now', (r) => r.holderCount], ['Previous quarter', (r) => r.prevHolderCount]]);
-else md.push('', '## New consensus positions', '', '_Requires guru-history.json (quarterly history precompute); not available at generation time._');
-table('Biggest exits', biggestExits, [['Manager', (r) => r.manager], ['Ticker', (r) => r.ticker || r.issuer], ['Value sold', (r) => money(r.value)]]);
-md.push('', '## Sector flow', '', '_TODO: ticker → sector source not wired yet (see issue #2)._');
-table('Notable moves (largest % change in shares)', notableMoves, [['Manager', (r) => r.manager], ['Move', (r) => r.kind], ['Ticker', (r) => r.ticker || r.issuer], ['Change', (r) => `${r.change > 0 ? '+' : ''}${r.change.toFixed(1)}%`], ['Value', (r) => money(r.value)]]);
 // The domain was hard-coded here, so every generated report pointed at one
 // host no matter where the site was deployed. SITE_URL is what the rest of
 // the build uses.
 const site = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');
-md.push('', `---`, `Source: Fundocap${site ? ` · ${site}/tr/reports/${id}` : ''}`);
 fs.mkdirSync(path.join(root, 'reports'), { recursive: true });
-fs.writeFileSync(path.join(root, 'reports', `${id}.md`), md.join('\n') + '\n');
+fs.writeFileSync(path.join(root, 'reports', `${id}.md`), reportMarkdown(report, { site }));
 console.log(`report ${id}: ${managers.length}/${pro.managers.length} managers, ${topBuysByValue.length} buys, ${biggestExits.length} exits, ${notableMoves.length} notable moves${newConsensus ? `, ${newConsensus.length} new consensus` : ' (no history yet)'} → api/_data/reports/${id}.json, reports/${id}.md`);

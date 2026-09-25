@@ -1,11 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ssr } from './helpers.mjs';
+import { ssr, root } from './helpers.mjs';
 import { deadlineFor, currentPeriod, nextDeadline, inFilingSeason } from '../api/_lib/calendar.js';
 import { contentByPath, GUIDES, COMPARES } from '../client/src/content/registry.js';
 import { GUIDE_CONTENT } from '../client/src/content/guides.js';
 import { COMPARE_CONTENT, BEST_TRACKERS, MATRIX_ROWS } from '../client/src/content/compare.js';
 import { validateHtmlJsonLd } from '../client/src/lib/jsonldValidate.js';
+import { reportMarkdown } from '../api/_lib/reportMarkdown.js';
+import fs from 'node:fs';
+import path from 'node:path';
 
 test('13F deadlines: 45 days after quarter end, weekends roll forward', () => {
   assert.equal(deadlineFor('2026-03-31'), '2026-05-15');
@@ -39,6 +42,20 @@ test('quarterly report page: generated data, chart pack links, markdown export',
   assert.match(html, /\/api\/report-id\/2026-q2\?format=md/);
   assert.deepEqual(validateHtmlJsonLd(html).problems, []);
   assert.equal((await ssr('/tr/reports/2030-q4')).status, 404);
+});
+
+test('quarterly report markdown export is Turkish and matches the checked-in copy', () => {
+  const report = JSON.parse(fs.readFileSync(path.join(root, 'api', '_data', 'reports', '2026-q2.json'), 'utf8'));
+  const md = reportMarkdown(report, { site: 'https://example.test' });
+  assert.match(md, /^# Fundocap — 2026 Q2 Usta Yatırımcı Raporu\n/);
+  assert.ok(md.includes(`> ${report.answer.tr}`), 'leads with the Turkish answer');
+  assert.match(md, /## Dolar bazında en çok net alınan 20 hisse\n\n\| Hisse \| Şirket \| Net alım \| Alıcı \| Tutan \|/);
+  assert.match(md, /\| (Artırdı|Azalttı) \|/, 'move kinds are translated');
+  assert.match(md, /Kaynak: Fundocap · https:\/\/example\.test\/tr\/reports\/2026-q2\n$/);
+  assert.doesNotMatch(md, /Superinvestor Report|Top 20|Not investment advice|\/en\//);
+  // the distributed file is rendered by the same function
+  const shipped = fs.readFileSync(path.join(root, 'reports', '2026-q2.md'), 'utf8');
+  assert.equal(shipped.replace(/Kaynak: .*\n$/, ''), md.replace(/Kaynak: .*\n$/, ''));
 });
 
 test('guides and comparison pages: real Turkish copy, question H2s, Turkish slugs, TODO competitor cells', async () => {

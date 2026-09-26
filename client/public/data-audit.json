@@ -107,7 +107,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 2028
+        "tickers": 2009
       },
       "findings": []
     },
@@ -158,7 +158,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 134
+        "rows": 136
       },
       "findings": []
     },

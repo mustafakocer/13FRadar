@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 import { loadSectorMap, sectorsToFetch, mergeSectors, applyStockMeta } from './stockMeta.js';
+import { noteProvider } from './providerAlarm.js';
 import {
   fetchCharts,
   fetchSecTickers,
@@ -213,6 +214,7 @@ export async function buildStockMeta({
       if (refused >= 3) break;
       try {
         const p = await fmpProfile(sym, fmpKey);
+        noteProvider('fmp', { ok: true });
         if (p.marketCap) {
           map.caps[sym] = { v: Math.round(p.marketCap), asOf: day(now), src: 'fmp' };
           got++;
@@ -222,6 +224,7 @@ export async function buildStockMeta({
         refused = 0;
       } catch (e) {
         refused++;
+        noteProvider('fmp', { error: e.message });
         log(`  FMP ${sym}: ${e.message}`);
       }
       await sleep(300);

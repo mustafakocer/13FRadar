@@ -1,0 +1,76 @@
+<SEC-DOCUMENT>0000999999-26-000077.txt : 20260922
+<SEC-HEADER>0000999999-26-000077.hdr.sgml : 20260922
+ACCESSION NUMBER:		0000999999-26-000077
+CONFORMED SUBMISSION TYPE:	4/A
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260917
+FILED AS OF DATE:		20260922
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4/A
+<SEQUENCE>1
+<FILENAME>wf-form4a.xml
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+    <schemaVersion>X0508</schemaVersion>
+    <documentType>4/A</documentType>
+    <periodOfReport>2026-09-17</periodOfReport>
+    <dateOfOriginalSubmission>2026-09-18</dateOfOriginalSubmission>
+    <issuer>
+        <issuerCik>0000111111</issuerCik>
+        <issuerName>Example Industries Inc</issuerName>
+        <issuerTradingSymbol>EXMP</issuerTradingSymbol>
+    </issuer>
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0002222222</rptOwnerCik>
+            <rptOwnerName>Doe Jane</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerRelationship>
+            <isDirector>0</isDirector>
+            <isOfficer>1</isOfficer>
+            <officerTitle>Chief Financial Officer</officerTitle>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+    <aff10b5One>1</aff10b5One>
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle><value>Common Stock, par value $0.01</value></securityTitle>
+            <transactionDate><value>2026-09-17</value></transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>P</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares><value>2,500</value></transactionShares>
+                <transactionPricePerShare><value>12.34</value><footnoteId id="F1"/></transactionPricePerShare>
+                <transactionAcquiredDisposedCode><value>A</value></transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction><value>10000</value><footnoteId id="F2"/></sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature><directOrIndirectOwnership><value>D</value></directOrIndirectOwnership></ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeHolding>
+            <securityTitle><value>Common Stock</value></securityTitle>
+            <postTransactionAmounts><sharesOwnedFollowingTransaction><value>300</value></sharesOwnedFollowingTransaction></postTransactionAmounts>
+            <ownershipNature><directOrIndirectOwnership><value>I</value></directOrIndirectOwnership></ownershipNature>
+        </nonDerivativeHolding>
+    </nonDerivativeTable>
+    <footnotes>
+        <footnote id="F1">The price reported is a weighted average price.   Purchases ranged from $12.10 to $12.50.</footnote>
+        <footnote id="F2">Amended to correct the ownership reported after the transaction.</footnote>
+        <footnote id="F3">Unreferenced footnote.</footnote>
+    </footnotes>
+    <ownerSignature>
+        <signatureName>/s/ Jane Doe</signatureName>
+        <signatureDate>2026-09-22</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

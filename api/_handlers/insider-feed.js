@@ -1,7 +1,6 @@
-import { createRequire } from 'node:module';
 import { requirePro } from '../_lib/auth.js';
 import { cached, TTL } from '../_lib/cache.js';
-import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES, KEPT_CODES,
+import { daySummary, findClusters, sizeBucket, businessDaysBetween, rowClass, CODES, KEPT_CODES,
   CLUSTER_DENSITY,
   clusterDensity,
   clusterMatches,
@@ -9,6 +8,8 @@ import { findClusters, sizeBucket, businessDaysBetween, rowClass, CODES, KEPT_CO
   winRate,
 } from '../_lib/insiderModel.js';
 import { isPenny } from '../_lib/insiderTeaser.js';
+import { readServed } from '../_lib/insiderStore.js';
+import { createRequire } from 'node:module';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
 //
@@ -36,17 +37,12 @@ import { isPenny } from '../_lib/insiderTeaser.js';
 //   cls      comma list of conviction|liquidity|noise (default: conviction,liquidity)
 //   sort     date|value|return|shares|lag   dir asc|desc   page, perPage
 //
-// The dataset ships with the deployment (api/_data/insiders.json), built daily
-// by .github/workflows/insiders.yml, so a request never hits SEC directly.
+// The dataset ships with the deployment, built by .github/workflows/insiders.yml
+// and read through the insider store, so a request never hits SEC directly.
+// `readServed()` returns current rows only: a Form 4 superseded by a 4/A is
+// never listed, counted or used for a signal.
 const require = createRequire(import.meta.url);
-
-function load() {
-  try {
-    return require('../_data/insiders.json');
-  } catch {
-    return { rows: [], updatedAt: null, lastDay: null };
-  }
-}
+const load = readServed;
 function loadMeta() {
   try {
     return require('../_data/ticker-meta.json');
@@ -107,16 +103,16 @@ function shape(r, meta, companies) {
 // Market activity + signal cards for the header, computed over the newest day
 // that actually has filings.
 function buildStats(all, meta, scope = null) {
+  // the headline numbers: one definition shared with the home page (daySummary)
+  const summary = daySummary(all, scope);
   const rows = scope ? all.filter(scope) : all;
-  const latestDay = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
-  const today = rows.filter((r) => r.f === latestDay);
-  const buys = today.filter((r) => r.k === 'P');
-  const sells = today.filter((r) => r.k === 'S');
-  const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
-  const buyValue = sum(buys);
-  const sellValue = sum(sells);
+  const latestDay = summary.day || '';
+  const buys = summary.buys;
+  const sells = summary.sells;
+  const buyValue = summary.buyValue;
+  const sellValue = summary.sellValue;
 
-  const last24 = rows.filter((r) => r.f === latestDay && r.k === 'P');
+  const last24 = buys;
   const clusters = findClusters(rows.filter((r) => r.d >= iso(Date.now() - 45 * 86400000)));
   const signals = [];
   for (const r of last24) {
@@ -161,12 +157,12 @@ function buildStats(all, meta, scope = null) {
 
   return {
     day: latestDay || null,
-    companies: new Set(today.map((r) => r.t)).size,
-    buyCount: buys.length,
-    sellCount: sells.length,
+    companies: summary.companies,
+    buyCount: summary.buyCount,
+    sellCount: summary.sellCount,
     buyValue,
     sellValue,
-    sellShare: buyValue + sellValue > 0 ? (sellValue / (buyValue + sellValue)) * 100 : null,
+    sellShare: summary.sellShare,
     signals: topSignals,
     topBuys: top(buys),
     topSells: top(sells),
@@ -184,7 +180,7 @@ export default async function handler(req, res) {
   const meta = loadMeta();
   const rows = db.rows || [];
   if (!rows.length) {
-    return res.status(200).json({ rows: [], total: 0, stats: null, updatedAt: null, empty: true });
+    return res.status(200).json({ rows: [], total: 0, stats: null, updatedAt: null, lastFilingDay: null, empty: true });
   }
 
   const q = String(query.q || '').trim().toUpperCase();
@@ -333,7 +329,9 @@ export default async function handler(req, res) {
     preview: free,
     locked: free && total > slice.length,
     updatedAt: db.updatedAt,
-    lastDay: db.lastDay,
+    // the newest filing date in the rows: what "Güncelleme" / "Son veri" shows
+    lastDay: db.lastFilingDay,
+    lastFilingDay: db.lastFilingDay,
     stats: page === 1 ? buildStats(rows, meta, tab === 'penny' ? isPenny : null) : null,
     sectors: page === 1 ? sectors : undefined,
     clusterCount: clusterMap.size,

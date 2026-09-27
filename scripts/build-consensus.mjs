@@ -10,6 +10,7 @@ import { build } from '../api/_lib/consensusBuild.js';
 import { buildStockMeta } from '../api/_lib/stockMetaBuild.js';
 import { retryUnresolved } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
+import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 
 const pub = path.join(process.cwd(), 'client', 'public');
 fs.mkdirSync(pub, { recursive: true });
@@ -77,3 +78,4 @@ console.log(
 // market cap. Best-effort by design — a provider outage leaves the fields
 // null and the filters offer less, but the consensus above still ships.
 await buildStockMeta();
+flushProviderHealth();

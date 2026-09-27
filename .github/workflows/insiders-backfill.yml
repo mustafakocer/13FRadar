@@ -1,0 +1,125 @@
+name: Backfill insider trading data
+
+# Hand-run only. Re-reads every EDGAR daily index in a date range and upserts
+# the filings (a filing already stored is replaced, never duplicated), then
+# moves the checkpoint over the range if it closes the gap.
+#
+#   1. Run with dry_run = true: the log lists, per business day, how many
+#      Form 4 filings EDGAR has (and how many are 4/A). Nothing is written.
+#   2. Run again with dry_run = false to ingest and commit.
+#
+# reingest_same_trade re-reads only the filings behind "same trade, two
+# accessions" pairs so stored 4/A amendments get recognised and marked
+# superseded; from/to are ignored in that mode.
+on:
+  workflow_dispatch:
+    inputs:
+      from:
+        description: 'First day, YYYY-MM-DD'
+        type: string
+        required: true
+        default: '2026-09-18'
+      to:
+        description: 'Last day, YYYY-MM-DD (empty = today)'
+        type: string
+        required: false
+      dry_run:
+        description: 'Only count Form 4s per day; write nothing'
+        type: boolean
+        default: true
+      reingest_same_trade:
+        description: 'Instead of a date range: re-read the filings behind same-trade pairs (4/A marking)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  issues: write
+
+# the same group as the nightly build, so the two never write at once
+concurrency:
+  group: insiders-data
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      - name: Check the inputs
+        shell: bash
+        env:
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+        run: |
+          re='^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          [[ "$FROM" =~ $re ]] || { echo "::error::from must be YYYY-MM-DD, got '$FROM'"; exit 1; }
+          [[ -z "$TO" || "$TO" =~ $re ]] || { echo "::error::to must be YYYY-MM-DD, got '$TO'"; exit 1; }
+
+      - name: Backfill
+        id: build
+        continue-on-error: true
+        shell: bash
+        env:
+          FROM: ${{ inputs.from }}
+          TO: ${{ inputs.to }}
+          DRY: ${{ inputs.dry_run }}
+          REINGEST: ${{ inputs.reingest_same_trade }}
+          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          INSIDER_MONTHS: '12'
+          INSIDER_MIN_FORM4: ${{ vars.INSIDER_MIN_FORM4 || '200' }}
+          SEC_RETRY_BACKOFF: '2,4,8,16'
+        run: |
+          set -o pipefail
+          args=()
+          if [ "$REINGEST" = "true" ]; then args+=(--reingest-same-trade); else args+=(--from "$FROM"); [ -n "$TO" ] && args+=(--to "$TO"); fi
+          [ "$DRY" = "true" ] && args+=(--dry-run)
+          echo "node scripts/build-insiders.mjs ${args[*]}"
+          node scripts/build-insiders.mjs "${args[@]}" 2>&1 | tee backfill.log
+
+      - name: Audit the rebuilt data
+        id: audit
+        if: inputs.dry_run != true
+        run: node scripts/audit-data.mjs --only=insiders,insiders-teaser
+
+      - name: Commit if changed
+        if: inputs.dry_run != true && steps.audit.outcome == 'success'
+        run: |
+          git config user.name 'insider-bot'
+          git config user.email 'actions@github.com'
+          for f in api/_data/insiders.json api/_data/insiders-raw.json api/_data/insider-ingest-errors.json api/_data/freshness api/_data/ticker-meta.json client/public/insiders-teaser.json client/public/data-audit.json; do
+            if [ -e "$f" ]; then git add --all "$f"; fi
+          done
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "chore: backfill insider trading data (${{ inputs.reingest_same_trade && 'same-trade re-read' || format('{0} → {1}', inputs.from, inputs.to || 'today') }})"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::warning::left uncommitted, set aside before the rebase:"
+            git status --porcelain
+            git stash push --include-untracked --quiet
+          fi
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1
+
+      - name: Fail the run if the backfill failed
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "::error::the backfill reported problems — see the 'Backfill' step"
+          exit 1
+
+      - name: Alert
+        if: failure() && inputs.dry_run != true
+        run: node scripts/notify.mjs --title "Insider backfill failed" --log backfill.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}

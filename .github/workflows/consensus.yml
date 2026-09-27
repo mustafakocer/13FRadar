@@ -65,6 +65,7 @@ on:
 
 permissions:
   contents: write
+  issues: write # the alarm issue (scripts/notify.mjs)
 
 # One data run at a time on the deployment branch. The cron and a push on the
 # same morning used to run side by side, each spending two hours to race the
@@ -171,7 +172,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices; do
+          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/freshness; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
@@ -193,3 +194,20 @@ jobs:
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
+
+      # FMP refusing us (HTTP 402 "not available under your current
+      # subscription") used to be one ::warning:: in a green run. The builds
+      # above record every FMP answer in api/_data/freshness/fmp.json; a
+      # refusal turns the run red here — after the commit, so the rest of
+      # the night's data still ships — and sends the alert.
+      - name: Check FMP
+        run: node scripts/check-job-health.mjs fmp
+
+      - name: Alert
+        if: failure()
+        run: node scripts/notify.mjs --title "Consensus/prices job failed (FMP or build)"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}

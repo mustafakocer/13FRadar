@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
+import { dataFreshness } from '../lib/secCalendar.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -333,7 +334,13 @@ export default function Insiders() {
         </h1>
         <div className="sub">
           {t('ins.subtitle')}
-          {feed.data?.updatedAt && ` · ${t('ins.updated')} ${feed.data.updatedAt.slice(0, 10)}`}
+          {/* the newest filing date in the rows, never the file's write time:
+              "Güncelleme <date>" while live, "Son veri: <date>" once it is
+              more than one business day behind */}
+          {feed.data?.lastFilingDay &&
+            (dataFreshness(feed.data.lastFilingDay).live
+              ? ` · ${t('ins.updated')} ${feed.data.lastFilingDay}`
+              : ` · ${t('data.latest')}: ${feed.data.lastFilingDay}`)}
         </div>
       </div>
     </div>

@@ -22,6 +22,7 @@ import axios from 'axios';
 import { svcSelect, svcUpdate, hasServiceKey } from '../api/_lib/auth.js';
 import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject, recipients, filingTargets, dueForDigest } from '../api/_lib/alerts.js';
 import { CANONICAL_SITE } from '../api/_lib/site.js';
+import { readServed } from '../api/_lib/insiderStore.js';
 
 const DRY = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
@@ -44,7 +45,8 @@ const read = (file, fallback) => {
 };
 
 const filings = read('client/public/filings.json', { rows: [] }).rows || [];
-const insiders = read('api/_data/insiders.json', { rows: [] }).rows || [];
+// through the insider store: current rows only, a superseded 4/A original never alerts
+const insiders = readServed().rows;
 if (!filings.length && !insiders.length) {
   console.log('Neither dataset is present — nothing to alert on.');
   process.exit(0);

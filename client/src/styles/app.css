@@ -686,6 +686,7 @@ th.sortable { cursor: pointer; user-select: none; }
 }
 .live-pill i { width: 8px; height: 8px; border-radius: 50%; background: var(--info); animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: .35; } }
+.live-pill.stale { background: color-mix(in srgb, var(--text-2) 14%, transparent); color: var(--text-2); font-weight: 600; }
 
 /* insider block */
 .ins-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }

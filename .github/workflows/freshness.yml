@@ -10,9 +10,11 @@ name: Data freshness
 on:
   workflow_dispatch: {}
   schedule:
-    # 07:23 UTC — after the nightly chain (universe 01:23 → consensus on its
-    # completion → insiders 04:53) has had time to finish and push.
+    # 07:23 UTC — after the night chain (universe 01:23 → consensus on its
+    # completion, insiders 03:31) has had time to finish and push — and again
+    # at 13:17, after the 11:02 insider catch-up.
     - cron: '23 7 * * *'
+    - cron: '17 13 * * *'
   push:
     # Only the deployment branch. A feature-branch push used to start a full
     # crawl on that branch: hours of CI, a data commit on a throwaway ref, and
@@ -22,10 +24,12 @@ on:
       - main
     paths:
       - 'scripts/check-freshness.mjs'
+      - 'api/_lib/freshnessChecks.js'
       - '.github/workflows/freshness.yml'
 
 permissions:
   contents: read
+  issues: write # the alarm issue (scripts/notify.mjs)
 
 jobs:
   check:
@@ -37,4 +41,22 @@ jobs:
         with:
           node-version: 20
       - name: Check every dataset
-        run: node scripts/check-freshness.mjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-freshness.mjs 2>&1 | tee freshness.log
+      # A red check nobody hears is how the insider feed sat nine days stale
+      # in September 2026 with this very workflow failing for four of them.
+      - name: Alert
+        if: failure()
+        run: node scripts/notify.mjs --title "Data freshness check failed" --log freshness.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "Data freshness check failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

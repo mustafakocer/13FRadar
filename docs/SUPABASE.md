@@ -19,7 +19,7 @@ Blob, KV, Actions artifact ya da Supabase kullanılmaz.
 | `scripts/build-guru-history.mjs` | `api/_data/guru-history.json`, `api/_data/splits.json`, `api/_data/related.json` | `api/_lib/history.js`, `/report`, guru sayfaları | `consensus.yml`, commit |
 | `scripts/build-guru-activity.mjs` | `client/public/guru-activity*.json` | `/report` | `consensus.yml`, commit |
 | `scripts/build-filings.mjs` (`api/_lib/filings.js`) | `client/public/filings.json` | `/filings`, `scripts/send-alerts.mjs` | `consensus.yml`, commit |
-| `scripts/build-insiders.mjs` | `api/_data/insiders.json`, `client/public/insiders-teaser.json` | `/insiders`, `api/_handlers/insider-feed.js` | `insiders.yml`, commit |
+| `scripts/build-insiders.mjs` | `api/_data/insiders.json`, `api/_data/insiders-raw.json`, `api/_data/insider-ingest-errors.json`, `api/_data/freshness/insiders.json`, `client/public/insiders-teaser.json` — hepsi `api/_lib/insiderStore.js` üzerinden (Supabase'e taşıma = bu dosyanın yeniden yazılması) | `/insiders`, `api/_handlers/insider-feed.js`, `api/_handlers/insiders.js` (hisse sayfası; canlı SEC yalnız yedek), `scripts/send-alerts.mjs` | `insiders.yml`, `insiders-backfill.yml`, commit |
 | `scripts/build-report.mjs` | `api/_data/reports/<yıl>-q<n>.json`, `reports/` | `/report/:id` | elle (`npm run report`) |
 
 `api/_lib/holdingsStore.js` tek Supabase okuyucusudur ve **yalnız

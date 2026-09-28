@@ -52,6 +52,50 @@ export function parseFredCsv(text, usdPerUnit) {
   return out.sort((a, b) => (a[0] < b[0] ? -1 : 1));
 }
 
+// The Federal Reserve Board's own download of the whole H.10 release (all
+// currencies, daily) — the primary source; FRED republishes the same series.
+// Columns are identified like "H10/H10/RXI_N.B.MX" (units per USD) or
+// "H10/H10/RXI$US_N.B.EU" (USD per unit).
+export const FED_H10_URL = (from, to) =>
+  `https://www.federalreserve.gov/datadownload/Output.aspx?rel=H10&series=60f32914ab61dfab590e0e470153e3ae&lastobs=&from=${from}&to=${to}&filetype=csv&label=include&layout=seriescolumn&type=package`;
+const FED_CODE = {
+  AL: 'AUD', BZ: 'BRL', CA: 'CAD', CH: 'CNY', DN: 'DKK', EU: 'EUR', HK: 'HKD', IN: 'INR', JA: 'JPY', KO: 'KRW', MA: 'MYR', MX: 'MXN',
+  NO: 'NOK', NZ: 'NZD', SD: 'SEK', SF: 'ZAR', SI: 'SGD', SL: 'LKR', SZ: 'CHF', TA: 'TWD', TH: 'THB', UK: 'GBP',
+};
+export function parseFedH10Csv(text) {
+  const lines = String(text || '').split(/\r?\n/).map((l) => l.split(',').map((x) => x.replace(/^"|"$/g, '').trim()));
+  const idRow = lines.find((l) => /unique identifier/i.test(l[0] || ''));
+  if (!idRow) return {};
+  const cols = idRow.map((id) => {
+    const m = /RXI(\$US)?_N\.B\.([A-Z]{2})$/.exec(id || '');
+    return m && FED_CODE[m[2]] ? { cur: FED_CODE[m[2]], usdPer: Boolean(m[1]) } : null;
+  });
+  const out = {};
+  for (const l of lines) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(l[0] || '')) continue;
+    cols.forEach((c, i) => {
+      const x = Number(l[i]);
+      if (!c || !(x > 0)) return;
+      (out[c.cur] ||= []).push([l[0], Number((c.usdPer ? x : 1 / x).toPrecision(6))]);
+    });
+  }
+  for (const k of Object.keys(out)) out[k].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  return out;
+}
+
+// European Central Bank reference rates (via the public Frankfurter API) —
+// only for the currencies H.10 does not publish (Israeli shekel, Philippine
+// peso…) or when the Federal Reserve cannot be reached. Units per USD.
+export const ECB_URL = (from, to, symbols) => `https://api.frankfurter.app/${from}..${to}?from=USD&to=${symbols.join(',')}`;
+export function parseEcb(json) {
+  const out = {};
+  for (const [day, row] of Object.entries(json?.rates || {}))
+    for (const [cur, x] of Object.entries(row || {})) if (x > 0) (out[cur] ||= []).push([day, Number((1 / x).toPrecision(6))]);
+  for (const k of Object.keys(out)) out[k].sort((a, b) => (a[0] < b[0] ? -1 : 1));
+  return out;
+}
+export const ECB_EXTRA = ['ILS', 'PHP', 'IDR', 'TRY', 'PLN', 'CZK', 'HUF', 'ISK', 'RON'];
+
 // Pence sterling: London prices are often quoted in GBp (1/100 GBP).
 const SUB_UNITS = { GBX: ['GBP', 0.01], ZAC: ['ZAR', 0.01], ILA: ['ILS', 0.01] };
 
@@ -120,9 +164,16 @@ const USD_RE = /\bu\.?s\.? ?dollars?\b|\bus\$|\busd\b|united states dollars?/i;
 // → 'MXN' | 'USD' | … | null. A note that names both (a price "in Mexican
 // pesos, approximately US$0.93") is read as the foreign one: the dollar
 // figure there is a translation, the reported price is the local one.
+// A note that says the price was CONVERTED into dollars ("The price was
+// translated from New Taiwan dollars, NT$1,795, at the rate of NT$32.092 to
+// US$1" — TSMC; "converted from Argentine pesos to U.S. dollars" — Galicia)
+// reports a dollar price: the foreign currency there is where it came from.
+const CONVERTED_TO_USD_RE =
+  /(translated|converted|conversion)\b(?:[^.]|\.\d){0,160}?\b(in)?to\s+(u\.?s\.?\s?dollars?|us\$|usd|united states dollars?)|\bat (the|an) (exchange )?rate of (?:[^.]|\.\d){0,40}?\bto (us\$|u\.?s\.?\s?\$?)\s?1\b|(price|prices|amount)s? (is |are |has been |have been )?(reported |presented |stated )?in u\.?s\.? dollars/i;
 export function currencyOf(text) {
   if (!text) return null;
   const s = String(text);
+  if (CONVERTED_TO_USD_RE.test(s)) return 'USD';
   for (const [cur, re] of CURRENCY_WORDS) if (re.test(s)) return cur;
   return USD_RE.test(s) ? 'USD' : null;
 }

@@ -57,6 +57,8 @@ jobs:
         env:
           SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
           SEC_RETRY_BACKOFF: '2,4,8,16,30'
+          # the verified examples: their 20-F / F-6 ratio sentences go to the log
+          FPI_DEBUG: 'TSM,BBD,CX,BABA,ASX,GGAL,VIPS'
         run: |
           set -o pipefail
           node scripts/build-fpi.mjs --report fpi-report.md ${{ inputs.refresh == true && '--refresh' || '' }} 2>&1 | tee fpi-build.log

@@ -27,7 +27,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 import { secGet, padCik, numCik } from '../api/_lib/sec.js';
-import { FRED_SERIES, fredUrl, parseFredCsv, usdPerUnit, currencyOf } from '../api/_lib/fx.js';
+import { FRED_SERIES, parseFredCsv, usdPerUnit, currencyOf, FED_H10_URL, parseFedH10Csv, ECB_URL, parseEcb, ECB_EXTRA } from '../api/_lib/fx.js';
 import { statedRatio, deriveRatio } from '../api/_lib/adrRatio.js';
 import { loadDataset, currentRows, loadRaw, readJson, rowId } from '../api/_lib/insiderStore.js';
 import { parseForm4Submission } from '../api/_lib/insiderForm4.js';
@@ -43,7 +43,7 @@ const REPORT = (() => {
 })();
 const STALE_DAYS = 30;
 const MAX_ISSUERS = Number(process.env.FPI_MAX_ISSUERS || 6000);
-const MAX_RAW = Number(process.env.FPI_MAX_RAW || 3000);
+const MAX_RAW = Number(process.env.FPI_MAX_RAW || 6000);
 const now = new Date();
 const today = now.toISOString().slice(0, 10);
 const addDays = (d, n) => new Date(Date.parse(d) + n * 86400000).toISOString().slice(0, 10);
@@ -59,31 +59,69 @@ console.log(`${rows.length} current insider lines, ${Object.keys(rawStore).lengt
 const oldest = rows.reduce((m, r) => (r.d && r.d < m ? r.d : m), today);
 const from = addDays(oldest < '2024-01-01' ? '2024-01-01' : oldest, -30);
 const rates = { ...(prev.rates || {}) };
-const fred = axios.create({ timeout: 30000, headers: { 'User-Agent': 'Mozilla/5.0' }, validateStatus: () => true });
-let rateFail = 0;
-for (const [cur, [series, usdPer]] of Object.entries(FRED_SERIES)) {
-  let ok = false;
-  for (let attempt = 0; attempt < 3 && !ok; attempt++) {
-    try {
-      const r = await fred.get(fredUrl(series, from), text);
-      if (r.status === 200) {
-        const s = parseFredCsv(r.data, usdPer);
-        if (s.length) {
-          rates[cur] = s;
-          ok = true;
-        }
-      }
-    } catch {
-      /* retried */
-    }
-    if (!ok) await new Promise((res) => setTimeout(res, 2000 * (attempt + 1)));
-  }
-  if (!ok) {
-    rateFail++;
-    console.warn(`::warning::FRED ${series} (${cur}) unavailable — keeping ${rates[cur]?.length || 0} stored rate(s)`);
+const rateSource = { ...(prev.rateSource || {}) };
+// Browsers' headers: FRED stalls requests that look like bots (every series
+// hung ~100 s from GitHub's runners on the first run).
+const web = axios.create({
+  timeout: 45000,
+  headers: { 'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36', Accept: 'text/csv,application/json,text/plain,*/*' },
+  validateStatus: () => true,
+  maxRedirects: 5,
+});
+const us = (d) => `${d.slice(5, 7)}/${d.slice(8, 10)}/${d.slice(0, 4)}`;
+async function tryGet(label, url, opts = {}) {
+  const t0 = Date.now();
+  try {
+    const r = await web.get(url, { responseType: 'text', transformResponse: [(x) => x], ...opts });
+    console.log(`  ${label}: HTTP ${r.status}, ${String(r.data || '').length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    return r.status === 200 ? r.data : null;
+  } catch (e) {
+    console.log(`  ${label}: ${e.code || e.message} after ${((Date.now() - t0) / 1000).toFixed(1)} s`);
+    return null;
   }
 }
-console.log(`rates: ${Object.keys(rates).length} currencies from ${from}${rateFail ? `, ${rateFail} kept from the last run` : ''}`);
+const got = new Set();
+const keep = (series, src) => {
+  for (const [cur, s] of Object.entries(series)) {
+    if (!s.length || got.has(cur)) continue;
+    rates[cur] = s;
+    rateSource[cur] = src;
+    got.add(cur);
+  }
+};
+console.log('rates:');
+// 1. the Federal Reserve Board's H.10 download (all currencies, one request)
+const fed = await tryGet('Federal Reserve H.10', FED_H10_URL(us(from), us(today)));
+if (fed) keep(parseFedH10Csv(fed), 'H.10');
+// 2. FRED, the same H.10 series, one request for all that are still missing
+const missingRates = () => Object.keys(FRED_SERIES).filter((c) => !got.has(c));
+if (missingRates().length) {
+  const ids = missingRates().map((c) => FRED_SERIES[c][0]);
+  const csv = await tryGet(`FRED (${ids.length} series)`, `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${ids.join(',')}&cosd=${from}`);
+  if (csv) {
+    const head = csv.split(/\r?\n/)[0].split(',');
+    for (const cur of missingRates()) {
+      const [id, usdPer] = FRED_SERIES[cur];
+      const col = head.indexOf(id);
+      if (col < 0) continue;
+      const one = csv.split(/\r?\n/).map((l) => { const f = l.split(','); return `${f[0]},${f[col] ?? ''}`; }).join('\n');
+      keep({ [cur]: parseFredCsv(one, usdPer) }, 'H.10 (FRED)');
+    }
+  }
+}
+// 3. the ECB reference rates: what H.10 lacks, and anything still missing
+const ecbWant = [...new Set([...missingRates(), ...ECB_EXTRA])];
+const ecb = await tryGet(`ECB (${ecbWant.length} currencies)`, ECB_URL(from, today, ecbWant));
+if (ecb) {
+  try {
+    keep(parseEcb(JSON.parse(ecb)), 'ECB');
+  } catch {
+    /* logged above */
+  }
+}
+const stillMissing = Object.keys(FRED_SERIES).filter((c) => !got.has(c));
+if (stillMissing.length) console.warn(`::warning::no fresh rate for ${stillMissing.join(', ')} — keeping what the file had`);
+console.log(`rates: ${got.size} currencies refreshed (${Object.entries(rateSource).filter(([c]) => got.has(c)).map(([c, s]) => `${c} ${s}`).join(', ')})`);
 
 // ------------------------------------------------------------------ issuers
 // EDGAR business-address descriptions → currency
@@ -110,7 +148,12 @@ for (const r of rows) {
 const issuers = { ...(prev.issuers || {}) };
 const domestic = { ...(prev.domestic || {}) };
 const stale = (at) => !at || REFRESH || (Date.parse(today) - Date.parse(at)) / 86400000 > STALE_DAYS;
-const todo = [...byCik.keys()].filter((cik) => stale(issuers[cik]?.checkedAt || domestic[cik])).slice(0, MAX_ISSUERS);
+// an FPI read by an older version of the rules below is read again
+const VERSION = 2;
+const todo = [...byCik.keys()]
+  .filter((cik) => stale(issuers[cik]?.checkedAt || domestic[cik]) || (issuers[cik] && (issuers[cik].v || 1) < VERSION))
+  .slice(0, MAX_ISSUERS);
+const DEBUG = new Set(String(process.env.FPI_DEBUG || '').split(',').filter(Boolean));
 console.log(`issuers: ${byCik.size} in the data, ${todo.length} to (re)check at the SEC`);
 
 const docText = (html) =>
@@ -129,13 +172,18 @@ function filingsOf(block) {
 }
 const docUrl = (cik, f) => `https://www.sec.gov/Archives/edgar/data/${numCik(cik)}/${f.acc.replace(/-/g, '')}/${f.doc}`;
 
-async function ratioFromFilings(cik, list, src, { range = false } = {}) {
+async function ratioFromFilings(cik, list, src, { range = false, debug = null } = {}) {
   for (const f of list) {
     if (!f.doc) continue;
     const url = docUrl(cik, f);
     try {
-      const r = await secGet(url, { ...text, ...(range ? { headers: { Range: 'bytes=0-800000' } } : {}), maxContentLength: 40e6 });
-      const found = statedRatio(docText(r.data).slice(0, range ? 400000 : undefined));
+      const r = await secGet(url, { ...text, ...(range ? { headers: { Range: 'bytes=0-800000' } } : {}), maxContentLength: 150e6 });
+      const body = docText(r.data).slice(0, range ? 400000 : undefined);
+      const found = statedRatio(body);
+      if (debug) {
+        const hits = [...body.matchAll(/american depositary|\bADSs?\b/gi)].slice(0, 3).map((m) => body.slice(Math.max(0, m.index - 80), m.index + 200));
+        console.log(`  [${debug}] ${src} ${url}: ${found ? `ratio ${found.ratio}` : 'no ratio'}${hits.length ? `\n    ${hits.join('\n    ')}` : ''}`);
+      }
       if (found) return { ratio: found.ratio, und: found.underlying, src, url, quote: found.quote.slice(0, 240), date: f.date };
     } catch (e) {
       console.warn(`  ${url}: ${e.response?.status || e.message}`);
@@ -178,9 +226,14 @@ for (const cik of todo) {
   const byDate = (a, b) => (a.date < b.date ? 1 : -1);
   const f6 = filings.filter((f) => F6_FORMS.test(f.form)).sort(byDate).slice(0, 4);
   const annual = filings.filter((f) => /^(20-F|40-F)$/.test(f.form)).sort(byDate).slice(0, 1);
-  const country = sub?.addresses?.business?.stateOrCountryDescription || sub?.stateOfIncorporationDescription || null;
-  let ratio = f6.length ? await ratioFromFilings(cik, f6, 'f6') : null;
-  if (!ratio && annual.length) ratio = await ratioFromFilings(cik, annual, '20f', { range: true });
+  const country =
+    sub?.addresses?.business?.stateOrCountryDescription || sub?.addresses?.mailing?.stateOrCountryDescription || sub?.stateOfIncorporationDescription || null;
+  const debug = DEBUG.has(e.t) ? e.t : null;
+  // the newest annual report's cover first: it states the ratio in force
+  // today, while an F-6 can be a decade old (Vipshop's 2012 F-6 says two
+  // shares per ADS; it has been 0.2 share since)
+  let ratio = annual.length ? await ratioFromFilings(cik, annual, '20f', { range: true, debug }) : null;
+  if (!ratio && f6.length) ratio = await ratioFromFilings(cik, f6, 'f6', { debug });
   // the issuer's own lines: which currency do their footnotes name?
   const votes = {};
   for (const r of e.rows) {
@@ -198,6 +251,7 @@ for (const cik of todo) {
     ads: f6.length || ratio ? 1 : 0,
     ...(ratio || {}),
     checkedAt: today,
+    v: VERSION,
   };
   if (++checked % 250 === 0) console.log(`  ${checked}/${todo.length}`);
 }
@@ -216,6 +270,16 @@ for (const r of fpiRows) {
   if (!missing.has(r.a)) missing.set(r.a, []);
   missing.get(r.a).push(r);
 }
+// Only what the conversion reads: the security title and the footnotes that
+// talk about currency, ADSs, ratios or prices — the file ships with the API.
+const RELEVANT_NOTE = /currenc|dollar|peso|real|reais|yen|euro|pound|pence|franc|kron|rupee|won|yuan|renminbi|rmb|nt\$|hk\$|r\$|us\$|exchange rate|translated|converted|depositary|\bads\b|\badr|represent|per share|price/i;
+function compactRaw(x) {
+  if (!x) return null;
+  const fn = Object.fromEntries(Object.entries(x.fn || {}).filter(([, t]) => RELEVANT_NOTE.test(t)).map(([k, t]) => [k, t.slice(0, 400)]));
+  const out = { ...(x.st ? { st: x.st } : {}), ...(Object.keys(fn).length ? { fn } : {}) };
+  return Object.keys(out).length ? out : { st: '' };
+}
+for (const [id, x] of Object.entries(fpiRaw)) fpiRaw[id] = compactRaw(x);
 let rawAdded = 0;
 let rawFetched = 0;
 for (const [acc, list] of [...missing.entries()].slice(0, MAX_RAW)) {
@@ -229,7 +293,7 @@ for (const [acc, list] of [...missing.entries()].slice(0, MAX_RAW)) {
     // differently: match on the trade itself
     for (const r of list) {
       const m = parsed.rows.find((p) => p.d === r.d && p.k === r.k && p.s === r.s);
-      const raw = m ? parsed.raw[`${acc}:${m.li}`] : null;
+      const raw = m ? compactRaw(parsed.raw[`${acc}:${m.li}`]) : null;
       if (raw) {
         fpiRaw[rowId(r)] = raw;
         rawAdded++;
@@ -255,15 +319,36 @@ for (const cik of fpiCiks) {
   if (!series?.length) continue;
   const cached = Boolean(readSeries(list[0].t));
   const votes = new Map();
+  const curVotes = new Map();
+  let curTried = 0;
+  const noteCur = (r) => {
+    const x = rawStore[rowId(r)] || fpiRaw[rowId(r)];
+    return x?.fn ? currencyOf(Object.values(x.fn).join(' ')) : null;
+  };
   for (const r of list) {
     const bar = closeOnOrAfter(series, r.d);
     if (!bar || Date.parse(bar.date) - Date.parse(r.d) > 7 * 86400000) continue;
     if (!cached) (closes[r.t] ||= {})[bar.date] = bar.close;
+    const stated = noteCur(r);
+    // home currency unknown (no address on file — Bradesco, TSMC): which
+    // currency, at the documented ratio, puts this line at the close?
+    if (!iss.cur && !stated) {
+      curTried++;
+      for (const cu of Object.keys(rates)) {
+        const px = r.p * usdPerUnit(cu, r.d, rates) * (iss.ratio || 1);
+        if (px > 0 && Math.abs(px / bar.close - 1) <= 0.15) curVotes.set(cu, (curVotes.get(cu) || 0) + 1);
+      }
+    }
     if (!iss.ads) continue;
-    for (const cu of [iss.cur, 'USD']) {
+    for (const cu of stated ? [stated] : [iss.cur, 'USD']) {
       const ar = deriveRatio(bar.close, r.p, usdPerUnit(cu, r.d, rates));
       if (ar) votes.set(`${cu}|${ar}`, (votes.get(`${cu}|${ar}`) || 0) + 1);
     }
+  }
+  const topCur = [...curVotes.entries()].sort((a, b) => b[1] - a[1])[0];
+  if (!iss.cur && topCur && topCur[1] >= 3 && topCur[1] / curTried >= 0.6) {
+    iss.cur = topCur[0];
+    iss.curSrc = 'derived';
   }
   const n = list.length;
   const best = [...votes.entries()].sort((a, b) => b[1] - a[1])[0];
@@ -276,9 +361,10 @@ for (const cik of fpiCiks) {
 const out = {
   updatedAt: now.toISOString(),
   sources: {
-    rates: 'Federal Reserve H.10 via FRED (USD per unit)',
-    issuers: 'SEC submissions; ratio from F-6 or 20-F cover page',
+    rates: 'Federal Reserve H.10 (federalreserve.gov, else FRED); ECB reference rates for currencies H.10 does not publish. USD per unit.',
+    issuers: 'SEC submissions; ADR ratio from the newest 20-F cover page, else the newest F-6 stating one',
   },
+  rateSource,
   rates,
   issuers,
   domestic,

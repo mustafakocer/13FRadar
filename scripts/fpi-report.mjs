@@ -21,7 +21,7 @@ import { isListed } from '../api/_lib/insiderModel.js';
 export const GATE = 0.2;
 const KIND_TR = { ads: 'ADS / ADR', share: 'Ana hisse (ordinary / CPO / common)', preferred: 'İmtiyazlı hisse', other: 'Unit / varant / diğer', null: 'Bilinmiyor (form alanları yok)' };
 const SRC_TR = { f6: 'SEC F-6', '20f': 'SEC 20-F kapak', footnote: 'Form 4 dipnotu', derived: 'türetilmiş', override: 'elle düzeltme', direct: 'doğrudan (ADR yok)', ads: 'ADS (oran 1)' };
-const WHY_TR = { no_rate: 'kur yok (H.10 bu para birimini yayımlamıyor)', mismatch: 'hiçbir okuma o günün kapanışıyla uyuşmuyor', unverifiable: 'karşılaştıracak piyasa verisi yok' };
+const WHY_TR = { no_rate: 'kur yok (H.10 bu para birimini yayımlamıyor)', mismatch: 'hiçbir okuma o günün kapanışıyla uyuşmuyor', unverifiable: 'karşılaştıracak piyasa verisi yok', no_ratio: 'ADR oranı bulunamadı' };
 const fmt = (n) => (n == null ? '—' : Math.abs(n) >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : Math.abs(n) >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : String(Math.round(n)));
 const pct = (a, b) => (b ? `%${((a / b) * 100).toFixed(1)}` : '—');
 

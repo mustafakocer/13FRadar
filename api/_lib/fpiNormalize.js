@@ -66,7 +66,7 @@ export function ratioFor(issuer, override, rowNote) {
   if (override?.force && override.ratio > 0) return { ratio: override.ratio, src: 'override', quote: override.source || null };
   if (rowNote?.ratio > 0) return { ratio: rowNote.ratio, src: 'footnote', quote: rowNote.quote };
   if (issuer?.ratio > 0) return { ratio: issuer.ratio, src: issuer.src, quote: issuer.quote || null, url: issuer.url || null };
-  if (issuer?.der?.ratio > 0) return { ratio: issuer.der.ratio, src: 'derived', quote: null };
+  if (issuer?.der?.ratio > 0 && issuer.der.n >= 3 && issuer.der.agree / issuer.der.n >= 0.8) return { ratio: issuer.der.ratio, src: 'derived', quote: null };
   if (override?.ratio > 0) return { ratio: override.ratio, src: 'override', quote: override.source || null };
   return null;
 }
@@ -96,7 +96,21 @@ export function needsNormalizing(r, raw, issuer) {
   return securityKind(raw?.st, issuer) === 'ads';
 }
 
+// "Price per ADS" while the share count is in home-market units — CEMEX's
+// sale of 21,268 ADSs was filed as 212,680 CPOs at $10.68 "per ADS".
+const PRICE_PER_ADS_RE = /\bprice[s]? (is |are )?(reported |shown )?per (ads|adr|american depositary (share|receipt))\b|\bper ads\b/i;
+
 // → null (untouched) | { kind } (a non-quoted security) | { ok, … } | { fail, … }
+//
+// A reading is (cu, pr, sr): the currency, how many home-market units the
+// PRICE is for, and how many the SHARE COUNT is in, per US security.
+//   per home share, count in home shares   pr = sr = ratio
+//   per ADS, count in home shares          pr = 1, sr = ratio
+//   per ADS, count in ADSs                 pr = sr = 1
+// US price = p × rate × pr; US shares = s / sr; dollars = US price × US shares.
+// The first reading, in priority order, whose US price matches the market
+// is taken — priority, not closeness: TSMC's ADS trades ~20% above five
+// Taipei shares, so the documented ratio (5) must win over a "closer" 6.
 export function normalizeRow(r, { raw = null, issuer = null, override = null, rates = null, series = null, meta = null, splits } = {}) {
   const kind = securityKind(raw?.st, issuer);
   if (kind === 'preferred' || kind === 'other') return { kind };
@@ -106,82 +120,102 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   const stated = currencyOf(notes);
   const home = override?.cur || issuer?.cur || null;
   const rowNote = statedRatio(notes);
-  const ratio = issuer?.ads || override?.ratio || rowNote ? ratioFor(issuer, override, rowNote) : { ratio: 1, src: 'direct' };
+  const hasAds = Boolean(issuer?.ads || override?.ratio || rowNote || kind === 'ads');
+  const doc = hasAds ? ratioFor(issuer, override, rowNote) : { ratio: 1, src: 'direct' };
+  // a documented ratio can be out of date (Vipshop's 2012 F-6 says 2; the
+  // ADS has been 0.2 share since): the market-derived one is tried after it
+  const der = issuer?.der?.ratio > 0 && issuer.der.n >= 3 && issuer.der.agree / issuer.der.n >= 0.8 ? issuer.der.ratio : null;
+  const ratios = [];
+  if (doc) ratios.push({ ratio: doc.ratio, src: doc.src });
+  if (hasAds && der && !ratios.some((x) => x.ratio === der)) ratios.push({ ratio: der, src: 'derived' });
+  const perAds = PRICE_PER_ADS_RE.test(notes);
+  const curs = stated ? [stated] : [...new Set([home, 'USD'].filter(Boolean))];
+  // a US-dollar price of a company with no ADS and no foreign currency on
+  // the form: nothing to convert — a mismatch there is a split or a data
+  // problem (NCT), which the price check already handles
+  if (!hasAds && curs.every((c) => c === 'USD')) return null;
+
   const ref = marketRef(r, series, meta);
   // the daily closes are split-adjusted: so is the price compared with them
   const split = splitFactor(r.t, r.d, splits);
 
-  // the readings that are possible for this line, most likely first
   const cands = [];
-  const add = (cu, ar, as) => {
-    if (!cu || !(ar > 0) || cands.some((c) => c.cu === cu && c.ar === ar)) return;
-    cands.push({ cu, ar, as });
+  const add = (cu, pr, sr, as) => {
+    if (!cu || !(pr > 0) || !(sr > 0) || cands.some((c) => c.cu === cu && c.pr === pr && c.sr === sr)) return;
+    cands.push({ cu, pr, sr, as });
   };
-  if (kind === 'ads') {
-    add(stated && stated !== 'USD' ? stated : 'USD', 1, 'ads');
-  } else {
-    const curs = stated ? [stated] : [home, 'USD'];
-    for (const cu of curs) {
-      if (ratio) add(cu, ratio.ratio, ratio.src);
-      // a line with no title may be an ADS trade in dollars
-      if (kind == null && cu === 'USD') add('USD', 1, 'ads');
-      if (!issuer?.ads && !ratio) add(cu, 1, 'direct');
-    }
-  }
-
-  const tried = [];
-  for (const c of cands) {
-    const rate = usdPerUnit(c.cu, r.d, rates);
-    if (rate == null) {
-      tried.push({ ...c, why: 'no_rate' });
+  for (const cu of curs) {
+    if (kind === 'ads') {
+      add(cu, 1, 1, 'ads');
       continue;
     }
-    const px = (r.p * rate * c.ar) / split;
-    tried.push({ ...c, rate, px, fit: ref ? fits(px, ref) : null, dist: ref ? distance(px, ref) : null });
+    if (!hasAds) {
+      add(cu, 1, 1, 'direct');
+      continue;
+    }
+    for (const { ratio, src } of ratios) {
+      if (perAds) add(cu, 1, ratio, src);
+      add(cu, ratio, ratio, src);
+      if (!perAds && kind === 'share') add(cu, 1, ratio, src);
+    }
+    // no title stored: possibly a trade in the ADSs themselves
+    if (kind == null && cu === 'USD') add('USD', 1, 1, 'ads');
   }
+
+  const tried = cands.map((c) => {
+    const rate = usdPerUnit(c.cu, r.d, rates);
+    if (rate == null) return { ...c, why: 'no_rate' };
+    const px = (r.p * rate * c.pr) / split;
+    return { ...c, rate, px, fit: ref ? fits(px, ref) : null };
+  });
 
   let pick = null;
   const fitting = tried.filter((t) => t.fit);
   if (fitting.length) {
-    // a line that fits two readings (the range check is wide) is accepted
-    // only when they agree on the dollar amount within 25% — otherwise it is
-    // ambiguous and stays unconverted
-    fitting.sort((a, b) => a.dist - b.dist);
-    const spread = Math.max(...fitting.map((t) => t.px)) / Math.min(...fitting.map((t) => t.px));
-    const sameValue = fitting.every((t) => t.cu === fitting[0].cu);
-    if (ref.close || fitting.length === 1 || (sameValue && spread <= 1 + PRICE_TOLERANCE)) pick = fitting[0];
-  } else if (ref?.close && !ratio && issuer?.ads) {
-    // no documented ratio: derive it from the close (±10% of a common ratio)
-    for (const cu of stated ? [stated] : [home, 'USD']) {
+    if (ref.close) pick = fitting[0];
+    else {
+      // the 52-week range is wide: two readings that both fit must agree on
+      // the dollar amount, or the line is ambiguous
+      const vals = fitting.map((t) => (r.s / t.sr) * t.px);
+      if (Math.max(...vals) / Math.min(...vals) <= 1 + PRICE_TOLERANCE) pick = fitting[0];
+    }
+  } else if (ref?.close && hasAds && !ratios.length) {
+    // no ratio at all: derive it from the close (±10% of a common ratio)
+    for (const cu of curs) {
       const rate = usdPerUnit(cu, r.d, rates);
       const ar = deriveRatio(ref.close * split, r.p, rate);
       if (ar) {
-        pick = { cu, ar, as: 'derived', rate, px: (r.p * rate * ar) / split };
+        pick = { cu, pr: ar, sr: ar, as: 'derived', rate, px: (r.p * rate * ar) / split };
         break;
       }
     }
-  } else if (!ref && (stated || kind === 'ads') && tried.length && tried[0].rate != null && (kind === 'ads' || ratio?.src !== 'derived')) {
+  } else if (!ref && (stated || kind === 'ads')) {
     // no market data to check against: the form's own statement of the
-    // currency plus a documented ratio is taken as it stands
-    pick = tried[0];
+    // currency with a documented ratio is taken as it stands
+    const first = tried.find((t) => t.rate != null && t.as !== 'derived');
+    if (first && (kind === 'ads' || !perAds || first.pr === 1)) pick = first;
   }
 
   const lv = Math.round(r.s * r.p);
   if (!pick) {
-    const why = !tried.some((t) => t.rate != null) ? 'no_rate' : ref ? 'mismatch' : 'unverifiable';
+    const why = !tried.length ? 'no_ratio' : !tried.some((t) => t.rate != null) ? 'no_rate' : ref ? 'mismatch' : 'unverifiable';
     return { fail: why, cu: stated || (kind === 'ads' ? 'USD' : home) || null, lp: r.p, lv };
   }
+  const src = pick.as === doc?.src ? doc : null;
+  const p = r.p * pick.rate * pick.pr;
+  const s = r.s / pick.sr;
   return {
     ok: 1,
     cu: pick.cu,
     rate: pick.rate,
-    ar: pick.ar,
+    ar: pick.sr,
+    ...(pick.pr !== pick.sr ? { pa: 1 } : {}),
     as: pick.as,
-    quote: pick.as === ratio?.src ? ratio?.quote || null : null,
-    url: pick.as === ratio?.src ? ratio?.url || null : null,
-    p: Number((r.p * pick.rate * pick.ar).toFixed(4)),
-    s: Math.round(r.s / pick.ar),
-    v: Math.round(r.s * r.p * pick.rate),
+    quote: src?.quote || null,
+    url: src?.url || null,
+    p: Number(p.toFixed(4)),
+    s: Math.round(s),
+    v: Math.round(p * s),
     lp: r.p,
     ls: r.s,
     lv,
@@ -222,7 +256,7 @@ export function normalizeRows(rows, ctx = {}) {
       return { ...r, v: null, pu: 1, fx: { cu: n.cu, lp: n.lp, lv: n.lv, fail: n.fail } };
     }
     stats.normalized++;
-    const copy = { ...r, p: n.p, s: n.s, v: n.v, fx: { cu: n.cu, rate: n.rate, ar: n.ar, as: n.as, lp: n.lp, ls: n.ls, lv: n.lv, ok: 1, ...(n.quote ? { q: n.quote } : {}), ...(n.url ? { u: n.url } : {}) } };
+    const copy = { ...r, p: n.p, s: n.s, v: n.v, fx: { cu: n.cu, rate: n.rate, ar: n.ar, as: n.as, lp: n.lp, ls: n.ls, lv: n.lv, ok: 1, ...(n.pa ? { pa: 1 } : {}), ...(n.quote ? { q: n.quote } : {}), ...(n.url ? { u: n.url } : {}) } };
     delete copy.pu;
     // ownership after the trade is in home-market shares too
     if (copy.o != null && n.ar !== 1) copy.o = Math.round(copy.o / n.ar);

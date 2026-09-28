@@ -115,8 +115,11 @@ test('no rate for the currency → not converted (never guessed)', () => {
 
 test('no market data: a stated currency and a documented ratio are taken as they stand; a derived one is not', () => {
   assert.equal(normalizeRow(cxRow, { raw: cxRaw, issuer: CEMEX, rates: RATES }).ok, 1);
-  const noDoc = { ...CEMEX, ratio: null, src: null, der: { ratio: 10, cur: 'MXN' } };
+  const noDoc = { ...CEMEX, ratio: null, src: null, der: { ratio: 10, cur: 'MXN', n: 5, agree: 5 } };
   assert.equal(normalizeRow(cxRow, { raw: cxRaw, issuer: noDoc, rates: RATES }).fail, 'unverifiable');
+  // a weakly supported derived ratio is not used at all
+  const weak = { ...noDoc, der: { ratio: 10, cur: 'MXN', n: 5, agree: 2 } };
+  assert.equal(normalizeRow(cxRow, { raw: cxRaw, issuer: weak, rates: RATES }).fail, 'no_ratio');
 });
 
 test('ratio unknown: derived from the close, within ±10% of a common ratio, marked "derived"', () => {
@@ -166,4 +169,59 @@ test('an unconverted line stays out of rankings and day totals, and is counted',
   assert.equal(t.pulse.buyValue, 100000);
   const bbb = t.rows.find((r) => r.t === 'BBB');
   assert.deepEqual([bbb.v, bbb.fx.cu, bbb.fx.lv], [null, 'MXN', 6926305]);
+});
+
+test('Federal Reserve H.10 download and ECB rates → USD per unit', async () => {
+  const { parseFedH10Csv, parseEcb } = await import('../api/_lib/fx.js');
+  const csv = [
+    '"Series Description","Spot exchange rate - Mexico","Spot exchange rate - Euro area"',
+    '"Unit:","Currency:_Per_USD","USD:_Per_Currency"',
+    '"Unique Identifier:","H10/H10/RXI_N.B.MX","H10/H10/RXI$US_N.B.EU"',
+    '"Time Period","RXI_N.B.MX","RXI$US_N.B.EU"',
+    '2026-09-24,18.40,1.10',
+    '2026-09-25,ND,1.11',
+  ].join('\n');
+  const r = parseFedH10Csv(csv);
+  assert.equal(r.MXN.length, 1, '"ND" (no data) dropped');
+  assert.ok(Math.abs(r.MXN[0][1] - 1 / 18.4) < 1e-6);
+  assert.deepEqual(r.EUR.map((x) => x[1]), [1.1, 1.11]);
+  const e = parseEcb({ rates: { '2026-09-24': { ILS: 3.7 } } });
+  assert.ok(Math.abs(e.ILS[0][1] - 1 / 3.7) < 1e-6);
+});
+
+test('a note saying the price was converted INTO dollars is a dollar price (TSMC, Galicia)', () => {
+  assert.equal(currencyOf('The price was translated from New Taiwan dollars, NT$1,795, at the rate of NT$32.092 to US$1.'), 'USD');
+  assert.equal(currencyOf('Reported prices have been converted from Argentine pesos to U.S. dollars using an exchange rate of US$0.00067 per Argentine peso.'), 'USD');
+  assert.equal(currencyOf('The option exercise price reflects New Taiwan dollars.'), 'TWD');
+});
+
+test('price per ADS with the share count in CPOs (CEMEX sale of 21,268 ADSs filed as 212,680 CPOs)', () => {
+  const r = { ...cxRow, d: '2026-08-19', k: 'S', s: 212680, p: 10.68, v: 2271422 };
+  const raw = { st: 'Ordinary Participation Certificates (CEMEX.CPO)', fn: { F1: 'On August 19, 2026, the reporting person effected a sale of 21,268 American Depositary Shares ("ADSs"). Each ADS represents 10 Ordinary Participation Certificates.', F2: 'Price per ADS.' } };
+  const n = normalizeRow(r, { raw, issuer: CEMEX, rates: { MXN: [['2026-08-19', 0.054]] }, series: [{ date: '2026-08-19', close: 10.66 }] });
+  assert.deepEqual([n.ok, n.cu, n.p, n.s, n.pa], [1, 'USD', 10.68, 21268, 1]);
+  assert.equal(n.v, Math.round(21268 * 10.68), '$227K, not $2.27M');
+});
+
+test('documented ratio first even when a derived one sits closer (TSMC ADS premium)', () => {
+  const tsmc = { t: 'TSM', fpi: 1, ads: 1, cur: 'TWD', ratio: 5, src: 'f6', der: { ratio: 6, cur: 'USD', n: 150, agree: 147 } };
+  const r = { t: 'TSM', ci: '1', d: '2026-03-22', k: 'P', s: 1000, p: 55.93, v: 55930, a: 'T', li: 0 };
+  const raw = { st: 'Common Shares (2330.TW)', fn: { F1: 'The price was translated from New Taiwan dollars, NT$1,795, at the rate of NT$32.092 to US$1.' } };
+  const n = normalizeRow(r, { raw, issuer: tsmc, rates: {}, series: [{ date: '2026-03-23', close: 338.45 }] });
+  assert.deepEqual([n.cu, n.ar, n.as, n.s], ['USD', 5, 'f6', 200]);
+  assert.ok(Math.abs(n.p - 279.65) < 0.01);
+  assert.equal(n.v, 55930, 'the dollar amount does not depend on the ratio');
+});
+
+test('a stale documented ratio that fails the market gives way to a well-supported derived one (Vipshop)', () => {
+  const vips = { t: 'VIPS', fpi: 1, ads: 1, cur: null, ratio: 2, src: 'f6', der: { ratio: 0.2, cur: 'USD', n: 6, agree: 6 } };
+  const r = { t: 'VIPS', ci: '1', d: '2026-06-09', k: 'S', s: 2589, p: 69.117, v: 178944, a: 'V', li: 0 };
+  const n = normalizeRow(r, { raw: { st: 'Class A ordinary shares' }, issuer: vips, rates: {}, series: [{ date: '2026-06-09', close: 13.57 }] });
+  assert.deepEqual([n.cu, n.ar, n.as, n.s], ['USD', 0.2, 'derived', 12945]);
+});
+
+test('a dollar-priced company without ADSs is left alone: its mismatch is a split, not a currency (NCT)', () => {
+  const nct = { t: 'NCT', fpi: 1, ads: 0, cur: null };
+  const r = { t: 'NCT', ci: '1', d: '2026-09-25', k: 'P', s: 1625000, p: 0.4, v: 650000, a: 'N', li: 0 };
+  assert.equal(normalizeRow(r, { raw: { st: 'Class B Ordinary Shares' }, issuer: nct, rates: {}, series: [{ date: '2026-09-25', close: 4.43 }] }), null);
 });

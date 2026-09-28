@@ -160,6 +160,11 @@ function marketRef(r, series, meta) {
 //                       a documented ratio — ±25%, for the premium an ADS
 //                       can carry over its home shares (TSMC: 15–21%)
 export const MATCH_TOLERANCE = 0.15;
+// An off-market price is one within ±50% of the close: a placement or a
+// negotiated sale. Further off, it is a unit (a split, a currency, pence)
+// and the amount is not verified.
+export const OFF_MARKET_MAX = 0.5;
+const HOME_LISTED = new Set(['CAD']);
 export const DECLARED_TOLERANCE = PRICE_TOLERANCE;
 const fits = (px, ref, tol) => (ref.close ? Math.abs(px / ref.close - 1) <= tol : px >= ref.lo / RANGE_SLACK && px <= ref.hi * RANGE_SLACK);
 
@@ -214,7 +219,7 @@ const HELD_AS_ADS_RE = /\b(held|represented)\s+(in the form of|as|by)\s+(america
 // readings are ordered the same way and checked against the 52-week range,
 // or, with no range either, a declared currency and a documented ratio are
 // taken as they stand.
-export function normalizeRow(r, { raw = null, issuer = null, override = null, rates = null, series = null, meta = null, splits } = {}) {
+export function normalizeRow(r, { raw = null, issuer = null, override = null, rates = null, series = null, meta = null, splits, homeSeen = null } = {}) {
   const kind = securityKind(raw?.st, issuer);
   if (kind === 'preferred' || kind === 'other') return { kind };
   if (!needsNormalizing(r, raw, issuer, override)) return null;
@@ -228,6 +233,12 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   const home = declared === 'USD' ? null : override?.cur || known?.cur || null;
   const rowNote = statedRatio(notes);
   const hasAds = Boolean(known?.ads || override?.ratio || rowNote || kind === 'ads');
+  // …nor is the price of a company listed only in the US (Horizon Quantum,
+  // Sono Group: no ADS programme, and no filing of theirs names the home
+  // currency) — the home currency is tried when there is an ADS (so a home
+  // listing), a reviewed override, a footnote of the issuer naming it, or a
+  // Canadian home (TSX/TSXV and a US exchange is the norm: Canopy, Fortis)
+  const homeListed = Boolean(home && (override?.cur || known?.ads || mentioned === home || homeSeen?.has(home) || HOME_LISTED.has(home)));
   const doc = hasAds ? ratioFor(known, override, rowNote) : { ratio: 1, src: 'direct' };
   // a documented ratio can be out of date (Vipshop's 2012 F-6 says 2; the
   // ADS has been 0.2 share since): the market-derived one is tried after it
@@ -236,13 +247,13 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   if (doc) ratios.push({ ratio: doc.ratio, src: doc.src });
   if (hasAds && der && !ratios.some((x) => x.ratio === der)) ratios.push({ ratio: der, src: 'derived' });
   const perAds = PRICE_PER_ADS_RE.test(notes) || (kind === 'share' && HELD_AS_ADS_RE.test(notes)) || override?.count === 'home';
-  const homeTrusted = home && (override?.cur || known?.curSrc !== 'derived') ? home : null;
-  const homeDerived = home && !homeTrusted ? home : null;
+  const homeTrusted = homeListed && (override?.cur || known?.curSrc !== 'derived') ? home : null;
+  const homeDerived = homeListed && !homeTrusted ? home : null;
   const stated = declared || mentioned;
-  // a dollar-priced line with no ADS and no foreign currency on the form:
-  // nothing to convert — a mismatch there is a split or a data problem
-  // (NCT), which the price check already handles
-  if (!hasAds && (!stated || stated === 'USD') && !homeTrusted && !homeDerived) return null;
+  // a dollar-priced line with no ADS, no foreign currency on the form and
+  // no home currency known: nothing to convert — a mismatch there is a split
+  // or a data problem (NCT), which the price check already handles
+  if (!hasAds && (!stated || stated === 'USD') && !home) return null;
 
   const ref = marketRef(r, series, meta);
   // the daily closes are split-adjusted: so is the price compared with them
@@ -269,15 +280,34 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
     if (kind == null && cu === 'USD') add('USD', 1, 1, 'ads', tol);
   };
   const asIs = (tol) => add('USD', 1, 1, 'asis', tol);
+  // an "Ordinary Shares" line of a current foreign issuer whose count is a
+  // whole number of ADSs (Alibaba: 692,992 = 86,624 × 8): the count is in
+  // ordinary shares and the price per ADS. Any condition missing: the price
+  // is taken as it stands.
+  const wholeAds = (cu, tol) => {
+    if (kind !== 'share' || !foreign || !/\bordinary\b/i.test(raw?.st || '') || (mentioned && mentioned !== 'USD')) return;
+    for (const { ratio, src } of docRatios) {
+      if (!Number.isInteger(ratio) || ratio < 2 || !Number.isInteger(r.s) || r.s % ratio) continue;
+      const n = cands.length;
+      add(cu, 1, ratio, src, tol);
+      if (cands.length > n) cands[n].whole = true;
+    }
+  };
   if (declared) {
     perAdsReadings(declared, docRatios, DECLARED_TOLERANCE);
-    if (declared === 'USD') asIs(DECLARED_TOLERANCE);
+    if (declared === 'USD') {
+      wholeAds('USD', DECLARED_TOLERANCE);
+      asIs(DECLARED_TOLERANCE);
+    }
     readings(declared, docRatios, DECLARED_TOLERANCE);
     perAdsReadings(declared, derRatios, MATCH_TOLERANCE);
     readings(declared, derRatios, MATCH_TOLERANCE);
   } else {
     perAdsReadings('USD', docRatios, MATCH_TOLERANCE);
-    asIs(MATCH_TOLERANCE);
+    wholeAds('USD', MATCH_TOLERANCE);
+    // an option exercise "at New Taiwan dollars" (ASE) has no market price
+    // to vouch for a dollar reading: not taken as dollars
+    if (!(mentioned && mentioned !== 'USD' && !MARKET_CODES.has(r.k))) asIs(MATCH_TOLERANCE);
     const tiers = [...new Set([mentioned, 'USD', homeTrusted, homeDerived].filter(Boolean))];
     for (const cu of tiers) readings(cu, docRatios, MATCH_TOLERANCE);
     perAdsReadings('USD', derRatios, MATCH_TOLERANCE);
@@ -315,7 +345,7 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   } else if (!ref && (declared || mentioned || kind === 'ads')) {
     // no market data to check against: the form's own statement of the
     // currency with a documented ratio is taken as it stands
-    const first = tried.find((t) => t.rate != null && t.as !== 'derived' && (t.as !== 'asis' || declared === 'USD' || kind === 'ads'));
+    const first = tried.find((t) => t.rate != null && t.as !== 'derived' && !t.whole && (t.as !== 'asis' || declared === 'USD' || kind === 'ads'));
     if (first && (kind === 'ads' || !perAds || first.pr === 1)) pick = first;
   }
 
@@ -329,7 +359,19 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
     // …and an option exercise, award or phantom unit is priced at a strike
     // or a grant value, not the market: it cannot fail a market check
     const conv = tried.filter((t) => t.as !== 'asis');
-    const why = !conv.length ? (ref?.close ? 'mismatch' : 'no_ratio') : conv.some((t) => t.rate == null) ? 'no_rate' : !MARKET_CODES.has(r.k) ? 'non_market' : ref ? 'mismatch' : 'unverifiable';
+    const noRate = conv.some((t) => t.rate == null);
+    // a dollar price with no other unit in play — no ADS behind the line
+    // (or the line is in the ADSs), no other currency on the form — that
+    // lands nowhere near the close: an off-market price (Paulson's $2.22
+    // placement in International Tower Hill, 23% under the close). Its
+    // amount is shown; it stays out of clusters and the day's totals.
+    const unitClear = (!hasAds || kind === 'ads') && (!declared || declared === 'USD') && (!mentioned || mentioned === 'USD');
+    const gap = ref?.close ? r.p / split / ref.close - 1 : null;
+    if (gap != null && Math.abs(gap) <= OFF_MARKET_MAX && MARKET_CODES.has(r.k) && !noRate && unitClear && tried.some((t) => t.as === 'asis')) {
+      const off = Number((gap * 100).toFixed(1));
+      return { ok: 1, off, cu: 'USD', rate: 1, ar: 1, as: 'asis', quote: null, url: null, p: r.p, s: r.s, v: lv, lp: r.p, ls: r.s, lv };
+    }
+    const why = noRate ? 'no_rate' : !MARKET_CODES.has(r.k) && conv.length ? 'non_market' : !conv.length ? (ref?.close ? (MARKET_CODES.has(r.k) ? 'mismatch' : 'non_market') : 'no_ratio') : ref ? 'mismatch' : 'unverifiable';
     return { fail: why, cu: stated || (kind === 'ads' ? 'USD' : home) || null, lp: r.p, lv };
   }
   const src = pick.as === doc?.src ? doc : null;
@@ -370,13 +412,27 @@ export function normalizeRows(rows, ctx = {}) {
     if (!seriesMemo.has(t)) seriesMemo.set(t, ctx.seriesFor(t) || null);
     return seriesMemo.get(t);
   };
-  const stats = { normalized: 0, failed: 0, security: 0 };
+  const stats = { normalized: 0, failed: 0, security: 0, offMarket: 0 };
+  // the currencies each issuer's filings name (a home listing, when it is
+  // the home currency — see normalizeRow)
+  const seen = new Map();
+  if (ctx.rawOf) {
+    for (const r of rows) {
+      if (!r.ci || !issuers[r.ci]) continue;
+      const raw = ctx.rawOf(r);
+      if (!raw?.fn && !raw?.rm) continue;
+      const cu = currencyOf(withoutParValue(notesOf(raw)));
+      if (!cu || cu === 'USD') continue;
+      if (!seen.has(r.ci)) seen.set(r.ci, new Set());
+      seen.get(r.ci).add(cu);
+    }
+  }
   const out = rows.map((r) => {
     const raw = ctx.rawOf ? ctx.rawOf(r) : null;
     const issuer = issuers[r.ci] || null;
     const override = (r.t && overrides[r.t]) || null;
     if (!raw && !issuer && !override) return r;
-    const n = normalizeRow(r, { raw, issuer, override, rates, series: series(r.t), meta: r.t ? ctx.meta?.[r.t] : null, splits: ctx.splits });
+    const n = normalizeRow(r, { raw, issuer, override, rates, series: series(r.t), meta: r.t ? ctx.meta?.[r.t] : null, splits: ctx.splits, homeSeen: seen.get(r.ci) || null });
     if (!n) return r;
     if (n.kind) {
       stats.security++;
@@ -385,6 +441,11 @@ export function normalizeRows(rows, ctx = {}) {
     if (n.fail) {
       stats.failed++;
       return { ...r, v: null, pu: 1, fx: { cu: n.cu, lp: n.lp, lv: n.lv, fail: n.fail } };
+    }
+    if (n.off != null) {
+      // amount shown, price unverified: no return, no signal, no cluster
+      stats.offMarket++;
+      return { ...r, pu: 1, fx: { cu: 'USD', ar: 1, as: 'asis', lp: n.lp, ls: n.ls, lv: n.lv, ok: 1, off: n.off } };
     }
     stats.normalized++;
     const copy = { ...r, p: n.p, s: n.s, v: n.v, fx: { cu: n.cu, rate: n.rate, ar: n.ar, as: n.as, lp: n.lp, ls: n.ls, lv: n.lv, ok: 1, ...(n.pa ? { pa: 1 } : {}), ...(n.quote ? { q: n.quote } : {}), ...(n.url ? { u: n.url } : {}) } };
@@ -398,6 +459,9 @@ export function normalizeRows(rows, ctx = {}) {
 }
 
 // A row's dollar amount for sums and rankings: null when the line's
-// currency could not be verified (it is then left out and counted).
-export const usdValue = (r) => (r?.fx?.fail ? null : Number.isFinite(r?.v) ? r.v : null);
+// currency could not be verified, or its price is off the market (it is
+// then left out and counted).
+export const offMarket = (r) => r?.fx?.off != null;
+export const outOfTotals = (r) => Boolean(r?.fx?.fail) || offMarket(r);
+export const usdValue = (r) => (outOfTotals(r) ? null : Number.isFinite(r?.v) ? r.v : null);
 export const fxUnverified = (r) => Boolean(r?.fx?.fail);

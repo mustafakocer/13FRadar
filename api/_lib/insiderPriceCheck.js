@@ -35,6 +35,9 @@ export function priceCheck(r, { raw = null, series = null, current = null, split
   // a foreign issuer's line (fpiNormalize.js): converted to US dollars per
   // US security and checked against the market, or kept in its currency
   if (r.fx?.fail) return { ok: false, reason: 'currency' };
+  // a dollar price no unit brings near the market (a placement, a
+  // negotiated sale): the amount stands, a return from it would not
+  if (r.fx?.off != null) return { ok: false, reason: 'off_market' };
   if (r.sk === 'preferred' || r.sk === 'other') return { ok: false, reason: 'security' };
   if (r.fx?.ok) {
     const m = series?.length ? priceMismatch(r, series, splits) : null;

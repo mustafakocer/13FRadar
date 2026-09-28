@@ -201,11 +201,14 @@ export function daySummary(all, scope = null) {
   // lines of a foreign issuer whose currency could not be verified have no
   // dollar amount (fpiNormalize.js): out of the counts and totals, counted
   // separately so the page can say so
-  const fxOut = (r) => Boolean(r.fx?.fail);
+  // …and a line whose dollar price is off the market (a placement: amount
+  // shown on its row, never in the day's open-market totals)
+  const fxOut = (r) => Boolean(r.fx?.fail) || r.fx?.off != null;
   const open = today.filter((r) => ['open_buy', 'open_sell'].includes(categorize(r)));
   const buys = open.filter((r) => !fxOut(r) && categorize(r) === 'open_buy');
   const sells = open.filter((r) => !fxOut(r) && categorize(r) === 'open_sell');
-  const fxExcluded = open.filter(fxOut).length;
+  const fxExcluded = open.filter((r) => r.fx?.fail).length;
+  const offMarket = open.filter((r) => r.fx?.off != null).length;
   const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
   const buyValue = Math.round(sum(buys));
   const sellValue = Math.round(sum(sells));
@@ -221,5 +224,6 @@ export function daySummary(all, scope = null) {
     sellValue,
     sellShare: buyValue + sellValue > 0 ? Number(((sellValue / (buyValue + sellValue)) * 100).toFixed(1)) : null,
     fxExcluded,
+    offMarket,
   };
 }

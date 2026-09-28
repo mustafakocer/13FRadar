@@ -58,11 +58,12 @@ const notesOf = (raw) => [raw?.fn ? Object.values(raw.fn).join(' ') : '', raw?.r
 const roleOk = (r) => ['ceo', 'cfo', 'officer', 'director'].includes(r?.r);
 
 // Why a buy does or does not count. `rawOf(r)` gives the raw Form 4 fields.
-//   null = counts; otherwise 'not_open_buy' | 'fx' | 'price' | 'plan' | 'fund'
-//   | 'owner10' | 'role'
+//   null = counts; otherwise 'not_open_buy' | 'fx' | 'off_market' | 'price'
+//   | 'plan' | 'fund' | 'owner10' | 'role'
 export function exclusionOf(r, c = classify(r)) {
   if (c.category !== 'open_buy') return 'not_open_buy';
   if (r.fx?.fail) return 'fx';
+  if (r.fx?.off != null) return 'off_market';
   if (r.pu || c.price_unverified) return 'price';
   if (c.plan_trade) return 'plan';
   if (c.fund_insider) return 'fund';

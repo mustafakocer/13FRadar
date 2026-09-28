@@ -19,7 +19,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { normalizeRow, normalizeRows, declaredCurrency, figureCurrency, withoutParValue, foreignOn, securityKind, usdValue, MATCH_TOLERANCE } from '../api/_lib/fpiNormalize.js';
+import { normalizeRow, normalizeRows, declaredCurrency, figureCurrency, withoutParValue, foreignOn, securityKind, usdValue, offMarket, MATCH_TOLERANCE } from '../api/_lib/fpiNormalize.js';
+import { exclusionOf } from '../api/_lib/insiderCluster.js';
+import { priceCheck } from '../api/_lib/insiderPriceCheck.js';
 import { daySummary } from '../api/_lib/insiderModel.js';
 import { buildClusters } from '../api/_lib/insiderCluster.js';
 
@@ -42,8 +44,9 @@ test('the threshold is ±15%', () => {
 });
 
 test('synthetic 1 — already in dollars: the price is within ±15% of the close → no conversion, no ADR ratio', () => {
-  const n = normalizeRow(line(20.5), { raw: { st: 'Ordinary Shares' }, issuer: ADS5, rates: RATES, series: [{ date: '2026-09-25', close: 20 }] });
-  assert.deepEqual([n.ok, n.cu, n.ar, n.as, n.p, n.s, n.v], [1, 'USD', 1, 'asis', 20.5, 1000, 20500]);
+  // 1,003 shares: not a whole number of ADSs (5 shares each)
+  const n = normalizeRow(line(20.5, 1003), { raw: { st: 'Ordinary Shares' }, issuer: ADS5, rates: RATES, series: [{ date: '2026-09-25', close: 20 }] });
+  assert.deepEqual([n.ok, n.cu, n.ar, n.as, n.p, n.s, n.v], [1, 'USD', 1, 'asis', 20.5, 1003, Math.round(1003 * 20.5)]);
 });
 
 test('synthetic 2 — conversion needed: 80 pesos × 0.05 × 5 = $20 per ADS, the form price itself is far off', () => {
@@ -55,14 +58,11 @@ test('synthetic 3 — nothing within ±15%: no dollar amount, out of the day tot
   // as is: 30 vs 20 (+50%); × 5 as dollars: 150; as pesos: 30 × 0.05 × 5 = 7.5; per ADS in pesos: 1.5
   const bad = normalizeRow(line(30), { raw: { st: 'Ordinary Shares' }, issuer: ADS5, rates: RATES, series: [{ date: '2026-09-25', close: 20 }] });
   assert.equal(bad.fail, 'mismatch');
-  // 17% off in dollars (fitted the old ±25%), 29% off in euros: neither within ±15%
-  const eur = { t: 'XYZ', fpi: 1, ads: 0, cur: 'EUR' };
-  assert.equal(normalizeRow(line(23.4), { raw: { st: 'Ordinary Shares' }, issuer: eur, rates: { EUR: [['2026-09-25', 1.1]] }, series: [{ date: '2026-09-25', close: 20 }] }).fail, 'mismatch');
   const issuers = { 9: ADS5 };
-  const rows = normalizeRows([line(30), { ...line(20), n: 'B Director', a: 'Y' }, { ...line(20), n: 'C Director', a: 'Z' }], { fpi: { issuers, rates: RATES }, rawOf: () => ({ st: 'Ordinary Shares' }), seriesFor: () => [{ date: '2026-09-25', close: 20 }] });
+  const rows = normalizeRows([line(30), { ...line(20, 1001), n: 'B Director', a: 'Y' }, { ...line(20, 999), n: 'C Director', a: 'Z' }], { fpi: { issuers, rates: RATES }, rawOf: () => ({ st: 'Ordinary Shares' }), seriesFor: () => [{ date: '2026-09-25', close: 20 }] });
   assert.equal(usdValue(rows[0]), null);
   const day = daySummary(rows);
-  assert.deepEqual([day.buyCount, day.buyValue, day.fxExcluded], [2, 40000, 1]);
+  assert.deepEqual([day.buyCount, day.buyValue, day.fxExcluded], [2, 40000, 1], 'counts 1,001 and 999: not whole ADSs');
   const cl = buildClusters(rows).byTicker.get('XYZ');
   assert.equal(cl.insiders, 2, 'the unverified buyer does not count');
 });
@@ -123,9 +123,11 @@ test('A — a dollar price is no longer read as euros, pounds, yen or Canadian d
   for (const k of ['GGB', 'NYAX']) assert.deepEqual([k, run(k).cu, run(k).v], [k, 'USD', formValue(k)]);
 });
 
-test('A — SMFG: "converted into U.S. dollars" is never retried as yen; no documented ratio fits → no dollar amount', () => {
+test('A — SMFG: "converted into U.S. dollars" is never retried as yen; an ADS issuer with no ratio that fits → no dollar amount', () => {
   const n = run('SMFG');
-  assert.equal(n.fail, 'mismatch');
+  // a disposition under a compensation plan (code D): not a market price
+  assert.equal(n.fail, 'non_market');
+  assert.equal(n.off, undefined, 'an ADS issuer\'s unit is ambiguous: not "off-market"');
   assert.equal(n.lp, 43.99);
 });
 
@@ -153,7 +155,52 @@ test('B — SaverOne: 43,200 ordinary shares per ADS (reviewed override), not 43
   assert.ok(n.v < 20000, `≈ $16K, not $15.9M (${n.v})`);
 });
 
-test('no footnote, ordinary-share title, price at the ADS close: taken as it stands (Alibaba) — the rule, flagged in the report', () => {
+// ------------------------------------------------------------ decisions of 2026-09-28
+test('Ordinary Shares + current foreign issuer + a count that is a whole number of ADSs → count in ordinary shares (Alibaba ÷8)', () => {
   const n = run('BABA');
-  assert.deepEqual([n.cu, n.ar, n.as], ['USD', 1, 'asis']);
+  assert.deepEqual([n.cu, n.ar, n.pa, n.s], ['USD', 8, 1, 86624]);
+  assert.equal(n.v, Math.round(86624 * 94.92), '$8.2M, not $65.8M');
+  // H World: 11,320 = 1,132 × 10
+  assert.deepEqual([run('HTHT').ar, run('HTHT').s], [10, 1132]);
+});
+
+test('Ordinary Shares with a count that is not a whole number of ADSs → taken as it stands', () => {
+  const n = normalizeRow(line(20.1, 148819), { raw: { st: 'Ordinary Shares' }, issuer: { ...ADS5, ratio: 4 }, rates: RATES, series: [{ date: '2026-09-25', close: 20 }] });
+  assert.deepEqual([n.ar, n.as, n.s], [1, 'asis', 148819]);
+  // a whole number, but the title is not "Ordinary" / the issuer no longer foreign
+  assert.equal(normalizeRow(line(20.1, 4000), { raw: { st: 'Common Stock' }, issuer: { ...ADS5, ratio: 4 }, rates: RATES, series: [{ date: '2026-09-25', close: 20 }] }).as, 'asis');
+  assert.equal(normalizeRow(line(20.1, 4000), { raw: { st: 'Ordinary Shares' }, issuer: { ...ADS5, ratio: 4, lf: '2022-01-01' }, rates: RATES, series: [{ date: '2026-09-25', close: 20 }] }), null);
+});
+
+test('a company listed only in the US: its home currency is not tried unless a filing names it (Horizon Quantum SGD, Sono Group EUR)', () => {
+  for (const k of ['HQ', 'SSM']) {
+    const n = run(k);
+    assert.equal(n.cu, 'USD', k);
+    assert.notEqual(n.off, undefined, `${k}: off-market, not converted`);
+  }
+  // the same company, a footnote of its naming euros: the home currency is tried
+  const eur = { t: 'XYZ', fpi: 1, ads: 0, cur: 'EUR' };
+  const opts = { raw: { st: 'Ordinary Shares' }, issuer: eur, rates: { EUR: [['2026-09-25', 1.2]] }, series: [{ date: '2026-09-25', close: 24 }] };
+  assert.equal(normalizeRow(line(20), opts).off, -16.7, 'not listed at home: off-market');
+  assert.equal(normalizeRow(line(20), { ...opts, homeSeen: new Set(['EUR']) }).cu, 'EUR', 'euros named in its filings: converted');
+});
+
+test('off-market price: a dollar price no unit brings within ±15% — amount kept, out of clusters and the day total (International Tower Hill, Paulson)', () => {
+  const n = run('THM');
+  assert.deepEqual([n.ok, n.cu, n.v], [1, 'USD', formValue('THM')]);
+  assert.equal(n.off, -22.6);
+  assert.equal(run('THM').off, normalizeRow(F.cases.THM.row, { raw: F.cases.THM.raw, issuer: F.cases.THM.issuer, rates: F.rates, series: [F.cases.THM.close], homeSeen: new Set(['CAD']) }).off, 'the same with its Canadian-dollar footnotes');
+  // served: amount shown, price unverified, out of totals and clusters
+  const c = F.cases.THM;
+  const other = (n, a) => ({ ...c.row, n, a, s: 10000, p: 2.9, v: 29000, r: 'director' });
+  const rows = normalizeRows([{ ...c.row, r: 'director' }, other('B Director', 'B1'), other('C Director', 'C1')], { fpi: { issuers: { [c.row.ci]: c.issuer }, rates: F.rates }, rawOf: () => c.raw, seriesFor: () => [c.close] });
+  const [thm] = rows;
+  assert.equal(offMarket(thm), true);
+  assert.equal(thm.v, formValue('THM'), 'the amount is shown');
+  assert.equal(usdValue(thm), null, 'but not summed');
+  assert.deepEqual(priceCheck(thm, {}), { ok: false, reason: 'off_market' });
+  assert.equal(exclusionOf(thm), 'off_market');
+  const day = daySummary(rows);
+  assert.deepEqual([day.buyCount, day.buyValue, day.offMarket], [2, 58000, 1]);
+  assert.equal(buildClusters(rows).byTicker.get('THM').insiders, 2);
 });

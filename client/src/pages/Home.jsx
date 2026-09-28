@@ -285,6 +285,11 @@ function InsiderSignals({ teaser }) {
               {t('ins.fxExcluded').replace('{n}', pulse.fxExcluded)}
             </div>
           )}
+          {pulse?.offMarket > 0 && (
+            <div className="muted small" data-off-market-count={pulse.offMarket}>
+              {t('ins.offMarketExcluded').replace('{n}', pulse.offMarket)}
+            </div>
+          )}
 
           {hl && (
             <>

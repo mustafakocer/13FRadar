@@ -21,7 +21,7 @@ function retFor(r, meta, opts = {}) {
 const openBuy = (r) => categorize(r) === 'open_buy';
 // …with a verified dollar amount: a foreign-currency line that could not be
 // converted (fpiNormalize.js) never takes a ranked slot
-const ranked = (r) => openBuy(r) && !r.fx?.fail;
+const ranked = (r) => openBuy(r) && !r.fx?.fail && r.fx?.off == null;
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
@@ -65,6 +65,7 @@ function brief(r, companies, meta, opts) {
 // currency (the page writes "MXN 6.93M · USD karşılığı doğrulanamadı").
 export function fxBrief(r) {
   if (r?.fx?.fail) return { fx: { cu: r.fx.cu || null, lv: r.fx.lv, lp: r.fx.lp } };
+  if (r?.fx?.off != null) return { fx: { off: r.fx.off } };
   if (r?.fx?.ok && (r.fx.cu !== 'USD' || r.fx.ar !== 1)) return { fx: { cu: r.fx.cu, ar: r.fx.ar, lp: r.fx.lp } };
   return {};
 }
@@ -216,6 +217,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
     sellValue: summary.sellValue,
     sellShare: summary.sellShare,
     ...(summary.fxExcluded ? { fxExcluded: summary.fxExcluded } : {}),
+    ...(summary.offMarket ? { offMarket: summary.offMarket } : {}),
   };
 
   // The signal window trails the newest filing day, not the wall clock, so a

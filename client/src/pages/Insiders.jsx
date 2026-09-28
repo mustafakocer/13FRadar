@@ -181,11 +181,16 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
   );
 }
 
-// The label under an insider's name: the signal level for an open-market
-// buy (Güçlü / Orta / Zayıf / Sinyal yok, the reason in the tooltip), the
-// kind of transaction for everything else ("Opsiyon kullanımı", "Vergi
-// kesintisi"…), and "Büyük ortak (fon)" for funds and pure 10% owners.
-// Rules: api/_lib/insiderSignal.js.
+// The label under an insider's name. An open-market buy gets its level —
+// "Öne çıkan alım" / "Kayda değer alım" / "Küçük alım", nothing when it
+// rates none — with the reason and a disclaimer in the tooltip; anything
+// else shows its kind ("Opsiyon kullanımı", "Vergi kesintisi"…); funds and
+// pure 10% owners also carry "Büyük ortak (fon)". Rules:
+// api/_lib/insiderSignal.js.
+//
+// The labels describe the trade, not its prospects: the calibration
+// (scripts/calibrate-insider-signals.mjs) found the top level did NOT beat
+// the middle one over 90 days, so the names promise nothing about returns.
 const LEVEL_CLASS = { strong: 'pos', medium: 'info', weak: 'plain', none: 'plain' };
 export function signalReason(sig, t) {
   if (!sig) return '';
@@ -195,7 +200,7 @@ export function signalReason(sig, t) {
   if (sig.ownIncrease === 'new') parts.push(t('ins.newPosition'));
   else if (sig.ownIncrease != null) parts.push(`${t('ins.own')} ${fmtPct(sig.ownIncrease, { digits: 0 })}`);
   if (sig.why === 'large_holder_cap') parts.push(t('ins.why.large_holder_cap'));
-  return parts.join(' · ');
+  return `${parts.join(' · ')}\n${t('ins.levelDisclaimer')}`;
 }
 function RowLabel({ r, t }) {
   const planned = r.planned && <span className="badge sm plain" style={{ marginLeft: 4 }}>10b5-1</span>;
@@ -204,9 +209,11 @@ function RowLabel({ r, t }) {
     const level = r.signal?.level || 'none';
     return (
       <>
-        <span className={`badge sm ${LEVEL_CLASS[level]}`} title={signalReason(r.signal, t)} data-level={level}>
-          {t(`ins.level.${level}`)}
-        </span>
+        {level !== 'none' && (
+          <span className={`badge sm ${LEVEL_CLASS[level]}`} title={signalReason(r.signal, t)} data-level={level}>
+            {t(`ins.level.${level}`)}
+          </span>
+        )}
         {holder}
         {planned}
       </>
@@ -398,7 +405,7 @@ export default function Insiders() {
               <div>
                 <Link to={`/stock/${s.ticker}`} style={{ fontWeight: 700 }}>{s.ticker}</Link>
                 <div className="muted small">
-                  {s.level && s.level !== 'none' && <span className={`badge sm ${LEVEL_CLASS[s.level]}`} style={{ marginRight: 4 }}>{t(`ins.level.${s.level}`)}</span>}
+                  {s.level && s.level !== 'none' && <span className={`badge sm ${LEVEL_CLASS[s.level]}`} style={{ marginRight: 4 }} title={t('ins.levelDisclaimer')}>{t(`ins.level.${s.level}`)}</span>}
                   {t(`ins.signal.${s.kind}`)}
                   {s.kind === 'cluster' ? ` (${s.insiders})` : ''} · {t('ins.cost')} {fmtNum(s.price, 2)}
                 </div>

@@ -181,3 +181,16 @@ test('home page and /insiders headline numbers still come from one function and 
   assert.equal(feed.stats.sellCount, teaser.pulse.sellCount);
   assert.equal(feed.stats.buyCount, 2, 'TFC and the one-share TPL buy; no exercise, award or conversion');
 });
+
+test('level labels describe the trade, promise nothing, and "none" shows no label', () => {
+  const i18n = fs.readFileSync(path.join(root, 'client', 'src', 'i18n.jsx'), 'utf8');
+  const val = (key) => [...i18n.matchAll(new RegExp(`'${key.replace('.', '\\.')}': '([^']*)'`, 'g'))].map((m) => m[1]);
+  assert.deepEqual(val('ins.level.strong'), ['Öne çıkan alım', 'Prominent buy']);
+  assert.deepEqual(val('ins.level.medium'), ['Kayda değer alım', 'Notable buy']);
+  assert.deepEqual(val('ins.level.weak'), ['Küçük alım', 'Small buy']);
+  assert.deepEqual(val('ins.level.none'), ['', '']);
+  assert.match(i18n, /'ins\.levelDisclaimer': 'Bu etiket işlemin büyüklüğünü ve alan kişinin görevini özetler; gelecekteki getiriyi öngörmez\.'/);
+  const page = fs.readFileSync(path.join(root, 'client', 'src', 'pages', 'Insiders.jsx'), 'utf8');
+  assert.match(page, /level !== 'none' &&/, 'no badge for a buy that rates none');
+  assert.match(page, /ins\.levelDisclaimer/, 'the disclaimer is in the tooltip');
+});

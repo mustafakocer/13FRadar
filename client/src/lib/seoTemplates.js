@@ -135,11 +135,11 @@ export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate 
   if (lang === 'tr') {
     description = n ? `${num(n, lang)} usta yatırımcı ${company} (${sym}) hissesini 13F bildiriminde raporluyor.` : `${company} (${sym}) hissesinin kurumsal sahipliği.`;
     if (price != null) description += ` Fiyat ${price.toFixed(2)} ${stock?.price?.currency || 'USD'}.`;
-    description += ' Usta yatırımcı sinyali, çeyreklik adet değişimleri, içeriden işlemler ve rasyolar.';
+    description += ' Usta yatırımcı hareketleri, çeyreklik adet değişimleri, içeriden işlemler ve rasyolar.';
   } else {
     description = n ? `${num(n, lang)} tracked superinvestors report ${company} (${sym}) on Form 13F.` : `Institutional ownership of ${company} (${sym}).`;
     if (price != null) description += ` Price ${price.toFixed(2)} ${stock?.price?.currency || 'USD'}.`;
-    description += ' Superinvestor signal, quarterly share changes, insider trades and valuation ratios.';
+    description += ' Superinvestor activity, quarterly share changes, insider trades and valuation ratios.';
   }
   const path = `/stock/${sym}`;
   const answer = stock
@@ -176,8 +176,8 @@ export function homeSeo({ lang }) {
     title: lang === 'tr' ? 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' : 'Fundocap — Track the Smart Money & Insiders',
     description:
       lang === 'tr'
-        ? "8.000'den fazla fonun 13F portföyleri, usta yatırımcı konsensüsü ve SEC Form 4 insider sinyalleri. Warren Buffett'tan Michael Burry'ye kim ne alıyor, ne satıyor."
-        : '13F portfolios of 8,000+ funds, superinvestor consensus and SEC Form 4 insider signals. From Warren Buffett to Michael Burry: who is buying and selling.',
+        ? "8.000'den fazla fonun 13F portföyleri, usta yatırımcı konsensüsü ve SEC Form 4 insider işlemleri. Warren Buffett'tan Michael Burry'ye kim ne alıyor, ne satıyor."
+        : '13F portfolios of 8,000+ funds, superinvestor consensus and SEC Form 4 insider trades. From Warren Buffett to Michael Burry: who is buying and selling.',
     path: '/',
   };
 }

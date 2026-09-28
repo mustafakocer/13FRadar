@@ -128,7 +128,7 @@ function document(full) {
   const L = [];
   L.push('# Fundocap');
   L.push('');
-  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider signals. Pages are available in English (/en) and Turkish (/tr).`);
+  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider trade pages. Pages are available in English (/en) and Turkish (/tr).`);
   L.push('');
   L.push(`Data: SEC EDGAR 13F-HR (quarter-end long positions in US-listed securities, filed up to 45 days after quarter end — positions are always at least that stale and never include shorts, most derivatives or non-US holdings) and SEC Form 4 (insider transactions). Refresh cadence: insider data daily; guru/consensus/rankings daily from the latest filings; the full filer universe weekly. Last data refresh: ${updatedAt}.`);
   L.push('');

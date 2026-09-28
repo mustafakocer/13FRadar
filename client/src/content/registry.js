@@ -11,7 +11,7 @@ export const GUIDES = [
     id: 'how-to-read-form-4',
     paths: { en: '/guides/how-to-read-form-4', tr: '/rehber/form-4-nasil-okunur' },
     title: { en: 'How to read a Form 4 insider filing', tr: 'Form 4 insider bildirimi nasıl okunur?' },
-    summary: { en: 'transaction codes, 10b5-1 plans, what counts as a signal', tr: 'işlem kodları, 10b5-1 planları, sinyal sayılan işlemler' },
+    summary: { en: 'transaction codes, 10b5-1 plans, which trades are open-market', tr: 'işlem kodları, 10b5-1 planları, açık piyasa işlemi sayılanlar' },
   },
   {
     id: '13f-limitations',

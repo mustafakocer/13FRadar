@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { dataFreshness } from '../lib/secCalendar.js';
-import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtLocal, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
@@ -234,7 +234,7 @@ function RowLabel({ r, t }) {
   return (
     <>
       <span className={`badge sm ${r.category === 'open_sell' ? 'neg' : 'plain'}`} title={r.code ? `Form 4: ${r.code}` : undefined} data-category={r.category}>
-        {t(`ins.cat.${r.category || 'other'}`)}
+        {t(r.category === 'preferred' || r.category === 'other_security' ? `ins.cat.${r.category}.${r.side === 'sell' ? 'sell' : 'buy'}` : `ins.cat.${r.category || 'other'}`)}
       </span>
       {holderBadge && <span style={{ marginLeft: 4 }}>{holderBadge}</span>}
       {planned}
@@ -404,6 +404,7 @@ export default function Insiders() {
                   <span>{t('ins.sellShare')}</span>
                 </div>
               </div>
+              {stats.fxExcluded > 0 && <div className="muted small" data-fx-excluded={stats.fxExcluded}>{t('ins.fxExcluded').replace('{n}', stats.fxExcluded)}</div>}
             </>
           ) : (
             <div className="muted small">{t('common.loading')}</div>
@@ -562,6 +563,7 @@ export default function Insiders() {
                             title={`${r.cluster.from} → ${r.cluster.to} · ${t(`ins.density.${r.cluster.density}`)}`}
                           >
                             {t('ins.clusterOf').replace('{n}', r.cluster.insiders)}
+                            {r.cluster.fxExcluded ? ` · ${t('ins.fxExcluded').replace('{n}', r.cluster.fxExcluded)}` : ''}
                           </span>
                         )}
                       </div>
@@ -576,8 +578,34 @@ export default function Insiders() {
                       </div>
                     </td>
                     <td className="num">
-                      <b>{r.value != null ? `$${fmtNum(r.value, 2)}` : '—'}</b>
-                      <div className="muted small">{t('ins.price')}: {r.price != null ? `$${fmtNum(r.price, 2)}` : '—'}</div>
+                      {r.valueUnverified ? (
+                        <>
+                          {/* a foreign issuer's line whose currency could not be
+                              verified: its own currency, never "$" */}
+                          <b data-fx-unverified={r.currency || '?'}>{fmtLocal(r.currency, r.localValue)}</b>
+                          <div className="muted small">{t('ins.price')}: {r.currency || '?'} {fmtNum(r.localPrice, 2)}</div>
+                          <div className="muted small">{t('ins.fxUnverified')}</div>
+                        </>
+                      ) : (
+                        <>
+                          <b>{r.value != null ? `$${fmtNum(r.value, 2)}` : '—'}</b>
+                          <div className="muted small">{t('ins.price')}: {r.price != null ? `$${fmtNum(r.price, 2)}` : '—'}</div>
+                          {r.currency && (
+                            <div
+                              className="muted small"
+                              data-fx={r.currency}
+                              title={t('ins.fxDetail')
+                                .replaceAll('{cu}', r.currency)
+                                .replace('{lp}', fmtNum(r.localPrice, 4))
+                                .replace('{rate}', fmtNum(r.fxRate, 6))
+                                .replace('{ar}', fmtNum(r.adrRatio, 4))
+                                .replace('{src}', t(`ins.ratioSrc.${r.ratioSource || 'direct'}`))}
+                            >
+                              {t('ins.fxConverted').replace('{cu}', r.currency)}
+                            </div>
+                          )}
+                        </>
+                      )}
                     </td>
                     <td className="num">
                       <div>
@@ -598,7 +626,7 @@ export default function Insiders() {
                       <div className="muted small">{t('ins.curr')}: {r.current != null ? `$${fmtNum(r.current, 2)}` : '—'}</div>
                     </td>
                     <td className="num">
-                      {r.hitRate && !r.hitRate.insufficient ? (
+                      {r.hitRate?.rate != null ? (
                         <>
                           <b>{fmtPct(r.hitRate.rate, { sign: false, digits: 0 })}</b>
                           {/* the sample size travels with the rate: 100% of three
@@ -606,7 +634,8 @@ export default function Insiders() {
                           <div className="muted small">n={r.hitRate.n}</div>
                         </>
                       ) : r.hitRate?.unverified ? (
-                        <span className="muted small">{t(`ins.priceNote.${r.priceNote || 'form'}`)}</span>
+                        // hidden: only "—", the reason is in the return column
+                        <span className="muted" title={t(`ins.priceNote.${r.priceNote || 'form'}`)} data-hit-hidden="1">—</span>
                       ) : r.hitRate?.insufficient ? (
                         <span className="muted small" title={`n=${r.hitRate.n}`}>{t('ins.hitInsufficient')}</span>
                       ) : (

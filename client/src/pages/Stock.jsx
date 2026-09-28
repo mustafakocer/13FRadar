@@ -14,6 +14,7 @@ import {
   fmtFracPct,
   fmtRatio,
   deltaClass,
+  fmtLocal,
 } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -324,15 +325,27 @@ export default function Stock() {
                           className={`badge ${tx.category === 'open_buy' ? 'pos' : tx.category === 'open_sell' ? 'neg' : 'plain'}`}
                           title={tx.code ? `Form 4: ${tx.code}` : undefined}
                         >
-                          {t(`ins.cat.${tx.category}`)}
+                          {t(tx.category === 'preferred' || tx.category === 'other_security' ? `ins.cat.${tx.category}.${tx.side === 'sell' ? 'sell' : 'buy'}` : `ins.cat.${tx.category}`)}
                         </span>
                       ) : (
                         tx.code || '—'
                       )}
                     </td>
                     <td className="num">{fmtNum(tx.shares)}</td>
-                    <td className="num">{fmtNum(tx.price, 2)}</td>
-                    <td className="num">{fmtMoney(tx.value)}</td>
+                    <td className="num">{tx.valueUnverified ? `${tx.currency || '?'} ${fmtNum(tx.localPrice, 2)}` : fmtNum(tx.price, 2)}</td>
+                    <td className="num">
+                      {tx.valueUnverified ? (
+                        <>
+                          {fmtLocal(tx.currency, tx.localValue)}
+                          <div className="muted small">{t('ins.fxUnverified')}</div>
+                        </>
+                      ) : (
+                        <>
+                          {fmtMoney(tx.value)}
+                          {tx.currency && <div className="muted small">{t('ins.fxConverted').replace('{cu}', tx.currency)}</div>}
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>

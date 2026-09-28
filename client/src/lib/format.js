@@ -44,3 +44,13 @@ export function quarterLabel(dateStr) {
   const [y, m] = dateStr.split('-').map(Number);
   return `${y} Q${Math.ceil(m / 3)}`;
 }
+
+// An amount in the currency a foreign issuer's Form 4 was filed in, when it
+// could not be verified in US dollars: "MXN 6.93M" (never with "$").
+export function fmtLocal(cu, v) {
+  if (v == null || Number.isNaN(v)) return '—';
+  const abs = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  const n = abs >= 1e9 ? `${(abs / 1e9).toFixed(2)}B` : abs >= 1e6 ? `${(abs / 1e6).toFixed(2)}M` : abs >= 1e3 ? `${(abs / 1e3).toFixed(1)}K` : abs.toFixed(2);
+  return `${cu || '?'} ${sign}${n}`;
+}

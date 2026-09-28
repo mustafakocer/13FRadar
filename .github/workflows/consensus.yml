@@ -65,6 +65,7 @@ on:
 
 permissions:
   contents: write
+  issues: write # the alarm issue (scripts/notify.mjs)
 
 # One data run at a time on the deployment branch. The cron and a push on the
 # same morning used to run side by side, each spending two hours to race the
@@ -171,7 +172,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices; do
+          for f in client/public api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/freshness; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
@@ -193,3 +194,30 @@ jobs:
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
+
+      # Provider refusals (FMP's HTTP 402 "not available under your current
+      # subscription", or any other provider) are KNOWN ISSUES: the first one
+      # opens a single GitHub issue with the @mention, a refusal that persists
+      # stays a ::warning:: on a green run, and a change — the provider back,
+      # or another one refusing — is announced (api/_lib/providerAlarm.js).
+      # Runs even when a build step failed: the records are already written.
+      - name: Provider alarms (known issues)
+        if: always()
+        run: node scripts/check-providers.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+
+      - name: Alert
+        if: failure()
+        run: node scripts/notify.mjs --title "Consensus/prices build failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "Consensus/prices build failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

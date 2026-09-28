@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { needsLookup, record, tickerFor, retryQueue, stats } from './securityMaster.js';
+import { noteProvider } from './providerAlarm.js';
 
 // OpenFIGI transport for the security master (securityMaster.js). Nothing
 // here is consulted at request time: the master answers instantly from the
@@ -115,7 +116,11 @@ export async function openfigiLookup(jobs, { key = process.env.OPENFIGI_API_KEY,
         await sleep(1500 * attempts);
         continue;
       }
-      if (r.status !== 200 || !Array.isArray(r.data)) return null;
+      if (r.status !== 200 || !Array.isArray(r.data)) {
+        noteProvider('openfigi', { error: `HTTP ${r.status}` });
+        return null;
+      }
+      noteProvider('openfigi', { ok: true });
       return r.data.map((res) => shape(best(res?.data || [])));
     } catch {
       await sleep(1000 * attempts);

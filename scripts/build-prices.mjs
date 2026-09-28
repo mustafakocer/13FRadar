@@ -15,6 +15,9 @@
 // are missing or stale, what tonight covers, and how many nights a full
 // fill takes at this budget.
 import { buildPrices } from '../api/_lib/pricesBuild.js';
+import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 
 const r = await buildPrices();
 if (r.dryRun) console.log('dry run — nothing written');
+
+flushProviderHealth();

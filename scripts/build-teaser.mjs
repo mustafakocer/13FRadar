@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
+import { currentRows } from '../api/_lib/insiderStore.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const DB = path.join(root, 'api', '_data', 'insiders.json');
@@ -31,7 +32,7 @@ if (!db?.rows?.length) {
 }
 const meta = read(META, {});
 const now = db.updatedAt ? Date.parse(db.updatedAt) : Date.now();
-const teaser = buildTeaser(db.rows, db.companies || {}, meta, now);
+const teaser = buildTeaser(currentRows(db.rows), db.companies || {}, meta, now);
 fs.writeFileSync(OUT, JSON.stringify(teaser));
 
 const p = teaser.penny;

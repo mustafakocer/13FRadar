@@ -1,0 +1,18 @@
+<SEC-DOCUMENT>0000999999-26-000099.txt : 20260922
+<SEC-HEADER>
+ACCESSION NUMBER:		0000999999-26-000099
+CONFORMED SUBMISSION TYPE:	4
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<TEXT>
+<XML>
+<ownershipDocument>
+    <documentType>4</documentType>
+    <issuer><issuerCik>0000111111</issuerCik><issuerName>Example & Sons</issuerName>
+    <nonDerivativeTable><nonDerivativeTransaction><transactionCode>P</transactionCode></nonDerivativeTable>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

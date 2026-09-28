@@ -7,14 +7,20 @@ on:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
         default: false
+      simulate_failure:
+        description: 'Alarm drill: every EDGAR request answers 403, the run must go red and alert (no data changes)'
+        type: boolean
+        default: false
   schedule:
-    # 04:53 UTC daily (07:53 Istanbul) — after the universe and consensus
-    # chain, before the US pre-market. Form 4s are filed through the evening,
-    # so this picks up the previous session. Sunday finds nothing new and
-    # exits in seconds, but keeping it daily means a backlog is never a day
-    # older than it has to be. An odd minute: GitHub queues :00 and :30 runs
-    # for hours on busy mornings.
-    - cron: '53 4 * * *'
+    # Twice a day. EDGAR publishes a day's daily index in the evening, Eastern
+    # time; 03:31 UTC is after that, and 11:02 UTC is the catch-up for a late
+    # index or a queued morning run. GitHub often starts scheduled runs hours
+    # late (a 04:53 slot began at 09:30), so nothing below depends on the
+    # clock: every run reads whatever is missing after the checkpoint, and a
+    # day EDGAR has not published yet simply waits (api/_lib/insiderCrawl.js).
+    # Odd minutes: GitHub queues :00 and :30 runs for hours on busy mornings.
+    - cron: '31 3 * * *'
+    - cron: '2 11 * * *'
   push:
     # Only the deployment branch. A feature-branch push used to start a full
     # crawl on that branch: hours of CI, a data commit on a throwaway ref, and
@@ -25,11 +31,15 @@ on:
     paths:
       - 'scripts/build-insiders.mjs'
       - 'api/_lib/insiderModel.js'
+      - 'api/_lib/insiderCrawl.js'
+      - 'api/_lib/insiderForm4.js'
+      - 'api/_lib/insiderStore.js'
       - 'api/_lib/marketData.js'
       - '.github/workflows/insiders.yml'
 
 permissions:
   contents: write
+  issues: write # the alarm issue (scripts/notify.mjs)
 
 concurrency:
   group: insiders-data
@@ -38,8 +48,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    # the first run pulls a year of quarterly SEC datasets; later runs only
-    # scan the days added since the last commit and take a few minutes
+    # a normal run reads one or two new days plus three re-read days (~15 min);
+    # a long backlog is capped at INSIDER_MAX_DAYS per run
     timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
@@ -47,44 +57,58 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+
+      # The build writes everything it collected, THEN exits non-zero when a
+      # day could not be read, a day's index is implausibly thin, the crawl
+      # made no progress, or EDGAR has not published a day for over a
+      # business day. So this step may fail and the data still ships: the
+      # commit below runs whenever the audit passes, and the last step turns
+      # the run red and sends the alert.
       - name: Build insiders.json
-        run: node scripts/build-insiders.mjs
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/build-insiders.mjs 2>&1 | tee insiders-build.log
         env:
           SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
           INSIDER_MONTHS: '12'
-          # Only binds while the crawl is behind: a run that is current scans
-          # the one new day. 45 days is ~3 hours at SEC's rate limit, well
-          # inside the job timeout, and clears a months-long backlog in two
-          # nights instead of four.
           INSIDER_MAX_DAYS: '45'
+          # a business day has ~1,000–2,000 Form 4s; the repository variable
+          # can lower the floor for a known thin day without a code change
+          INSIDER_MIN_FORM4: ${{ vars.INSIDER_MIN_FORM4 || '200' }}
+          INSIDER_RESCAN_DAYS: '3'
+          SEC_RETRY_BACKOFF: '2,4,8,16'
+          INSIDER_SIMULATE_FAILURE: ${{ inputs.simulate_failure == true && '1' || '0' }}
+
       - name: Report dataset freshness
         if: always()
         run: |
           node -e "
-            const d = require('./api/_data/insiders.json');
-            const days = Math.round((Date.now() - Date.parse(d.lastDay + 'T00:00:00Z')) / 86400000);
-            console.log('last filing day ' + d.lastDay + ' (' + days + ' days old), ' + d.rows.length + ' rows');
-            if (days > 5) { console.error('::warning::insider dataset is ' + days + ' days behind'); }
-          "
+            const h = require('./api/_data/freshness/insiders.json');
+            console.log('newest filing ' + h.last_filing_date + ', checkpoint ' + h.checkpoint + ', ' + h.row_count + ' current rows');
+            for (const d of h.days || []) console.log('  ' + d.day + (d.rescan ? ' (re-read)' : '') + ': ' + d.form4 + ' Form 4, ' + d.rows + ' rows' + (d.ok ? '' : ' — FAILED: ' + d.error));
+          " || true
 
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
       - name: Audit the rebuilt data
+        id: audit
+        if: inputs.simulate_failure != true
         run: node scripts/audit-data.mjs --only=insiders,insiders-teaser
         env:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 
       - name: Commit if changed
+        if: steps.audit.outcome == 'success'
         run: |
           git config user.name 'insider-bot'
           git config user.email 'actions@github.com'
           # Stage only what this run actually produced. `git add` fails on a
-          # pathspec that matches nothing, and some outputs are optional —
-          # sector-map.json is written only when the sector lookup found
-          # something. An hour of crawling should not be thrown away because
-          # one optional file was not written.
-          for f in api/_data/insiders.json api/_data/ticker-meta.json client/public/insiders-teaser.json client/public/data-audit.json; do
+          # pathspec that matches nothing, and some outputs are optional.
+          for f in api/_data/insiders.json api/_data/insiders-raw.json api/_data/insider-ingest-errors.json api/_data/freshness api/_data/ticker-meta.json client/public/insiders-teaser.json client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
@@ -105,3 +129,26 @@ jobs:
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
+
+      - name: Fail the run if the build failed
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "::error::the insider build reported problems — see the 'Build insiders.json' step"
+          exit 1
+
+      - name: Alert
+        if: failure()
+        run: node scripts/notify.mjs --title "Insider ingest failed" --log insiders-build.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "Insider ingest failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

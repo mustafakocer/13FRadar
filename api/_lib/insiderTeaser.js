@@ -1,4 +1,4 @@
-import { businessDaysBetween, findClusters, isBuy, isSell, sizeBucket } from './insiderModel.js';
+import { businessDaysBetween, daySummary, findClusters, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
@@ -16,7 +16,8 @@ export const PENNY = { maxPrice: 5, minValue: 10000, windowDays: 30, rows: 50 };
 export const isPenny = (r) => r.p > 0 && r.p < PENNY.maxPrice;
 // "NONE" is what EDGAR reports for issuers without a listed ticker (private
 // funds, debt vehicles) — nothing a reader can act on.
-const listed = (r) => r?.t && r.t !== 'NONE' && r?.d;
+// Superseded 4/A originals (`sb`) never count.
+const listed = (r) => isListed(r) && !r.sb;
 const round = (x, d = 1) => (x == null ? null : Number(x.toFixed(d)));
 
 function brief(r, companies, meta) {
@@ -137,18 +138,18 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
 
 export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
   const rows = all.filter(listed);
-  const lastDay = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
-  const today = rows.filter((r) => r.f === lastDay);
-  const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
-  const buyValue = sum(today.filter(isBuy));
-  const sellValue = sum(today.filter(isSell));
+  // the headline numbers come from the one shared definition (daySummary), so
+  // the home page and /insiders cannot disagree about the same day again
+  const summary = daySummary(rows);
+  const lastDay = summary.day || '';
+  const today = summary.rows;
   const pulse = {
-    day: lastDay || null,
-    buyCount: today.filter(isBuy).length,
-    sellCount: today.filter(isSell).length,
-    buyValue: Math.round(buyValue),
-    sellValue: Math.round(sellValue),
-    sellShare: buyValue + sellValue > 0 ? round((sellValue / (buyValue + sellValue)) * 100) : null,
+    day: summary.day,
+    buyCount: summary.buyCount,
+    sellCount: summary.sellCount,
+    buyValue: summary.buyValue,
+    sellValue: summary.sellValue,
+    sellShare: summary.sellShare,
   };
 
   // The signal window trails the newest filing day, not the wall clock, so a

@@ -1,9 +1,8 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueries } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useFavorites } from '../hooks/useFavorites.js';
-import { useAlerts } from '../hooks/useAlerts.js';
 import { getSeenFiling } from '../hooks/useSeenFilings.js';
 import { quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
@@ -13,7 +12,7 @@ import { managerPath } from '../lib/paths.js';
 import { activeGurus } from '../data/popular.js';
 import GoogleButton from '../components/GoogleButton.jsx';
 import Ico from '../components/Ico.jsx';
-import { Star, Bell, BellRing, Plus } from 'lucide-react';
+import { Star, Bell, Plus } from 'lucide-react';
 
 // Five well-known funds to start a list with: the first discretionary
 // names of the registry, minus what is already on the list.
@@ -48,8 +47,6 @@ export default function Watchlist() {
   const { t, lang } = useI18n();
   const { favorites, toggleFavorite, addFavorite, error, clearError } = useFavorites();
   const { configured, user } = useAuth();
-  const { alerts, enableFilingAlerts, loading: alertsLoading } = useAlerts();
-  const [busy, setBusy] = useState(null);
   useSeo(useMemo(() => ({ title: `${t('watchlist.title')} — Fundocap`, path: '/watchlist', noindex: true }), [t, lang]));
 
   // check each favorite's latest filing for a NEW badge
@@ -61,13 +58,6 @@ export default function Watchlist() {
     })),
   });
   const signedOut = configured && !user;
-  const alerted = new Set(alerts.filter((a) => a.kind === 'filing').map((a) => a.target));
-  const pad = (cik) => String(cik).padStart(10, '0');
-  const enable = async (f) => {
-    setBusy(f.cik);
-    await enableFilingAlerts([f]);
-    setBusy(null);
-  };
   const picks = suggestions(favorites);
 
   return (
@@ -86,7 +76,6 @@ export default function Watchlist() {
         const latest = infos[i]?.data?.filings?.[0];
         const seen = getSeenFiling(f.cik);
         const isNew = latest && seen && latest.filingDate > seen;
-        const hasAlert = alerted.has(pad(f.cik));
         return (
           <div className="card row" key={f.cik} style={{ justifyContent: 'space-between', marginTop: 10, flexWrap: 'wrap' }} data-watch-row>
             <div className="row" style={{ minWidth: 0 }}>
@@ -101,15 +90,6 @@ export default function Watchlist() {
               )}
             </div>
             <div className="row">
-              {user && !alertsLoading && (
-                hasAlert ? (
-                  <span className="badge plain sm" title={t('alerts.title')}><Ico icon={BellRing} size={12} /> {t('watchlist.alertOn')}</span>
-                ) : (
-                  <button className="chip sm" disabled={busy != null} onClick={() => enable(f)} data-watch="alert">
-                    {busy === f.cik ? '…' : <><Ico icon={Bell} size={12} /> {t('watchlist.alertEnable')}</>}
-                  </button>
-                )
-              )}
               <button className="btn ghost sm" onClick={() => toggleFavorite(f)}>
                 {t('watchlist.remove')}
               </button>

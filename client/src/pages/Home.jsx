@@ -16,6 +16,7 @@ import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
 import { securityLabel } from '../lib/label.js';
 import Ico from '../components/Ico.jsx';
+import { dataFreshness } from '../lib/secCalendar.js';
 import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -229,9 +230,18 @@ function InsiderSignals({ teaser }) {
           <h2>{t('landing.ins.title')}</h2>
           <p>{t('landing.ins.sub')}</p>
         </div>
-        <span className="live-pill">
-          <i /> {t('landing.ins.live')}
-        </span>
+        {/* "Canlı veri" only while the newest filing in the data is at most one
+            business day behind (secCalendar.dataFreshness — the same rule the
+            freshness alarm uses); otherwise say how old it actually is. */}
+        {dataFreshness(teaser.lastDay).live ? (
+          <span className="live-pill">
+            <i /> {t('landing.ins.live')}
+          </span>
+        ) : (
+          <span className="live-pill stale">
+            {t('data.latest')}: {teaser.lastDay || '—'}
+          </span>
+        )}
       </div>
 
       <div className="ins-grid">

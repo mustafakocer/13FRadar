@@ -3,13 +3,11 @@ import assert from 'node:assert/strict';
 import {
   classifyTransaction,
   cleanSymbol,
-  crawlLedger,
   clusterDensity,
   clusterMatches,
   clusterSpanDays,
   findClusters,
   rowClass,
-  selectScanDays,
   winRate,
 } from '../api/_lib/insiderModel.js';
 import { buildTeaser, buildPennyBoard, isPenny } from '../api/_lib/insiderTeaser.js';
@@ -125,23 +123,6 @@ test('teaser still carries the landing-page keys alongside the penny board', () 
   assert.equal(t.penny.maxPrice, 5);
 });
 
-test('crawl plan: a holiday EDGAR never published does not stall the checkpoint', () => {
-  // 2026-05-22 Fri stored; 2026-05-25 Mon is Memorial Day, so EDGAR published
-  // no daily index for it. Asking for it returns 403, which the crawler used
-  // to read as a ban and stop — freezing the dataset on that date.
-  const q2 = new Set(['2026-05-26', '2026-05-27', '2026-05-28', '2026-05-29']); // no 05-25
-  const plan = selectScanDays({
-    fromDay: '2026-05-22',
-    today: '2026-05-29',
-    published: () => q2,
-    maxDays: 25,
-  });
-  assert.deepEqual(plan.skipped, ['2026-05-25'], 'the holiday is dropped, not requested');
-  assert.equal(plan.days[0], '2026-05-26', 'the scan starts the day after');
-  assert.equal(plan.checkpoint, '2026-05-25', 'the checkpoint clears the holiday even if every fetch fails');
-  assert.equal(plan.remaining, 0);
-});
-
 test('ticker cleaner: EDGAR symbols are free text', () => {
   assert.equal(cleanSymbol('  tsla '), 'TSLA');
   assert.equal(cleanSymbol('"OMEX"'), 'OMEX', 'quoted');
@@ -156,95 +137,6 @@ test('ticker cleaner: EDGAR symbols are free text', () => {
   assert.equal(cleanSymbol(''), null);
   assert.equal(cleanSymbol(null), null);
   assert.equal(cleanSymbol('NOT PUBLICLY TRADED'), null, 'prose is not a ticker');
-});
-
-test('crawl plan: a day that keeps failing is left behind, not retried forever', () => {
-  // 2026-05-25 is Memorial Day and never published; 2026-05-26 is a real day
-  // that has already failed three times, so both must stop holding the crawl.
-  const q2 = new Set(['2026-05-26', '2026-05-27', '2026-05-28', '2026-05-29']);
-  const plan = selectScanDays({
-    fromDay: '2026-05-22',
-    today: '2026-05-29',
-    published: () => q2,
-    exhausted: (day) => day === '2026-05-26',
-    maxDays: 25,
-  });
-  assert.deepEqual(plan.skipped, ['2026-05-25'], 'never published');
-  assert.deepEqual(plan.abandoned, ['2026-05-26'], 'published but out of attempts');
-  assert.deepEqual(plan.days, ['2026-05-27', '2026-05-28', '2026-05-29']);
-  assert.equal(plan.checkpoint, '2026-05-26', 'the checkpoint clears both');
-});
-
-test('crawl ledger: one bad day is retried, then left behind', () => {
-  // run 1: 05-26 fails, the days after it are read anyway
-  const a = crawlLedger({ checkpoint: '2026-05-25' });
-  a.fail('2026-05-26');
-  a.ok('2026-05-27');
-  a.ok('2026-05-28');
-  const r1 = a.finish();
-  assert.equal(r1.banned, false, 'one failure is a gap, not a refusal');
-  assert.equal(r1.scannedThrough, '2026-05-25', 'the checkpoint waits for the failed day');
-  assert.deepEqual(r1.badDays, { '2026-05-26': 1 });
-
-  // run 3 leaves it at the attempt limit, so the next plan abandons it
-  const b = crawlLedger({ badDays: { '2026-05-26': 2 }, checkpoint: '2026-05-25' });
-  b.fail('2026-05-26');
-  b.ok('2026-05-27');
-  const r2 = b.finish();
-  assert.equal(r2.badDays['2026-05-26'], 3);
-  assert.equal(r2.scannedThrough, '2026-05-27', 'a day out of attempts stops holding the checkpoint');
-});
-
-test('crawl ledger: a streak of refusals stops the run and refunds the attempts', () => {
-  const l = crawlLedger({ badDays: { '2026-06-01': 1 }, checkpoint: '2026-05-29' });
-  l.ok('2026-06-01');
-  l.fail('2026-06-02');
-  l.fail('2026-06-03');
-  l.fail('2026-06-04');
-  assert.equal(l.banned, true, 'three in a row is EDGAR refusing us');
-  const r = l.finish();
-  assert.deepEqual(r.badDays, { '2026-06-01': 1 }, 'a ban spends no day its retry budget');
-  assert.equal(r.scannedThrough, '2026-06-01', 'the checkpoint stops before the first refused day');
-});
-
-test('crawl ledger: a clean run advances to the last day read', () => {
-  const l = crawlLedger({ checkpoint: '2026-05-25' });
-  for (const d of ['2026-05-26', '2026-05-27', '2026-05-28']) l.ok(d);
-  const r = l.finish('2026-01-01');
-  assert.equal(r.scannedThrough, '2026-05-28');
-  assert.deepEqual(r.badDays, {});
-  assert.equal(r.banned, false);
-});
-
-test('crawl ledger: failures older than the lookback are forgotten', () => {
-  const l = crawlLedger({ badDays: { '2024-02-19': 2, '2026-06-02': 1 }, checkpoint: '2026-06-01' });
-  l.ok('2026-06-02');
-  const r = l.finish('2025-08-10');
-  assert.deepEqual(r.badDays, { '2026-06-02': 1 }, 'only days still in range are remembered');
-});
-
-test('crawl plan: weekends skipped, backlog capped, remainder reported', () => {
-  const plan = selectScanDays({ fromDay: '2026-05-22', today: '2026-06-30', published: () => null, maxDays: 5 });
-  assert.equal(plan.days.length, 5);
-  assert.equal(plan.days[0], '2026-05-25', 'an unreadable listing keeps every candidate day');
-  assert.ok(plan.remaining > 0, 'the rest is left for the next run');
-  for (const d of [...plan.days, ...plan.skipped]) {
-    const dow = new Date(`${d}T00:00:00Z`).getUTCDay();
-    assert.ok(dow !== 0 && dow !== 6, `${d} is a weekday`);
-  }
-});
-
-test('crawl plan: nothing to do when the checkpoint is current', () => {
-  const plan = selectScanDays({ fromDay: '2026-05-29', today: '2026-05-29', published: () => null });
-  assert.deepEqual(plan.days, []);
-  assert.equal(plan.checkpoint, '2026-05-29', 'the checkpoint holds');
-  assert.equal(plan.remaining, 0);
-});
-
-test('crawl plan: a run of holidays still advances the checkpoint', () => {
-  const plan = selectScanDays({ fromDay: '2026-05-22', today: '2026-05-26', published: () => new Set(), maxDays: 25 });
-  assert.deepEqual(plan.days, [], 'nothing to fetch');
-  assert.equal(plan.checkpoint, '2026-05-26', 'moves past every unpublished day');
 });
 
 // ---- cluster packing, hit rate --------------------------------------------

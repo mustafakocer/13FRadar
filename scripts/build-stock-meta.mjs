@@ -7,5 +7,7 @@
 //   SECTOR_BUDGET=250 node scripts/build-stock-meta.mjs   (fewer SEC lookups)
 //   FMP_API_KEY=… FMP_BUDGET=100 …                         (fill cap gaps)
 import { buildStockMeta } from '../api/_lib/stockMetaBuild.js';
+import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 
 await buildStockMeta();
+flushProviderHealth();

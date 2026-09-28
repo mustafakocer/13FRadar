@@ -4,6 +4,8 @@ import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, numCik } from '../_lib/sec.js';
 import { tickerToCik } from '../_lib/tickers.js';
 import { requirePro } from '../_lib/auth.js';
+import { readServed } from '../_lib/insiderStore.js';
+import { dataFreshness } from '../../client/src/lib/secCalendar.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
 const http = axios.create({ timeout: 20000, headers: { 'User-Agent': UA } });
@@ -54,11 +56,49 @@ async function parseForm4(cik, acc) {
   });
 }
 
+// Side of a stored row, from its transaction code (the dataset keeps the code,
+// not the A/D flag, for rows stored before raw fields were kept). J ("other")
+// can go either way and stays unlabelled.
+const SIDE = { P: 'buy', M: 'buy', X: 'buy', C: 'buy', A: 'buy', L: 'buy', W: 'buy', I: 'buy', S: 'sell', D: 'sell', F: 'sell', G: 'sell' };
+const TITLE = { director: 'Director', owner10: '10% Owner' };
+
+// The same rows every other insider view reads (insiderStore), newest first.
+export function fromDataset(db, ticker, limit = 25) {
+  return db.rows
+    .filter((r) => r.t === ticker)
+    .sort((a, b) => (a.d === b.d ? (a.f < b.f ? 1 : -1) : a.d < b.d ? 1 : -1))
+    .slice(0, limit)
+    .map((r) => ({
+      date: r.d,
+      filed: r.f,
+      owner: r.n,
+      title: r.ti || TITLE[r.r] || null,
+      code: r.k,
+      side: SIDE[r.k] || null,
+      shares: r.s,
+      price: r.p,
+      value: r.v,
+    }));
+}
+
 // GET /api/insiders/:ticker — recent Form 4 transactions for the issuer.
+//
+// One insider pipeline: the answer comes from the nightly dataset, like the
+// feed, the home page and the alerts. EDGAR is asked directly only as a
+// fallback — when the dataset holds nothing for this ticker, or the dataset
+// itself is stale (a crawl outage must not blank the stock page too).
 export default async function handler(req, res) {
   if (!(await requirePro(req, res))) return;
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
+
+  const db = readServed();
+  const fresh = dataFreshness(db.lastFilingDay);
+  const stored = fromDataset(db, ticker);
+  if (stored.length && fresh.live) {
+    const cik = db.rows.find((r) => r.t === ticker)?.ci || null;
+    return res.status(200).json({ cik, transactions: stored, source: 'dataset', asOf: db.lastFilingDay });
+  }
 
   try {
     const data = await cached(`insiders:${ticker}`, TTL.HOUR_6, async () => {
@@ -86,8 +126,10 @@ export default async function handler(req, res) {
         .slice(0, 25);
       return { cik, transactions };
     });
-    res.status(200).json(data);
+    res.status(200).json({ ...data, source: 'live' });
   } catch (err) {
+    // EDGAR failed too: whatever the dataset has beats an error
+    if (stored.length) return res.status(200).json({ cik: null, transactions: stored, source: 'dataset', asOf: db.lastFilingDay });
     res.status(502).json({ error: String(err.message || err) });
   }
 }

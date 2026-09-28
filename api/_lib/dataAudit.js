@@ -138,9 +138,22 @@ export const DATASETS = [
       // a trade dated after the filing that reports it: the build drops these,
       // so one getting through means the rule in the build has regressed
       futureDated: count(d.rows, (r) => r?.d && r?.f && String(r.d) > String(r.f)),
+      // (accession, line index) is the row's unique key; the build upserts on
+      // it, so any repeat means the upsert has regressed
+      duplicateIds: (() => {
+        const seen = new Set();
+        let n = 0;
+        for (const r of Array.isArray(d.rows) ? d.rows : []) {
+          if (r?.li == null) continue;
+          const id = `${r.a}:${r.li}`;
+          if (seen.has(id)) n++;
+          seen.add(id);
+        }
+        return n;
+      })(),
     }),
     floors: { rows: 5000 },
-    ceilings: { futureDated: 0 },
+    ceilings: { futureDated: 0, duplicateIds: 0 },
   },
   {
     key: 'insiders-teaser',

@@ -205,112 +205,44 @@ export function cleanSymbol(raw) {
   return v;
 }
 
-// ---------------------------------------------------------------- crawl plan
-export const prevDay = (day) =>
-  new Date(new Date(`${day}T00:00:00Z`).getTime() - 86400000).toISOString().slice(0, 10);
-
-// Which days the daily-index crawl should fetch next, and where the checkpoint
-// lands if it fetches none of them.
+// ---------------------------------------------------------------- day summary
+// The one definition of the headline numbers. The home page ("Insider
+// Duyarlılığı") and /insiders both print these, and they used to compute them
+// separately — 62 buys / $21.6M on one, 63 / $31.3M on the other for the same
+// day, because one dropped rows without a ticker and the other did not.
 //
-// EDGAR answers 403 — not 404 — for a daily-index file that does not exist,
-// and every federal holiday is such a day, so a holiday is indistinguishable
-// from a rate-limit refusal. `published(day)` returns the set of days EDGAR
-// actually listed for that day's quarter (or null when the listing could not
-// be read, in which case the day is kept and probed as before).
-//
-// `exhausted(day)` marks a day the crawl has already failed on often enough to
-// give up on: a listed file that keeps answering 403 would otherwise block
-// every later day forever, and the quarterly dataset backfills it anyway.
-//
-// The checkpoint moves past every settled day — already stored, or never
-// published — even when the fetch fails. Without that, a single holiday
-// stalls the crawl on the same date forever.
-export function selectScanDays({
-  fromDay,
-  today,
-  published = () => null,
-  exhausted = () => false,
-  maxDays = 25,
-  lookback = 400,
-}) {
-  const all = [];
-  const start = new Date(`${today}T00:00:00Z`).getTime();
-  for (let i = 0; i < lookback; i++) {
-    const d = new Date(start - i * 86400000);
-    const day = d.toISOString().slice(0, 10);
-    if (day <= fromDay) break;
-    const dow = d.getUTCDay();
-    if (dow === 0 || dow === 6) continue;
-    all.push(day);
-  }
-  all.reverse();
-
-  const candidates = [];
-  const skipped = [];
-  const abandoned = [];
-  for (const day of all) {
-    const set = published(day);
-    if (set && !set.has(day)) skipped.push(day);
-    else if (exhausted(day)) abandoned.push(day);
-    else candidates.push(day);
-  }
-
-  const days = candidates.slice(0, maxDays);
-  const checkpoint = days.length ? prevDay(days[0]) : all.length ? all[all.length - 1] : fromDay;
-  return { days, skipped, abandoned, checkpoint, remaining: candidates.length - days.length };
-}
-
-// Bookkeeping for one crawl run: which days failed, where the checkpoint may
-// land, and whether EDGAR is refusing us rather than simply missing a file.
-//
-// Two failure shapes have to be told apart, because the first froze this
-// dataset for four months:
-//   · one day failing is a gap. Retry it for a few runs, then leave it behind
-//     (the quarterly dataset backfills it) so it cannot block every later day.
-//   · several days failing in a row is EDGAR turning us away. Stop the run,
-//     and hand those days their attempts back — a ban must not spend the
-//     retry budget of days that were never really tried.
-//
-// The checkpoint never moves past a day still owed a retry, so that day is
-// read again next run. Rows already collected beyond it are still kept: the
-// merge de-duplicates by accession, so re-reading a day costs nothing.
-export function crawlLedger({ badDays = {}, maxAttempts = 3, banStreak = 3, checkpoint = null } = {}) {
-  const attempts = { ...badDays };
-  let streak = [];
-  let held = null;
-  let lastGood = checkpoint;
-  let banned = false;
-
+//   rows       current rows only (superseded 4/A originals already removed —
+//              see insiderStore.currentRows) with a listed ticker; a row with
+//              no ticker is nothing a reader can click through to or buy
+//   day        the newest FILING date among those rows (not the trade date)
+//   buyCount   transaction lines filed that day with code P (open-market
+//              purchase); one Form 4 with three P lines counts three
+//   buyValue   sum of shares × price over those lines, in dollars
+//   sellCount  lines filed that day with code S (open-market sale)
+//   sellValue  sum of shares × price over those lines
+//   sellShare  sellValue / (buyValue + sellValue) × 100, null when both are 0
+//   companies  distinct tickers with any line filed that day, any code
+// `scope` narrows the rows first (the penny tab passes its price test).
+export const isListed = (r) => Boolean(r?.t && r.t !== 'NONE' && r?.d);
+export function daySummary(all, scope = null) {
+  const rows = all.filter((r) => isListed(r) && !r.sb && (!scope || scope(r)));
+  const day = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
+  const today = rows.filter((r) => r.f === day);
+  const buys = today.filter(isBuy);
+  const sells = today.filter(isSell);
+  const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
+  const buyValue = Math.round(sum(buys));
+  const sellValue = Math.round(sum(sells));
   return {
-    get banned() {
-      return banned;
-    },
-    fail(day) {
-      const n = (attempts[day] || 0) + 1;
-      attempts[day] = n;
-      streak.push(day);
-      if (n < maxAttempts && !held) held = day;
-      if (streak.length >= banStreak) banned = true;
-      return { attempts: n, banned };
-    },
-    ok(day) {
-      streak = [];
-      if (!held) lastGood = day;
-    },
-    // `floor`: days older than the crawl's lookback are never scanned again,
-    // so remembering their failures would grow the file forever.
-    finish(floor = null) {
-      if (banned) {
-        for (const day of streak) {
-          attempts[day] -= 1;
-          if (attempts[day] <= 0) delete attempts[day];
-        }
-        held = held || streak[0];
-      }
-      let scannedThrough = lastGood;
-      if (held) scannedThrough = checkpoint && prevDay(held) < checkpoint ? checkpoint : prevDay(held);
-      if (floor) for (const day of Object.keys(attempts)) if (day < floor) delete attempts[day];
-      return { scannedThrough, badDays: attempts, banned, streak: [...streak] };
-    },
+    day: day || null,
+    rows: today,
+    buys,
+    sells,
+    companies: new Set(today.map((r) => r.t)).size,
+    buyCount: buys.length,
+    sellCount: sells.length,
+    buyValue,
+    sellValue,
+    sellShare: buyValue + sellValue > 0 ? Number(((sellValue / (buyValue + sellValue)) * 100).toFixed(1)) : null,
   };
 }

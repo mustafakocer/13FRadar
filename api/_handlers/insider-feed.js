@@ -14,7 +14,8 @@ import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
 import { sinceTrade } from '../_lib/splitAdjust.js';
 import { priceCheck } from '../_lib/insiderPriceCheck.js';
 import { readRawServed } from '../_lib/insiderStore.js';
-import { readSeries } from '../_lib/priceStore.js';
+import { seriesWithFpi } from '../_lib/fpiContext.js';
+import { fxBrief } from '../_lib/insiderTeaser.js';
 import { createRequire } from 'node:module';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
@@ -67,9 +68,11 @@ function derive(db) {
 // time, for the rows actually shown (insiderPriceCheck.js) — not only by the
 // nightly build — so a wrong return never waits for the next crawl.
 const checks = new WeakMap();
+let seriesOf = null;
 function checkOf(r, meta) {
+  seriesOf ||= seriesWithFpi();
   if (!checks.has(r))
-    checks.set(r, priceCheck(r, { raw: readRawServed()[`${r.a}:${r.li}`], series: r.t ? readSeries(r.t)?.prices : null, current: (r.t && meta[r.t]?.px) ?? null }));
+    checks.set(r, priceCheck(r, { raw: readRawServed()[`${r.a}:${r.li}`], series: r.t ? seriesOf(r.t) : null, current: (r.t && meta[r.t]?.px) ?? null }));
   return checks.get(r);
 }
 // The classification with the price check folded in.
@@ -139,8 +142,11 @@ function shape(r, meta, companies, d) {
     priceNote: chk.ok ? null : chk.reason,
     signal: { level: sig.level, why: sig.why, role: sig.role, value: sig.value, lines: sig.lines, ownIncrease: Number.isFinite(sig.ownIncrease) ? Number(sig.ownIncrease.toFixed(1)) : sig.ownIncrease === Infinity ? 'new' : null },
     shares: r.s,
-    price: r.p,
-    value: r.v,
+    price: r.fx?.fail ? null : r.p,
+    value: r.fx?.fail ? null : r.v,
+    // a foreign issuer's line: the currency and ADR ratio it was converted
+    // with, or — not convertible — its amount in its own currency
+    ...fxShape(r),
     owned: r.o,
     ownChange: r.oc,
     current: m.px ?? null,
@@ -153,6 +159,13 @@ function shape(r, meta, companies, d) {
     size: sizeBucket(m.mcap),
     url: r.ci && r.a ? `https://www.sec.gov/Archives/edgar/data/${Number(r.ci)}/${String(r.a).replace(/-/g, '')}/` : null,
   };
+}
+
+function fxShape(r) {
+  const b = fxBrief(r).fx;
+  if (!b) return {};
+  if (r.fx.fail) return { valueUnverified: true, currency: b.cu, localValue: b.lv, localPrice: b.lp };
+  return { currency: b.cu, adrRatio: b.ar, localPrice: b.lp, ratioSource: r.fx.as, fxRate: r.fx.rate };
 }
 
 // Market activity + signal cards for the header, computed over the newest day
@@ -171,6 +184,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const clusters = findClusters(rows.filter((r) => r.d >= iso(Date.now() - 45 * 86400000)));
   const signals = [];
   for (const r of last24) {
+    if (r.fx?.fail) continue;
     const m = (r.t && meta[r.t]) || {};
     const ret = retOf(r, meta, d);
     const cl = clusters.get(r.t);
@@ -202,7 +216,8 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const topSignals = signals.filter((s) => !seen.has(s.ticker) && seen.add(s.ticker)).slice(0, 3);
 
   const top = (list) =>
-    [...list]
+    list
+      .filter((r) => !r.fx?.fail)
       .sort((a, b) => (b.v || 0) - (a.v || 0))
       .slice(0, 3)
       .map((r) => {
@@ -225,6 +240,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
     buyValue,
     sellValue,
     sellShare: summary.sellShare,
+    fxExcluded: summary.fxExcluded || 0,
     signals: topSignals,
     topBuys: top(buys),
     topSells: top(sells),
@@ -382,6 +398,7 @@ export async function answer(rawQuery, { free = true } = {}) {
         to: cl.to,
         spanDays: clusterSpanDays(cl),
         density: clusterDensity(cl),
+        ...(cl.fxExcluded ? { fxExcluded: cl.fxExcluded } : {}),
       };
     }
     const c = clsOf(r, d, meta);

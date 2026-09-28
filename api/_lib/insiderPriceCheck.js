@@ -32,6 +32,14 @@ export const MAX_RATIO_UNVERIFIED = 2;
 
 export function priceCheck(r, { raw = null, series = null, current = null, splits } = {}) {
   if (!(r?.p > 0)) return { ok: true, reason: null };
+  // a foreign issuer's line (fpiNormalize.js): converted to US dollars per
+  // US security and checked against the market, or kept in its currency
+  if (r.fx?.fail) return { ok: false, reason: 'currency' };
+  if (r.sk === 'preferred' || r.sk === 'other') return { ok: false, reason: 'security' };
+  if (r.fx?.ok) {
+    const m = series?.length ? priceMismatch(r, series, splits) : null;
+    return m ? { ok: false, reason: 'mismatch' } : { ok: true, reason: null };
+  }
   if (r.pu) return { ok: false, reason: 'form' };
   // "Common Units" of a partnership and "Class B Ordinary Shares" are the
   // quoted security; anything preferred never is

@@ -82,8 +82,12 @@ export function fromDataset(db, ticker, limit = 25) {
         side: c.side,
         planned: c.plan_trade,
         shares: r.s,
-        price: r.p,
-        value: r.v,
+        price: r.fx?.fail ? null : r.p,
+        value: r.fx?.fail ? null : r.v,
+        // a foreign issuer's line (fpiNormalize.js): converted, or kept in
+        // its own currency with no dollar amount
+        ...(r.fx?.fail ? { valueUnverified: true, currency: r.fx.cu || null, localValue: r.fx.lv, localPrice: r.fx.lp } : {}),
+        ...(r.fx?.ok && (r.fx.cu !== 'USD' || r.fx.ar !== 1) ? { currency: r.fx.cu, adrRatio: r.fx.ar, localPrice: r.fx.lp, ratioSource: r.fx.as } : {}),
       };
     });
 }

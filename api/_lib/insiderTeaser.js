@@ -18,6 +18,9 @@ function retFor(r, meta, opts = {}) {
 // and penny lists, the highlight and the newest-buys list use this; the
 // cluster detector keeps its own input (roadmap item 3).
 const openBuy = (r) => categorize(r) === 'open_buy';
+// …with a verified dollar amount: a foreign-currency line that could not be
+// converted (fpiNormalize.js) never takes a ranked slot
+const ranked = (r) => openBuy(r) && !r.fx?.fail;
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
@@ -49,10 +52,20 @@ function brief(r, companies, meta, opts) {
     r: r.r,
     d: r.d,
     f: r.f,
-    v: Math.round(r.v || 0),
+    v: r.fx?.fail ? null : Math.round(r.v || 0),
     p: r.p,
+    ...fxBrief(r),
     ...(ret != null ? { ret: round(ret) } : {}),
   };
+}
+
+// A foreign issuer's line (fpiNormalize.js): the currency it was filed in
+// and the ADR ratio used, or — not convertible — the amount in its own
+// currency (the page writes "MXN 6.93M · USD karşılığı doğrulanamadı").
+export function fxBrief(r) {
+  if (r?.fx?.fail) return { fx: { cu: r.fx.cu || null, lv: r.fx.lv, lp: r.fx.lp } };
+  if (r?.fx?.ok && (r.fx.cu !== 'USD' || r.fx.ar !== 1)) return { fx: { cu: r.fx.cu, ar: r.fx.ar, lp: r.fx.lp } };
+  return {};
 }
 
 // A penny row carries everything the free board renders, so /insiders/penny
@@ -176,6 +189,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
     buyValue: summary.buyValue,
     sellValue: summary.sellValue,
     sellShare: summary.sellShare,
+    ...(summary.fxExcluded ? { fxExcluded: summary.fxExcluded } : {}),
   };
 
   // The signal window trails the newest filing day, not the wall clock, so a
@@ -190,7 +204,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
       const trades = recentBuys.filter((r) => r.t === t);
       const roles = [...new Set(trades.map((r) => r.r).filter((x) => x === 'ceo' || x === 'cfo'))];
       const last = trades.reduce((m, r) => (r.d > m ? r.d : m), '');
-      return { t, c: companies[t] || null, insiders: c.insiders, v: Math.round(c.value), roles, from: c.from, to: c.to, last };
+      return { t, c: companies[t] || null, insiders: c.insiders, v: Math.round(c.value), roles, from: c.from, to: c.to, last, ...(c.fxExcluded ? { fxExcluded: c.fxExcluded } : {}) };
     })
     .sort((a, b) => b.insiders - a.insiders || b.v - a.v)
     .slice(0, 8);
@@ -201,14 +215,14 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
   };
   const csuite = dedupe(
     recentBuys
-      .filter((r) => openBuy(r) && (r.r === 'ceo' || r.r === 'cfo'))
+      .filter((r) => ranked(r) && (r.r === 'ceo' || r.r === 'cfo'))
       .sort((a, b) => (b.v || 0) - (a.v || 0))
   )
     .slice(0, 8)
     .map((r) => brief(r, companies, meta, opts));
   const penny = dedupe(
     recentBuys
-      .filter((r) => openBuy(r) && r.p < 5 && (r.v || 0) >= 25000)
+      .filter((r) => ranked(r) && r.p < 5 && (r.v || 0) >= 25000)
       .sort((a, b) => (b.v || 0) - (a.v || 0))
   )
     .slice(0, 8)
@@ -217,8 +231,8 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
   const buys = rows.filter(openBuy).slice().sort((a, b) => (a.f === b.f ? (a.d < b.d ? 1 : -1) : a.f < b.f ? 1 : -1));
   // Highlight: the largest buy by an executive or director on the newest day;
   // 10% owners are usually funds, so they are only a fallback.
-  const dayBuys = today.filter(openBuy);
-  const pool = dayBuys.length ? dayBuys : buys.slice(0, 50);
+  const dayBuys = today.filter(ranked);
+  const pool = dayBuys.length ? dayBuys : buys.filter(ranked).slice(0, 50);
   const people = pool.filter((r) => r.r !== 'owner10');
   const pick = (list) => list.reduce((m, r) => ((r.v || 0) > (m.v || 0) ? r : m));
   const highlight = pool.length ? brief(pick(people.length ? people : pool), companies, meta, opts) : null;

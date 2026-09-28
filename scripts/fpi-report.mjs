@@ -70,7 +70,31 @@ export function compute({ since = null } = {}) {
   const ok = priced.filter(({ n }) => n.fx?.ok);
   const failed = priced.filter(({ n }) => n.fx?.fail);
   const failWhy = {};
-  for (const { n } of failed) failWhy[n.fx.fail] = (failWhy[n.fx.fail] || 0) + 1;
+  const failTickers = {};
+  for (const { r, n } of failed) {
+    failWhy[n.fx.fail] = (failWhy[n.fx.fail] || 0) + 1;
+    const m = (failTickers[n.fx.fail] ||= {});
+    m[r.t || '—'] = (m[r.t || '—'] || 0) + 1;
+  }
+  // open-market lines of these issuers with no price at all: not in the
+  // denominator (no amount to convert), listed for completeness
+  const zeroPrice = six.filter(({ r }) => ['P', 'S'].includes(r.k) && !(r.p > 0));
+  const zeroTickers = {};
+  for (const { r } of zeroPrice) zeroTickers[r.t || '—'] = (zeroTickers[r.t || '—'] || 0) + 1;
+  // data gaps: no exchange rate, no market data, no ratio and nothing to
+  // derive it from. The rest failed the market check (a reading error or a
+  // unit the rules do not know).
+  const DATA_GAP = new Set(['no_rate', 'unverifiable', 'no_ratio']);
+  const gap = failed.filter(({ n }) => DATA_GAP.has(n.fx.fail)).length;
+  const topOf = (m) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, k]) => `${t} ${k}`);
+  const reasons = [
+    { key: 'no_rate', label: 'Kur yok (kaynakta bu para birimi yok)', n: failWhy.no_rate || 0, top: topOf(failTickers.no_rate), gap: true },
+    { key: 'no_ratio', label: 'ADR oranı yok (belge yok, türetecek kapanış yok)', n: failWhy.no_ratio || 0, top: topOf(failTickers.no_ratio), gap: true },
+    { key: 'unverifiable', label: 'Fiyat geçmişi yok (piyasa verisi yok)', n: failWhy.unverifiable || 0, top: topOf(failTickers.unverifiable), gap: true },
+    { key: 'mismatch', label: 'Piyasa kontrolünü geçmedi (birim/oran uyuşmuyor)', n: failWhy.mismatch || 0, top: topOf(failTickers.mismatch), gap: false },
+    { key: 'zero', label: 'Fiyat 0 (paydada değil)', n: zeroPrice.length, top: topOf(zeroTickers), gap: null },
+    { key: 'other', label: 'Diğer', n: Object.entries(failWhy).filter(([k]) => !['no_rate', 'no_ratio', 'unverifiable', 'mismatch'].includes(k)).reduce((a, [, v]) => a + v, 0), top: [], gap: false },
+  ];
   const openPriced = priced.filter(({ r }) => ['open_buy', 'open_sell'].includes(categorize(r)));
   const openFailed = openPriced.filter(({ n }) => n.fx?.fail);
   const bySrc = {};
@@ -112,6 +136,8 @@ export function compute({ since = null } = {}) {
     failed: failed.length,
     failRate: priced.length ? failed.length / priced.length : 0,
     failWhy,
+    reasons,
+    dataGapShare: failed.length ? gap / failed.length : 1,
     bySrc,
     openPriced: openPriced.length,
     openFailed: openFailed.length,
@@ -153,10 +179,16 @@ export function report(x = compute()) {
   o.push('');
   o.push('### Dönüştürme sonucu (son 6 ay, fiyatlı FPI satırları; imtiyazlı/diğer menkuller hariç)');
   o.push('');
-  o.push(`- Fiyatlı satır: ${x.priced} · USD'ye çevrilen: **${x.converted}** · çevrilemeyen: **${x.failed}** (${pct(x.failed, x.priced)}; eşik %${GATE * 100})`);
+  o.push(`- Fiyatlı satır: ${x.priced} · USD'ye çevrilen/doğrulanan: **${x.converted}** · zaten dolar, dokunulmadı (ADR'si yok, dipnotta yabancı para yok): ${x.priced - x.converted - x.failed} · çevrilemeyen: **${x.failed}** (${pct(x.failed, x.priced)}; eşik %${GATE * 100})`);
   o.push(`- Açık piyasa alım/satım: ${x.openPriced}, çevrilemeyen ${x.openFailed} (${pct(x.openFailed, x.openPriced)})`);
   o.push(`- Çevrilenlerde oran kaynağı: ${Object.entries(x.bySrc).map(([s, n]) => `${SRC_TR[s] || s} ${n}`).join(' · ') || '—'}`);
-  o.push(`- Çevrilememe nedeni: ${Object.entries(x.failWhy).map(([w, n]) => `${WHY_TR[w] || w} ${n}`).join(' · ') || '—'}`);
+  o.push('');
+  o.push('| Neden | Satır | Veri eksikliği mi? | İlk 5 hisse (satır) |');
+  o.push('|---|---:|---|---|');
+  for (const r of x.reasons) o.push(`| ${r.label} | ${r.n} | ${r.gap == null ? '—' : r.gap ? 'evet' : 'hayır (kural/birim)'} | ${r.top.join(', ') || '—'} |`);
+  o.push('');
+  o.push(`- Başarısızların veri eksikliğinden gelen payı: **%${(x.dataGapShare * 100).toFixed(1)}**`);
+  o.push('- Çevrilemeyen her satır sitede kendi para birimiyle gösterilir; dolar tutarı, getiri ve İsabet yoktur; sıralamalara ve günlük/küme toplamlarına girmez, toplamların altında "X işlem hariç" yazar.');
   o.push('');
   o.push('### İlk 20 FPI: oran ve kaynağı');
   o.push('');

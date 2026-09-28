@@ -198,7 +198,9 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
 
   const lv = Math.round(r.s * r.p);
   if (!pick) {
-    const why = !tried.length ? 'no_ratio' : !tried.some((t) => t.rate != null) ? 'no_rate' : ref ? 'mismatch' : 'unverifiable';
+    // no ratio anywhere: a data gap when there is nothing to derive it from,
+    // a failed market check when a close was there and no common ratio fit
+    const why = !tried.length ? (ref?.close ? 'mismatch' : 'no_ratio') : !tried.some((t) => t.rate != null) ? 'no_rate' : ref ? 'mismatch' : 'unverifiable';
     return { fail: why, cu: stated || (kind === 'ads' ? 'USD' : home) || null, lp: r.p, lv };
   }
   const src = pick.as === doc?.src ? doc : null;

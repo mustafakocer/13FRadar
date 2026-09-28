@@ -1,5 +1,5 @@
 {
- "_source": "Real served rows (insiders.json normalised by fpiNormalize) and their Form 4 fields, frozen 2026-09-28. EUR: Federal Reserve H.10.",
+ "_source": "Real served rows (insiders.json normalised by fpiNormalize) and their Form 4 fields, frozen 2026-09-28. EUR: Federal Reserve H.10. issuers: api/_data/fpi.json records (SEC submissions: 20-F/40-F/6-K filer or not).",
  "rates": {
   "EUR": [
    [
@@ -3121,5 +3121,49 @@
     }
    }
   ]
+ },
+ "issuers": {
+  "BBD": {
+   "cik": "0001160330",
+   "record": {
+    "fpi": 1,
+    "name": "BANK BRADESCO",
+    "country": null
+   },
+   "domestic": false
+  },
+  "TSM": {
+   "cik": "0001046179",
+   "record": {
+    "fpi": 1,
+    "name": "TAIWAN SEMICONDUCTOR MANUFACTURING CO LTD",
+    "country": null
+   },
+   "domestic": false
+  },
+  "SBLK": {
+   "cik": "0001386716",
+   "record": {
+    "fpi": 1,
+    "name": "Star Bulk Carriers Corp.",
+    "country": "Marshall Islands"
+   },
+   "domestic": false
+  },
+  "RWT": {
+   "cik": "0000930236",
+   "record": null,
+   "domestic": true
+  },
+  "GME": {
+   "cik": "0001326380",
+   "record": null,
+   "domestic": true
+  },
+  "DKS": {
+   "cik": "0001089063",
+   "record": null,
+   "domestic": true
+  }
  }
 }

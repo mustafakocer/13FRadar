@@ -41,6 +41,15 @@ export const CLUSTER = {
   samePriceTolerance: 0.01,
 };
 
+// "Toplu program alımı (dipnotsuz)": ≥ 5 people who would otherwise count,
+// the same company and day, at one price — within 0.1% of the median, or
+// 0.01 of the currency for low prices. Open-market buys by several people
+// scatter across the day's range; one price for everyone is an internal
+// program (Bradesco: 21 officers, all at exactly R$17.98, no footnote).
+export const SAME_PRICE_MIN_PEOPLE = 5;
+export const SAME_PRICE_TOLERANCE = 0.001;
+export const SAME_PRICE_MIN_UNIT = 0.01;
+
 export const EMPLOYEE_PLAN_RE = /employee stock purchase|\bespp\b|employee (share|stock) (purchase|ownership) plan|dividend reinvestment|\bdrip\b|payroll deduction/i;
 export const OFFERING_RE = /\b(public|underwritten|registered|secondary|follow-on|best efforts)\b[^.]{0,40}\boffering\b|\bin the (company's |issuer's )?offering\b|\boffering\b[^.]{0,60}\b(price|underwrit)|private placement|directly from the (issuer|company)|from the issuer in|subscription agreement|securities purchase agreement/i;
 
@@ -112,6 +121,54 @@ export function lineLabels(lines, rawOf = () => null, toUsd = (x, cu) => (cu ===
     if (median >= CLUSTER.planMedianMax) continue;
     for (const r of day) if (!out.has(r)) out.set(r, { label: 'plan_bulk', why: 'same_day_price', people: people.size, median: Math.round(median) });
   }
+  // last, and only over lines no earlier rule labelled (offering > plan with
+  // a footnote > this): the same-price cohort
+  for (const [r, l] of sameCohorts(lines.filter((x) => !out.has(x)))) out.set(r, l);
+  return out;
+}
+
+// The price as the form states it, in the form's currency: a converted
+// foreign line is compared on its own price (fx.lp), never converted again,
+// so the dollar rounding of R$17.98 cannot split a cohort.
+const formPrice = (r) => (r.fx?.lp > 0 ? r.fx.lp : r.p);
+const formCurrency = (r) => r.fx?.cu || 'USD';
+
+// Same-price cohorts among lines that would count toward a cluster.
+// → Map line → { label: 'program_same_price', … }
+export function sameCohorts(lines) {
+  const out = new Map();
+  const groups = new Map();
+  for (const r of lines) {
+    if (!(r.p > 0) || exclusionOf(r)) continue;
+    const k = `${r.d}|${formCurrency(r)}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+  for (const [, day] of groups) {
+    // people who would count: their day's total ≥ $10,000
+    const byPerson = new Map();
+    for (const r of day) byPerson.set(r.n, (byPerson.get(r.n) || 0) + (r.v || 0));
+    const lines = day.filter((r) => byPerson.get(r.n) >= CLUSTER.minPersonValue);
+    if (new Set(lines.map((r) => r.n)).size < SAME_PRICE_MIN_PEOPLE) continue;
+    const prices = lines.map(formPrice).sort((a, b) => a - b);
+    const m = prices.length % 2 ? prices[prices.length >> 1] : (prices[prices.length / 2 - 1] + prices[prices.length / 2]) / 2;
+    const tol = Math.max(m * SAME_PRICE_TOLERANCE, SAME_PRICE_MIN_UNIT);
+    const cohort = lines.filter((r) => Math.abs(formPrice(r) - m) <= tol + 1e-9);
+    const people = new Set(cohort.map((r) => r.n));
+    if (people.size < SAME_PRICE_MIN_PEOPLE) continue;
+    const maxDev = Math.max(...cohort.map((r) => Math.abs(formPrice(r) - m)));
+    const info = {
+      label: 'program_same_price',
+      why: 'same_price',
+      people: people.size,
+      d: cohort[0].d,
+      price: Number(m.toFixed(4)),
+      cu: formCurrency(cohort[0]),
+      maxDevPct: Number(((maxDev / m) * 100).toFixed(2)),
+      value: Math.round(cohort.reduce((s, r) => s + (r.v || 0), 0)),
+    };
+    for (const r of cohort) out.set(r, info);
+  }
   return out;
 }
 // Prices a footnote states with their currency: "euro 24.50", "€24.50",
@@ -169,8 +226,9 @@ const round1 = (x) => (Number.isFinite(x) ? Number(x.toFixed(1)) : x === Infinit
 //   from/to   transaction-date window (inclusive), optional
 //   toUsd     (amount, currency, day) → dollars, for offering prices a
 //             footnote states in another currency
+//   isForeign (issuer CIK) → true for a foreign private issuer (badge only)
 // → { clusters: [...], excluded: [...], byTicker: Map ticker → cluster }
-export function buildClusters(rows, { rawOf = () => null, from = null, to = null, toUsd } = {}) {
+export function buildClusters(rows, { rawOf = () => null, from = null, to = null, toUsd, isForeign = () => false } = {}) {
   const byTicker = new Map();
   for (const r of rows) {
     if (r.k !== 'P' || !r.t || !isListed(r) || r.sb) continue;
@@ -204,7 +262,7 @@ export function buildClusters(rows, { rawOf = () => null, from = null, to = null
       if (!best || members.length > best.members.length || (members.length === best.members.length && value > best.value)) best = { lines: win, members, value };
     }
     if (best) {
-      clusters.push(shapeCluster(t, best, why));
+      clusters.push(shapeCluster(t, best, why, isForeign(lines[0].ci)));
       continue;
     }
     // no cluster: a labelled group of several people is listed separately
@@ -218,7 +276,7 @@ export function buildClusters(rows, { rawOf = () => null, from = null, to = null
     if (!group) continue;
     // every amount unverified (Wix in shekels): not listed at all
     if (group.lines.every((r) => r.fx?.fail)) continue;
-    excluded.push(shapeLookalike(t, group.lines, labels));
+    excluded.push(shapeLookalike(t, group.lines, labels, isForeign(lines[0].ci)));
   }
 
   clusters.sort(compareClusters);
@@ -237,7 +295,7 @@ function windowFrom(lines, i) {
   return out;
 }
 
-function shapeCluster(t, best, why) {
+function shapeCluster(t, best, why, foreign = false) {
   const memberNames = new Set(best.members.map((m) => m.n));
   const members = best.members
     .map((m) => {
@@ -267,12 +325,16 @@ function shapeCluster(t, best, why) {
     roles: [...new Set(members.map((m) => m.r).filter((x) => x === 'ceo' || x === 'cfo'))],
     ownIncreaseAvg: incs.length ? Number((incs.reduce((a, b) => a + b, 0) / incs.length).toFixed(1)) : null,
     newPositions: members.filter((m) => m.ownIncrease === 'new').length,
+    // a foreign private issuer (20-F/40-F/6-K in the last 24 months): its
+    // insiders file Form 4 voluntarily and often buy through pay programs —
+    // a badge on the page, never part of the order
+    ...(foreign ? { fpi: true } : {}),
     members,
     others: [...others.values()].map((o) => ({ ...o, v: Math.round(o.v) })).sort((a, b) => b.v - a.v),
   };
 }
 
-function shapeLookalike(t, lines, labels) {
+function shapeLookalike(t, lines, labels, foreign = false) {
   const people = new Map();
   for (const r of lines) people.set(r.n, (people.get(r.n) || 0) + (r.fx?.fail ? 0 : r.v || 0));
   const counts = {};
@@ -293,6 +355,10 @@ function shapeLookalike(t, lines, labels) {
     from: dates[0],
     to: dates[dates.length - 1],
     ...(ev.median != null ? { median: ev.median } : {}),
+    // the same-price cohort's facts: "21 kişi · 2026-09-18 · R$17.98 ·
+    // fiyat farkı %0,00 · $5,2M · plan/arz dipnotu yok"
+    ...(label === 'program_same_price' ? { d: ev.d, price: ev.price, cu: ev.cu, maxDevPct: ev.maxDevPct } : {}),
+    ...(foreign ? { fpi: true } : {}),
   };
 }
 

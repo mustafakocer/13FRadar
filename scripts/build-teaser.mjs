@@ -13,7 +13,7 @@ import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 import { currentRows, readRawServed } from '../api/_lib/insiderStore.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { normalizeRows } from '../api/_lib/fpiNormalize.js';
-import { fpiContext, toUsdWith } from '../api/_lib/fpiContext.js';
+import { fpiContext, toUsdWith, isForeignWith } from '../api/_lib/fpiContext.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const DB = path.join(root, 'api', '_data', 'insiders.json');
@@ -41,7 +41,7 @@ const raw = readRawServed();
 const seriesFor = (t) => readSeries(t)?.prices || null;
 // foreign issuers' lines in US dollars, as the pages serve them (fpiNormalize.js)
 const rows = normalizeRows(currentRows(db.rows), fpiContext({ raw, seriesFor, meta }));
-const teaser = buildTeaser(rows, db.companies || {}, meta, now, { raw, seriesFor, toUsd: toUsdWith() });
+const teaser = buildTeaser(rows, db.companies || {}, meta, now, { raw, seriesFor, toUsd: toUsdWith(), isForeign: isForeignWith() });
 fs.writeFileSync(OUT, JSON.stringify(teaser));
 
 const p = teaser.penny;

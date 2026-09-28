@@ -13,7 +13,7 @@ import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
 import { sinceTrade } from '../_lib/splitAdjust.js';
 import { priceCheck } from '../_lib/insiderPriceCheck.js';
 import { readRawServed } from '../_lib/insiderStore.js';
-import { seriesWithFpi, toUsdWith } from '../_lib/fpiContext.js';
+import { seriesWithFpi, toUsdWith, isForeignWith } from '../_lib/fpiContext.js';
 import { buildClusters } from '../_lib/insiderCluster.js';
 import { fxBrief, clusterBrief, CLUSTER_ROWS } from '../_lib/insiderTeaser.js';
 import { createRequire } from 'node:module';
@@ -65,7 +65,7 @@ function derive(db) {
   // before the newest filing day for the cards (the same list the home page
   // and /insiders/cluster show)
   const raw = readRawServed();
-  const ctx = { rawOf: (r) => raw[`${r.a}:${r.li}`] || null, toUsd: toUsdWith() };
+  const ctx = { rawOf: (r) => raw[`${r.a}:${r.li}`] || null, toUsd: toUsdWith(), isForeign: isForeignWith() };
   const last = db.lastFilingDay || db.rows.reduce((m, r) => (r.f > m ? r.f : m), '');
   const recentFrom = last ? iso(Date.parse(`${last}T00:00:00Z`) - 30 * 86400000) : null;
   derived = {

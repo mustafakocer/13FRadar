@@ -51,13 +51,11 @@ test('SBLK: directors bought at the offering price a footnote states (EUR 24.50 
   assert.equal(onlyZagari.excluded[0].label, 'offering');
 });
 
-test('BBD: 21 officers the same day at one price, each over $10K; footnotes and remarks (re-read from EDGAR) name no plan or offering → a real cluster by the rules', () => {
+test('BBD: footnotes and remarks (re-read from EDGAR) name no plan or offering — the one-price rule is what takes it out', () => {
   const notes = F.cases.BBD.map((x) => [Object.values(x.raw?.fn || {}).join(' '), x.raw?.rm || ''].join(' ').trim());
   assert.ok(notes.every((t) => !/plan|offering|placement|issuer|remunerat|compensat/i.test(t)), 'the filings say nothing about how the shares were bought');
-  const { clusters, excluded } = one('BBD');
-  assert.equal(excluded.length, 0);
-  assert.equal(clusters[0].insiders, 21);
-  assert.ok(clusters[0].members.every((m) => m.v >= CLUSTER.minPersonValue));
+  assert.ok(F.cases.BBD.every((x) => x.row.fx?.lp === 17.98), 'every one of the 21 at exactly R$17.98');
+  assert.ok(F.cases.BBD.every((x) => x.row.v >= CLUSTER.minPersonValue));
 });
 
 test('WIX: every amount unverified (shekels) → not listed at all, neither as a cluster nor as a look-alike', () => {
@@ -150,8 +148,8 @@ test('the home page and /insiders/cluster show the same list the /insiders feed 
     const feed = await answer({ tab: 'latest' }, { free: false });
     const home = teaser.signals.cluster.map((c) => [c.t, c.insiders, c.v]);
     assert.deepEqual(feed.stats.clusters.map((c) => [c.t, c.insiders, c.v]), home);
-    assert.deepEqual(home.map((x) => x[0]), ['BBD', 'RWT', 'PMTS', 'KRMN']);
-    assert.deepEqual(teaser.signals.clusterExcluded.map((e) => [e.t, e.label]), [['TSM', 'plan_bulk'], ['SBLK', 'offering']]);
+    assert.deepEqual(home.map((x) => x[0]), ['RWT', 'PMTS', 'KRMN']);
+    assert.deepEqual(teaser.signals.clusterExcluded.map((e) => [e.t, e.label]), [['TSM', 'plan_bulk'], ['BBD', 'program_same_price'], ['SBLK', 'offering']]);
   } finally {
     delete process.env.INSIDER_DATA_DIR;
     resetServedCache();
@@ -164,4 +162,93 @@ test('a footnote about the holding ("Includes shares acquired through the divide
   const labels = lineLabels(rows, (x) => ({ fn: { F1: x.note } }));
   assert.equal(labels.size, 0);
   assert.equal(buildClusters(rows, { rawOf: (x) => ({ fn: { F1: x.note } }) }).clusters.length, 1);
+});
+
+// ---------------------------------------------------------------------------
+// "Toplu program alımı (dipnotsuz)": ≥5 countable people, one company, one
+// day, one price (±0.1% of the median, or 0.01 of the currency)
+import { SAME_PRICE_MIN_PEOPLE, SAME_PRICE_TOLERANCE, sameCohorts } from '../api/_lib/insiderCluster.js';
+import { isForeignWith } from '../api/_lib/fpiContext.js';
+
+const person = (n, d, p, extra = {}) => ({ t: 'SYN', ci: '1', k: 'P', r: 'director', n, d, p, s: Math.round(20000 / p) + 1, v: Math.round((Math.round(20000 / p) + 1) * p), a: `A-${n}-${d}`, li: 0, ...extra });
+const people = (k, d, p) => Array.from({ length: k }, (_, i) => person(`P${i}`, d, p));
+
+test('thresholds live in one place: 5 people, 0.1%', () => {
+  assert.equal(SAME_PRICE_MIN_PEOPLE, 5);
+  assert.equal(SAME_PRICE_TOLERANCE, 0.001);
+});
+
+test('BBD: 21 officers at exactly R$17.98 → "Toplu program alımı (dipnotsuz)", not a cluster', () => {
+  const { clusters, excluded } = one('BBD');
+  assert.equal(clusters.length, 0);
+  const e = excluded.find((x) => x.t === 'BBD');
+  assert.deepEqual([e.label, e.people, e.cu, e.price, e.maxDevPct, e.d], ['program_same_price', 21, 'BRL', 17.98, 0, '2026-09-18']);
+  assert.ok(e.value > 5e6 && e.value < 5.3e6, `$${e.value}`);
+});
+
+test('5 people at one price → labelled; 4 → not, the cluster stays', () => {
+  assert.equal(buildClusters(people(5, '2026-09-10', 12.5)).clusters.length, 0);
+  assert.equal(buildClusters(people(5, '2026-09-10', 12.5)).excluded[0].label, 'program_same_price');
+  const four = buildClusters(people(4, '2026-09-10', 12.5));
+  assert.equal(four.clusters[0]?.insiders, 4);
+  assert.equal(four.excluded.length, 0);
+});
+
+test('6 people 0.2% apart (±0.2% around the median) → not one price, the cluster stays', () => {
+  const rows = [...people(3, '2026-09-10', 100).map((r) => ({ ...r })), ...people(3, '2026-09-10', 100.4).map((r) => ({ ...r, n: `Q${r.n}`, a: `B-${r.a}` }))];
+  assert.equal(sameCohorts(rows).size, 0);
+  assert.equal(buildClusters(rows).clusters[0]?.insiders, 6);
+});
+
+test('6 at one price + 2 others in the window on other days/prices → cohort out, a 2-person cluster stays', () => {
+  const rows = [...people(6, '2026-09-10', 20), person('X', '2026-09-11', 21.3), person('Y', '2026-09-14', 22.1)];
+  const { clusters, excluded } = buildClusters(rows);
+  assert.equal(clusters[0].insiders, 2);
+  assert.deepEqual(clusters[0].members.map((m) => m.n).sort(), ['X', 'Y']);
+  assert.ok(clusters[0].others.every((o) => o.why === 'program_same_price'));
+  assert.equal(excluded.length, 0, 'the company has a cluster: the cohort shows in its detail, not as a separate row');
+});
+
+test('6 at one price + 1 at another price the same day → cohort out, only one person left: no cluster', () => {
+  const rows = [...people(6, '2026-09-10', 20), person('X', '2026-09-10', 20.9)];
+  const { clusters, excluded } = buildClusters(rows);
+  assert.equal(clusters.length, 0);
+  assert.equal(excluded[0].label, 'program_same_price');
+  assert.equal(excluded[0].people, 6);
+});
+
+test('compared in the form\'s currency: R$17.98 converted with rounding differences stays one cohort', () => {
+  // the dollar prices differ in the fourth decimal (rounding of the
+  // conversion), the reais price on the form is identical
+  const rows = people(6, '2026-09-18', 3.4848).map((r, i) => ({ ...r, p: 3.4848 + i * 0.0001, fx: { ok: 1, cu: 'BRL', lp: 17.98, rate: 0.1938, ar: 1 } }));
+  const m = sameCohorts(rows);
+  assert.equal(m.size, 6);
+  const [info] = [...m.values()];
+  assert.deepEqual([info.cu, info.price, info.maxDevPct], ['BRL', 17.98, 0]);
+  // …and a price is never converted twice: the cohort price is the form's
+  assert.ok(rows.every((r) => r.p < 4), 'the rows keep their dollar price');
+});
+
+test('priority: offering > plan with a footnote > same-price program (TSM stays a plan, SBLK an offering)', () => {
+  assert.equal(one('TSM').excluded[0].label, 'plan_bulk');
+  assert.equal(one('SBLK').excluded[0].label, 'offering');
+  // five buyers at one price whose footnotes name an ESPP: a plan, not a program
+  const rows = people(5, '2026-09-10', 30);
+  const labels = lineLabels(rows, () => ({ fn: { F1: 'Shares purchased under the Employee Stock Purchase Plan.' } }));
+  assert.ok([...labels.values()].every((l) => l.label === 'plan_bulk'));
+});
+
+test('foreign private issuer flag: BBD, TSM, SBLK yes; RWT, GME, DKS no — from the SEC records', () => {
+  const data = { issuers: Object.fromEntries(Object.values(F.issuers).filter((x) => x.record).map((x) => [x.cik, x.record])) };
+  const isForeign = isForeignWith(data, Date.parse('2026-09-28'));
+  const flags = Object.fromEntries(Object.entries(F.issuers).map(([t, x]) => [t, isForeign(x.cik)]));
+  assert.deepEqual(flags, { BBD: true, TSM: true, SBLK: true, RWT: false, GME: false, DKS: false });
+  // a 20-F/6-K older than 24 months does not make a company foreign
+  const old = isForeignWith({ issuers: { 9: { fpi: 1, lf: '2024-01-15' } } }, Date.parse('2026-09-28'));
+  assert.equal(old('9'), false);
+  // the badge travels with the cluster and the look-alike, never the order
+  const c = buildClusters(people(3, '2026-09-10', 40), { isForeign: () => true }).clusters[0];
+  assert.equal(c.fpi, true);
+  const e = buildClusters(people(5, '2026-09-10', 40), { isForeign: () => true }).excluded[0];
+  assert.equal(e.fpi, true);
 });

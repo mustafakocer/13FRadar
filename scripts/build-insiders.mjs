@@ -42,7 +42,7 @@ import axios from 'axios';
 import { classifyTransaction, cleanSymbol, KEPT_CODES, plausibleDates } from '../api/_lib/insiderModel.js';
 import { makeRow, normDate, num, truthy } from '../api/_lib/insiderForm4.js';
 import { normalizeRows } from '../api/_lib/fpiNormalize.js';
-import { fpiContext, toUsdWith, loadFpi } from '../api/_lib/fpiContext.js';
+import { fpiContext, toUsdWith, isForeignWith, loadFpi } from '../api/_lib/fpiContext.js';
 import { advanceCheckpoint, crawlDay, crawlOnce, DEFAULTS, fetchListing, planScan, quarterKey, runProblems, getWithRetry, indexUrl, parseFormIndex } from '../api/_lib/insiderCrawl.js';
 import {
   assignLineIndexes,
@@ -632,7 +632,7 @@ const served = normalizeRows(currentRows(all), fpiContext({ raw: rawAll, seriesF
 const fx = normalizeRows.lastStats;
 console.log(`Foreign issuers: ${fx.normalized} line(s) converted to US dollars, ${fx.failed} kept in their own currency, ${fx.security} in a non-common security.`);
 // the cluster rules read footnotes of foreign issuers' re-read lines too
-saveTeaser(buildTeaser(served, companies, meta, Date.now(), { raw: { ...(loadFpi()?.raw || {}), ...rawAll }, seriesFor, toUsd: toUsdWith() }));
+saveTeaser(buildTeaser(served, companies, meta, Date.now(), { raw: { ...(loadFpi()?.raw || {}), ...rawAll }, seriesFor, toUsd: toUsdWith(), isForeign: isForeignWith() }));
 
 const now = new Date().toISOString();
 saveFreshness({

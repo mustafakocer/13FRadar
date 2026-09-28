@@ -86,6 +86,7 @@ export function clusterBrief(c, companies = {}) {
     last: c.to,
     ceoCfo: c.ceoCfo,
     own: c.ownIncreaseAvg,
+    ...(c.fpi ? { fpi: true } : {}),
     ...(c.newPositions ? { nw: c.newPositions } : {}),
     members: c.members.map((m) => ({ n: m.n, r: m.r, ti: m.ti, d: m.d, v: m.v, own: m.ownIncrease })),
     ...(c.others.length ? { others: c.others.map((o) => ({ n: o.n, r: o.r, d: o.d, v: o.v, why: o.why })) } : {}),
@@ -224,7 +225,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
   const recentBuys = rows.filter((r) => isBuy(r) && r.d >= since);
   // the one cluster definition (insiderCluster.js): the home table and
   // /insiders/cluster both read this list
-  const built = buildClusters(rows, { rawOf: rawOfOpts(opts), toUsd: opts.toUsd, from: since });
+  const built = buildClusters(rows, { rawOf: rawOfOpts(opts), toUsd: opts.toUsd, isForeign: opts.isForeign, from: since });
   const cluster = built.clusters.slice(0, CLUSTER_ROWS).map((c) => clusterBrief(c, companies));
   const clusterExcluded = built.excluded.slice(0, CLUSTER_ROWS).map((e) => ({ ...e, c: companies[e.t] || null }));
 

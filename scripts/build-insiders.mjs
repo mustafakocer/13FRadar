@@ -52,6 +52,7 @@ import {
   loadDataset,
   loadErrors,
   loadRaw,
+  loadRawBackfill,
   markSuperseded,
   mergeFilings,
   readJson,
@@ -583,7 +584,7 @@ if (!NO_ENRICH) {
 
 // A footnote that says "10b5-1" or "trading plan" marks a planned trade even
 // when the filing's checkbox is empty (`pn`; the classifier reads p5 || pn).
-const rawAll = { ...loadRaw().rows, ...rawAdd };
+const rawAll = { ...loadRawBackfill(), ...loadRaw().rows, ...rawAdd };
 let planNotes = 0;
 for (const r of all) {
   const fn = rawAll[rowId(r)]?.fn;

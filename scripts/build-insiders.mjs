@@ -42,6 +42,7 @@ import axios from 'axios';
 import { classifyTransaction, cleanSymbol, KEPT_CODES, plausibleDates } from '../api/_lib/insiderModel.js';
 import { makeRow, normDate, num, truthy } from '../api/_lib/insiderForm4.js';
 import { normalizeRows } from '../api/_lib/fpiNormalize.js';
+import { markCompensation } from '../api/_lib/insiderNotes.js';
 import { fpiContext, toUsdWith, isForeignWith, loadFpi } from '../api/_lib/fpiContext.js';
 import { advanceCheckpoint, crawlDay, crawlOnce, DEFAULTS, fetchListing, planScan, quarterKey, runProblems, getWithRetry, indexUrl, parseFormIndex } from '../api/_lib/insiderCrawl.js';
 import {
@@ -628,7 +629,7 @@ saveRaw({ rows: { ...loadRaw().rows, ...rawAdd } }, new Set(all.map(rowId)));
 saveErrors([...(loadErrors().errors || []), ...newErrors]);
 // the home page shows foreign issuers' lines in US dollars per US security,
 // or without a dollar amount when the currency cannot be verified
-const served = normalizeRows(currentRows(all), fpiContext({ raw: rawAll, seriesFor, meta }));
+const served = markCompensation(normalizeRows(currentRows(all), fpiContext({ raw: rawAll, seriesFor, meta })), (r) => rawAll[rowId(r)] || null);
 const fx = normalizeRows.lastStats;
 console.log(`Foreign issuers: ${fx.normalized} line(s) converted to US dollars, ${fx.failed} kept in their own currency, ${fx.security} in a non-common security.`);
 // the cluster rules read footnotes of foreign issuers' re-read lines too

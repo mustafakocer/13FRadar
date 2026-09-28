@@ -7,6 +7,9 @@
 // Now a line is one of these categories:
 //
 //   open_buy    P, not a derivative, price > 0     açık piyasa alımı
+//   compensation P whose notes say the shares were pay — board fees, a
+//               retainer, "in lieu of cash", Rule 16b-3 (`cp` on the served
+//               row, insiderNotes.markCompensation)  ücret karşılığı hisse
 //   open_sell   S, not a derivative, price > 0     açık piyasa satışı
 //   exercise    M, X                               opsiyon / hak kullanımı
 //   award       A                                  hisse ödülü
@@ -32,7 +35,7 @@
 // The stored dataset only holds non-derivative lines today, so `dv` (the
 // derivative flag) is absent and read as false; the rule is here so a
 // derivative line can never be taken for an open-market trade later.
-export const CATEGORIES = ['open_buy', 'open_sell', 'exercise', 'award', 'tax', 'gift', 'conversion', 'preferred', 'other_security', 'other'];
+export const CATEGORIES = ['open_buy', 'compensation', 'open_sell', 'exercise', 'award', 'tax', 'gift', 'conversion', 'preferred', 'other_security', 'other'];
 export const OPEN_MARKET = new Set(['open_buy', 'open_sell']);
 
 // Which way the shares moved, for the buy/sell tabs when "other types" are on.
@@ -49,6 +52,7 @@ export function categorize(r) {
   if (r?.sk === 'other') return 'other_security';
   switch (code) {
     case 'P':
+      if (r?.cp) return 'compensation';
       return !derivative && hasPrice(r) ? 'open_buy' : 'other';
     case 'S':
       return !derivative && hasPrice(r) ? 'open_sell' : 'other';

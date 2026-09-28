@@ -253,7 +253,7 @@ test('foreign private issuer flag: BBD, TSM, SBLK yes; RWT, GME, DKS no — from
   assert.equal(e.fpi, true);
 });
 
-test('compensation shares are a plan purchase: fee program, retainer, in lieu of cash, Rule 16b-3 (Eastern Company)', () => {
+test('compensation shares get their own label: fee program, retainer, in lieu of cash (Eastern Company)', () => {
   const day = { t: 'EML', d: '2026-09-16', f: '2026-09-17', k: 'P', r: 'director', p: 25.25 };
   const notes = {
     a: "1,217 shares issued under The Eastern Company Director's Fee Program pursuant to rule 16b-3(d). The price used to determine the number of shares is the price of the shares on September 15, 2026.",
@@ -266,9 +266,9 @@ test('compensation shares are a plan purchase: fee program, retainer, in lieu of
     { ...day, n: 'Scott Peggy', s: 996, v: 25149, a: 'c', li: 0 },
   ];
   const labels = lineLabels(lines, (r) => ({ fn: { F1: notes[r.a] } }));
-  assert.equal(labels.get(lines[0]).label, 'plan_bulk');
+  assert.equal(labels.get(lines[0]).label, 'compensation');
   assert.match(labels.get(lines[0]).quote, /Director's Fee Program/);
-  assert.equal(labels.get(lines[1]).label, 'plan_bulk');
+  assert.equal(labels.get(lines[1]).label, 'compensation');
   assert.equal(labels.has(lines[2]), false, 'an open-market purchase is not labelled');
   // two fee-program directors do not make a cluster
   const cl = buildClusters(lines.slice(0, 2), { rawOf: (r) => ({ fn: { F1: notes[r.a] } }) });
@@ -279,4 +279,13 @@ test('"Includes shares acquired pursuant to the ESPP. Such acquisitions are exem
   const r = { t: 'MTDR', d: '2026-08-10', f: '2026-08-11', k: 'P', r: 'officer', n: 'Elsener William Thomas', s: 850, p: 50.94, v: 43299, a: 'm', li: 0 };
   const labels = lineLabels([r], () => ({ fn: { F1: "Includes shares acquired pursuant to the Issuer's Employee Stock Purchase Plan. Such acquisitions are exempt under Rule 16b-3" } }));
   assert.equal(labels.has(r), false);
+});
+
+test('a holding sentence is not cut at "Inc." (Match Group: "Includes … accrued under the 2020 Match Group, Inc. Deferred Compensation Plan …")', async () => {
+  const { compensationOf, sentencesOf } = await import('../api/_lib/insiderNotes.js');
+  const note = 'Includes (i) 49,377 shares of common stock and (ii) 6,993 share units (rounded to the nearest whole number) accrued under the 2020 Match Group, Inc. Deferred Compensation Plan for Non-Employee Directors as of the date of this report.';
+  assert.equal(sentencesOf(note).length, 1);
+  assert.equal(compensationOf({ fn: { F1: note } }), null, 'about the holding, not this purchase');
+  assert.match(compensationOf({ fn: { F1: 'Reporting person elected to purchase FIS stock in lieu of the quarterly cash retainer paid to him as Independent Chairman of the Board of Directors.' } }), /in lieu of/);
+  assert.equal(compensationOf({ fn: { F1: 'The $10.50 per share price reflects public offering price less selling commissions of 7% and dealer manager fee of 3%.' } }), null, 'an offering fee is not pay');
 });

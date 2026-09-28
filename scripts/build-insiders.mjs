@@ -65,6 +65,9 @@ import {
 import { parseForm4Submission, BadFilingError } from '../api/_lib/insiderForm4.js';
 import { RateClock } from '../api/_lib/edgarClock.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
+import { annotateOutcomes } from '../api/_lib/insiderOutcome.js';
+import { PLAN_NOTE_RE } from '../api/_lib/insiderClassify.js';
+import { readSeries } from '../api/_lib/priceStore.js';
 import { fetchCharts, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
 import { isSecBusinessDay, addDays, calendarCoverage } from '../client/src/lib/secCalendar.js';
 
@@ -289,6 +292,9 @@ async function fromQuarterlyDatasets() {
 }
 
 // --------------------------------------------------------------- enrichment
+// Daily closes from the charts the enrichment already downloads (about 400
+// days per ticker) — kept for the forward returns after insider buys.
+const chartCloses = new Map();
 // Price, 52-week range and volume from one Yahoo chart per ticker; sector
 // from the SIC code on the issuer's SEC submissions feed (cached for good —
 // only tickers never seen are looked up); market cap from SEC's share count
@@ -306,6 +312,7 @@ async function enrich(tickers, cikOf) {
   let priced = 0;
   for (const [sym, snap] of snapshots) {
     if (!snap) continue;
+    if (snap.closes?.length) chartCloses.set(sym, snap.closes);
     // vol/lo/hi drive the liquidity and off-the-low columns on the penny
     // board; every consumer treats them as optional, so a provider that
     // stops returning them degrades to "—" instead of breaking the page.
@@ -571,6 +578,25 @@ if (!NO_ENRICH) {
   meta = await enrich(tickers.slice(0, Number(process.env.INSIDER_ENRICH_MAX || 5000)), cikOf);
   fs.writeFileSync(META, JSON.stringify(meta));
 }
+
+// A footnote that says "10b5-1" or "trading plan" marks a planned trade even
+// when the filing's checkbox is empty (`pn`; the classifier reads p5 || pn).
+const rawAll = { ...loadRaw().rows, ...rawAdd };
+let planNotes = 0;
+for (const r of all) {
+  const fn = rawAll[rowId(r)]?.fn;
+  if (fn && Object.values(fn).some((t) => PLAN_NOTE_RE.test(t))) {
+    if (!r.pn) planNotes++;
+    r.pn = 1;
+  }
+}
+if (planNotes) console.log(`Marked ${planNotes} line(s) as planned trades from their footnotes.`);
+
+// 30/90-day return vs SPY after every open-market buy whose horizon has
+// passed: from tonight's chart closes, else the nightly price cache.
+const spy = readSeries('SPY')?.prices || chartCloses.get('SPY') || [];
+const outcomes = annotateOutcomes(all, (t) => chartCloses.get(t) || readSeries(t)?.prices || null, spy);
+console.log(`Forward returns vs SPY: ${outcomes} value(s) computed${spy.length ? '' : ' — no SPY series, none computed'}.`);
 
 const newest = lastFilingDay(current);
 saveDataset({

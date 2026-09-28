@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | **Etkilenen dönem** | 21–25 Eylül 2026 dosyalamaları (5 iş günü) hiç alınmadı; fark edilme 27 Eylül |
-| **Etkilenen yerler** | /insiders, /insiders/cluster, /csuite, /penny, ana sayfa "Insider Duyarlılığı", insider e-posta uyarıları |
+| **Etkilenen yerler** | /insiders, /insiders/cluster, /csuite, /penny, ana sayfa "Insider Duyarlılığı" (insider e-posta uyarıları o sırada hiç gönderilmiyordu) |
 | **Etkilenmeyen** | Hisse sayfası (`/api/insiders/:ticker`), çünkü o sırada doğrudan SEC'e soruyordu |
 | **Kök neden** | Tarama planı, SEC'in henüz yayınlamadığı "bugünün" günlük index'ini tatil sanıp atlıyor ve kaldığı yeri (checkpoint) onun ötesine taşıyordu |
 | **Tespit** | Elle; site 18 Eylül'de takılıydı, rakip 25 Eylül'ü gösteriyordu |
@@ -81,7 +81,9 @@ Bunlardan hiçbiri değilse gün **bekler**. Checkpoint yalnızca gerçekten oku
 
 - Bütün tazelik kontrolleri verinin içindeki tarihe bakar (`api/_lib/freshnessChecks.js`): insider için en yeni filing, consensus için çeyrek, fiyatlar için son kapanış, 13F için en yeni 13F filing.
 - "Canlı veri" rozeti ve "Güncelleme" etiketi aynı kurala bağlı: veri 1 iş gününden eskiyse "Son veri: <tarih>" yazar.
-- Insider işi, tazelik kontrolü ve consensus işi (FMP reddi dahil) başarısız olunca e-posta (Resend) gönderilir ve `data-alarm` etiketli bir GitHub issue açılır. İş yeniden yeşil olunca issue kendiliğinden kapanır.
+- Insider işi, tazelik kontrolü ve consensus build'i başarısız olunca `data-alarm` etiketli bir GitHub issue açılır; issue gövdesi ve her yorum `ALERT_MENTION` hesabını (varsayılan @mustafakocer) etiketler, GitHub e-postası bu etiketle gelir. Aynı alarm tekrar ederse açık issue'ya yorum eklenir; iş yeniden yeşil olunca issue "çözüldü" yorumuyla kapanır. Issue açılamazsa iş kırmızı biter. Resend e-postası isteğe bağlı ikinci kanal olarak durur.
+- Sağlayıcı reddi (FMP 402 gibi) "bilinen sorun"dur: ilk seferde tek bir issue açılır. Aynı durum sürdükçe iş yeşil kalır ve yeni bildirim gitmez. Sağlayıcı düzelince ya da başka bir sağlayıcı reddetmeye başlayınca yeniden bildirim gelir. Sürekli çalan alarm görmezden gelinir; bu olayın dersi de buydu.
+- Tatil listesi 2027'de biter. Listede olmayan bir yıla girilince tarama kırmızı biter; 2027-10-01'den itibaren her çalışma "2028 listesi eklenmeli" uyarısı verir.
 - Ana sayfa ile /insiders özet sayıları tek fonksiyondan gelir (`daySummary`). Önceden aynı gün için 62 / $21.6M ile 63 / $31.3M diyebiliyorlardı; fark, bir tarafın ticker'sız satırları sayıp diğerinin saymamasıydı.
 
 **Takvim:** Günde 2 çalışma (03:31 ve 11:02 UTC). Mantık saate güvenmez; her çalışma checkpoint'ten sonra eksik ne varsa okur.

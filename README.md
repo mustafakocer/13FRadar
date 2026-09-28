@@ -71,7 +71,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `SUPABASE_URL`, `SUPABASE_ANON_KEY` | prod'da zorunlu | sunucu tarafı plan kontrolü (`api/_lib/auth.js`); yoksa herkes çıkış yapmış sayılır, Pro kilitli; production build durur |
 | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | prod'da zorunlu | aynı değerler, istemci paketine build'de gömülür (`client/src/lib/supabase.js`) |
 | Stripe | ödeme için | bkz. docs/STRIPE-KURULUM.md |
-| `RESEND_API_KEY`, `ALERT_FROM` | alert e-postası için | `scripts/send-alerts.mjs`; anahtar yoksa koşu eşleştirir ama göndermez |
+| `RESEND_API_KEY`, `ALERT_FROM` | şu an gerekmez | kullanıcı e-posta uyarıları 2026-09'da kaldırıldı (`docs/EMAIL_ALERTS.md`); ops alarmları GitHub issue + `@ALERT_MENTION` (repo variable, varsayılan `mustafakocer`) ile gelir |
 | `SUPABASE_SERVICE_ROLE_KEY` | alert işi için | digest her kullanıcının alert'lerini okur, RLS ile çalışamaz |
 | `HISTORY_STORE`, `HISTORY_SUPABASE_URL`, `HISTORY_SUPABASE_KEY` | tarihsel depo için | `HISTORY_STORE=1` olmadan okuma yolu dosyalardan devam eder |
 | `SEC_FIXTURE_DIR`, `GURU_HISTORY_FILE`, `GURU_STOCKS_FILE`, `FILINGS_FILE` | yalnız test | çevrimdışı fixture'lar (`tests/fixtures`) |
@@ -185,7 +185,7 @@ Ana sayfa şu statik dosyaları okur (hepsi Action'lar tarafından üretilir, `c
 
 ### İleride (dış servis gerektirir)
 
-- **E-posta bildirimi:** Vercel Cron + KV + Resend hesabı ile izleme listesine yeni 13F bildirimi. Şimdilik uygulama içi "YENİ 13F" rozetleri var.
+- **E-posta bildirimi:** 2026-09'da kaldırıldı; geri açma adımları `docs/EMAIL_ALERTS.md`. Şimdilik uygulama içi "YENİ 13F" rozetleri var.
 - **Hesap + senkron izleme listesi:** Supabase/Clerk entegrasyonu gerekir; bugün localStorage kullanılıyor.
 
 ### Veritabanı yedeği ve geri yükleme

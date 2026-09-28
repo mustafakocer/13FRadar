@@ -1,6 +1,5 @@
 import { requirePro } from '../_lib/auth.js';
-import { cached, TTL } from '../_lib/cache.js';
-import { daySummary, findClusters, sizeBucket, businessDaysBetween, CODES, KEPT_CODES,
+import { daySummary, sizeBucket, businessDaysBetween, CODES, KEPT_CODES,
   CLUSTER_DENSITY,
   clusterDensity,
   clusterMatches,
@@ -14,8 +13,9 @@ import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
 import { sinceTrade } from '../_lib/splitAdjust.js';
 import { priceCheck } from '../_lib/insiderPriceCheck.js';
 import { readRawServed } from '../_lib/insiderStore.js';
-import { seriesWithFpi } from '../_lib/fpiContext.js';
-import { fxBrief } from '../_lib/insiderTeaser.js';
+import { seriesWithFpi, toUsdWith } from '../_lib/fpiContext.js';
+import { buildClusters } from '../_lib/insiderCluster.js';
+import { fxBrief, clusterBrief, CLUSTER_ROWS } from '../_lib/insiderTeaser.js';
 import { createRequire } from 'node:module';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
@@ -60,7 +60,23 @@ function derive(db) {
   if (derivedFor === db) return derived;
   const cls = new Map();
   for (const r of db.rows) cls.set(r, classify(r));
-  derived = { cls, filings: filingTotals(db.rows), people: buysByPerson(db.rows) };
+  // clusters — the one definition (insiderCluster.js): over the whole
+  // dataset for the cluster tab and each row's context, and over the 30 days
+  // before the newest filing day for the cards (the same list the home page
+  // and /insiders/cluster show)
+  const raw = readRawServed();
+  const ctx = { rawOf: (r) => raw[`${r.a}:${r.li}`] || null, toUsd: toUsdWith() };
+  const last = db.lastFilingDay || db.rows.reduce((m, r) => (r.f > m ? r.f : m), '');
+  const recentFrom = last ? iso(Date.parse(`${last}T00:00:00Z`) - 30 * 86400000) : null;
+  derived = {
+    cls,
+    filings: filingTotals(db.rows),
+    people: buysByPerson(db.rows),
+    clusters: buildClusters(db.rows, ctx).byTicker,
+  };
+  const recent = buildClusters(db.rows, { ...ctx, from: recentFrom });
+  derived.recentClusters = recent.byTicker;
+  derived.recentList = recent.clusters.slice(0, CLUSTER_ROWS).map((c) => clusterBrief(c, db.companies || {}));
   derivedFor = db;
   return derived;
 }
@@ -181,7 +197,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const sellValue = summary.sellValue;
 
   const last24 = buys;
-  const clusters = findClusters(rows.filter((r) => r.d >= iso(Date.now() - 45 * 86400000)));
+  const clusters = d.recentClusters;
   const signals = [];
   for (const r of last24) {
     if (r.fx?.fail) continue;
@@ -242,6 +258,8 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
     sellShare: summary.sellShare,
     fxExcluded: summary.fxExcluded || 0,
     signals: topSignals,
+    // the list the home page and /insiders/cluster show (insiderCluster.js)
+    clusters: d.recentList,
     topBuys: top(buys),
     topSells: top(sells),
   };
@@ -312,17 +330,14 @@ export async function answer(rawQuery, { free = true } = {}) {
 
   // Clusters are computed over the whole window, not the filtered slice, so a
   // cluster is still recognised when the user narrows by role or value.
-  const clusters = cached(`insider:clusters:${db.updatedAt}`, TTL.HOUR_6, async () =>
-    findClusters(rows.filter((r) => r.k === 'P'))
-  );
-  const clusterMap = await clusters;
+  const d = derive(db);
+  const clusterMap = d.clusters;
 
   // The latest tab lists open-market buys, the sells tab open-market sales;
   // with other types shown, each tab takes the other categories on its side
   // (an award or exercise with the buys, tax withholding or a gift with the
   // sells). The role, cluster and penny tabs are about buying: open-market
   // buys only, always.
-  const d = derive(db);
   const wantSells = tab === 'sells';
   const listTab = tab === 'latest' || tab === 'sells';
   let out = [];
@@ -398,7 +413,9 @@ export async function answer(rawQuery, { free = true } = {}) {
         to: cl.to,
         spanDays: clusterSpanDays(cl),
         density: clusterDensity(cl),
-        ...(cl.fxExcluded ? { fxExcluded: cl.fxExcluded } : {}),
+        ceoCfo: cl.ceoCfo,
+        ownIncreaseAvg: cl.ownIncreaseAvg,
+        counted: cl.members.some((m) => m.n === r.n),
       };
     }
     const c = clsOf(r, d, meta);

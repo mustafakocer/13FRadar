@@ -354,6 +354,11 @@ function InsiderSignals({ teaser }) {
                             <span key={x} className={`role-badge ${x}`}>{ROLE_LABEL[x]}</span>
                           ))}
                         </div>
+                        {r.own != null && (
+                          <div className="muted small" title={t('ins.cluster.ownTip')}>
+                            {t('ins.cluster.own')}: {r.own === 'new' ? t('ins.cluster.newPosition') : `${r.own > 0 ? '+' : ''}${r.own}%`}
+                          </div>
+                        )}
                       </td>
                       <td className="l">
                         <div>{shortDate(r.last || r.to, locale)}</div>
@@ -361,10 +366,7 @@ function InsiderSignals({ teaser }) {
                           {Math.max(1, (daysBetween(r.from, r.to) ?? 0) + 1)} {t('landing.ins.days')}
                         </div>
                       </td>
-                      <td className="sig-val">
-                        {fmtMoney(r.v)}
-                        {r.fxExcluded > 0 && <div className="muted small">{t('ins.fxExcluded').replace('{n}', r.fxExcluded)}</div>}
-                      </td>
+                      <td className="sig-val">{fmtMoney(r.v)}</td>
                       <td>
                         <Link to={`/stock/${r.t}`} className="btn outline">
                           {t('landing.ins.details')} ›

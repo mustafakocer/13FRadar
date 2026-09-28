@@ -11,6 +11,7 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { readSeries } from './priceStore.js';
 import { loadSplits } from './splitAdjust.js';
+import { usdPerUnit } from './fx.js';
 
 const require = createRequire(import.meta.url);
 const readFile = (file) => {
@@ -84,5 +85,14 @@ export function fpiContext({ raw = {}, seriesFor, meta: m } = {}) {
     seriesFor: seriesWithFpi(seriesFor, data),
     meta: m || loadMeta(),
     splits: loadSplits(),
+  };
+}
+
+// (amount, currency, day) → US dollars at that day's rate, null without one
+export function toUsdWith(data = loadFpi()) {
+  const rates = data?.rates || null;
+  return (amount, cu, day) => {
+    const k = usdPerUnit(cu, day, rates);
+    return k ? amount * k : null;
   };
 }

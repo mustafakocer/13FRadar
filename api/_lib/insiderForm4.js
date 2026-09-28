@@ -102,6 +102,7 @@ const padCik = (x) => {
 //   dr / of / tp  isDirector / isOfficer / isTenPercentOwner (1 when set)
 //   ot  officerTitle                                    → officer_title
 //   fn  { footnoteId: text } for footnotes this transaction references
+//   rm  the filing's remarks (free text at the end of the form)
 // From the row: k → transaction_code, t → ticker, ci → issuer_cik,
 // ow → owner_cik, fa → form_type ('4' when absent). Not stored because they
 // are constant today: is_derivative (only the non-derivative table is read),
@@ -168,6 +169,10 @@ export async function parseForm4Submission(body, { filed, path = '', formType: i
     if (id && t) footnotes[id] = t.replace(/\s+/g, ' ').trim();
   }
   const aff10b5One = val(od.aff10b5One);
+  // kept only when it says something about how the shares were bought (a
+  // power-of-attorney line on every form is not worth shipping nightly)
+  const remarksText = String(text(od.remarks) || '').replace(/\s+/g, ' ').trim();
+  const remarks = /plan|offering|placement|issuer|remunerat|compensat|incentive|reinvest|bonus|program/i.test(remarksText) ? remarksText.slice(0, 600) : null;
   const p5 = truthy(aff10b5One);
 
   const txs = arr(od.nonDerivativeTable?.nonDerivativeTransaction);
@@ -214,6 +219,9 @@ export async function parseForm4Submission(body, { filed, path = '', formType: i
       ot: o.title || null,
       tp: o.isTenPercentOwner ? 1 : null,
       fn: Object.keys(notes).length ? notes : null,
+      // the filing's free-text remarks ("Shares acquired under the Company's
+      // share-based remuneration program") — the cluster rules read them
+      rm: remarks,
     });
   });
 

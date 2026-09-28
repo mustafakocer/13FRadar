@@ -31,6 +31,9 @@ import { forwardExcess, priceMismatch } from '../api/_lib/insiderOutcome.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { SIGNAL } from '../api/_lib/insiderSignalConfig.js';
 import { fetchCharts } from '../api/_lib/marketData.js';
+import { clusteredLines } from '../api/_lib/insiderCluster.js';
+import { readRawServed } from '../api/_lib/insiderStore.js';
+import { toUsdWith } from '../api/_lib/fpiContext.js';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -72,6 +75,14 @@ const series = (t) => {
   return seriesMemo.get(t);
 };
 
+// cluster buys (insiderCluster.js) vs buys by one person alone: one
+// observation per filing, as above
+const rawServed = readRawServed();
+const inCluster = clusteredLines(rows, { rawOf: (r) => rawServed[`${r.a}:${r.li}`] || null, toUsd: toUsdWith() });
+const clusterAcc = new Set([...inCluster].map((r) => r.a));
+const groups = { cluster: { filings: 0 }, single: { filings: 0 } };
+for (const g of Object.values(groups)) for (const h of SIGNAL.horizons) [g[h], g[`d${h}`]] = [[], []];
+
 const buckets = Object.fromEntries(LEVELS.map((l) => [l, { filings: 0, ...Object.fromEntries(SIGNAL.horizons.map((h) => [h, []])), dates: Object.fromEntries(SIGNAL.horizons.map((h) => [h, []])) }]));
 let noSeries = 0;
 for (const [acc, r] of firstLine) {
@@ -80,11 +91,15 @@ for (const [acc, r] of firstLine) {
   b.filings++;
   const s = r.t ? series(r.t) : null;
   if (!s && SIGNAL.horizons.every((h) => r[`x${h}`] == null)) noSeries++;
+  const g = groups[clusterAcc.has(acc) ? 'cluster' : 'single'];
+  g.filings++;
   for (const h of SIGNAL.horizons) {
     const x = r[`x${h}`] ?? (s ? forwardExcess(s, spy, r.d, h) : null);
     if (x != null) {
       b[h].push(x);
       b.dates[h].push(r.d);
+      g[h].push(x);
+      g[`d${h}`].push(r.d);
     }
   }
 }
@@ -162,6 +177,18 @@ function markdown() {
   out.push('|---|---:|---:|');
   for (const m of topMismatch) out.push(`| ${m.ticker} | ${m.lines} | ${m.medianRatio} |`);
   out.push('');
+  out.push('Küme alımı / tek kişi alımı (küme kuralı: insiderCluster.js — 10 iş günü, en az 2 görevli/yönetici, kişi başı ≥ 10.000 $, plan/arz hariç):');
+  out.push('');
+  out.push('| Grup | Dosyalama | Süre | n | Tarih aralığı | Ort. (pp) | Medyan (pp) | Medyan %95 aralığı | SPY\'yi geçen | Not |');
+  out.push('|---|---:|---|---:|---|---:|---:|---|---:|---|');
+  for (const t of clusterTable) {
+    for (const h of SIGNAL.horizons) {
+      const x = t[h];
+      const note = !x.n ? 'veri yok' : x.small ? 'örnek az, sonuç rastlantı olabilir' : '';
+      out.push(`| ${t.group === 'cluster' ? 'Küme alımı' : 'Tek kişi alımı'} | ${t.filings} | ${h}g | ${x.n} | ${x.from ? `${x.from} → ${x.to}` : '—'} | ${pp(x.mean)} | ${pp(x.median)} | ${x.ci ? `${pp(x.ci[0])} … ${pp(x.ci[1])}` : '—'} | ${x.positive == null ? '—' : `%${x.positive}`} | ${note} |`);
+    }
+  }
+  out.push('');
   out.push('Bu bir yatırım tavsiyesi değil; etiketlerin tutarlılık kontrolüdür. Maliyet ve zamanlama yok; fiyat verisi Yahoo günlük kapanışları ve fiyat önbelleği.');
   return out.join('\n');
 }
@@ -187,7 +214,8 @@ const topMismatch = Object.entries(mismatch.byTicker)
   .slice(0, 20)
   .map(([t, e]) => ({ ticker: t, lines: e.lines, medianRatio: [...e.ratios].sort((a, b) => a - b)[e.ratios.length >> 1] }));
 
-const result = { generatedAt: new Date().toISOString(), filings: firstLine.size, noSeries, config: SIGNAL, table, ladder, priceUnits: { checked: mismatch.checked, flagged: mismatch.lines, tickers: Object.keys(mismatch.byTicker).length, top: topMismatch } };
+const clusterTable = Object.entries(groups).map(([k, g]) => ({ group: k, filings: g.filings, ...Object.fromEntries(SIGNAL.horizons.map((h) => [h, stats(g[h], g[`d${h}`])])) }));
+const result = { clusters: clusterTable, generatedAt: new Date().toISOString(), filings: firstLine.size, noSeries, config: SIGNAL, table, ladder, priceUnits: { checked: mismatch.checked, flagged: mismatch.lines, tickers: Object.keys(mismatch.byTicker).length, top: topMismatch } };
 if (JSON_OUT) console.log(JSON.stringify(result, null, 1));
 else console.log(markdown());
 

@@ -1,0 +1,3125 @@
+{
+ "_source": "Real served rows (insiders.json normalised by fpiNormalize) and their Form 4 fields, frozen 2026-09-28. EUR: Federal Reserve H.10.",
+ "rates": {
+  "EUR": [
+   [
+    "2026-09-01",
+    1.1593
+   ],
+   [
+    "2026-09-02",
+    1.1592
+   ],
+   [
+    "2026-09-03",
+    1.1623
+   ],
+   [
+    "2026-09-04",
+    1.1618
+   ],
+   [
+    "2026-09-08",
+    1.1627
+   ],
+   [
+    "2026-09-09",
+    1.1627
+   ],
+   [
+    "2026-09-10",
+    1.1629
+   ],
+   [
+    "2026-09-11",
+    1.1604
+   ],
+   [
+    "2026-09-14",
+    1.1549
+   ],
+   [
+    "2026-09-15",
+    1.1542
+   ],
+   [
+    "2026-09-16",
+    1.1538
+   ],
+   [
+    "2026-09-17",
+    1.1479
+   ],
+   [
+    "2026-09-18",
+    1.1464
+   ]
+  ]
+ },
+ "cases": {
+  "TSM": [
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Chang Tzonz-Sheng",
+     "r": "officer",
+     "ti": "SVP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4039,
+     "o": 1096,
+     "oc": 1,
+     "a": "0001046179-26-000602",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 53,
+      "lv": 4039,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Chen Pei-Hung",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3505,
+     "o": 279,
+     "oc": 3.4,
+     "a": "0001046179-26-000603",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 46,
+      "lv": 3505,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Chin Yung-Pei",
+     "r": "officer",
+     "ti": "EVP and Co-COO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 14,
+     "p": 381,
+     "v": 5410,
+     "o": 1701,
+     "oc": 0.8,
+     "a": "0001046179-26-000604",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 71,
+      "lv": 5410,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Cao Min",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4267,
+     "o": 1355,
+     "oc": 0.8,
+     "a": "0001046179-26-000605",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 56,
+      "lv": 4267,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Chen Chih-Ho",
+     "r": "officer",
+     "ti": "Controller",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 6,
+     "p": 381,
+     "v": 2438,
+     "o": 40,
+     "oc": 18.8,
+     "a": "0001046179-26-000606",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 32,
+      "lv": 2438,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Chuang Tzu-Sou",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3581,
+     "o": 1171,
+     "oc": 0.8,
+     "a": "0001046179-26-000612",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 47,
+      "lv": 3581,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "He Jun",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3505,
+     "o": 1081,
+     "oc": 0.9,
+     "a": "0001046179-26-000613",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 46,
+      "lv": 3505,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F4": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Fang Shu-Hua",
+     "r": "officer",
+     "ti": "SVP and GC",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4267,
+     "o": 1342,
+     "oc": 0.8,
+     "a": "0001046179-26-000614",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 56,
+      "lv": 4267,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Chuang Juiping",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 10,
+     "p": 381,
+     "v": 3810,
+     "o": 858,
+     "oc": 1.2,
+     "a": "0001046179-26-000615",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 50,
+      "lv": 3810,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Hou Yung-Chin",
+     "r": "officer",
+     "ti": "SVP and Deputy Co-COO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 12,
+     "p": 381,
+     "v": 4648,
+     "o": 1504,
+     "oc": 0.8,
+     "a": "0001046179-26-000616",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 61,
+      "lv": 4648,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Ku Yao-Ching",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3581,
+     "o": 38,
+     "oc": 33.3,
+     "a": "0001046179-26-000622",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 47,
+      "lv": 3581,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Huang Jen-Chau",
+     "r": "cfo",
+     "ti": "SVP and CFO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 6,
+     "p": 381,
+     "v": 2286,
+     "o": 717,
+     "oc": 0.8,
+     "a": "0001046179-26-000623",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 30,
+      "lv": 2286,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Hsu Kuo-Chin",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4191,
+     "o": 1346,
+     "oc": 0.8,
+     "a": "0001046179-26-000624",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 55,
+      "lv": 4191,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Hwang Yuan-Ko",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 8,
+     "p": 381,
+     "v": 3048,
+     "o": 60,
+     "oc": 15.4,
+     "a": "0001046179-26-000626",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 40,
+      "lv": 3048,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Jang Syun-Ming",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 10,
+     "p": 381,
+     "v": 3734,
+     "o": 1188,
+     "oc": 0.8,
+     "a": "0001046179-26-000628",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 49,
+      "lv": 3734,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Lu Lee-Chung",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 10,
+     "p": 381,
+     "v": 3886,
+     "o": 1297,
+     "oc": 0.8,
+     "a": "0001046179-26-000632",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 51,
+      "lv": 3886,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Lee Chun-Hsien",
+     "r": "officer",
+     "ti": "SVP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 10,
+     "p": 381,
+     "v": 3962,
+     "o": 1208,
+     "oc": 0.9,
+     "a": "0001046179-26-000633",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 52,
+      "lv": 3962,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Lin Shyue-Shyh",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3353,
+     "o": 68,
+     "oc": 14.9,
+     "a": "0001046179-26-000635",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 44,
+      "lv": 3353,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Lin Chris Horng-Dar",
+     "r": "officer",
+     "ti": "VP and CIO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3581,
+     "o": 1196,
+     "oc": 0.8,
+     "a": "0001046179-26-000637",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 47,
+      "lv": 3581,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Lu Chin-Sheng",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 8,
+     "p": 381,
+     "v": 2896,
+     "o": 30,
+     "oc": 33.6,
+     "a": "0001046179-26-000640",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 38,
+      "lv": 2896,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Wang Ying-Lang",
+     "r": "officer",
+     "ti": "SVP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4115,
+     "o": 1300,
+     "oc": 0.8,
+     "a": "0001046179-26-000642",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 54,
+      "lv": 4115,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Tien Bor-Zen",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 9,
+     "p": 381,
+     "v": 3277,
+     "o": 63,
+     "oc": 15.9,
+     "a": "0001046179-26-000643",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 43,
+      "lv": 3277,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Tien Bor-Zen",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 1,
+     "p": 381,
+     "v": 381,
+     "o": 17,
+     "oc": 6.3,
+     "a": "0001046179-26-000643",
+     "li": 1,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 5,
+      "lv": 381,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Wei Che-Chia",
+     "r": "ceo",
+     "ti": "Chairman and CEO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 30,
+     "p": 381,
+     "v": 11354,
+     "o": 3627,
+     "oc": 0.8,
+     "a": "0001046179-26-000644",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 149,
+      "lv": 11354,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Wu Shien-Yang",
+     "r": "officer",
+     "ti": "SVP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4343,
+     "o": 1372,
+     "oc": 0.8,
+     "a": "0001046179-26-000646",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 57,
+      "lv": 4343,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Mii Yuh-Jier",
+     "r": "officer",
+     "ti": "EVP and Co-COO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 14,
+     "p": 381,
+     "v": 5410,
+     "o": 1634,
+     "oc": 0.9,
+     "a": "0001046179-26-000648",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 71,
+      "lv": 5410,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Yuan Lipen",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 8,
+     "p": 381,
+     "v": 3124,
+     "o": 260,
+     "oc": 3.3,
+     "a": "0001046179-26-000652",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 41,
+      "lv": 3124,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Zhang Kevin Xiaoqiang",
+     "r": "officer",
+     "ti": "SVP and Deputy Co-COO",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 12,
+     "p": 381,
+     "v": 4648,
+     "o": 1469,
+     "oc": 0.8,
+     "a": "0001046179-26-000653",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 61,
+      "lv": 4648,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F3": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Yeap Choh Fei",
+     "r": "officer",
+     "ti": "SVP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4115,
+     "o": 1309,
+     "oc": 0.8,
+     "a": "0001046179-26-000654",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 54,
+      "lv": 4115,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Yoo Chue-San",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11,
+     "p": 381,
+     "v": 4039,
+     "o": 1339,
+     "oc": 0.8,
+     "a": "0001046179-26-000655",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 53,
+      "lv": 4039,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "TSM",
+     "ci": "0001046179",
+     "n": "Wu Yi-Huang",
+     "r": "officer",
+     "ti": "VP",
+     "d": "2026-09-07",
+     "f": "2026-09-09",
+     "k": "P",
+     "cl": "conviction",
+     "s": 8,
+     "p": 381,
+     "v": 3048,
+     "o": 32,
+     "oc": 33.3,
+     "a": "0001046179-26-000656",
+     "li": 0,
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 5,
+      "as": "20f",
+      "lp": 76.2,
+      "ls": 40,
+      "lv": 3048,
+      "ok": 1,
+      "q": "held in the form of ADSs (each ADS represents five (5) common shares) held by suc",
+      "u": "https://www.sec.gov/Archives/edgar/data/1046179/000162828026025362/tsm-20251231.htm"
+     }
+    },
+    "raw": {
+     "st": "Common Shares (2330.TW)",
+     "fn": {
+      "F2": "The price was translated from the average purchase price of NT$2,404.3453 in New Taiwan dollars, at the rate of NT$31.552 to US$1."
+     }
+    }
+   }
+  ],
+  "BBD": [
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Pedras Carlos Henrique Villela",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 55850,
+     "p": 3.4848,
+     "v": 194624,
+     "o": 163646,
+     "oc": 51.8,
+     "a": "0001292814-26-004615",
+     "li": 0,
+     "ow": "0002125970",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 55850,
+      "lv": 1004183,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "55850",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "de Souza Cintia Scovine Barcelos",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 60093,
+     "p": 3.4848,
+     "v": 209410,
+     "o": 275197,
+     "oc": 27.9,
+     "a": "0001292814-26-004617",
+     "li": 0,
+     "ow": "0002126545",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 60093,
+      "lv": 1080472,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "60093",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Panico Alexandre",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 43620,
+     "p": 3.4848,
+     "v": 152005,
+     "o": 184984,
+     "oc": 30.9,
+     "a": "0001292814-26-004619",
+     "li": 0,
+     "ow": "0002125974",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 43620,
+      "lv": 784288,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "43620",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "de Oliveira Andre Luis Duarte",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 309111,
+     "p": 3.4848,
+     "v": 1077177,
+     "o": 553173,
+     "oc": 126.7,
+     "a": "0001292814-26-004621",
+     "li": 0,
+     "ow": "0002125973",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 309111,
+      "lv": 5557816,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "309111",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "da Cunha Paulo Roberto Simoes",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-18",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 46874,
+     "p": 3.4848,
+     "v": 163345,
+     "o": 264605,
+     "oc": 21.5,
+     "a": "0001292814-26-004625",
+     "li": 0,
+     "ow": "0002126534",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 46874,
+      "lv": 842795,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "46874",
+     "pr": "17.98",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Pavarina Denise Pauli",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 46874,
+     "p": 3.4848,
+     "v": 163345,
+     "o": 412864,
+     "oc": 12.8,
+     "a": "0001292814-26-004633",
+     "li": 0,
+     "ow": "0002125969",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 46874,
+      "lv": 842795,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "46874",
+     "pr": "17.98",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Alvarez Denise Aguiar",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 130596,
+     "p": 3.4848,
+     "v": 455095,
+     "o": 6002223,
+     "oc": 2.2,
+     "a": "0001292814-26-004635",
+     "li": 0,
+     "ow": "0002126543",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 130596,
+      "lv": 2348116,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "130596",
+     "pr": "17.98",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Alvarez Rubens Aguiar",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 46874,
+     "p": 3.4848,
+     "v": 163345,
+     "o": 264605,
+     "oc": 21.5,
+     "a": "0001292814-26-004638",
+     "li": 0,
+     "ow": "0002126531",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 46874,
+      "lv": 842795,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "46874",
+     "pr": "17.98",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Marcilio Juliano Ribeiro",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 60779,
+     "p": 3.4848,
+     "v": 211800,
+     "o": 329067,
+     "oc": 22.7,
+     "a": "0001292814-26-004642",
+     "li": 0,
+     "ow": "0002126140",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 60779,
+      "lv": 1092806,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "60779",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Nunes Regina Helena Jorge",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 31266,
+     "p": 3.4848,
+     "v": 108954,
+     "o": 31266,
+     "oc": null,
+     "a": "0001292814-26-004644",
+     "li": 0,
+     "ow": "0002135664",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 31266,
+      "lv": 562163,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "31266",
+     "pr": "17.98",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Ramalho Miranda Jose Augusto",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 63719,
+     "p": 3.4848,
+     "v": 222045,
+     "o": 220933,
+     "oc": 40.5,
+     "a": "0001292814-26-004646",
+     "li": 0,
+     "ow": "0002127966",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 63719,
+      "lv": 1145668,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "63719",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Freiberger Fernando",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 49550,
+     "p": 3.4848,
+     "v": 172670,
+     "o": 238935,
+     "oc": 26.2,
+     "a": "0001292814-26-004648",
+     "li": 0,
+     "ow": "0002125967",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 49550,
+      "lv": 890909,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "49550",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Bueno Julio Cesar",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 56355,
+     "p": 3.4848,
+     "v": 196384,
+     "o": 336549,
+     "oc": 20.1,
+     "a": "0001292814-26-004650",
+     "li": 0,
+     "ow": "0002122582",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 56355,
+      "lv": 1013263,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "56355",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Tescarolo Marcos Valerio",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 57012,
+     "p": 3.4848,
+     "v": 198673,
+     "o": 296836,
+     "oc": 23.8,
+     "a": "0001292814-26-004652",
+     "li": 0,
+     "ow": "0002125962",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 57012,
+      "lv": 1025076,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "57012",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Fernandes Oswaldo Tadeu",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 79782,
+     "p": 3.4848,
+     "v": 278021,
+     "o": 348575,
+     "oc": 29.7,
+     "a": "0001292814-26-004654",
+     "li": 0,
+     "ow": "0002126544",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 79782,
+      "lv": 1434480,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "79782",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Mantarro Renata Geiser",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 54760,
+     "p": 3.4848,
+     "v": 190825,
+     "o": 300088,
+     "oc": 22.3,
+     "a": "0001292814-26-004656",
+     "li": 0,
+     "ow": "0002126532",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 54760,
+      "lv": 984585,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "54760",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Paris Roberto de Jesus",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 96702,
+     "p": 3.4848,
+     "v": 336983,
+     "o": 367829,
+     "oc": 35.7,
+     "a": "0001292814-26-004658",
+     "li": 0,
+     "ow": "0002126530",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 96702,
+      "lv": 1738702,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "96702",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Machado Silvana Rosa",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 62048,
+     "p": 3.4848,
+     "v": 216222,
+     "o": 235449,
+     "oc": 35.8,
+     "a": "0001292814-26-004660",
+     "li": 0,
+     "ow": "0002126967",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 62048,
+      "lv": 1115623,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "62048",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "de Oliveira Tulio Xavier",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 55444,
+     "p": 3.4848,
+     "v": 193209,
+     "o": 856009,
+     "oc": 6.9,
+     "a": "0001292814-26-004662",
+     "li": 0,
+     "ow": "0002126527",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 55444,
+      "lv": 996883,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "55444",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Favarao Vinicius Urias",
+     "r": "officer",
+     "ti": "Executive Officer",
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 60492,
+     "p": 3.4848,
+     "v": 210800,
+     "o": 341683,
+     "oc": 21.5,
+     "a": "0001292814-26-004664",
+     "li": 0,
+     "ow": "0002122593",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 60492,
+      "lv": 1087646,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "60492",
+     "pr": "17.98",
+     "of": 1,
+     "ot": "Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "BBD",
+     "ci": "0001160330",
+     "n": "Caffarelli Paulo Rogerio",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-18",
+     "f": "2026-09-22",
+     "k": "P",
+     "cl": "conviction",
+     "s": 31266,
+     "p": 3.4848,
+     "v": 108954,
+     "o": 31266,
+     "oc": null,
+     "a": "0001292814-26-004666",
+     "li": 0,
+     "ow": "0002116145",
+     "fx": {
+      "cu": "BRL",
+      "rate": 0.193813,
+      "ar": 1,
+      "as": "20f",
+      "lp": 17.98,
+      "ls": 31266,
+      "lv": 562163,
+      "ok": 1,
+      "q": "ositary Shares , or ADSs (evidenced by American Depositary Receipts, or ADRs), each representing 1 preferred share BBD New York",
+      "u": "https://www.sec.gov/Archives/edgar/data/1160330/000129281426001753/bbdform20f_2025.htm"
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Preference shares - BBDC4",
+     "sr": "31266",
+     "pr": "17.98",
+     "dr": 1
+    }
+   }
+  ],
+  "SBLK": [
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Erhardt Koert",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-16",
+     "k": "P",
+     "cl": "conviction",
+     "s": 6000,
+     "p": 28.27,
+     "v": 169620,
+     "o": 16080,
+     "oc": 59.5,
+     "a": "0001333848-26-000003",
+     "li": 0,
+     "ow": "0001333848",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 6000,
+      "lv": 169620,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares, par value $0.01 per share",
+     "sr": "6000",
+     "pr": "28.27",
+     "dr": 1,
+     "rm": "Participation in the Parallel Offering undertaken by STAR BULK CARRIERS CORP in Greece, following its dual listing on EURONEXT ATHENS, pursuant to which subscribed to 6,000 new common shares at the offering price of euro 24.50 per share (or equivalent $28.27 per share)"
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Spyrou Symeon",
+     "r": "cfo",
+     "ti": "co CFO",
+     "d": "2026-09-15",
+     "f": "2026-09-16",
+     "k": "P",
+     "cl": "conviction",
+     "s": 15000,
+     "p": 28.27,
+     "v": 424050,
+     "o": 241200,
+     "oc": 6.6,
+     "a": "0001969701-26-000006",
+     "li": 0,
+     "ow": "0001969701",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 15000,
+      "lv": 424050,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares, par value $0.01 per share",
+     "sr": "15000",
+     "pr": "28.27",
+     "of": 1,
+     "ot": "co CFO",
+     "rm": "Participation in the parallel offering undertaken by Star Bulk Carriers Corp. in Greece, following its dual listing on Euronext Athens, pursuant to which subscribed to 15,000 new common shares at the offering price of EUR24.50/share (equivalent to $28.27/share)."
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Karellis Nikolaos",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-16",
+     "k": "P",
+     "cl": "conviction",
+     "s": 2000,
+     "p": 28.27,
+     "v": 56540,
+     "o": 9580,
+     "oc": 26.4,
+     "a": "0002011929-26-000010",
+     "li": 0,
+     "ow": "0002011929",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 2000,
+      "lv": 56540,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares, par value $0.01 per share",
+     "sr": "2000",
+     "pr": "28.27",
+     "dr": 1,
+     "rm": "Participation in the Parallel Offering undertaken by STAR BULK CARRIERS CORP in Greece, following its dual listing on EURONEXT ATHENS, pursuant to which subscribed to 2000 new common shares at the offering price of euro 24.50 per share (or equivalent $28.27 per share)"
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Reskos Nikolaos",
+     "r": "officer",
+     "ti": "Chief Operating Officer",
+     "d": "2026-09-15",
+     "f": "2026-09-17",
+     "k": "P",
+     "cl": "conviction",
+     "s": 10000,
+     "p": 28.27,
+     "v": 282700,
+     "o": 410875,
+     "oc": 2.5,
+     "a": "0001969292-26-000010",
+     "li": 0,
+     "ow": "0001969292",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 10000,
+      "lv": 282700,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares, par value $0.01 per share",
+     "sr": "10000",
+     "pr": "28.27",
+     "of": 1,
+     "ot": "Chief Operating Officer",
+     "rm": "Participation in a Parallel Offering, undertaken by Star Bulk Carriers Corp in Greece, following its dual listing on EURONEXT ATHENS, by subscribing to 10,000 new common shares at the offering price of EUR 24.50 per share (or equivalent $28.27)"
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Plakantonaki Charis",
+     "r": "officer",
+     "ti": "Chief Strategy Officer",
+     "d": "2026-09-15",
+     "f": "2026-09-17",
+     "k": "P",
+     "cl": "conviction",
+     "s": 3000,
+     "p": 28.27,
+     "v": 84810,
+     "o": 58778,
+     "oc": 5.4,
+     "a": "0001978604-26-000008",
+     "li": 0,
+     "ow": "0001978604",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 3000,
+      "lv": 84810,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares par value $ 0.01 per share",
+     "sr": "3000",
+     "pr": "28.27",
+     "of": 1,
+     "ot": "Chief Strategy Officer",
+     "rm": "Participation in the Parallel Offering undertaken by STAR BULKCARRIERS CORP in Greece, following its dual listing on Euronext Athens, pursuant to which subscribed to 3,000 new common shares at the offering price of euro 24.50 per share (or equivalent $28.27)."
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Zagari Raffaele",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-17",
+     "k": "P",
+     "cl": "conviction",
+     "s": 10000,
+     "p": 32.6292,
+     "v": 326292,
+     "o": 37580,
+     "oc": 36.3,
+     "a": "0002005037-26-000014",
+     "li": 0,
+     "ow": "0002005037",
+     "fx": {
+      "cu": "EUR",
+      "rate": 1.1542,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 10000,
+      "lv": 282700,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares, par value $0.01 per share",
+     "sr": "10000",
+     "pr": "28.27",
+     "dr": 1,
+     "fn": {
+      "F2": "Participation in the Parallel Offering undertaken by STAR BULK CARRIERS CORP in Greece, following its dual listing on Euronext Athens, pursuant to which I personally subscribed to 10,000 new common shares at the offering price",
+      "F1": "euro 24.50"
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Zagari Raffaele",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-17",
+     "k": "P",
+     "cl": "conviction",
+     "s": 50000,
+     "p": 32.6292,
+     "v": 1631462,
+     "o": 1953000,
+     "oc": 2.6,
+     "a": "0002005037-26-000014",
+     "li": 1,
+     "ow": "0002005037",
+     "fx": {
+      "cu": "EUR",
+      "rate": 1.1542,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 50000,
+      "lv": 1413500,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common shares, par value $0.01 per share",
+     "sr": "50000",
+     "pr": "28.27",
+     "dr": 1,
+     "fn": {
+      "F4": "Participation in the Public Offering undertaken by STAR BULK CARRIERS CORP in Greece, following its dual listing on Euronext Athens, pursuant to which the entity (Augustea Med ltd.) subscribed to 50,000 new common shares at the offering price",
+      "F1": "euro 24.50"
+     }
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Pappas Alexandros",
+     "r": "officer",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-17",
+     "k": "P",
+     "cl": "conviction",
+     "s": 74400,
+     "p": 28.27,
+     "v": 2103288,
+     "o": 2532150,
+     "oc": 3,
+     "a": "0002107497-26-000002",
+     "li": 0,
+     "ow": "0002107497",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 74400,
+      "lv": 2103288,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common Shares par value $0.01 per share",
+     "sr": "74400",
+     "pr": "28.27",
+     "rm": "Participation in the public offering undertaken by Star Bulk Carriers Corp in Greece, following its dual listing on Euronext Athens, pursuant to which the reporting person subscribed to 74,400 new common shares through an entity controlled by him, at the offering price of EUR 24.50 per share (or equivalent $28.27)."
+    }
+   },
+   {
+    "row": {
+     "t": "SBLK",
+     "ci": "0001386716",
+     "n": "Pappa Milena Maria",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-17",
+     "k": "P",
+     "cl": "conviction",
+     "s": 74400,
+     "p": 28.27,
+     "v": 2103288,
+     "o": 3167074,
+     "oc": 2.4,
+     "a": "0002113812-26-000003",
+     "li": 0,
+     "ow": "0002113812",
+     "fx": {
+      "cu": "USD",
+      "rate": 1,
+      "ar": 1,
+      "as": "direct",
+      "lp": 28.27,
+      "ls": 74400,
+      "lv": 2103288,
+      "ok": 1
+     }
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common Shares par value $0.01 per share",
+     "sr": "74400",
+     "pr": "28.27",
+     "dr": 1,
+     "rm": "Participation in the public offering undertaken by Star Bulk Carriers Corp in Greece, following its dual listing on Euronext Athens, pursuant to which the reporting person subscribed to 74,400 new common shares, through an entity controlled by her, at the offering price of EUR 24.50 per share (or equivalent to $ 28.27)."
+    }
+   }
+  ],
+  "WIX": [
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Abrahami Avishai",
+     "r": "ceo",
+     "ti": "Chief Executive Officer",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 654,
+     "p": 59.89,
+     "v": null,
+     "o": 486225,
+     "oc": 0.1,
+     "a": "0001628280-26-059977",
+     "li": 0,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 39168,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Abrahami Avishai",
+     "r": "ceo",
+     "ti": "Chief Executive Officer",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 55,
+     "p": 59.89,
+     "v": null,
+     "o": 6372,
+     "oc": 0.9,
+     "a": "0001628280-26-059977",
+     "li": 1,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 3294,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Zohar Nir",
+     "r": "officer",
+     "ti": "President",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 376,
+     "p": 59.89,
+     "v": null,
+     "o": 554577,
+     "oc": 0.1,
+     "a": "0001628280-26-059979",
+     "li": 0,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 22519,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Zohar Nir",
+     "r": "officer",
+     "ti": "President",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 271,
+     "p": 59.89,
+     "v": null,
+     "o": 108746,
+     "oc": 0.2,
+     "a": "0001628280-26-059979",
+     "li": 1,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 16230,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Shemesh Lior",
+     "r": "cfo",
+     "ti": "CFO",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 456,
+     "p": 59.89,
+     "v": null,
+     "o": 221567,
+     "oc": 0.2,
+     "a": "0001628280-26-059982",
+     "li": 0,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 27310,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Shai Omer",
+     "r": "officer",
+     "ti": "CMO",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 490,
+     "p": 59.89,
+     "v": null,
+     "o": 515879,
+     "oc": 0.1,
+     "a": "0001628280-26-059984",
+     "li": 0,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 29346,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Even-Haim Yaniv",
+     "r": "officer",
+     "ti": "CTO",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 320,
+     "p": 59.89,
+     "v": null,
+     "o": 138087,
+     "oc": 0.2,
+     "a": "0001628280-26-059986",
+     "li": 0,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 19165,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   },
+   {
+    "row": {
+     "t": "WIX",
+     "ci": "0001576789",
+     "n": "Meyer Shelly B",
+     "r": "officer",
+     "ti": "Chief People Officer",
+     "d": "2026-08-31",
+     "f": "2026-09-02",
+     "k": "P",
+     "cl": "conviction",
+     "s": 479,
+     "p": 59.89,
+     "v": null,
+     "o": 183489,
+     "oc": 0.3,
+     "a": "0001628280-26-059988",
+     "li": 0,
+     "pu": 1,
+     "fx": {
+      "cu": "ILS",
+      "lp": 59.89,
+      "lv": 28687,
+      "fail": "mismatch"
+     }
+    },
+    "raw": {
+     "st": "Ordinary Shares"
+    }
+   }
+  ],
+  "RWT": [
+   {
+    "row": {
+     "t": "RWT",
+     "ci": "0000930236",
+     "n": "KUBICEK GREG H",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-15",
+     "f": "2026-09-15",
+     "k": "P",
+     "cl": "conviction",
+     "s": 50000,
+     "p": 3.8512,
+     "v": 192560,
+     "o": 127185,
+     "oc": 64.8,
+     "a": "0001233565-26-000006",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "RWT",
+     "ci": "0000930236",
+     "n": "Carillo Brooke",
+     "r": "cfo",
+     "ti": "Chief Financial Officer",
+     "d": "2026-09-15",
+     "f": "2026-09-15",
+     "k": "P",
+     "cl": "conviction",
+     "s": 26065,
+     "p": 3.8457,
+     "v": 100238,
+     "o": 140481,
+     "oc": 22.8,
+     "a": "0001862739-26-000004",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "RWT",
+     "ci": "0000930236",
+     "n": "Robinson Dashiell I",
+     "r": "officer",
+     "ti": "President",
+     "d": "2026-09-16",
+     "f": "2026-09-16",
+     "k": "P",
+     "cl": "conviction",
+     "s": 63211,
+     "p": 3.98,
+     "v": 251580,
+     "o": 395050,
+     "oc": 19,
+     "a": "0001716998-26-000004",
+     "li": 0,
+     "ow": "0001716998"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common Stock",
+     "sr": "63211.13",
+     "pr": "3.98",
+     "dr": 1,
+     "of": 1,
+     "ot": "President"
+    }
+   },
+   {
+    "row": {
+     "t": "RWT",
+     "ci": "0000930236",
+     "n": "Abate Christopher J",
+     "r": "ceo",
+     "ti": "Chief Executive Officer",
+     "d": "2026-09-15",
+     "f": "2026-09-18",
+     "k": "P",
+     "cl": "conviction",
+     "s": 100000,
+     "p": 3.839,
+     "v": 383900,
+     "o": 679283,
+     "oc": 17.3,
+     "a": "0001104659-26-109010",
+     "li": 0,
+     "ow": "0001453409",
+     "fa": "4/A"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common Stock",
+     "sr": "100000.00",
+     "pr": "3.8390",
+     "dr": 1,
+     "of": 1,
+     "ot": "Chief Executive Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "RWT",
+     "ci": "0000930236",
+     "n": "Stone Andrew P",
+     "r": "officer",
+     "ti": "Chief Legal Officer",
+     "d": "2026-09-21",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 5000,
+     "p": 4.1187,
+     "v": 20593,
+     "o": 183631,
+     "oc": 2.8,
+     "a": "0001487805-26-000004",
+     "li": 0,
+     "ow": "0001487805"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common Stock",
+     "sr": "5000",
+     "pr": "4.1187",
+     "of": 1,
+     "ot": "Chief Legal Officer"
+    }
+   },
+   {
+    "row": {
+     "t": "RWT",
+     "ci": "0000930236",
+     "n": "Macomber Sasha G.",
+     "r": "officer",
+     "ti": "Chief Human Resource Officer",
+     "d": "2026-09-21",
+     "f": "2026-09-21",
+     "k": "P",
+     "cl": "conviction",
+     "s": 4895,
+     "p": 4.0792,
+     "v": 19968,
+     "o": 95298,
+     "oc": 5.4,
+     "a": "0001758710-26-000004",
+     "li": 0,
+     "ow": "0001758710"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "0",
+     "st": "Common Stock",
+     "sr": "4895",
+     "pr": "4.0792",
+     "of": 1,
+     "ot": "Chief Human Resource Officer"
+    }
+   }
+  ],
+  "KRMN": [
+   {
+    "row": {
+     "t": "KRMN",
+     "ci": "0002040127",
+     "n": "Twitty Stephen",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-16",
+     "f": "2026-09-18",
+     "k": "P",
+     "cl": "conviction",
+     "s": 275,
+     "p": 36.79,
+     "v": 10117,
+     "o": 2638,
+     "oc": 11.6,
+     "a": "0001193125-26-395095",
+     "li": 0,
+     "ow": "0002054316"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "false",
+     "st": "Common Stock",
+     "sr": "275",
+     "pr": "36.79",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "KRMN",
+     "ci": "0002040127",
+     "n": "Petryszyn Mary D",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-16",
+     "f": "2026-09-18",
+     "k": "P",
+     "cl": "conviction",
+     "s": 500,
+     "p": 37.4399,
+     "v": 18720,
+     "o": 2863,
+     "oc": 21.2,
+     "a": "0001193125-26-395097",
+     "li": 0,
+     "ow": "0001791724"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "false",
+     "st": "Common Stock",
+     "sr": "500",
+     "pr": "37.4399",
+     "dr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "KRMN",
+     "ci": "0002040127",
+     "n": "Stinnett David",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-16",
+     "f": "2026-09-18",
+     "k": "P",
+     "cl": "conviction",
+     "s": 27000,
+     "p": 37.3203,
+     "v": 1007648,
+     "o": 3530395,
+     "oc": 0.8,
+     "a": "0001193125-26-395098",
+     "li": 0,
+     "ow": "0002054639"
+    },
+    "raw": {
+     "ad": "A",
+     "af": "false",
+     "st": "Common Stock",
+     "sr": "27000",
+     "pr": "37.3203",
+     "dr": 1,
+     "fn": {
+      "F1": "The price reported is a weighted average price. These shares were purchased in multiple transactions at prices ranging from $36.99 to $37.52 per share. The reporting person undertakes to provide to the Karman Holdings Inc., any security holder of the Karman Holdings Inc. or the staff of the Securities and Exchange Commission, upon request, full information regarding the number of shares purchased at each separate price within the range set forth herein."
+     }
+    }
+   }
+  ],
+  "PMTS": [
+   {
+    "row": {
+     "t": "PMTS",
+     "ci": "0001641614",
+     "n": "Tricor PMT25 Holdings Inc.",
+     "r": "owner10",
+     "ti": null,
+     "d": "2026-09-14",
+     "f": "2026-09-14",
+     "k": "P",
+     "cl": "conviction",
+     "s": 525000,
+     "p": 21.5,
+     "v": 11287500,
+     "o": 2701056,
+     "oc": 24.1,
+     "a": "0001104659-26-107610",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "PMTS",
+     "ci": "0001641614",
+     "n": "Riley H Sanford",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-14",
+     "f": "2026-09-14",
+     "k": "P",
+     "cl": "conviction",
+     "s": 13953,
+     "p": 21.5,
+     "v": 299990,
+     "o": 277232,
+     "oc": 5.3,
+     "a": "0001317406-26-000006",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "PMTS",
+     "ci": "0001641614",
+     "n": "SHEINBAUM MARC",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-14",
+     "f": "2026-09-14",
+     "k": "P",
+     "cl": "conviction",
+     "s": 4651,
+     "p": 21.5,
+     "v": 99997,
+     "o": 26500,
+     "oc": 21.3,
+     "a": "0001605873-26-000004",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "PMTS",
+     "ci": "0001641614",
+     "n": "Peters Nicholas",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-14",
+     "f": "2026-09-14",
+     "k": "P",
+     "cl": "conviction",
+     "s": 11628,
+     "p": 21.5,
+     "v": 250002,
+     "o": 11628,
+     "oc": null,
+     "a": "0001654770-26-000004",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   },
+   {
+    "row": {
+     "t": "PMTS",
+     "ci": "0001641614",
+     "n": "Mallela Ravi",
+     "r": "director",
+     "ti": null,
+     "d": "2026-09-14",
+     "f": "2026-09-14",
+     "k": "P",
+     "cl": "conviction",
+     "s": 1000,
+     "p": 21.5,
+     "v": 21500,
+     "o": 12471,
+     "oc": 8.7,
+     "a": "0001751947-26-000004",
+     "li": 0
+    },
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
+   }
+  ]
+ }
+}

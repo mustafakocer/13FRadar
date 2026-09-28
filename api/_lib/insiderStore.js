@@ -23,6 +23,7 @@ const dataDir = () => process.env.INSIDER_DATA_DIR || path.join(root, 'api', '_d
 export const files = {
   data: () => path.join(dataDir(), 'insiders.json'),
   raw: () => path.join(dataDir(), 'insiders-raw.json'),
+  rawBackfill: () => path.join(dataDir(), 'insiders-raw-backfill.json'),
   errors: () => path.join(dataDir(), 'insider-ingest-errors.json'),
   freshness: () => path.join(dataDir(), 'freshness', 'insiders.json'),
   teaser: () => process.env.INSIDER_TEASER_FILE || path.join(root, 'client', 'public', 'insiders-teaser.json'),
@@ -60,9 +61,18 @@ export function readRawServed() {
   if (servedRaw) return servedRaw;
   try {
     servedRaw = (process.env.INSIDER_DATA_DIR ? readJson(files.raw(), null) : require('../_data/insiders-raw.json'))?.rows || {};
-    // older foreign-issuer lines: fields re-read by scripts/build-fpi.mjs
+    // older lines: fields re-read by scripts/build-fpi.mjs (foreign issuers)
+    // and scripts/backfill-insider-raw.mjs (recent open-market buys)
+    let backfill = null;
+    try {
+      backfill = (process.env.INSIDER_DATA_DIR ? readJson(path.join(dataDir(), 'insiders-raw-backfill.json'), null) : require('../_data/insiders-raw-backfill.json'))?.rows;
+    } catch {
+      backfill = null;
+    }
     const extra = loadFpi()?.raw;
-    if (extra) servedRaw = { ...extra, ...servedRaw };
+    if (extra || backfill) servedRaw = { ...(backfill || {}), ...(extra || {}), ...servedRaw };
+    // remarks re-read for lines whose other fields are in the nightly file
+    for (const [id, x] of Object.entries(backfill || {})) if (x?.rm && servedRaw[id] && !servedRaw[id].rm) servedRaw[id] = { ...servedRaw[id], rm: x.rm };
   } catch {
     servedRaw = {};
   }
@@ -93,6 +103,8 @@ export function loadDataset() {
   return { ...db, rows, checkpoint, companies: db.companies || {} };
 }
 export const loadRaw = () => readJson(files.raw(), { rows: {} });
+// fields of older lines re-read by scripts/backfill-insider-raw.mjs
+export const loadRawBackfill = () => readJson(files.rawBackfill(), { rows: {} }).rows || {};
 export const loadErrors = () => readJson(files.errors(), { errors: [] });
 
 export function saveDataset(db) {

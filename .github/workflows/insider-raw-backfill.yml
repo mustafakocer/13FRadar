@@ -1,0 +1,61 @@
+name: Insider Form 4 fields backfill
+
+# Security title, 10b5-1 box and the relevant footnotes of recent
+# open-market buys filed before the raw fields were kept
+# (scripts/backfill-insider-raw.mjs → api/_data/insiders-raw-backfill.json).
+# The cluster rules read the footnotes (employee purchase plans, offerings,
+# private placements). Once the file is complete a run fetches nothing and
+# commits nothing.
+on:
+  pull_request:
+    paths:
+      - 'scripts/backfill-insider-raw.mjs'
+      - '.github/workflows/insider-raw-backfill.yml'
+  schedule:
+    - cron: '17 5 * * 0'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: insider-raw-backfill-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Backfill
+        env:
+          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          SEC_RETRY_BACKOFF: '2,4,8,16,30'
+          # the clusters the PR discusses: remarks and footnotes to the log
+          INSIDER_BACKFILL_REREAD: 'BBD,SBLK,PMTS,RWT,WIX,TSM,KRMN'
+        run: node scripts/backfill-insider-raw.mjs
+      # On a pull request the run only reports. A bot commit would become the
+      # PR head, and checks do not run on commits pushed with GITHUB_TOKEN
+      # (the pull_request paths filter looks at the whole PR, so every push
+      # starts this job). The weekly and manual runs commit.
+      - name: Commit
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name 'insider-bot'
+          git config user.email 'actions@github.com'
+          git add api/_data/insiders-raw-backfill.json 2>/dev/null || true
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: backfill Form 4 fields of recent open-market buys'
+          branch="${{ github.head_ref || github.ref_name }}"
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "$branch" && git push origin "HEAD:$branch" && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1

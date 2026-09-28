@@ -17,7 +17,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { normalizeRow, normalizeRows } from '../api/_lib/fpiNormalize.js';
-import { findClusters } from '../api/_lib/insiderModel.js';
+import { buildClusters } from '../api/_lib/insiderCluster.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 import { categorize } from '../api/_lib/insiderClassify.js';
 import { priceCheck } from '../api/_lib/insiderPriceCheck.js';
@@ -72,7 +72,7 @@ test('BBD: preferred shares in reais → US dollars; the cluster total is in dol
   const a = { ...F.cases.BBD.row };
   const b = { ...a, n: 'Another Officer', a: 'B2', s: 60492 };
   const served = normalizeRows([a, b], { fpi: { issuers: { [a.ci]: i }, rates }, rawOf: () => F.cases.BBD.raw, seriesFor: () => [F.cases.BBD.close] });
-  const cl = findClusters(served).get('BBD');
+  const cl = buildClusters(served).byTicker.get('BBD');
   const rate = usdPerUnit('BRL', a.d, rates);
   assert.equal(cl.value, Math.round(a.s * a.p * rate) + Math.round(b.s * b.p * rate));
   assert.ok(cl.value < (a.s + b.s) * a.p * 0.25, 'about a fifth of the reais figure');

@@ -353,6 +353,11 @@ function InsiderSignals({ teaser }) {
                           {(r.roles || []).map((x) => (
                             <span key={x} className={`role-badge ${x}`}>{ROLE_LABEL[x]}</span>
                           ))}
+                          {r.fpi && (
+                            <span className="badge sm plain" title={t('ins.fpi.tip')} data-fpi>
+                              {t('ins.fpi.badge')}
+                            </span>
+                          )}
                         </div>
                         {r.own != null && (
                           <div className="muted small" title={t('ins.cluster.ownTip')}>

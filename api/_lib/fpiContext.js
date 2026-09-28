@@ -96,3 +96,16 @@ export function toUsdWith(data = loadFpi()) {
     return k ? amount * k : null;
   };
 }
+
+// (issuer CIK) → is it a foreign private issuer: a 20-F, 40-F or 6-K in the
+// last 24 months (scripts/build-fpi.mjs keeps the newest such filing's date,
+// `lf`; a record without it predates that field and counts as foreign).
+export const FOREIGN_WINDOW_DAYS = 730;
+export function isForeignWith(data = loadFpi(), now = Date.now()) {
+  const issuers = data?.issuers || {};
+  const since = new Date(now - FOREIGN_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
+  return (cik) => {
+    const i = cik ? issuers[cik] : null;
+    return Boolean(i?.fpi && (!i.lf || i.lf >= since));
+  };
+}

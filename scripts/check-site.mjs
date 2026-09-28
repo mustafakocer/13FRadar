@@ -93,9 +93,12 @@ else {
   // with no verified amount is not listed at all
   const cl = t.signals?.cluster || [];
   out.push(`- home clusters: ${cl.slice(0, 5).map((c) => `${c.t} ${c.insiders} insiders $${c.v}${c.ceoCfo ? ' CEO/CFO' : ''}${c.own != null ? ` own ${c.own}` : ''}`).join(' · ')}`);
-  out.push(`- not counted as clusters: ${(t.signals?.clusterExcluded || []).slice(0, 8).map((e) => `${e.t} ${e.label} (${e.people})`).join(' · ') || '—'}`);
+  out.push(`- not counted as clusters: ${(t.signals?.clusterExcluded || []).slice(0, 10).map((e) => `${e.t} ${e.label} (${e.people})`).join(' · ') || '—'}`);
   check(cl.every((c) => c.v > 0 && c.insiders >= 2), 'every listed cluster has ≥2 counted people and a dollar total');
-  check(!cl.some((c) => c.t === 'WIX' || c.t === 'TSM'), 'WIX (no verified amount) and TSM (employee plan) are not clusters');
+  check(!cl.some((c) => ['WIX', 'TSM', 'BBD'].includes(c.t)), 'WIX (no verified amount), TSM (employee plan) and BBD (one-price program) are not clusters');
+  const bbd = (t.signals?.clusterExcluded || []).find((e) => e.t === 'BBD');
+  if (bbd) check(bbd.label === 'program_same_price' && bbd.price > 0, `BBD listed apart: ${bbd.label} · ${bbd.people} people · ${bbd.cu} ${bbd.price} · spread ${bbd.maxDevPct}% · $${bbd.value}${bbd.fpi ? ' · foreign issuer' : ''}`);
+  out.push(`- foreign-issuer badges: clusters ${cl.filter((c) => c.fpi).map((c) => c.t).join(', ') || '—'} · not counted ${(t.signals?.clusterExcluded || []).filter((e) => e.fpi).map((e) => e.t).join(', ') || '—'}`);
   if (feedClusters) check(JSON.stringify(feedClusters.map((c) => c.t)) === JSON.stringify(cl.map((c) => c.t)), `/insiders uses the same cluster list as the home page (${feedClusters.slice(0, 5).map((c) => c.t).join(', ')})`);
 }
 

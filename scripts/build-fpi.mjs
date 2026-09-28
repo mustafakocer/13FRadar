@@ -149,7 +149,7 @@ const issuers = { ...(prev.issuers || {}) };
 const domestic = { ...(prev.domestic || {}) };
 const stale = (at) => !at || REFRESH || (Date.parse(today) - Date.parse(at)) / 86400000 > STALE_DAYS;
 // an FPI read by an older version of the rules below is read again
-const VERSION = 3;
+const VERSION = 4;
 const todo = [...byCik.keys()]
   .filter((cik) => stale(issuers[cik]?.checkedAt || domestic[cik]) || (issuers[cik] && (issuers[cik].v || 1) < VERSION))
   .slice(0, MAX_ISSUERS);
@@ -203,7 +203,9 @@ for (const cik of todo) {
     continue;
   }
   let filings = filingsOf(sub?.filings?.recent);
-  const fpi = filings.some((f) => FPI_FORMS.test(f.form));
+  // a foreign private issuer: a 20-F, 40-F or 6-K in the last 24 months
+  const lf = filings.filter((f) => FPI_FORMS.test(f.form)).reduce((m, f) => (f.date > m ? f.date : m), '');
+  const fpi = Boolean(lf) && lf >= addDays(today, -730);
   if (!fpi) {
     domestic[cik] = today;
     delete issuers[cik];
@@ -250,6 +252,7 @@ for (const cik of todo) {
     cur: noted || curOfCountry(country),
     ads: f6.length || ratio ? 1 : 0,
     ...(ratio || {}),
+    lf,
     checkedAt: today,
     v: VERSION,
   };

@@ -54,3 +54,11 @@ export function fmtLocal(cu, v) {
   const n = abs >= 1e9 ? `${(abs / 1e9).toFixed(2)}B` : abs >= 1e6 ? `${(abs / 1e6).toFixed(2)}M` : abs >= 1e3 ? `${(abs / 1e3).toFixed(1)}K` : abs.toFixed(2);
   return `${cu || '?'} ${sign}${n}`;
 }
+
+// A price in the currency a form was filed in: "R$17.98", "$50.00", "MXN 17.28".
+const CUR_SIGN = { USD: '$', BRL: 'R$', EUR: '€', GBP: '£', JPY: '¥' };
+export function fmtFormPrice(cu, p) {
+  if (p == null || Number.isNaN(p)) return '—';
+  const n = Number(p).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  return CUR_SIGN[cu] ? `${CUR_SIGN[cu]}${n}` : `${cu || ''} ${n}`.trim();
+}

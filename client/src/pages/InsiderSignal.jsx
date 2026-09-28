@@ -5,7 +5,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import ProGate from '../components/ProGate.jsx';
 import { useSeo } from '../seo.jsx';
-import { fmtMoney, fmtPct } from '../lib/format.js';
+import { fmtMoney, fmtPct, fmtFormPrice } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import Ico from '../components/Ico.jsx';
 import { Zap } from 'lucide-react';
@@ -100,6 +100,7 @@ export default function InsiderSignal() {
                       <>
                         {r.insiders} {t('landing.ins.insiders')}{' '}
                         {(r.roles || []).map((x) => <span key={x} className={`role-badge ${x}`}>{ROLE_LABEL[x]}</span>)}
+                        {r.fpi && <span className="badge sm plain" title={t('ins.fpi.tip')} data-fpi>{t('ins.fpi.badge')}</span>}
                         {r.own != null && <div className="muted small" title={t('ins.cluster.ownTip')}>{t('ins.cluster.own')}: {own(r.own)}</div>}
                         {r.members?.length > 0 && (
                           <button type="button" className="link-btn small" onClick={() => toggle(r.t)} aria-expanded={open.has(r.t)} data-cluster-detail={r.t}>
@@ -177,8 +178,19 @@ export default function InsiderSignal() {
                       <div className="sig-co">{e.c || '—'}</div>
                     </td>
                     <td className="l">
-                      <span className="badge sm plain" data-label={e.label}>{t(`ins.cluster.label.${e.label}`)}</span>{' '}
-                      {e.people} {t('landing.ins.insiders')}
+                      <span className="badge sm plain" data-label={e.label} title={e.label === 'program_same_price' ? t('ins.cluster.programTip') : undefined}>{t(`ins.cluster.label.${e.label}`)}</span>{' '}
+                      {e.fpi && <span className="badge sm plain" title={t('ins.fpi.tip')} data-fpi>{t('ins.fpi.badge')}</span>}{' '}
+                      {e.label !== 'program_same_price' && <>{e.people} {t('landing.ins.insiders')}</>}
+                      {e.label === 'program_same_price' && (
+                        <div className="muted small" data-program-line>
+                          {t('ins.cluster.programLine')
+                            .replace('{n}', e.people)
+                            .replace('{d}', e.d || e.from)
+                            .replace('{price}', fmtFormPrice(e.cu, e.price))
+                            .replace('{dev}', Number(e.maxDevPct || 0).toFixed(2).replace('.', lang === 'tr' ? ',' : '.'))
+                            .replace('{v}', fmtMoney(e.value))}
+                        </div>
+                      )}
                       {e.quote && <div className="muted small" title={e.quote}>“{e.quote.length > 110 ? `${e.quote.slice(0, 110)}…` : e.quote}”</div>}
                       {!e.quote && e.median != null && <div className="muted small">{t('ins.cluster.sameDay').replace('{m}', fmtMoney(e.median))}</div>}
                     </td>

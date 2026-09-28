@@ -144,7 +144,7 @@ function shape(r, meta, companies, d) {
     owned: r.o,
     ownChange: r.oc,
     current: m.px ?? null,
-    ret: ret != null ? Number(ret.toFixed(1)) : null,
+    ret: ret != null ? Number(ret.toFixed(1)) + 0 : null, // + 0: never "−0"
     // dollar volume and distance above the 52-week low — thin liquidity and a
     // price already far off the low are the two ways a penny "gem" bites back
     volume: m.px != null && m.vol > 0 ? Math.round(m.px * m.vol) : null,
@@ -191,7 +191,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
       insiders: cl?.insiders ?? 1,
       price: r.p,
       value: r.v,
-      ret: ret != null ? Number(ret.toFixed(1)) : null,
+      ret: ret != null ? Number(ret.toFixed(1)) + 0 : null, // + 0: never "−0"
     });
   }
   // the higher level first, then the kind of buy, then the amount
@@ -213,7 +213,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
           insider: r.n,
           value: r.v,
           price: r.p,
-          ret: ret != null ? Number(ret.toFixed(1)) : null,
+          ret: ret != null ? Number(ret.toFixed(1)) + 0 : null, // + 0: never "−0"
         };
       });
 

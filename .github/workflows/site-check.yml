@@ -1,0 +1,38 @@
+name: Site check
+
+# Reads a finished Vercel deployment — every PR preview and production —
+# the way a visitor does (scripts/check-site.mjs): insider pages answer 200,
+# the default feed is open-market trades only, labels are the descriptive
+# ones, and lines whose price cannot be checked show no return. The report
+# is in the job summary. Run by hand with any URL.
+on:
+  deployment_status: {}
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Base URL to check'
+        type: string
+        default: 'https://www.fundocap.co'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check the deployment
+        env:
+          URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url || inputs.url }}
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          set -o pipefail
+          echo "checking $URL"
+          node scripts/check-site.mjs "$URL" | tee report.md
+          cat report.md >> "$GITHUB_STEP_SUMMARY"

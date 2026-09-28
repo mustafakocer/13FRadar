@@ -34,6 +34,7 @@ for (const p of ['/tr', '/tr/insiders', '/tr/insiders/cluster', '/tr/insiders/pe
   if (r.status === 200 && /Güçlü sinyal/.test(r.text)) check(false, `${p} still says "Güçlü sinyal"`);
 }
 
+let feedClusters = null;
 const feed = await get('/api/insider-feed?tab=latest');
 if (feed.status !== 200) check(false, `/api/insider-feed → HTTP ${feed.status}`);
 else {
@@ -66,6 +67,7 @@ else {
   const sig = j.stats?.signals || [];
   check(sig.every((s, i) => i === 0 || lv[sig[i - 1].level] <= lv[s.level]), 'cards list the higher label first');
   check(j.lastFilingDay != null, `newest filing day ${j.lastFilingDay}`);
+  feedClusters = j.stats?.clusters || null;
 }
 
 const teaser = await get('/insiders-teaser.json');
@@ -86,7 +88,15 @@ else {
   const ranked = [hl, ...(t.signals?.csuite || []), ...(t.signals?.penny || [])].filter(Boolean);
   check(ranked.every((r) => r.v != null), 'home rankings: no line without a verified dollar amount');
   if (hl?.t === 'CX') check(hl.v < 2e6, `home ÖNE ÇIKAN CX in US dollars: $${hl.v}`);
-  out.push(`- home clusters: ${(t.signals?.cluster || []).slice(0, 5).map((c) => `${c.t} ${c.insiders} insiders $${c.v}${c.fxExcluded ? ` (${c.fxExcluded} excluded)` : ''}`).join(' · ')}`);
+  // clusters (insiderCluster.js): the home table and /insiders/cluster read
+  // signals.cluster; plan purchases and offerings are listed apart; a group
+  // with no verified amount is not listed at all
+  const cl = t.signals?.cluster || [];
+  out.push(`- home clusters: ${cl.slice(0, 5).map((c) => `${c.t} ${c.insiders} insiders $${c.v}${c.ceoCfo ? ' CEO/CFO' : ''}${c.own != null ? ` own ${c.own}` : ''}`).join(' · ')}`);
+  out.push(`- not counted as clusters: ${(t.signals?.clusterExcluded || []).slice(0, 8).map((e) => `${e.t} ${e.label} (${e.people})`).join(' · ') || '—'}`);
+  check(cl.every((c) => c.v > 0 && c.insiders >= 2), 'every listed cluster has ≥2 counted people and a dollar total');
+  check(!cl.some((c) => c.t === 'WIX' || c.t === 'TSM'), 'WIX (no verified amount) and TSM (employee plan) are not clusters');
+  if (feedClusters) check(JSON.stringify(feedClusters.map((c) => c.t)) === JSON.stringify(cl.map((c) => c.t)), `/insiders uses the same cluster list as the home page (${feedClusters.slice(0, 5).map((c) => c.t).join(', ')})`);
 }
 
 console.log(out.join('\n'));

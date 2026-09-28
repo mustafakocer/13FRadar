@@ -206,12 +206,12 @@ export default function PennyStocks() {
     return lang === 'tr'
       ? [
           ['Kuruş hisse insider alımı nedir?', `Şirket yöneticilerinin, yönetim kurulu üyelerinin veya %10 üzeri ortakların, hissesi 5 $'ın altında işlem gören kendi şirketlerinde açık piyasadan (Form 4 işlem kodu P) yaptığı alımlardır. Bu sayfa son ${board.windowDays} gündeki 10 bin $ üzeri alımları listeler.`],
-          ['Küme alımı neden önemli?', `Küme alımı, 7 gün içinde en az iki farklı insider'ın aynı şirketten alım yapmasıdır. Tek kişinin alımı kişisel olabilir; birden fazla kişinin aynı anda alması şirket içi ortak bir görüşe işaret eder. Şu an ${st.clusterCount} şirkette küme alımı var.`],
+          ['Küme alımı neden önemli?', `Küme alımı, 10 iş günü içinde en az iki görevli ya da yöneticinin aynı şirketten kişi başı en az 10.000 $'lık alım yapmasıdır. Tek kişinin alımı kişisel olabilir; birkaç kişinin aynı dönemde alması bunun ötesinde bir bilgidir, ama gelecekteki getiriyi öngörmez. Şu an ${st.clusterCount} şirkette küme alımı var.`],
           ['Bu bir yatırım tavsiyesi mi?', 'Hayır. Kuruş hisseler düşük likidite, yüksek volatilite, seyreltme ve borsadan çıkarılma riski taşır. Insider alımı tek başına bir alım sinyali değildir; işlemler 2 iş günü gecikmeyle bildirilir ve fiyat o sırada değişmiş olabilir.'],
         ]
       : [
           ['What is a penny-stock insider buy?', `An open-market purchase (Form 4 transaction code P) by an officer, director or 10% owner in their own company while the stock trades under $5. This page lists such buys above $10,000 from the last ${board.windowDays} days.`],
-          ['Why do cluster buys matter?', `A cluster buy is two or more distinct insiders purchasing the same stock within 7 days. One buyer can be personal; several at once points to a shared view inside the company. ${st.clusterCount} companies on this board show one.`],
+          ['Why do cluster buys matter?', `A cluster buy is at least two officers or directors buying at least $10,000 each of the same stock within 10 business days. One buyer can be personal; several in the same period is more information, but not a forecast of returns. ${st.clusterCount} companies on this board show one.`],
           ['Is this investment advice?', 'No. Penny stocks carry thin liquidity, high volatility, dilution and delisting risk. An insider buy alone is not a buy signal: trades are reported up to two business days later and the price may already have moved.'],
         ];
   }, [lang, st, board]);

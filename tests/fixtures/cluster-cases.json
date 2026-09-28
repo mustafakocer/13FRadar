@@ -2152,7 +2152,8 @@
      "st": "Common shares, par value $0.01 per share",
      "sr": "6000",
      "pr": "28.27",
-     "dr": 1
+     "dr": 1,
+     "rm": "Participation in the Parallel Offering undertaken by STAR BULK CARRIERS CORP in Greece, following its dual listing on EURONEXT ATHENS, pursuant to which subscribed to 6,000 new common shares at the offering price of euro 24.50 per share (or equivalent $28.27 per share)"
     }
    },
    {
@@ -2192,7 +2193,8 @@
      "sr": "15000",
      "pr": "28.27",
      "of": 1,
-     "ot": "co CFO"
+     "ot": "co CFO",
+     "rm": "Participation in the parallel offering undertaken by Star Bulk Carriers Corp. in Greece, following its dual listing on Euronext Athens, pursuant to which subscribed to 15,000 new common shares at the offering price of EUR24.50/share (equivalent to $28.27/share)."
     }
    },
    {
@@ -2231,7 +2233,8 @@
      "st": "Common shares, par value $0.01 per share",
      "sr": "2000",
      "pr": "28.27",
-     "dr": 1
+     "dr": 1,
+     "rm": "Participation in the Parallel Offering undertaken by STAR BULK CARRIERS CORP in Greece, following its dual listing on EURONEXT ATHENS, pursuant to which subscribed to 2000 new common shares at the offering price of euro 24.50 per share (or equivalent $28.27 per share)"
     }
    },
    {
@@ -2271,7 +2274,8 @@
      "sr": "10000",
      "pr": "28.27",
      "of": 1,
-     "ot": "Chief Operating Officer"
+     "ot": "Chief Operating Officer",
+     "rm": "Participation in a Parallel Offering, undertaken by Star Bulk Carriers Corp in Greece, following its dual listing on EURONEXT ATHENS, by subscribing to 10,000 new common shares at the offering price of EUR 24.50 per share (or equivalent $28.27)"
     }
    },
    {
@@ -2311,7 +2315,8 @@
      "sr": "3000",
      "pr": "28.27",
      "of": 1,
-     "ot": "Chief Strategy Officer"
+     "ot": "Chief Strategy Officer",
+     "rm": "Participation in the Parallel Offering undertaken by STAR BULKCARRIERS CORP in Greece, following its dual listing on Euronext Athens, pursuant to which subscribed to 3,000 new common shares at the offering price of euro 24.50 per share (or equivalent $28.27)."
     }
    },
    {
@@ -2435,7 +2440,8 @@
      "af": "0",
      "st": "Common Shares par value $0.01 per share",
      "sr": "74400",
-     "pr": "28.27"
+     "pr": "28.27",
+     "rm": "Participation in the public offering undertaken by Star Bulk Carriers Corp in Greece, following its dual listing on Euronext Athens, pursuant to which the reporting person subscribed to 74,400 new common shares through an entity controlled by him, at the offering price of EUR 24.50 per share (or equivalent $28.27)."
     }
    },
    {
@@ -2474,7 +2480,8 @@
      "st": "Common Shares par value $0.01 per share",
      "sr": "74400",
      "pr": "28.27",
-     "dr": 1
+     "dr": 1,
+     "rm": "Participation in the public offering undertaken by Star Bulk Carriers Corp in Greece, following its dual listing on Euronext Athens, pursuant to which the reporting person subscribed to 74,400 new common shares, through an entity controlled by her, at the offering price of EUR 24.50 per share (or equivalent to $ 28.27)."
     }
    }
   ],
@@ -2740,7 +2747,11 @@
      "a": "0001233565-26-000006",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    },
    {
     "row": {
@@ -2761,7 +2772,11 @@
      "a": "0001862739-26-000004",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    },
    {
     "row": {
@@ -2999,7 +3014,11 @@
      "a": "0001104659-26-107610",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    },
    {
     "row": {
@@ -3020,7 +3039,11 @@
      "a": "0001317406-26-000006",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    },
    {
     "row": {
@@ -3041,7 +3064,11 @@
      "a": "0001605873-26-000004",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    },
    {
     "row": {
@@ -3062,7 +3089,11 @@
      "a": "0001654770-26-000004",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    },
    {
     "row": {
@@ -3083,7 +3114,11 @@
      "a": "0001751947-26-000004",
      "li": 0
     },
-    "raw": null
+    "raw": {
+     "st": "Common Stock",
+     "af": "0",
+     "rr": 1
+    }
    }
   ]
  }

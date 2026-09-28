@@ -34,6 +34,9 @@ test('TSM: 30 employees the same day at the same price, median under $10K → "T
 test('SBLK: directors bought at the offering price a footnote states (EUR 24.50 = $28.27) → "Hisse arzına katılım"', () => {
   const zagari = F.cases.SBLK.find((x) => /Zagari/.test(x.row.n));
   assert.match(Object.values(zagari.raw.fn).join(' '), /Offering undertaken by STAR BULK CARRIERS CORP[^.]*offering price/i);
+  // the others say so in the filing's remarks (re-read by the backfill)
+  const spyrou = F.cases.SBLK.find((x) => /Spyrou/.test(x.row.n));
+  assert.match(spyrou.raw.rm, /parallel offering.*offering price of EUR ?24\.50.*28\.27/i);
   const usd = 24.5 * usdPerUnit('EUR', '2026-09-15', F.rates);
   assert.ok(Math.abs(usd / 28.27 - 1) < 0.001, `€24.50 at the H.10 rate = $${usd.toFixed(3)}`);
   const { clusters, excluded } = one('SBLK');
@@ -41,13 +44,14 @@ test('SBLK: directors bought at the offering price a footnote states (EUR 24.50 
   const e = excluded.find((x) => x.t === 'SBLK');
   assert.equal(e.label, 'offering');
   assert.equal(e.people, 8);
-  // without the rate, only Zagari's own lines carry the label and the other
-  // seven directors would form a cluster — the price rule is what proves it
-  const noRate = buildClusters(F.cases.SBLK.map((x) => x.row), { rawOf: (r) => F.cases.SBLK.find((x) => x.row === r).raw });
-  assert.equal(noRate.clusters.length, 1);
+  // the price rule alone (footnotes/remarks of the others removed) reaches
+  // the same answer: €24.50 at the day's rate is their price
+  const onlyZagari = buildClusters(F.cases.SBLK.map((x) => x.row), { rawOf: (r) => (/Zagari/.test(r.n) ? zagari.raw : null), toUsd });
+  assert.equal(onlyZagari.clusters.length, 0);
+  assert.equal(onlyZagari.excluded[0].label, 'offering');
 });
 
-test('BBD: 21 officers the same day at one price, each over $10K, no footnote or remark naming a plan or offering → a real cluster by the rules', () => {
+test('BBD: 21 officers the same day at one price, each over $10K; footnotes and remarks (re-read from EDGAR) name no plan or offering → a real cluster by the rules', () => {
   const notes = F.cases.BBD.map((x) => [Object.values(x.raw?.fn || {}).join(' '), x.raw?.rm || ''].join(' ').trim());
   assert.ok(notes.every((t) => !/plan|offering|placement|issuer|remunerat|compensat/i.test(t)), 'the filings say nothing about how the shares were bought');
   const { clusters, excluded } = one('BBD');

@@ -65,7 +65,13 @@ for (const r of [...uni.rows].sort((a, b) => b.aum - a.aum)) assign(r.cik, r.nam
 // Every slug a reader could reasonably have been sent to, pointing at the one
 // that exists. A derived slug that is itself a real filer's slug is left
 // alone: a live page always outranks a redirect.
+// A redirect, once published, stays: a curated name can change (Berkshire
+// became "Berkshire Hathaway (Warren Buffett)"), and rebuilding the map from
+// today's names alone dropped 34 addresses on 2026-09-23 — /guru/berkshire-
+// hathaway among them. Earlier aliases are kept while their target exists
+// and no real page has taken their slug.
 const aliases = {};
+for (const [from, to] of Object.entries(prev.aliases || {})) if (bySlug[to] && !bySlug[from]) aliases[from] = to;
 for (const m of GURUS) {
   const cik = String(m.cik).padStart(10, '0');
   const stored = byCik[cik];

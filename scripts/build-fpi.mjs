@@ -335,14 +335,18 @@ for (const cik of fpiCiks) {
     if (!bar || Date.parse(bar.date) - Date.parse(r.d) > 7 * 86400000) continue;
     if (!cached) (closes[r.t] ||= {})[bar.date] = bar.close;
     const stated = noteCur(r);
+    // a note naming a currency is a vote for it (USD included)
+    if (!iss.cur && stated) curVotes.set(stated, (curVotes.get(stated) || 0) + 1);
+    if (!iss.cur && stated) curTried++;
     // home currency unknown (no address on file — Bradesco, TSMC): which
     // currency, at the documented ratio, puts this line at the close?
     if (!iss.cur && !stated) {
       curTried++;
       // a line already in dollars votes for USD: Sea and TSMC report in
       // dollars, and a currency "fitting" 20% off must not win over that
-      const usd = r.p * (iss.ratio || 1);
-      if (Math.abs(usd / bar.close - 1) <= 0.15) curVotes.set('USD', (curVotes.get('USD') || 0) + 1);
+      // (per home share × ratio, or per ADS)
+      const inUsd = [iss.ratio || 1, 1].some((k) => Math.abs((r.p * k) / bar.close - 1) <= 0.25);
+      if (inUsd) curVotes.set('USD', (curVotes.get('USD') || 0) + 1);
       else for (const cu of Object.keys(rates)) {
         const px = r.p * usdPerUnit(cu, r.d, rates) * (iss.ratio || 1);
         if (px > 0 && Math.abs(px / bar.close - 1) <= 0.15) curVotes.set(cu, (curVotes.get(cu) || 0) + 1);

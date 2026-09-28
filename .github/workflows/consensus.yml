@@ -208,6 +208,7 @@ jobs:
         run: node scripts/notify.mjs --title "Consensus/prices job failed (FMP or build)"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ALERT_FROM: ${{ secrets.ALERT_FROM }}
           OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}

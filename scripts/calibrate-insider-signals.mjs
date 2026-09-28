@@ -8,6 +8,8 @@
 //        also write <dir>/<YYYY-MM>.md and .json (the monthly workflow does;
 //        the site never shows these — they are for re-deciding the levels
 //        once two years of data exist)
+//   node scripts/calibrate-insider-signals.mjs --no-fpi   foreign issuers' lines as
+//        filed, not converted to US dollars (for a before/after comparison)
 //   node scripts/calibrate-insider-signals.mjs --fetch    also download daily
 //        closes (Yahoo chart, ~400 days) for tickers the price cache lacks —
 //        what the nightly build does; needs the network of a GitHub runner
@@ -22,7 +24,7 @@
 // on the data we have. It is not investment advice and not a backtest of a
 // strategy: no costs, no timing, one-year sample, survivorship in the price
 // cache (it holds the stocks the tracked funds own).
-import { currentRows, readServed } from '../api/_lib/insiderStore.js';
+import { currentRows, readServed, readJson, files } from '../api/_lib/insiderStore.js';
 import { classify } from '../api/_lib/insiderClassify.js';
 import { filingTotals, signalLevel, LEVELS } from '../api/_lib/insiderSignal.js';
 import { forwardExcess, priceMismatch } from '../api/_lib/insiderOutcome.js';
@@ -39,7 +41,10 @@ const OUT_DIR = (() => {
   return i > -1 ? process.argv[i + 1] : null;
 })();
 const SMALL_SAMPLE = 100; // below this, a level's median is flagged as possibly chance
-const rows = currentRows(readServed().rows);
+// --no-fpi: the rows as filed, before foreign issuers' lines are converted
+// to US dollars (fpiNormalize.js) — the "before" side of that change
+const NO_FPI = process.argv.includes('--no-fpi');
+const rows = NO_FPI ? currentRows(readJson(files.data(), { rows: [] }).rows || []) : currentRows(readServed().rows);
 const spy = readSeries('SPY')?.prices || [];
 if (!spy.length) {
   console.error('No SPY series in api/_data/prices — nothing to compare against.');

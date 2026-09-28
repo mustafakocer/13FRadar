@@ -1,0 +1,12 @@
+{
+ "dataset": "fmp",
+ "kind": "provider",
+ "run_id": "36394893128",
+ "last_run_at": "2026-09-28T08:12:15.641Z",
+ "last_success_at": null,
+ "last_error": "12 refusal(s): FMP HTTP 403",
+ "last_error_at": "2026-09-28T08:12:15.641Z",
+ "calls_ok": 31,
+ "refusals": 12,
+ "transient_errors": 4
+}

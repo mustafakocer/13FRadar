@@ -38,6 +38,8 @@ jobs:
         env:
           SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
           SEC_RETRY_BACKOFF: '2,4,8,16,30'
+          # the clusters the PR discusses: remarks and footnotes to the log
+          INSIDER_BACKFILL_REREAD: 'BBD,SBLK,PMTS,RWT,WIX,TSM,KRMN'
         run: node scripts/backfill-insider-raw.mjs
       - name: Commit
         run: |

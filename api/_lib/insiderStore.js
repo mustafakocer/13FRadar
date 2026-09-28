@@ -71,6 +71,8 @@ export function readRawServed() {
     }
     const extra = loadFpi()?.raw;
     if (extra || backfill) servedRaw = { ...(backfill || {}), ...(extra || {}), ...servedRaw };
+    // remarks re-read for lines whose other fields are in the nightly file
+    for (const [id, x] of Object.entries(backfill || {})) if (x?.rm && servedRaw[id] && !servedRaw[id].rm) servedRaw[id] = { ...servedRaw[id], rm: x.rm };
   } catch {
     servedRaw = {};
   }

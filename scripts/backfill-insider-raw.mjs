@@ -31,7 +31,8 @@ export const RELEVANT = /plan|espp|employee|offering|placement|issuer|underwrit|
 export function compact(x) {
   if (!x) return null;
   const fn = Object.fromEntries(Object.entries(x.fn || {}).filter(([, t]) => RELEVANT.test(t)).map(([k, t]) => [k, t.slice(0, 500)]));
-  return { ...(x.st ? { st: x.st } : {}), ...(x.af != null ? { af: x.af } : {}), ...(Object.keys(fn).length ? { fn } : {}) };
+  const rm = x.rm && RELEVANT.test(x.rm) ? x.rm.slice(0, 500) : null;
+  return { ...(x.st ? { st: x.st } : {}), ...(x.af != null ? { af: x.af } : {}), ...(Object.keys(fn).length ? { fn } : {}), ...(rm ? { rm } : {}) };
 }
 
 const db = loadDataset();
@@ -43,11 +44,16 @@ const fpiRaw = readJson(path.join(process.cwd(), 'api', '_data', 'fpi.json'), {}
 const prev = readJson(OUT, { rows: {} });
 const store = { ...(prev.rows || {}) };
 
+// INSIDER_BACKFILL_REREAD=BBD,SBLK: read these tickers' filings again even
+// when their fields are stored — for the remarks, which only this script
+// keeps for older lines — and print what they say.
+const REREAD = new Set(String(process.env.INSIDER_BACKFILL_REREAD || '').split(',').filter(Boolean));
 const missing = new Map();
 for (const r of rows) {
   if (r.k !== 'P' || r.d < since || !r.ci) continue;
   const id = rowId(r);
-  if (nightly[id] || fpiRaw[id] || store[id]) continue;
+  const reread = REREAD.has(r.t) && !store[id]?.rr;
+  if (!reread && (nightly[id] || fpiRaw[id] || store[id])) continue;
   if (!missing.has(r.a)) missing.set(r.a, []);
   missing.get(r.a).push(r);
 }
@@ -67,8 +73,12 @@ for (const [acc, list] of [...missing.entries()].slice(0, MAX_FILINGS)) {
     // match on the trade itself
     for (const r of list) {
       const m = parsed.rows.find((p) => p.d === r.d && p.k === r.k && p.s === r.s);
-      const raw = m ? compact(parsed.raw[`${acc}:${m.li}`]) : null;
-      store[rowId(r)] = raw || {};
+      const full = m ? parsed.raw[`${acc}:${m.li}`] : null;
+      const raw = full ? compact(full) : null;
+      if (REREAD.has(r.t)) {
+        store[rowId(r)] = { ...(nightly[rowId(r)] ? {} : raw || {}), ...(full?.rm ? { rm: full.rm.slice(0, 500) } : {}), rr: 1 };
+        console.log(`  [${r.t}] ${r.d} ${r.n}: remarks ${full?.rm ? JSON.stringify(full.rm.slice(0, 300)) : '—'}; footnotes ${JSON.stringify(Object.values(full?.fn || {}).join(' | ').slice(0, 300))}`);
+      } else store[rowId(r)] = raw || {};
       if (raw) filled++;
     }
   } catch (e) {
@@ -80,7 +90,7 @@ for (const [acc, list] of [...missing.entries()].slice(0, MAX_FILINGS)) {
 
 // keep only lines that are still in the data
 const live = new Set(rows.map(rowId));
-for (const id of Object.keys(store)) if (!live.has(id) || nightly[id]) delete store[id];
+for (const id of Object.keys(store)) if (!live.has(id) || (nightly[id] && !store[id].rm)) delete store[id];
 console.log(`fetched ${fetched} filing(s), ${filled} line(s) filled, ${failed} failed; file holds ${Object.keys(store).length} line(s)`);
 if (filled || Object.keys(store).length !== Object.keys(prev.rows || {}).length) {
   fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), since, rows: store }));

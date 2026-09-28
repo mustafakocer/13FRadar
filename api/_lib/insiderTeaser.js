@@ -1,4 +1,5 @@
-import { businessDaysBetween, daySummary, findClusters, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
+import { businessDaysBetween, daySummary, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
+import { buildClusters } from './insiderCluster.js';
 import { categorize, classify } from './insiderClassify.js';
 import { filingTotals, signalLevel } from './insiderSignal.js';
 import { sinceTrade } from './splitAdjust.js';
@@ -68,6 +69,29 @@ export function fxBrief(r) {
   return {};
 }
 
+// Clusters on the home page and /insiders/cluster (the same list).
+export const CLUSTER_ROWS = 20;
+const rawOfOpts = (opts) => (opts?.raw ? (r) => opts.raw[`${r.a}:${r.li}`] || null : undefined);
+// v / insiders / roles / from / to / last as before, plus the strength facts
+// and the people behind it (the detail view)
+export function clusterBrief(c, companies = {}) {
+  return {
+    t: c.t,
+    c: companies[c.t] || null,
+    insiders: c.insiders,
+    v: c.value,
+    roles: c.roles,
+    from: c.from,
+    to: c.to,
+    last: c.to,
+    ceoCfo: c.ceoCfo,
+    own: c.ownIncreaseAvg,
+    ...(c.newPositions ? { nw: c.newPositions } : {}),
+    members: c.members.map((m) => ({ n: m.n, r: m.r, ti: m.ti, d: m.d, v: m.v, own: m.ownIncrease })),
+    ...(c.others.length ? { others: c.others.map((o) => ({ n: o.n, r: o.r, d: o.d, v: o.v, why: o.why })) } : {}),
+  };
+}
+
 // A penny row carries everything the free board renders, so /insiders/penny
 // needs no API call. Price-derived fields (px/ret/sz/vol/off) come from the
 // optional ticker-meta enrichment and are simply omitted when it is empty.
@@ -117,7 +141,8 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
   );
   const buys = window.filter(isBuy);
   const sells = window.filter(isSell);
-  const clusters = findClusters(buys, 7);
+  // the one cluster definition (insiderCluster.js), over the board's buys
+  const clusters = buildClusters(buys, { rawOf: rawOfOpts(opts), toUsd: opts.toUsd }).byTicker;
   const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
   const buyValue = sum(buys);
   const sellValue = sum(sells);
@@ -197,17 +222,11 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
   const anchor = lastDay ? new Date(`${lastDay}T00:00:00Z`).getTime() : now;
   const since = iso(anchor - 30 * 86400000);
   const recentBuys = rows.filter((r) => isBuy(r) && r.d >= since);
-  const clusters = findClusters(recentBuys, 7);
-
-  const cluster = [...clusters.entries()]
-    .map(([t, c]) => {
-      const trades = recentBuys.filter((r) => r.t === t);
-      const roles = [...new Set(trades.map((r) => r.r).filter((x) => x === 'ceo' || x === 'cfo'))];
-      const last = trades.reduce((m, r) => (r.d > m ? r.d : m), '');
-      return { t, c: companies[t] || null, insiders: c.insiders, v: Math.round(c.value), roles, from: c.from, to: c.to, last, ...(c.fxExcluded ? { fxExcluded: c.fxExcluded } : {}) };
-    })
-    .sort((a, b) => b.insiders - a.insiders || b.v - a.v)
-    .slice(0, 8);
+  // the one cluster definition (insiderCluster.js): the home table and
+  // /insiders/cluster both read this list
+  const built = buildClusters(rows, { rawOf: rawOfOpts(opts), toUsd: opts.toUsd, from: since });
+  const cluster = built.clusters.slice(0, CLUSTER_ROWS).map((c) => clusterBrief(c, companies));
+  const clusterExcluded = built.excluded.slice(0, CLUSTER_ROWS).map((e) => ({ ...e, c: companies[e.t] || null }));
 
   const dedupe = (list) => {
     const seen = new Set();
@@ -243,7 +262,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
     total: buys.length,
     pulse,
     highlight,
-    signals: { cluster, csuite, penny },
+    signals: { cluster, csuite, penny, clusterExcluded },
     penny: buildPennyBoard(rows, companies, meta, lastDay, now, opts),
     rows: buys.slice(0, 20).map((r) => brief(r, companies, meta, opts)),
   };

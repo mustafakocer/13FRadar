@@ -104,44 +104,7 @@ export function sizeBucket(marketCap) {
   return 'micro';
 }
 
-// Cluster buys: two or more distinct insiders with open-market purchases
-// (code P) of the same issuer inside a 7-day window.
-// Returns a Map ticker -> {insiders, value, from, to}.
-export function findClusters(rows, windowDays = 7) {
-  const byTicker = new Map();
-  for (const r of rows) {
-    if (!isBuy(r) || !r.t) continue;
-    if (!byTicker.has(r.t)) byTicker.set(r.t, []);
-    byTicker.get(r.t).push(r);
-  }
-  const out = new Map();
-  const ms = windowDays * 86400000;
-  for (const [ticker, list] of byTicker) {
-    list.sort((a, b) => (a.d < b.d ? -1 : 1));
-    // sliding window over transaction dates
-    let best = null;
-    for (let i = 0; i < list.length; i++) {
-      const start = new Date(`${list[i].d}T00:00:00Z`).getTime();
-      const names = new Set();
-      let value = 0;
-      let fxExcluded = 0;
-      let j = i;
-      for (; j < list.length; j++) {
-        if (new Date(`${list[j].d}T00:00:00Z`).getTime() - start > ms) break;
-        names.add(list[j].n);
-        // a foreign-currency line that could not be converted has no dollar
-        // amount: left out of the total and counted (fpiNormalize.js)
-        if (list[j].fx?.fail) fxExcluded++;
-        else value += list[j].v || 0;
-      }
-      if (names.size >= 2 && (!best || names.size > best.insiders || value > best.value)) {
-        best = { insiders: names.size, value, from: list[i].d, to: list[j - 1].d, ...(fxExcluded ? { fxExcluded } : {}) };
-      }
-    }
-    if (best) out.set(ticker, best);
-  }
-  return out;
-}
+// Cluster buys live in insiderCluster.js — the one definition every page uses.
 
 // How tightly a cluster is packed. Two insiders buying on the same morning is
 // a different event from two buying eleven days apart, and the dollar total

@@ -6,7 +6,6 @@ import {
   clusterDensity,
   clusterMatches,
   clusterSpanDays,
-  findClusters,
   rowClass,
   winRate,
 } from '../api/_lib/insiderModel.js';
@@ -24,20 +23,22 @@ test('transaction taxonomy: conviction / liquidity / noise', () => {
   assert.equal(rowClass({ k: 'M', cl: 'liquidity' }), 'liquidity', 'stored class wins');
 });
 
-test('cluster detector: ≥2 distinct insiders, code P, 7-day window', () => {
+test('cluster detector: ≥2 distinct officers/directors buying ≥$10K each, code P, 10 business days', async () => {
+  const { buildClusters } = await import('../api/_lib/insiderCluster.js');
+  const base = { k: 'P', r: 'director', p: 10, s: 2000 };
   const rows = [
-    { t: 'ABC', k: 'P', n: 'A', d: '2026-05-01', v: 100 },
-    { t: 'ABC', k: 'P', n: 'B', d: '2026-05-06', v: 200 },
-    { t: 'ABC', k: 'P', n: 'C', d: '2026-05-20', v: 300 }, // outside the window of the first two
-    { t: 'XYZ', k: 'P', n: 'A', d: '2026-05-01', v: 100 },
-    { t: 'XYZ', k: 'P', n: 'A', d: '2026-05-02', v: 100 }, // same insider twice ≠ cluster
-    { t: 'QQQ', k: 'S', n: 'A', d: '2026-05-01', v: 100 },
-    { t: 'QQQ', k: 'S', n: 'B', d: '2026-05-01', v: 100 }, // sales never cluster
+    { ...base, t: 'ABC', n: 'A', d: '2026-05-01', v: 20000 },
+    { ...base, t: 'ABC', n: 'B', d: '2026-05-12', v: 30000 }, // 7 business days later: inside
+    { ...base, t: 'ABC', n: 'C', d: '2026-06-01', v: 30000 }, // outside the window of the first two
+    { ...base, t: 'XYZ', n: 'A', d: '2026-05-01', v: 20000 },
+    { ...base, t: 'XYZ', n: 'A', d: '2026-05-02', v: 20000 }, // same insider twice ≠ cluster
+    { ...base, t: 'QQQ', k: 'S', n: 'A', d: '2026-05-01', v: 20000 },
+    { ...base, t: 'QQQ', k: 'S', n: 'B', d: '2026-05-01', v: 20000 }, // sales never cluster
   ];
-  const c = findClusters(rows);
+  const c = buildClusters(rows).byTicker;
   assert.deepEqual([...c.keys()], ['ABC']);
   assert.equal(c.get('ABC').insiders, 2);
-  assert.equal(c.get('ABC').value, 300);
+  assert.equal(c.get('ABC').value, 50000);
 });
 
 test('teaser: pulse, highlight and signals from a dataset', () => {

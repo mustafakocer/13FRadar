@@ -34,6 +34,7 @@ import { currencyOf, usdPerUnit } from './fx.js';
 import { statedRatio, deriveRatio } from './adrRatio.js';
 import { closeOnOrAfter, PRICE_TOLERANCE } from './insiderOutcome.js';
 import { splitFactor } from './splitAdjust.js';
+import { FPI_RULES } from '../../config/fpi-rules.js';
 
 const DAY = 86400000;
 // the 52-week range is the fallback check when there is no daily close
@@ -153,19 +154,12 @@ function marketRef(r, series, meta) {
   if (meta?.lo > 0 && meta?.hi > 0 && meta.asOf && Date.parse(meta.asOf) - Date.parse(r.d) <= 365 * DAY) return { lo: meta.lo, hi: meta.hi };
   return null;
 }
-// How far from the trade day's US close a reading may land:
-//   MATCH_TOLERANCE     the form's price as it stands, and every conversion
-//                       the filer did not declare — ±15%
-//   DECLARED_TOLERANCE  a conversion in the currency the filer declares, with
-//                       a documented ratio — ±25%, for the premium an ADS
-//                       can carry over its home shares (TSMC: 15–21%)
-export const MATCH_TOLERANCE = 0.15;
-// An off-market price is one within ±50% of the close: a placement or a
-// negotiated sale. Further off, it is a unit (a split, a currency, pence)
-// and the amount is not verified.
-export const OFF_MARKET_MAX = 0.5;
-const HOME_LISTED = new Set(['CAD']);
-export const DECLARED_TOLERANCE = PRICE_TOLERANCE;
+// How far from the trade day's US close a reading may land, and when a
+// line is off-market rather than unverified: config/fpi-rules.js (the
+// reasons are written there). A caller may pass its own `rules`.
+export const MATCH_TOLERANCE = FPI_RULES.matchTolerance;
+export const DECLARED_TOLERANCE = FPI_RULES.declaredTolerance;
+export const OFF_MARKET_MAX = FPI_RULES.offMarketMax;
 const fits = (px, ref, tol) => (ref.close ? Math.abs(px / ref.close - 1) <= tol : px >= ref.lo / RANGE_SLACK && px <= ref.hi * RANGE_SLACK);
 
 // Is this line one to normalise at all? Lines of a foreign private issuer
@@ -219,7 +213,9 @@ const HELD_AS_ADS_RE = /\b(held|represented)\s+(in the form of|as|by)\s+(america
 // readings are ordered the same way and checked against the 52-week range,
 // or, with no range either, a declared currency and a documented ratio are
 // taken as they stand.
-export function normalizeRow(r, { raw = null, issuer = null, override = null, rates = null, series = null, meta = null, splits, homeSeen = null } = {}) {
+export function normalizeRow(r, { raw = null, issuer = null, override = null, rates = null, series = null, meta = null, splits, homeSeen = null, rules = FPI_RULES } = {}) {
+  const MATCH = rules.matchTolerance;
+  const DECLARED = rules.declaredTolerance;
   const kind = securityKind(raw?.st, issuer);
   if (kind === 'preferred' || kind === 'other') return { kind };
   if (!needsNormalizing(r, raw, issuer, override)) return null;
@@ -238,7 +234,7 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   // currency) — the home currency is tried when there is an ADS (so a home
   // listing), a reviewed override, a footnote of the issuer naming it, or a
   // Canadian home (TSX/TSXV and a US exchange is the norm: Canopy, Fortis)
-  const homeListed = Boolean(home && (override?.cur || known?.ads || mentioned === home || homeSeen?.has(home) || HOME_LISTED.has(home)));
+  const homeListed = Boolean(home && (override?.cur || known?.ads || mentioned === home || homeSeen?.has(home) || rules.homeListedCurrencies.includes(home)));
   const doc = hasAds ? ratioFor(known, override, rowNote) : { ratio: 1, src: 'direct' };
   // a documented ratio can be out of date (Vipshop's 2012 F-6 says 2; the
   // ADS has been 0.2 share since): the market-derived one is tried after it
@@ -294,24 +290,24 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
     }
   };
   if (declared) {
-    perAdsReadings(declared, docRatios, DECLARED_TOLERANCE);
+    perAdsReadings(declared, docRatios, DECLARED);
     if (declared === 'USD') {
-      wholeAds('USD', DECLARED_TOLERANCE);
-      asIs(DECLARED_TOLERANCE);
+      wholeAds('USD', DECLARED);
+      asIs(DECLARED);
     }
-    readings(declared, docRatios, DECLARED_TOLERANCE);
-    perAdsReadings(declared, derRatios, MATCH_TOLERANCE);
-    readings(declared, derRatios, MATCH_TOLERANCE);
+    readings(declared, docRatios, DECLARED);
+    perAdsReadings(declared, derRatios, MATCH);
+    readings(declared, derRatios, MATCH);
   } else {
-    perAdsReadings('USD', docRatios, MATCH_TOLERANCE);
-    wholeAds('USD', MATCH_TOLERANCE);
+    perAdsReadings('USD', docRatios, MATCH);
+    wholeAds('USD', MATCH);
     // an option exercise "at New Taiwan dollars" (ASE) has no market price
     // to vouch for a dollar reading: not taken as dollars
-    if (!(mentioned && mentioned !== 'USD' && !MARKET_CODES.has(r.k))) asIs(MATCH_TOLERANCE);
+    if (!(mentioned && mentioned !== 'USD' && !MARKET_CODES.has(r.k))) asIs(MATCH);
     const tiers = [...new Set([mentioned, 'USD', homeTrusted, homeDerived].filter(Boolean))];
-    for (const cu of tiers) readings(cu, docRatios, MATCH_TOLERANCE);
-    perAdsReadings('USD', derRatios, MATCH_TOLERANCE);
-    for (const cu of tiers) readings(cu, derRatios, MATCH_TOLERANCE);
+    for (const cu of tiers) readings(cu, docRatios, MATCH);
+    perAdsReadings('USD', derRatios, MATCH);
+    for (const cu of tiers) readings(cu, derRatios, MATCH);
   }
 
   const tried = cands.map((c) => {
@@ -367,7 +363,7 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
     // amount is shown; it stays out of clusters and the day's totals.
     const unitClear = (!hasAds || kind === 'ads') && (!declared || declared === 'USD') && (!mentioned || mentioned === 'USD');
     const gap = ref?.close ? r.p / split / ref.close - 1 : null;
-    if (gap != null && Math.abs(gap) <= OFF_MARKET_MAX && MARKET_CODES.has(r.k) && !noRate && unitClear && tried.some((t) => t.as === 'asis')) {
+    if (gap != null && Math.abs(gap) <= rules.offMarketMax && MARKET_CODES.has(r.k) && !noRate && unitClear && tried.some((t) => t.as === 'asis')) {
       const off = Number((gap * 100).toFixed(1));
       return { ok: 1, off, cu: 'USD', rate: 1, ar: 1, as: 'asis', quote: null, url: null, p: r.p, s: r.s, v: lv, lp: r.p, ls: r.s, lv };
     }
@@ -402,6 +398,7 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
 //   overrides  config/adr-overrides.json ({ TICKER → { ratio, cur, … } })
 //   rawOf(r)   the raw Form 4 fields of a row
 //   seriesFor(ticker), meta (ticker-meta.json), splits
+//   rules      thresholds (default config/fpi-rules.js)
 export function normalizeRows(rows, ctx = {}) {
   const issuers = ctx.fpi?.issuers || {};
   const rates = ctx.fpi?.rates || null;
@@ -432,7 +429,7 @@ export function normalizeRows(rows, ctx = {}) {
     const issuer = issuers[r.ci] || null;
     const override = (r.t && overrides[r.t]) || null;
     if (!raw && !issuer && !override) return r;
-    const n = normalizeRow(r, { raw, issuer, override, rates, series: series(r.t), meta: r.t ? ctx.meta?.[r.t] : null, splits: ctx.splits, homeSeen: seen.get(r.ci) || null });
+    const n = normalizeRow(r, { raw, issuer, override, rates, series: series(r.t), meta: r.t ? ctx.meta?.[r.t] : null, splits: ctx.splits, homeSeen: seen.get(r.ci) || null, ...(ctx.rules ? { rules: ctx.rules } : {}) });
     if (!n) return r;
     if (n.kind) {
       stats.security++;

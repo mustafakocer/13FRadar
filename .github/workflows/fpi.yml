@@ -8,11 +8,11 @@ name: Foreign issuer data (FX + ADR ratios)
 #
 #   · nightly, before the insider build (03:31 UTC) so the home page teaser
 #     it writes uses tonight's rates;
-#   · on a pull request that changes the conversion: rebuilt and committed
-#     to the PR branch, so the preview runs on real data, and the report
-#     (diagnosis, ratio sources, home page before/after) goes to the job
-#     summary. The run fails when more than 20% of the last six months'
-#     priced FPI lines cannot be converted.
+#   · on a pull request: rebuilt and checked, the report (diagnosis, ratio
+#     sources, home page before/after) goes to the job summary, nothing is
+#     committed. The run fails when more than 20% of the last six months'
+#     priced FPI lines cannot be converted. Refresh the branch's fpi.json
+#     with a manual run on the branch (workflow_dispatch) when needed.
 on:
   schedule:
     - cron: '47 2 * * *'
@@ -64,7 +64,13 @@ jobs:
           node scripts/build-fpi.mjs --report fpi-report.md ${{ inputs.refresh == true && '--refresh' || '' }} 2>&1 | tee fpi-build.log
           cat fpi-report.md >> "$GITHUB_STEP_SUMMARY"
 
+      # Commits only on the nightly and manual runs. On a pull request the run
+      # reports and gates but does not commit: GitHub's `paths` filter on
+      # pull_request looks at the whole PR, so every push would start it, and
+      # a commit by the bot becomes the PR head that no check runs on
+      # (workflows triggered by GITHUB_TOKEN pushes need approval).
       - name: Commit
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name 'fpi-bot'
           git config user.email 'actions@github.com'

@@ -203,9 +203,12 @@ for (const cik of todo) {
     continue;
   }
   let filings = filingsOf(sub?.filings?.recent);
-  // a foreign private issuer: a 20-F, 40-F or 6-K in the last 24 months
+  // a foreign private issuer for the currency conversion: any 20-F, 40-F or
+  // 6-K among the recent filings (unchanged). `lf`, the newest such filing's
+  // date, drives the "Yabancı şirket" badge, which needs one in the last 24
+  // months (fpiContext.isForeignWith) — the badge does not move conversions.
   const lf = filings.filter((f) => FPI_FORMS.test(f.form)).reduce((m, f) => (f.date > m ? f.date : m), '');
-  const fpi = Boolean(lf) && lf >= addDays(today, -730);
+  const fpi = Boolean(lf);
   if (!fpi) {
     domestic[cik] = today;
     delete issuers[cik];

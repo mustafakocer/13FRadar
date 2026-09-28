@@ -90,9 +90,12 @@ for (const [acc, list] of [...missing.entries()].slice(0, MAX_FILINGS)) {
 
 // keep only lines that are still in the data
 const live = new Set(rows.map(rowId));
-for (const id of Object.keys(store)) if (!live.has(id) || (nightly[id] && !store[id].rm)) delete store[id];
+// (a re-read line keeps its marker `rr`, or the next run would read it again)
+for (const id of Object.keys(store)) if (!live.has(id) || (nightly[id] && !store[id].rm && !store[id].rr)) delete store[id];
 console.log(`fetched ${fetched} filing(s), ${filled} line(s) filled, ${failed} failed; file holds ${Object.keys(store).length} line(s)`);
-if (filled || Object.keys(store).length !== Object.keys(prev.rows || {}).length) {
+// written only when a line was added or dropped — not for a timestamp
+const changed = JSON.stringify(store) !== JSON.stringify(prev.rows || {});
+if (changed) {
   fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), since, rows: store }));
   console.log(`wrote ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB)`);
 } else console.log('nothing new — file unchanged');

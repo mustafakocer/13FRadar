@@ -41,7 +41,12 @@ jobs:
           # the clusters the PR discusses: remarks and footnotes to the log
           INSIDER_BACKFILL_REREAD: 'BBD,SBLK,PMTS,RWT,WIX,TSM,KRMN'
         run: node scripts/backfill-insider-raw.mjs
+      # On a pull request the run only reports. A bot commit would become the
+      # PR head, and checks do not run on commits pushed with GITHUB_TOKEN
+      # (the pull_request paths filter looks at the whole PR, so every push
+      # starts this job). The weekly and manual runs commit.
       - name: Commit
+        if: github.event_name != 'pull_request'
         run: |
           git config user.name 'insider-bot'
           git config user.email 'actions@github.com'

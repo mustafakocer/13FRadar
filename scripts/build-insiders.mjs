@@ -66,7 +66,7 @@ import { parseForm4Submission, BadFilingError } from '../api/_lib/insiderForm4.j
 import { RateClock } from '../api/_lib/edgarClock.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 import { fetchCharts, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
-import { isSecBusinessDay, addDays } from '../client/src/lib/secCalendar.js';
+import { isSecBusinessDay, addDays, calendarCoverage } from '../client/src/lib/secCalendar.js';
 
 // ---------------------------------------------------------------- arguments
 const argv = process.argv.slice(2);
@@ -557,6 +557,9 @@ if (dups.length) problems.push(`${dups.length} duplicate row id(s), e.g. ${dups.
 
 const newCheckpoint = crawled ? crawled.newCheckpoint : checkpoint;
 if (crawled) problems.push(...crawled.problems);
+// the holiday list is nearing its end: a warning, not a red run (yet)
+const calendar = calendarCoverage(today);
+if (calendar.warning) console.warn(`::warning::${calendar.warning}`);
 
 // ---------------------------------------------------------------- enrich + write
 const current = currentRows(all);

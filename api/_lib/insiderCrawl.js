@@ -16,7 +16,7 @@
 // Anything else not yet in the listing is PENDING, and the checkpoint never
 // moves past a pending day. The checkpoint is the last day that was either
 // read successfully or settled by those three rules — nothing else.
-import { addDays, businessDaysBehind, isSecBusinessDay, isSecHoliday, isWeekend } from '../../client/src/lib/secCalendar.js';
+import { addDays, businessDaysBehind, calendarCoverage, isSecBusinessDay, isSecHoliday, isWeekend } from '../../client/src/lib/secCalendar.js';
 import { BadFilingError, parseForm4Submission } from './insiderForm4.js';
 
 export const quarterNum = (day) => Math.floor((Number(day.slice(5, 7)) - 1) / 3) + 1;
@@ -120,6 +120,11 @@ export function runProblems({ checkpoint, newCheckpoint, today, timeline, result
       problems.push(`${t.day}: EDGAR has not published this day's index and nothing later either — pending for over a business day`);
   }
   if (newCheckpoint < checkpoint) problems.push(`checkpoint moved backwards (${checkpoint} → ${newCheckpoint})`);
+  // Past the end of the holiday list rule (b) is blind: a holiday would wait
+  // as "pending" and then trip the alarm above anyway, a day later and with a
+  // misleading message. Say what is actually wrong, on the first day.
+  const cal = calendarCoverage(today);
+  if (cal.error) problems.push(cal.error);
   return problems;
 }
 
@@ -256,5 +261,6 @@ export async function crawlOnce({ checkpoint, today, published, get, rescanBusin
   const ok = new Set(results.filter((r) => r.ok).map((r) => r.day));
   const newCheckpoint = advanceCheckpoint(checkpoint, plan.timeline, ok);
   const problems = runProblems({ checkpoint, newCheckpoint, today, timeline: plan.timeline, results });
-  return { plan, results, newCheckpoint, problems };
+  const warnings = [calendarCoverage(today).warning].filter(Boolean);
+  return { plan, results, newCheckpoint, problems, warnings };
 }

@@ -308,3 +308,25 @@ test('Form 4 parser keeps raw fields, footnotes, the owner CIK and the 4/A flag'
     F2: 'Amended to correct the ownership reported after the transaction.',
   });
 });
+
+// ---- the holiday list runs out ------------------------------------------------
+
+test('past the end of the holiday list the crawl goes red and says the calendar must be updated', async () => {
+  const { calendarCoverage, HOLIDAYS_LAST_YEAR } = await import('../client/src/lib/secCalendar.js');
+  assert.equal(HOLIDAYS_LAST_YEAR, 2027);
+  // Monday 2028-01-03, data published through Thursday 2027-12-30 (12-31 is a holiday)
+  const r = await run(fakeEdgar({ days: { '2027-12-30': 6 } }), { checkpoint: '2027-12-30', today: '2028-01-03' });
+  assert.ok(r.problems.some((p) => /holiday calendar ends 2027-12-31/.test(p) && /tatil takvimi güncellenmeli/.test(p)), r.problems.join('; '));
+  assert.equal(calendarCoverage('2028-06-01').warning, null, 'an error, not a warning');
+});
+
+test('from 1 October of the last covered year every run warns (not red) that next year must be added', async () => {
+  const { calendarCoverage } = await import('../client/src/lib/secCalendar.js');
+  assert.deepEqual(calendarCoverage('2027-09-30'), { error: null, warning: null });
+  const oct = await run(fakeEdgar({ days: { '2027-09-30': 6 } }), { checkpoint: '2027-09-30', today: '2027-10-01' });
+  assert.deepEqual(oct.problems, [], 'the run stays green');
+  assert.equal(oct.warnings.length, 1);
+  assert.match(oct.warnings[0], /2028 SEC holiday list must be added.*2028 tatil listesi eklenmeli/);
+  assert.match(calendarCoverage('2027-12-31').warning, /2028/);
+  assert.deepEqual((await run(fakeEdgar({ days: { '2026-09-25': 6 } }), { checkpoint: '2026-09-25', today: '2026-09-28' })).warnings, [], 'no warning in 2026');
+});

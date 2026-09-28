@@ -43,6 +43,24 @@ export const SEC_HOLIDAYS = new Set([
   '2027-12-31', // New Year's Day 2028 (observed; Jan 1 is a Saturday)
 ]);
 
+// The last year the list above covers. Past it, rule (b) of the crawl cannot
+// recognise a holiday, so the crawl goes red until the list is extended
+// (calendarCoverage below); from 1 October of the last year it warns.
+export const HOLIDAYS_LAST_YEAR = Math.max(...[...SEC_HOLIDAYS].map((d) => Number(d.slice(0, 4))));
+
+// { error, warning } for a run on `day` (YYYY-MM-DD); both null when fine.
+export function calendarCoverage(day, lastYear = HOLIDAYS_LAST_YEAR) {
+  const year = Number(String(day).slice(0, 4));
+  if (year > lastYear)
+    return {
+      error: `SEC holiday calendar ends ${lastYear}-12-31 and today is ${day} — the holiday list in client/src/lib/secCalendar.js must be updated (tatil takvimi güncellenmeli)`,
+      warning: null,
+    };
+  if (year === lastYear && String(day) >= `${lastYear}-10-01`)
+    return { error: null, warning: `${lastYear + 1} SEC holiday list must be added to client/src/lib/secCalendar.js before ${lastYear + 1}-01-01 (${lastYear + 1} tatil listesi eklenmeli)` };
+  return { error: null, warning: null };
+}
+
 const DAY_MS = 86400000;
 const toMs = (day) => Date.parse(`${day}T00:00:00Z`);
 export const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);

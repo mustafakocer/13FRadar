@@ -1,0 +1,4 @@
+{
+  "_readme": "Reviewed manual corrections for foreign issuers' Form 4 lines (api/_lib/fpiNormalize.js). Keyed by ticker. ratio = home-market shares per ONE US-listed security; cur = the currency the issuer's insiders report in. An entry fills in only when the SEC documents (F-6 / 20-F) and the market-derived ratio give nothing; add \"force\": true to make it win over them. Always cite the source.",
+  "byTicker": {}
+}

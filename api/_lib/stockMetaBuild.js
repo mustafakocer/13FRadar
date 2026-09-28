@@ -137,6 +137,8 @@ export async function buildStockMeta({
   const known = [...snapshots.values()].filter(Boolean).length;
   const unknown = [...snapshots.values()].filter((s) => s === null).length;
   log(`  charts: ${known} priced, ${unknown} unknown to the provider, ${failed} failed${blocked ? ' — provider blocked, stopped early' : ''}`);
+  if (blocked) noteProvider('yahoo', { error: `chart requests refused (${failed} failed, none priced)`, refused: true });
+  else if (known) noteProvider('yahoo', { ok: true });
 
   // ---- returns.json ----
   const previousReturns = read('client/public/returns.json');

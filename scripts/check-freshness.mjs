@@ -30,7 +30,7 @@ const rows = runChecks(read, { health });
 const w = Math.max(...rows.map((r) => r.label.length));
 for (const r of rows) console.log(`${r.label.padEnd(w)}  ${r.status.padEnd(7)}  ${r.detail}`);
 
-const bad = rows.filter((r) => r.status !== 'ok');
+const bad = rows.filter((r) => r.status !== 'ok' && r.status !== 'WARN');
 if (bad.length) {
   console.error(`\n${bad.length} dataset(s) stale, missing or failing:`);
   for (const r of bad) console.error(`::error::${r.label}: ${r.detail}`);

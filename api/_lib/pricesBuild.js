@@ -208,7 +208,7 @@ export async function buildPrices({
         spent++;
         try {
           const series = await p.fetch(job.symbol, job.from, { now });
-          if (p.name === 'fmp') noteProvider('fmp', { ok: true });
+          noteProvider(p.name, { ok: true });
           if (series === null) {
             unknownHere++;
             leftover.push(job);
@@ -219,7 +219,7 @@ export async function buildPrices({
           }
         } catch (e) {
           leftover.push(job);
-          if (p.name === 'fmp') noteProvider('fmp', { error: e.message });
+          noteProvider(p.name, { error: e.message });
           if (e.quota || e.dead) {
             out = true;
             log(`  ${p.name}: ${e.message} — done for tonight after ${spent} calls`);

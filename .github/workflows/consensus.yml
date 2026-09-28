@@ -195,20 +195,29 @@ jobs:
           done
           exit 1
 
-      # FMP refusing us (HTTP 402 "not available under your current
-      # subscription") used to be one ::warning:: in a green run. The builds
-      # above record every FMP answer in api/_data/freshness/fmp.json; a
-      # refusal turns the run red here — after the commit, so the rest of
-      # the night's data still ships — and sends the alert.
-      - name: Check FMP
-        run: node scripts/check-job-health.mjs fmp
-
-      - name: Alert
-        if: failure()
-        run: node scripts/notify.mjs --title "Consensus/prices job failed (FMP or build)"
+      # Provider refusals (FMP's HTTP 402 "not available under your current
+      # subscription", or any other provider) are KNOWN ISSUES: the first one
+      # opens a single GitHub issue with the @mention, a refusal that persists
+      # stays a ::warning:: on a green run, and a change — the provider back,
+      # or another one refusing — is announced (api/_lib/providerAlarm.js).
+      # Runs even when a build step failed: the records are already written.
+      - name: Provider alarms (known issues)
+        if: always()
+        run: node scripts/check-providers.mjs
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ALERT_MENTION: ${{ vars.ALERT_MENTION }}
-          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          ALERT_FROM: ${{ secrets.ALERT_FROM }}
-          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      - name: Alert
+        if: failure()
+        run: node scripts/notify.mjs --title "Consensus/prices build failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "Consensus/prices build failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

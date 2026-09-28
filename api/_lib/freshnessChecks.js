@@ -138,7 +138,11 @@ export function runChecks(read, { now = Date.now(), health = {} } = {}) {
   }
   for (const [name, rec] of Object.entries(health)) {
     const v = judgeHealth(rec);
-    if (v) out.push({ label: `job: ${name}`, status: v.ok ? 'ok' : 'FAILING', detail: v.detail });
+    if (!v) continue;
+    // A provider refusing us is a known issue with its own GitHub issue
+    // (providerAlarm.js); here it is shown, never counted as a failure.
+    if (rec.kind === 'provider') out.push({ label: `provider: ${name}`, status: v.ok ? 'ok' : 'WARN', detail: v.detail });
+    else out.push({ label: `job: ${name}`, status: v.ok ? 'ok' : 'FAILING', detail: v.detail });
   }
   return out;
 }

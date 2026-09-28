@@ -252,3 +252,31 @@ test('foreign private issuer flag: BBD, TSM, SBLK yes; RWT, GME, DKS no — from
   const e = buildClusters(people(5, '2026-09-10', 40), { isForeign: () => true }).excluded[0];
   assert.equal(e.fpi, true);
 });
+
+test('compensation shares are a plan purchase: fee program, retainer, in lieu of cash, Rule 16b-3 (Eastern Company)', () => {
+  const day = { t: 'EML', d: '2026-09-16', f: '2026-09-17', k: 'P', r: 'director', p: 25.25 };
+  const notes = {
+    a: "1,217 shares issued under The Eastern Company Director's Fee Program pursuant to rule 16b-3(d). The price used to determine the number of shares is the price of the shares on September 15, 2026.",
+    b: 'Shares received in lieu of cash for the quarterly board retainer.',
+    c: 'Open market purchase.',
+  };
+  const lines = [
+    { ...day, n: 'Galbato Chan', s: 1217, v: 30729, a: 'a', li: 0 },
+    { ...day, n: 'Everets John', s: 1037, v: 26184, a: 'b', li: 0 },
+    { ...day, n: 'Scott Peggy', s: 996, v: 25149, a: 'c', li: 0 },
+  ];
+  const labels = lineLabels(lines, (r) => ({ fn: { F1: notes[r.a] } }));
+  assert.equal(labels.get(lines[0]).label, 'plan_bulk');
+  assert.match(labels.get(lines[0]).quote, /Director's Fee Program/);
+  assert.equal(labels.get(lines[1]).label, 'plan_bulk');
+  assert.equal(labels.has(lines[2]), false, 'an open-market purchase is not labelled');
+  // two fee-program directors do not make a cluster
+  const cl = buildClusters(lines.slice(0, 2), { rawOf: (r) => ({ fn: { F1: notes[r.a] } }) });
+  assert.equal(cl.byTicker.get('EML'), undefined);
+});
+
+test('"Includes shares acquired pursuant to the ESPP. Such acquisitions are exempt under Rule 16b-3." describes the holding, not the purchase (Matador)', () => {
+  const r = { t: 'MTDR', d: '2026-08-10', f: '2026-08-11', k: 'P', r: 'officer', n: 'Elsener William Thomas', s: 850, p: 50.94, v: 43299, a: 'm', li: 0 };
+  const labels = lineLabels([r], () => ({ fn: { F1: "Includes shares acquired pursuant to the Issuer's Employee Stock Purchase Plan. Such acquisitions are exempt under Rule 16b-3" } }));
+  assert.equal(labels.has(r), false);
+});

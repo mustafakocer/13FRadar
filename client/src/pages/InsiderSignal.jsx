@@ -35,11 +35,11 @@ export default function InsiderSignal() {
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? `${title} — Son 30 Günün Insider Sinyalleri | Fundocap` : `${title} — Insider Signals, Last 30 Days | Fundocap`,
+        title: lang === 'tr' ? `${title} — Son 30 Günün Insider Alımları | Fundocap` : `${title} — Insider Buys, Last 30 Days | Fundocap`,
         description:
           lang === 'tr'
-            ? `${rows.length} ${title.toLowerCase()} sinyali (SEC Form 4). ${rows[0] ? `Öne çıkan: ${rows[0].t}${rows[0].insiders ? `, ${rows[0].insiders} insider` : ''}, ${fmtMoney(rows[0].v)}.` : ''} Günlük güncellenir.`
-            : `${rows.length} ${title.toLowerCase()} signals from SEC Form 4. ${rows[0] ? `Top: ${rows[0].t}${rows[0].insiders ? `, ${rows[0].insiders} insiders` : ''}, ${fmtMoney(rows[0].v)}.` : ''} Updated daily.`,
+            ? `${rows.length} ${title.toLowerCase()} (SEC Form 4). ${rows[0] ? `Öne çıkan: ${rows[0].t}${rows[0].insiders ? `, ${rows[0].insiders} insider` : ''}, ${fmtMoney(rows[0].v)}.` : ''} Günlük güncellenir.`
+            : `${rows.length} ${title.toLowerCase()} from SEC Form 4. ${rows[0] ? `Top: ${rows[0].t}${rows[0].insiders ? `, ${rows[0].insiders} insiders` : ''}, ${fmtMoney(rows[0].v)}.` : ''} Updated daily.`,
         path: `/insiders/${kind}`,
         jsonLd: [breadcrumbs(lang, [[t('nav.insiders'), '/insiders'], [title, `/insiders/${kind}`]])],
       }),

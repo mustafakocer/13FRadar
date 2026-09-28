@@ -24,7 +24,7 @@ const VALUE_PRESETS = [
   { v: '10000000', k: 'whale' },
 ];
 
-const DEFAULT_ADV = { size: '', sector: '', minPrice: '', maxPrice: '', change: '', lagMin: '', lagMax: '', late: false, noise: false, excludePlanned: false, codes: '', clusterMin: '', density: '' };
+const DEFAULT_ADV = { size: '', sector: '', minPrice: '', maxPrice: '', change: '', lagMin: '', lagMax: '', late: false, other: false, excludePlanned: false, codes: '', clusterMin: '', density: '' };
 
 // Form 4 transaction codes worth asking for by name. The three broad classes
 // answer "is this conviction or housekeeping"; these answer "was it an
@@ -138,10 +138,10 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
               </span>
             </label>
             <label className="check-row">
-              <input type="checkbox" checked={draft.noise} onChange={(e) => set('noise', e.target.checked)} />
+              <input type="checkbox" checked={draft.other} onChange={(e) => set('other', e.target.checked)} />
               <span>
-                <b>{t('ins.includeNoise')}</b>
-                <span className="muted small"> — {t('ins.includeNoiseNote')}</span>
+                <b>{t('ins.showOther')}</b>
+                <span className="muted small"> — {t('ins.showOtherNote')}</span>
               </span>
             </label>
             <label className="check-row">
@@ -178,6 +178,67 @@ function AdvancedDialog({ open, onClose, value, onApply, sectors, t }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// The label under an insider's name. An open-market buy gets its level —
+// "Öne çıkan alım" / "Kayda değer alım" / "Küçük alım", nothing when it
+// rates none — with the reason and a disclaimer in the tooltip; anything
+// else shows its kind ("Opsiyon kullanımı", "Vergi kesintisi"…); funds and
+// pure 10% owners also carry "Büyük ortak (fon)". Rules:
+// api/_lib/insiderSignal.js.
+//
+// The labels describe the trade, not its prospects: the calibration
+// (scripts/calibrate-insider-signals.mjs) found the top level did NOT beat
+// the middle one over 90 days, so the names promise nothing about returns.
+const LEVEL_CLASS = { strong: 'pos', medium: 'info', weak: 'plain', none: 'plain' };
+export function signalReason(sig, t) {
+  if (!sig) return '';
+  if (sig.level === 'none') return t(`ins.why.${sig.why}`);
+  const parts = [t(`ins.role.${sig.role}`)];
+  if (sig.value != null) parts.push(fmtMoney(sig.value));
+  if (sig.ownIncrease === 'new') parts.push(t('ins.newPosition'));
+  else if (sig.ownIncrease != null) parts.push(`${t('ins.own')} ${fmtPct(sig.ownIncrease, { digits: 0 })}`);
+  if (sig.why === 'large_holder_cap') parts.push(t('ins.why.large_holder_cap'));
+  if (sig.why === 'price_unverified') parts.push(t('ins.why.price_unverified'));
+  const total = sig.lines > 1 ? `\n${t('ins.filingTotal').replace('{v}', fmtMoney(sig.value)).replace('{n}', sig.lines)}` : '';
+  return `${parts.join(' · ')}${total}\n${t('ins.levelDisclaimer')}`;
+}
+function RowLabel({ r, t }) {
+  const planned = r.planned && <span className="badge sm plain" style={{ marginLeft: 4 }}>10b5-1</span>;
+  // A fund or a 10%-only owner gets the holder badge and the amount, never a
+  // size label: "Küçük alım" beside Berkshire's LEN purchase would mislead.
+  const holderBadge = r.holder && (
+    <span
+      className="badge sm plain"
+      data-holder={r.holder}
+      title={r.signal?.value != null ? t('ins.filingTotal').replace('{v}', fmtMoney(r.signal.value)).replace('{n}', r.signal.lines || 1) : undefined}
+    >
+      {t(`ins.holder.${r.holder}`)}
+    </span>
+  );
+  if (r.category === 'open_buy') {
+    const level = r.signal?.level || 'none';
+    return (
+      <>
+        {!r.holder && level !== 'none' && (
+          <span className={`badge sm ${LEVEL_CLASS[level]}`} title={signalReason(r.signal, t)} data-level={level}>
+            {t(`ins.level.${level}`)}
+          </span>
+        )}
+        {holderBadge}
+        {planned}
+      </>
+    );
+  }
+  return (
+    <>
+      <span className={`badge sm ${r.category === 'open_sell' ? 'neg' : 'plain'}`} title={r.code ? `Form 4: ${r.code}` : undefined} data-category={r.category}>
+        {t(`ins.cat.${r.category || 'other'}`)}
+      </span>
+      {holderBadge && <span style={{ marginLeft: 4 }}>{holderBadge}</span>}
+      {planned}
+    </>
   );
 }
 
@@ -259,7 +320,7 @@ export default function Insiders() {
       ...(adv.lagMin ? { lagMin: adv.lagMin } : {}),
       ...(adv.lagMax ? { lagMax: adv.lagMax } : {}),
       ...(adv.late ? { late: '1' } : {}),
-      ...(adv.noise ? { cls: 'conviction,liquidity,noise' } : {}),
+      ...(adv.other ? { types: 'all' } : {}),
       ...(adv.excludePlanned ? { excludePlanned: '1' } : {}),
       ...(adv.codes ? { codes: adv.codes } : {}),
       ...(adv.clusterMin ? { clusterMin: adv.clusterMin } : {}),
@@ -356,6 +417,7 @@ export default function Insiders() {
               <div>
                 <Link to={`/stock/${s.ticker}`} style={{ fontWeight: 700 }}>{s.ticker}</Link>
                 <div className="muted small">
+                  {s.level && s.level !== 'none' && <span className={`badge sm ${LEVEL_CLASS[s.level]}`} style={{ marginRight: 4 }} title={t('ins.levelDisclaimer')}>{t(`ins.level.${s.level}`)}</span>}
                   {t(`ins.signal.${s.kind}`)}
                   {s.kind === 'cluster' ? ` (${s.insiders})` : ''} · {t('ins.cost')} {fmtNum(s.price, 2)}
                 </div>
@@ -474,7 +536,6 @@ export default function Insiders() {
                   <th onClick={() => onSort('shares')}>{t('ins.sharesOwn')}{arrow('shares')}</th>
                   <th onClick={() => onSort('return')}>{t('ins.returnCurr')}<InfoTip tip="tips.insReturn" />{arrow('return')}</th>
                   <th>{t('ins.winRate')}<InfoTip tip="ins.winRateTip" /></th>
-                  <th>{t('ins.pe')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -493,10 +554,7 @@ export default function Insiders() {
                       <div>{r.insider}</div>
                       {r.title && <div className="muted small">{r.title}</div>}
                       <div className="small">
-                        <span className={`badge sm ${r.cls === 'conviction' ? 'pos' : r.cls === 'liquidity' ? 'neg' : 'plain'}`} title={r.code}>
-                          {t(`ins.cls.${r.cls}`)}{r.code && r.code !== 'P' && r.code !== 'S' ? ` · ${r.code}` : ''}
-                        </span>
-                        {r.planned && <span className="badge sm plain" style={{ marginLeft: 4 }}>10b5-1</span>}
+                        <RowLabel r={r} t={t} />
                         {r.cluster && (
                           <span
                             className="badge sm pos"
@@ -531,22 +589,30 @@ export default function Insiders() {
                       <div className="muted small">{t('ins.held')}: {fmtNum(r.owned)}</div>
                     </td>
                     <td className="num">
-                      <b className={deltaClass(r.ret)}>{r.ret != null ? fmtPct(r.ret) : '—'}</b>
+                      {r.ret != null ? (
+                        <b className={deltaClass(r.ret)}>{fmtPct(r.ret)}</b>
+                      ) : (
+                        <b className="muted" title={r.category === 'open_buy' || r.category === 'open_sell' ? undefined : t('ins.noReturn')}>—</b>
+                      )}
+                      {r.priceUnverified && <div className="muted small" data-price-unverified={r.priceNote || 'form'}>{t(`ins.priceNote.${r.priceNote || 'form'}`)}</div>}
                       <div className="muted small">{t('ins.curr')}: {r.current != null ? `$${fmtNum(r.current, 2)}` : '—'}</div>
                     </td>
                     <td className="num">
-                      {r.winRate ? (
+                      {r.hitRate && !r.hitRate.insufficient ? (
                         <>
-                          <b>{fmtPct(r.winRate.rate, { sign: false, digits: 0 })}</b>
-                          {/* the sample size travels with the rate: 100% of one
-                              trade is not the same claim as 60% of fifteen */}
-                          <div className="muted small">n={r.winRate.n}</div>
+                          <b>{fmtPct(r.hitRate.rate, { sign: false, digits: 0 })}</b>
+                          {/* the sample size travels with the rate: 100% of three
+                              buys is not the same claim as 60% of fifteen */}
+                          <div className="muted small">n={r.hitRate.n}</div>
                         </>
+                      ) : r.hitRate?.unverified ? (
+                        <span className="muted small">{t(`ins.priceNote.${r.priceNote || 'form'}`)}</span>
+                      ) : r.hitRate?.insufficient ? (
+                        <span className="muted small" title={`n=${r.hitRate.n}`}>{t('ins.hitInsufficient')}</span>
                       ) : (
                         '—'
                       )}
                     </td>
-                    <td className="num">{r.pe != null ? fmtNum(r.pe, 1) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

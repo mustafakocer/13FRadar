@@ -316,10 +316,15 @@ export default function Stock() {
                     <td className="l">{tx.owner}</td>
                     <td className="l muted small">{tx.title || '—'}</td>
                     <td>
-                      {tx.side ? (
-                        <span className={`badge ${tx.side === 'buy' ? 'pos' : 'neg'}`}>
-                          {t(`stock.ins.${tx.side}`)}
-                          {tx.code ? ` (${tx.code})` : ''}
+                      {/* the kind of transaction, not "Alım (M)": an option
+                          exercise is not a purchase, a tax withholding is not
+                          a sale (api/_lib/insiderClassify.js) */}
+                      {tx.category ? (
+                        <span
+                          className={`badge ${tx.category === 'open_buy' ? 'pos' : tx.category === 'open_sell' ? 'neg' : 'plain'}`}
+                          title={tx.code ? `Form 4: ${tx.code}` : undefined}
+                        >
+                          {t(`ins.cat.${tx.category}`)}
                         </span>
                       ) : (
                         tx.code || '—'

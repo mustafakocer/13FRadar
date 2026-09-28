@@ -1,0 +1,65 @@
+name: Insider signal calibration
+
+# Do the insider buy labels (Öne çıkan / Kayda değer / Küçük alım) line up
+# with what happened afterwards? The 30/90-day return vs SPY per level, with
+# daily closes for every ticker (the price cache alone covers ~22% of buy
+# filings).
+#
+#   · on a pull request that touches the rules: the table goes to the job
+#     summary, nothing is committed;
+#   · every month (and by hand): the table is written to
+#     docs/calibration/insider-signals/<YYYY-MM>.md/.json and committed.
+#     The site never shows these files. Once two years of data exist the
+#     levels are re-decided from them — not before, and never by fitting
+#     the thresholds to one year of returns.
+on:
+  pull_request:
+    paths:
+      - 'api/_lib/insiderSignal.js'
+      - 'api/_lib/insiderSignalConfig.js'
+      - 'api/_lib/insiderClassify.js'
+      - 'api/_lib/insiderOutcome.js'
+      - 'scripts/calibrate-insider-signals.mjs'
+      - '.github/workflows/insider-calibration.yml'
+  schedule:
+    # 06:41 UTC on the 2nd: after the month's last insider run has landed
+    - cron: '41 6 2 * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: insider-calibration
+  cancel-in-progress: false
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Calibrate
+        run: |
+          out=""
+          if [ "${{ github.event_name }}" != "pull_request" ]; then out="--out docs/calibration/insider-signals"; fi
+          node scripts/calibrate-insider-signals.mjs --fetch $out | tee calibration.md
+          { echo '## Insider signal calibration'; echo; cat calibration.md; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit the monthly report
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name 'calibration-bot'
+          git config user.email 'actions@github.com'
+          git add docs/calibration/insider-signals
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "chore: insider signal calibration $(date -u +%Y-%m)"
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1

@@ -229,6 +229,9 @@ export function chartSnapshot(result, now = Date.now()) {
     vol,
     etf: type === 'ETF' || type === 'MUTUALFUND',
     currency: meta.currency || null,
+    // the daily closes themselves, for forward returns after insider buys
+    // (insiderOutcome.js); callers that store snapshots pick their fields
+    closes: bars.map((b) => ({ date: b.date, close: b.close })),
   };
 }
 

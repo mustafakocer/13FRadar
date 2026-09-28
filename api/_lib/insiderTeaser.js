@@ -1,4 +1,23 @@
 import { businessDaysBetween, daySummary, findClusters, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
+import { categorize, classify } from './insiderClassify.js';
+import { filingTotals, signalLevel } from './insiderSignal.js';
+import { sinceTrade } from './splitAdjust.js';
+import { priceCheck } from './insiderPriceCheck.js';
+
+// Return since the trade, only when the form's price can be compared with
+// today's (insiderPriceCheck.js). `opts` carries the raw Form 4 fields
+// ({ [accession:line]: {...} }) and a daily-close lookup, when the caller has
+// them; without them only the build's flag and the 2× fallback apply.
+function retFor(r, meta, opts = {}) {
+  const px = (r.t && meta?.[r.t]?.px) ?? null;
+  const chk = priceCheck(r, { raw: opts.raw?.[`${r.a}:${r.li}`], series: r.t && opts.seriesFor ? opts.seriesFor(r.t) : null, current: px });
+  return chk.ok ? sinceTrade(r, px) : null;
+}
+
+// An open-market purchase with a real price (insiderClassify.js). The C-suite
+// and penny lists, the highlight and the newest-buys list use this; the
+// cluster detector keeps its own input (roadmap item 3).
+const openBuy = (r) => categorize(r) === 'open_buy';
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
@@ -20,9 +39,9 @@ export const isPenny = (r) => r.p > 0 && r.p < PENNY.maxPrice;
 const listed = (r) => isListed(r) && !r.sb;
 const round = (x, d = 1) => (x == null ? null : Number(x.toFixed(d)));
 
-function brief(r, companies, meta) {
+function brief(r, companies, meta, opts) {
   const m = (r.t && meta?.[r.t]) || {};
-  const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+  const ret = retFor(r, meta, opts);
   return {
     t: r.t,
     c: companies[r.t] || null,
@@ -39,9 +58,9 @@ function brief(r, companies, meta) {
 // A penny row carries everything the free board renders, so /insiders/penny
 // needs no API call. Price-derived fields (px/ret/sz/vol/off) come from the
 // optional ticker-meta enrichment and are simply omitted when it is empty.
-function pennyRow(r, companies, meta, clusters) {
+function pennyRow(r, companies, meta, clusters, opts) {
   const m = (r.t && meta?.[r.t]) || {};
-  const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+  const ret = retFor(r, meta, opts);
   const off = m.px != null && m.lo > 0 ? ((m.px - m.lo) / m.lo) * 100 : null;
   const vol = m.px != null && m.vol > 0 ? m.px * m.vol : null;
   const cl = clusters?.get(r.t);
@@ -75,7 +94,7 @@ function pennyRow(r, companies, meta, clusters) {
 // The free board behind /insiders/penny: sub-$5 open-market activity over the
 // trailing window, ranked by transaction value. Buys are the "gems"; the sell
 // side ships too so the page can show both without a second dataset.
-export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()) {
+export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now(), opts = {}) {
   const anchor = lastDay ? new Date(`${lastDay}T00:00:00Z`).getTime() : now;
   const since = iso(anchor - PENNY.windowDays * 86400000);
   // Open-market trades only: grants, tax withholding and gifts say nothing
@@ -90,7 +109,7 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
   const buyValue = sum(buys);
   const sellValue = sum(sells);
   const byValue = (a, b) => (b.v || 0) - (a.v || 0);
-  const shape = (r) => pennyRow(r, companies, meta, clusters);
+  const shape = (r) => pennyRow(r, companies, meta, clusters, opts);
 
   // One row per ticker, so every slot on the board is a different company; the
   // biggest buy takes the slot and the cluster count says there were more.
@@ -102,13 +121,20 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
   // "High conviction" ranks the signal, not the size: several insiders buying
   // beats one, and an executive beats a 10% owner (usually a fund).
   const rank = { cluster: 0, ceo: 1, cfo: 2, director: 3 };
+  // the higher label first (insiderSignal.js, on the filing total), then the
+  // kind of buy, then the amount
+  const totals = filingTotals(buys);
+  const levelRank = { strong: 0, medium: 1, weak: 2, none: 3 };
   const signals = dedupe([...buys].sort(byValue))
     .map((r) => {
       const kind = clusters.has(r.t) ? 'cluster' : rank[r.r] != null ? r.r : null;
-      return kind ? { ...shape(r), kind } : null;
+      if (!kind) return null;
+      const unverified = retFor(r, meta, opts) == null && r.p > 0 && (r.t && meta?.[r.t]?.px) > 0;
+      const classification = unverified ? { ...classify(r), price_unverified: true } : undefined;
+      return { ...shape(r), kind, level: signalLevel(r, { filing: totals.get(r.a), classification }).level };
     })
     .filter(Boolean)
-    .sort((a, b) => rank[a.kind] - rank[b.kind] || byValue(a, b))
+    .sort((a, b) => levelRank[a.level] - levelRank[b.level] || rank[a.kind] - rank[b.kind] || byValue(a, b))
     .slice(0, 3);
 
   return {
@@ -136,7 +162,7 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
   };
 }
 
-export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
+export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), opts = {}) {
   const rows = all.filter(listed);
   // the headline numbers come from the one shared definition (daySummary), so
   // the home page and /insiders cannot disagree about the same day again
@@ -175,27 +201,27 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
   };
   const csuite = dedupe(
     recentBuys
-      .filter((r) => r.r === 'ceo' || r.r === 'cfo')
+      .filter((r) => openBuy(r) && (r.r === 'ceo' || r.r === 'cfo'))
       .sort((a, b) => (b.v || 0) - (a.v || 0))
   )
     .slice(0, 8)
-    .map((r) => brief(r, companies, meta));
+    .map((r) => brief(r, companies, meta, opts));
   const penny = dedupe(
     recentBuys
-      .filter((r) => r.p > 0 && r.p < 5 && (r.v || 0) >= 25000)
+      .filter((r) => openBuy(r) && r.p < 5 && (r.v || 0) >= 25000)
       .sort((a, b) => (b.v || 0) - (a.v || 0))
   )
     .slice(0, 8)
-    .map((r) => brief(r, companies, meta));
+    .map((r) => brief(r, companies, meta, opts));
 
-  const buys = rows.filter(isBuy).slice().sort((a, b) => (a.f === b.f ? (a.d < b.d ? 1 : -1) : a.f < b.f ? 1 : -1));
+  const buys = rows.filter(openBuy).slice().sort((a, b) => (a.f === b.f ? (a.d < b.d ? 1 : -1) : a.f < b.f ? 1 : -1));
   // Highlight: the largest buy by an executive or director on the newest day;
   // 10% owners are usually funds, so they are only a fallback.
-  const dayBuys = today.filter(isBuy);
+  const dayBuys = today.filter(openBuy);
   const pool = dayBuys.length ? dayBuys : buys.slice(0, 50);
   const people = pool.filter((r) => r.r !== 'owner10');
   const pick = (list) => list.reduce((m, r) => ((r.v || 0) > (m.v || 0) ? r : m));
-  const highlight = pool.length ? brief(pick(people.length ? people : pool), companies, meta) : null;
+  const highlight = pool.length ? brief(pick(people.length ? people : pool), companies, meta, opts) : null;
 
   return {
     updatedAt: new Date(now).toISOString(),
@@ -204,7 +230,7 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
     pulse,
     highlight,
     signals: { cluster, csuite, penny },
-    penny: buildPennyBoard(rows, companies, meta, lastDay, now),
-    rows: buys.slice(0, 20).map((r) => brief(r, companies, meta)),
+    penny: buildPennyBoard(rows, companies, meta, lastDay, now, opts),
+    rows: buys.slice(0, 20).map((r) => brief(r, companies, meta, opts)),
   };
 }

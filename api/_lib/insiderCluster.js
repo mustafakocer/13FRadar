@@ -50,6 +50,11 @@ export const SAME_PRICE_MIN_PEOPLE = 5;
 export const SAME_PRICE_TOLERANCE = 0.001;
 export const SAME_PRICE_MIN_UNIT = 0.01;
 
+// Shares paid as director or officer compensation — a fee program, a
+// retainer, stock "in lieu of cash", an issuer grant exempt under Rule
+// 16b-3 (Eastern Company: "shares issued under The Eastern Company
+// Director's Fee Program pursuant to rule 16b-3(d)"), filed with code P
+export const COMPENSATION_RE = /\bfee program\b|in lieu of cash|\bretainers?\b|\b16b-3\b/i;
 export const EMPLOYEE_PLAN_RE = /employee stock purchase|\bespp\b|employee (share|stock) (purchase|ownership) plan|dividend reinvestment|\bdrip\b|payroll deduction/i;
 export const OFFERING_RE = /\b(public|underwritten|registered|secondary|follow-on|best efforts)\b[^.]{0,40}\boffering\b|\bin the (company's |issuer's )?offering\b|\boffering\b[^.]{0,60}\b(price|underwrit)|private placement|directly from the (issuer|company)|from the issuer in|subscription agreement|securities purchase agreement/i;
 
@@ -75,9 +80,11 @@ export function exclusionOf(r, c = classify(r)) {
 // Labels per line, for one company's open-market buys:
 //   'offering'  its footnotes name an offering / private placement / a
 //               purchase directly from the issuer
-//   'plan_bulk' its footnotes name an employee purchase plan or dividend
-//               reinvestment, or it is one of ≥5 people buying that day at
-//               (nearly) the same price with a median under $10,000 each
+//   'plan_bulk' its footnotes name an employee purchase plan, dividend
+//               reinvestment or compensation shares (fee program, retainer,
+//               in lieu of cash, Rule 16b-3), or it is one of ≥5 people
+//               buying that day at (nearly) the same price with a median
+//               under $10,000 each
 // → Map line → { label, why, quote? }
 //   'offering' also for a line bought at the offering price another line's
 //               footnote states, converted to dollars at that day's rate
@@ -99,6 +106,7 @@ export function lineLabels(lines, rawOf = () => null, toUsd = (x, cu) => (cu ===
         if (usd > 0) offerPrices.push({ usd, d: r.d, cu, amount });
       }
     } else if (EMPLOYEE_PLAN_RE.test(t)) out.set(r, { label: 'plan_bulk', why: 'footnote', quote: sentence(t, EMPLOYEE_PLAN_RE) });
+    else if (COMPENSATION_RE.test(t)) out.set(r, { label: 'plan_bulk', why: 'footnote', quote: sentence(t, COMPENSATION_RE) });
   }
   for (const r of lines) {
     if (out.has(r) || !(r.p > 0)) continue;
@@ -193,9 +201,11 @@ function statedPrices(t) {
 const HOLDING_NOTE_RE = /^(this (amount|total|number) )?(also )?includes\b|^(the )?(amount|number|total) of (securities|shares) (beneficially )?owned[^.]*includes\b/i;
 export function aboutTheTrade(text) {
   if (!text) return '';
-  return text
-    .split(/(?<=\.)\s+(?=[A-Z(])/)
-    .filter((x) => !HOLDING_NOTE_RE.test(x.trim()))
+  // …and the sentence that carries one on ("Includes shares acquired
+  // pursuant to the ESPP. Such acquisitions are exempt under Rule 16b-3.")
+  const parts = text.split(/(?<=\.)\s+(?=[A-Z(])/);
+  return parts
+    .filter((x, i) => !HOLDING_NOTE_RE.test(x.trim()) && !(i > 0 && HOLDING_NOTE_RE.test(parts[i - 1].trim()) && /^such\b/i.test(x.trim())))
     .join(' ')
     .trim();
 }

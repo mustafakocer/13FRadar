@@ -11,7 +11,10 @@ import { readServed } from '../_lib/insiderStore.js';
 import { classify } from '../_lib/insiderClassify.js';
 import { filingTotals, signalLevel } from '../_lib/insiderSignal.js';
 import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
-import { adjustedPrice, sinceTrade } from '../_lib/splitAdjust.js';
+import { sinceTrade } from '../_lib/splitAdjust.js';
+import { priceCheck } from '../_lib/insiderPriceCheck.js';
+import { readRawServed } from '../_lib/insiderStore.js';
+import { readSeries } from '../_lib/priceStore.js';
 import { createRequire } from 'node:module';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
@@ -60,8 +63,27 @@ function derive(db) {
   derivedFor = db;
   return derived;
 }
+// Can this line's price be compared with today's? Checked here, at read
+// time, for the rows actually shown (insiderPriceCheck.js) — not only by the
+// nightly build — so a wrong return never waits for the next crawl.
+const checks = new WeakMap();
+function checkOf(r, meta) {
+  if (!checks.has(r))
+    checks.set(r, priceCheck(r, { raw: readRawServed()[`${r.a}:${r.li}`], series: r.t ? readSeries(r.t)?.prices : null, current: (r.t && meta[r.t]?.px) ?? null }));
+  return checks.get(r);
+}
+// The classification with the price check folded in.
+const clsOf = (r, d, meta) => {
+  const c = d.cls.get(r) || classify(r);
+  return c.openMarket && !checkOf(r, meta).ok ? { ...c, price_unverified: true } : c;
+};
 // Signal level on the filing total, with the line's classification reused.
-const levelOf = (r, d) => signalLevel(r, { classification: d.cls.get(r), filing: d.filings.get(r.a) });
+const levelOf = (r, d, meta) => signalLevel(r, { classification: clsOf(r, d, meta), filing: d.filings.get(r.a) });
+// Return since the trade: open-market lines whose price passed the check only.
+const retOf = (r, meta, d) => {
+  const c = clsOf(r, d, meta);
+  return c.openMarket && !c.price_unverified ? sinceTrade(r, (r.t && meta[r.t]?.px) ?? null) : null;
+};
 function loadMeta() {
   try {
     return require('../_data/ticker-meta.json');
@@ -88,13 +110,13 @@ const numQ = (v) => {
 // +4,889% and meant nothing, so it is null there.
 function shape(r, meta, companies, d) {
   const m = (r.t && meta[r.t]) || {};
-  const c = d.cls.get(r) || classify(r);
-  // …and not when the form's price is in an unknown unit (CEMEX in pesos
-  // read as dollars showed −43.8%): the page says "fiyat birimi doğrulanamadı"
-  // Both prices in today's shares: a split since the trade is not a loss.
-  const base = adjustedPrice(r);
-  const ret = c.openMarket && !c.price_unverified && m.px != null && base > 0 ? ((m.px - base) / base) * 100 : null;
-  const sig = levelOf(r, d);
+  // …and not when the price cannot be checked against the market (CEMEX
+  // in pesos showed −43.8%, NCT after a reverse split +1,007.5%): the page
+  // says why instead. Both prices in today's shares (splits since the trade).
+  const c = clsOf(r, d, meta);
+  const chk = c.openMarket ? checkOf(r, meta) : { ok: true, reason: null };
+  const ret = retOf(r, meta, d);
+  const sig = levelOf(r, d, meta);
   return {
     ticker: r.t,
     company: companies[r.t] || null,
@@ -114,6 +136,7 @@ function shape(r, meta, companies, d) {
     holder: sig.holder,
     fund: c.fund_insider,
     priceUnverified: c.price_unverified,
+    priceNote: chk.ok ? null : chk.reason,
     signal: { level: sig.level, why: sig.why, role: sig.role, value: sig.value, lines: sig.lines, ownIncrease: Number.isFinite(sig.ownIncrease) ? Number(sig.ownIncrease.toFixed(1)) : sig.ownIncrease === Infinity ? 'new' : null },
     shares: r.s,
     price: r.p,
@@ -149,7 +172,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const signals = [];
   for (const r of last24) {
     const m = (r.t && meta[r.t]) || {};
-    const ret = sinceTrade(r, m.px);
+    const ret = retOf(r, meta, d);
     const cl = clusters.get(r.t);
     let kind = null;
     if (cl) kind = 'cluster';
@@ -159,7 +182,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
     if (!kind) continue;
     // a card for a buy that rates no signal (a planned trade, a $5K top-up)
     // would contradict the label beside it; clusters are item 3's business
-    const level = levelOf(r, d).level;
+    const level = levelOf(r, d, meta).level;
     if (level === 'none' && kind !== 'cluster') continue;
     signals.push({
       ticker: r.t,
@@ -184,7 +207,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
       .slice(0, 3)
       .map((r) => {
         const m = (r.t && meta[r.t]) || {};
-        const ret = sinceTrade(r, m.px);
+        const ret = retOf(r, meta, d);
         return {
           ticker: r.t,
           insider: r.n,
@@ -332,7 +355,7 @@ export async function answer(rawQuery, { free = true } = {}) {
     lag: (r) => businessDaysBetween(r.d, r.f) ?? 0,
     return: (r) => {
       const m = (r.t && meta[r.t]) || {};
-      const x = sinceTrade(r, m.px);
+      const x = retOf(r, meta, d);
       return x == null ? -Infinity : x;
     },
   }[sort];
@@ -361,7 +384,8 @@ export async function answer(rawQuery, { free = true } = {}) {
         density: clusterDensity(cl),
       };
     }
-    row.hitRate = d.cls.get(r).category === 'open_buy' ? hitRate(r, d.people) : null;
+    const c = clsOf(r, d, meta);
+    row.hitRate = c.category !== 'open_buy' || c.fund_insider ? null : c.price_unverified ? { unverified: true } : hitRate(r, d.people);
     return row;
   });
   const sectors = [...new Set(Object.values(meta).map((m) => m.sector).filter(Boolean))].sort();

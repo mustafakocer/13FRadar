@@ -283,3 +283,55 @@ test('5) a fund or 10%-only holder gets the holder badge and the amount, never a
   assert.match(page, /\{!r\.holder && level !== 'none' && \(/, 'no size label when there is a holder badge');
   assert.match(page, /t\(`ins\.holder\.\$\{r\.holder\}`\)/);
 });
+
+// ---- price checks at read time: CX, DFDV, NCT (real rows and raw Form 4 fields) ----
+
+import { priceCheck } from '../api/_lib/insiderPriceCheck.js';
+
+async function feedWithRaw(entries, query) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ins-'));
+  const rows = entries.map((e) => ({ ...e.row, d: '2026-09-17', f: '2026-09-18' }));
+  const raw = Object.fromEntries(entries.map((e) => [`${e.row.a}:${e.row.li}`, e.raw]));
+  fs.writeFileSync(path.join(dir, 'insiders.json'), JSON.stringify({ updatedAt: '2026-09-19T04:00:00Z', rows, companies: {} }));
+  fs.writeFileSync(path.join(dir, 'insiders-raw.json'), JSON.stringify({ rows: raw }));
+  process.env.INSIDER_DATA_DIR = dir;
+  resetServedCache();
+  try {
+    const { answer } = await import('../api/_handlers/insider-feed.js');
+    return await answer(query, { free: false });
+  } finally {
+    delete process.env.INSIDER_DATA_DIR;
+    resetServedCache();
+  }
+}
+
+test('CX: a price in Mexican pesos per participation certificate — no return, capped level, said why', async () => {
+  const { row, raw } = cases.CX_pesos;
+  assert.match(raw.fn.F2, /Mexican Pesos/);
+  assert.deepEqual(priceCheck(row, { raw, current: 9.71 }), { ok: false, reason: 'currency' });
+  const feed = await feedWithRaw([cases.CX_pesos], { tab: 'latest' });
+  const r = feed.rows[0];
+  assert.deepEqual([r.ret, r.priceUnverified, r.priceNote, r.signal.level, r.hitRate], [null, true, 'currency', 'weak', { unverified: true }]);
+});
+
+test('DFDV: a preferred-stock purchase is not compared with the common price', async () => {
+  const { row, raw } = cases.DFDV_preferred;
+  assert.match(raw.st, /Preferred/);
+  assert.deepEqual(priceCheck(row, { raw, current: 6.04 }), { ok: false, reason: 'security' });
+  const feed = await feedWithRaw([cases.DFDV_preferred], { tab: 'latest' });
+  assert.deepEqual([feed.rows[0].ret, feed.rows[0].priceNote, feed.rows[0].holder], [null, 'security', 'owner10']);
+  // the common stock of the same company is still compared
+  assert.equal(priceCheck(row, { raw: { ...raw, st: 'Common Stock' }, current: 8.5 }).ok, true);
+});
+
+test('NCT: no price history and 11× away from today (unrecorded reverse split) — "fiyat doğrulanamadı"', async () => {
+  const { row, raw } = cases.NCT_reverse_split;
+  assert.equal(row.p, 0.4);
+  assert.equal(raw.st, 'Class B Ordinary Shares', 'ordinary shares: the security itself is fine');
+  assert.deepEqual(priceCheck(row, { raw, series: null, current: 4.43 }), { ok: false, reason: 'unverifiable' });
+  assert.deepEqual(priceCheck(row, { raw, series: null, current: 0.55 }), { ok: true, reason: null }, 'within 2×: shown');
+  // the teaser (home and penny widgets) applies the same check
+  const t = buildTeaser([{ ...row, d: '2026-09-17', f: '2026-09-18' }], {}, { NCT: { px: 4.43 } }, Date.parse('2026-09-19'), { raw: { [`${row.a}:${row.li}`]: raw } });
+  assert.equal(t.rows[0].ret, undefined, 'no "+1,007.5%" on the home page');
+  assert.equal(t.penny.rows[0]?.ret, undefined);
+});

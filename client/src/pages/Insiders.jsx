@@ -594,7 +594,7 @@ export default function Insiders() {
                       ) : (
                         <b className="muted" title={r.category === 'open_buy' || r.category === 'open_sell' ? undefined : t('ins.noReturn')}>—</b>
                       )}
-                      {r.priceUnverified && <div className="muted small" data-price-unverified>{t('ins.priceUnverified')}</div>}
+                      {r.priceUnverified && <div className="muted small" data-price-unverified={r.priceNote || 'form'}>{t(`ins.priceNote.${r.priceNote || 'form'}`)}</div>}
                       <div className="muted small">{t('ins.curr')}: {r.current != null ? `$${fmtNum(r.current, 2)}` : '—'}</div>
                     </td>
                     <td className="num">
@@ -606,7 +606,7 @@ export default function Insiders() {
                           <div className="muted small">n={r.hitRate.n}</div>
                         </>
                       ) : r.hitRate?.unverified ? (
-                        <span className="muted small">{t('ins.priceUnverified')}</span>
+                        <span className="muted small">{t(`ins.priceNote.${r.priceNote || 'form'}`)}</span>
                       ) : r.hitRate?.insufficient ? (
                         <span className="muted small" title={`n=${r.hitRate.n}`}>{t('ins.hitInsufficient')}</span>
                       ) : (

@@ -667,5 +667,99 @@
    "oc": 33.3,
    "a": "0001046179-26-000656"
   }
- ]
+ ],
+ "CX_pesos": {
+  "row": {
+   "t": "CX",
+   "ci": "0001076378",
+   "n": "Zambrano Lozano Rogelio",
+   "r": "director",
+   "ti": null,
+   "d": "2026-09-25",
+   "f": "2026-09-25",
+   "k": "P",
+   "cl": "conviction",
+   "s": 400800,
+   "p": 17.2812,
+   "v": 6926305,
+   "o": 10000000,
+   "oc": 4.2,
+   "a": "0002035244-26-000009",
+   "li": 0,
+   "ow": "0002035244"
+  },
+  "raw": {
+   "ad": "A",
+   "af": "0",
+   "st": "Ordinary Participation Certificates (CEMEX.CPO)",
+   "sr": "400800",
+   "pr": "17.2812",
+   "dr": 1,
+   "fn": {
+    "F1": "Price per Ordinary Participation Certificate.",
+    "F2": "Price in Mexican Pesos (MXN).",
+    "F3": "The reported price in Column 4 is a weighted average price. These Ordinary Participation Certificates were purchased in multiple transactions at prices ranging from $17.20 MXN to $17.34 MXN per Ordinary Participation Certificate. The holder undertakes to provide to the Issuer, any security holder of the Issuer, or the staff of the Securities and Exchange Commission, upon request, full information regarding the number of Ordinary Participation Certificates purchased at each separate price within the range set forth in this footnote."
+   }
+  }
+ },
+ "DFDV_preferred": {
+  "row": {
+   "t": "DFDV",
+   "ci": "0001805526",
+   "n": "White Parker",
+   "r": "owner10",
+   "ti": null,
+   "d": "2026-09-24",
+   "f": "2026-09-25",
+   "k": "P",
+   "cl": "conviction",
+   "s": 9462,
+   "p": 8.96,
+   "v": 84780,
+   "o": 9462,
+   "oc": null,
+   "a": "0002061848-26-000005",
+   "li": 0,
+   "ow": "0002061848"
+  },
+  "raw": {
+   "ad": "A",
+   "af": "0",
+   "st": "Variable Rate Series C Perpetual Preferred Stock",
+   "sr": "9462",
+   "pr": "8.96",
+   "tp": 1
+  }
+ },
+ "NCT_reverse_split": {
+  "row": {
+   "t": "NCT",
+   "ci": "0002018529",
+   "n": "Zhu Muchun",
+   "r": "ceo",
+   "ti": "CEO and Chairman",
+   "d": "2026-09-25",
+   "f": "2026-09-25",
+   "k": "P",
+   "cl": "conviction",
+   "s": 1625000,
+   "p": 0.4,
+   "v": 650000,
+   "o": 1831598,
+   "oc": 786.6,
+   "a": "0001493152-26-044229",
+   "li": 0,
+   "ow": "0002071210"
+  },
+  "raw": {
+   "ad": "A",
+   "af": "0",
+   "st": "Class B Ordinary Shares",
+   "sr": "1625000",
+   "pr": "0.4",
+   "dr": 1,
+   "of": 1,
+   "ot": "CEO and Chairman"
+  }
+ }
 }

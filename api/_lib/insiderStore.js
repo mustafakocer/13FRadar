@@ -44,7 +44,22 @@ export function readServed() {
 }
 export const resetServedCache = () => {
   served = null;
+  servedRaw = null;
 };
+
+// The raw Form 4 fields (security title, footnotes…) for the price check at
+// read time (insiderPriceCheck.js). Loaded on first use; the literal require
+// path lets Vercel bundle it (vercel.json includes it for api/index.js too).
+let servedRaw = null;
+export function readRawServed() {
+  if (servedRaw) return servedRaw;
+  try {
+    servedRaw = (process.env.INSIDER_DATA_DIR ? readJson(files.raw(), null) : require('../_data/insiders-raw.json'))?.rows || {};
+  } catch {
+    servedRaw = {};
+  }
+  return servedRaw;
+}
 
 // ------------------------------------------------------------ read/write (build)
 export function readJson(file, fallback) {

@@ -10,7 +10,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
-import { currentRows } from '../api/_lib/insiderStore.js';
+import { currentRows, loadRaw } from '../api/_lib/insiderStore.js';
+import { readSeries } from '../api/_lib/priceStore.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const DB = path.join(root, 'api', '_data', 'insiders.json');
@@ -32,7 +33,8 @@ if (!db?.rows?.length) {
 }
 const meta = read(META, {});
 const now = db.updatedAt ? Date.parse(db.updatedAt) : Date.now();
-const teaser = buildTeaser(currentRows(db.rows), db.companies || {}, meta, now);
+// the price check needs the raw Form 4 fields and the daily closes
+const teaser = buildTeaser(currentRows(db.rows), db.companies || {}, meta, now, { raw: loadRaw().rows, seriesFor: (t) => readSeries(t)?.prices || null });
 fs.writeFileSync(OUT, JSON.stringify(teaser));
 
 const p = teaser.penny;

@@ -623,7 +623,7 @@ saveDataset({
 });
 saveRaw({ rows: { ...loadRaw().rows, ...rawAdd } }, new Set(all.map(rowId)));
 saveErrors([...(loadErrors().errors || []), ...newErrors]);
-saveTeaser(buildTeaser(current, companies, meta));
+saveTeaser(buildTeaser(current, companies, meta, Date.now(), { raw: rawAll, seriesFor }));
 
 const now = new Date().toISOString();
 saveFreshness({

@@ -301,7 +301,7 @@ export default function PennyStocks() {
           )}
         </Stat>
 
-        <Stat label={t('ins.highConviction')} tip="tips.pennySignals">
+        <Stat label={t('penny.signalsTitle')} tip="tips.pennySignals">
           {!board?.signals?.length && <div className="muted small">{t('common.na')}</div>}
           {board?.signals?.map((s) => (
             <div className="pos-row" key={`${s.t}-${s.kind}`}>

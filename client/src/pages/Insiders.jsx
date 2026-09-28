@@ -200,21 +200,33 @@ export function signalReason(sig, t) {
   if (sig.ownIncrease === 'new') parts.push(t('ins.newPosition'));
   else if (sig.ownIncrease != null) parts.push(`${t('ins.own')} ${fmtPct(sig.ownIncrease, { digits: 0 })}`);
   if (sig.why === 'large_holder_cap') parts.push(t('ins.why.large_holder_cap'));
-  return `${parts.join(' · ')}\n${t('ins.levelDisclaimer')}`;
+  if (sig.why === 'price_unverified') parts.push(t('ins.why.price_unverified'));
+  const total = sig.lines > 1 ? `\n${t('ins.filingTotal').replace('{v}', fmtMoney(sig.value)).replace('{n}', sig.lines)}` : '';
+  return `${parts.join(' · ')}${total}\n${t('ins.levelDisclaimer')}`;
 }
 function RowLabel({ r, t }) {
   const planned = r.planned && <span className="badge sm plain" style={{ marginLeft: 4 }}>10b5-1</span>;
-  const holder = r.largeHolder && <span className="badge sm plain" style={{ marginLeft: 4 }}>{t('ins.largeHolder')}</span>;
+  // A fund or a 10%-only owner gets the holder badge and the amount, never a
+  // size label: "Küçük alım" beside Berkshire's LEN purchase would mislead.
+  const holderBadge = r.holder && (
+    <span
+      className="badge sm plain"
+      data-holder={r.holder}
+      title={r.signal?.value != null ? t('ins.filingTotal').replace('{v}', fmtMoney(r.signal.value)).replace('{n}', r.signal.lines || 1) : undefined}
+    >
+      {t(`ins.holder.${r.holder}`)}
+    </span>
+  );
   if (r.category === 'open_buy') {
     const level = r.signal?.level || 'none';
     return (
       <>
-        {level !== 'none' && (
+        {!r.holder && level !== 'none' && (
           <span className={`badge sm ${LEVEL_CLASS[level]}`} title={signalReason(r.signal, t)} data-level={level}>
             {t(`ins.level.${level}`)}
           </span>
         )}
-        {holder}
+        {holderBadge}
         {planned}
       </>
     );
@@ -224,7 +236,7 @@ function RowLabel({ r, t }) {
       <span className={`badge sm ${r.category === 'open_sell' ? 'neg' : 'plain'}`} title={r.code ? `Form 4: ${r.code}` : undefined} data-category={r.category}>
         {t(`ins.cat.${r.category || 'other'}`)}
       </span>
-      {holder}
+      {holderBadge && <span style={{ marginLeft: 4 }}>{holderBadge}</span>}
       {planned}
     </>
   );
@@ -582,6 +594,7 @@ export default function Insiders() {
                       ) : (
                         <b className="muted" title={r.category === 'open_buy' || r.category === 'open_sell' ? undefined : t('ins.noReturn')}>—</b>
                       )}
+                      {r.priceUnverified && <div className="muted small" data-price-unverified>{t('ins.priceUnverified')}</div>}
                       <div className="muted small">{t('ins.curr')}: {r.current != null ? `$${fmtNum(r.current, 2)}` : '—'}</div>
                     </td>
                     <td className="num">
@@ -592,6 +605,8 @@ export default function Insiders() {
                               buys is not the same claim as 60% of fifteen */}
                           <div className="muted small">n={r.hitRate.n}</div>
                         </>
+                      ) : r.hitRate?.unverified ? (
+                        <span className="muted small">{t('ins.priceUnverified')}</span>
                       ) : r.hitRate?.insufficient ? (
                         <span className="muted small" title={`n=${r.hitRate.n}`}>{t('ins.hitInsufficient')}</span>
                       ) : (

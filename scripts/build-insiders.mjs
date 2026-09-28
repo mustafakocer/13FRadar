@@ -65,7 +65,7 @@ import {
 import { parseForm4Submission, BadFilingError } from '../api/_lib/insiderForm4.js';
 import { RateClock } from '../api/_lib/edgarClock.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
-import { annotateOutcomes } from '../api/_lib/insiderOutcome.js';
+import { annotateOutcomes, checkPriceUnits } from '../api/_lib/insiderOutcome.js';
 import { PLAN_NOTE_RE } from '../api/_lib/insiderClassify.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { fetchCharts, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
@@ -595,7 +595,17 @@ if (planNotes) console.log(`Marked ${planNotes} line(s) as planned trades from t
 // 30/90-day return vs SPY after every open-market buy whose horizon has
 // passed: from tonight's chart closes, else the nightly price cache.
 const spy = readSeries('SPY')?.prices || chartCloses.get('SPY') || [];
-const outcomes = annotateOutcomes(all, (t) => chartCloses.get(t) || readSeries(t)?.prices || null, spy);
+const seriesFor = (t) => chartCloses.get(t) || readSeries(t)?.prices || null;
+// a form price far from that day's close is flagged (`pu`) until the
+// currency/ADR work (roadmap item 4) can convert it
+const mismatched = checkPriceUnits(all, seriesFor);
+if (mismatched.length) {
+  const byTicker = {};
+  for (const m of mismatched) byTicker[m.t] = (byTicker[m.t] || 0) + 1;
+  const top = Object.entries(byTicker).sort((a, b) => b[1] - a[1]).slice(0, 20);
+  console.log(`Price unit check: ${mismatched.length} line(s) over ${Object.keys(byTicker).length} ticker(s) more than 25% from the day's close — ${top.map(([t, n]) => `${t} ${n}`).join(', ')}`);
+}
+const outcomes = annotateOutcomes(all, seriesFor, spy);
 console.log(`Forward returns vs SPY: ${outcomes} value(s) computed${spy.length ? '' : ' — no SPY series, none computed'}.`);
 
 const newest = lastFilingDay(current);

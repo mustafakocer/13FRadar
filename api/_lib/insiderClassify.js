@@ -68,16 +68,40 @@ export function sideOf(r, category = categorize(r)) {
   return 'buy';
 }
 
-// A person's name on Form 4 reads "Last First Middle"; an entity carries a
-// legal form or an investment word. Matching the words, not the case, keeps
-// "Mink Brook Asset Management LLC" and "HORIZON KINETICS ASSET MANAGEMENT
-// LLC" out of the people column. A family trust is caught too, which is the
-// intent: it is a holding vehicle, not an executive.
-const ENTITY_RE =
-  /\b(llc|l\.l\.c|lp|l\.p|llp|inc|incorporated|corp|corporation|company|ltd|limited|plc|gmbh|fund|funds|capital|partners|partnership|management|advisors|advisers|holdings?|trust|group|investments?|asset|assets|ventures|equity|associates|foundation|bank|bancorp|securities|enterprises)\b\.?/i;
-export const isEntityName = (name) => ENTITY_RE.test(String(name || '').replace(/[,]/g, ' '));
+// Is the reporting owner a fund or company rather than a person? Form 4 has
+// no "entity" box, so this reads what the form does say:
+//   · the relationship flags: an owner filing as an officer (with a title),
+//     CEO or CFO is a person, whatever the name looks like;
+//   · the owner's name ending in / containing a legal-form or investment
+//     word — LLC, LP, Fund, Capital, Management, Trust, Holdings, Inc…
+// A 10% owner who is a PERSON is not a fund: "White Parker" (DFDV) is an
+// individual filing only as a 10% owner and used to be labelled "Büyük ortak
+// (fon)" because every 10%-only owner was. Those now get their own label
+// (ten_pct_owner_only without fund_insider).
+// Legal forms: only a company carries these — never a person, whatever role
+// the form gives it. Checked anywhere in the name, and the short ones (Co,
+// SA, AG, NV…) only as the last word, where they cannot be an initial.
+const LEGAL_RE = /\b(llc|l\.l\.c|l\.?\s?p|llp|l\.l\.p|inc|incorporated|corp|corporation|company|ltd|limited|plc|gmbh)\b\.?/i;
+const LEGAL_TAIL_RE = /\b(co|s\.?a|a\.?g|n\.?v|b\.?v|s\.?p\.?a|s\.?e|a\.?b)\.?$/i;
+// Investment words: a fund or vehicle — unless the form says this owner is
+// a director, an officer (with a title), CEO or CFO, which only a person can be
+// ("HOLDING FRANK B JR" is Mr Holding).
+const VEHICLE_RE =
+  /\b(fund|funds|capital|partners|partnership|management|advisors|advisers|holdings?|trust|investments?|ventures|foundation|bank|bancorp|insurance|pension|plan|endowment|association|university|investors|sponsor|retirement|caisse|placement|sicav|ucits)\b/i;
+const clean = (name) => String(name || '').replace(/,/g, ' ').replace(/\s+/g, ' ').trim();
+export const isEntityName = (name) => LEGAL_RE.test(clean(name)) || LEGAL_TAIL_RE.test(clean(name)) || VEHICLE_RE.test(clean(name));
 
 const truthy = (x) => x === 1 || x === true || x === '1';
+
+export function isFundInsider(r) {
+  const name = clean(r?.n);
+  if (LEGAL_RE.test(name) || LEGAL_TAIL_RE.test(name)) return true;
+  if (!VEHICLE_RE.test(name)) return false;
+  // a person's role on the form wins over a name that happens to look like a fund
+  if (r?.r === 'ceo' || r?.r === 'cfo' || r?.r === 'director') return false;
+  if (r?.r === 'officer' && r?.ti) return false;
+  return true;
+}
 
 export function flagsOf(r) {
   const officerOrDirector = ['ceo', 'cfo', 'officer', 'director'].includes(r?.r);
@@ -87,8 +111,12 @@ export function flagsOf(r) {
   return {
     plan_trade: Boolean(r?.p5 || r?.pn),
     ten_pct_owner_only: tenPctOnly,
-    fund_insider: isEntityName(r?.n),
+    fund_insider: isFundInsider(r),
     zero_price: !hasPrice(r),
+    // the price on the form is more than 25% away from that day's market
+    // close — almost always a foreign currency or a per-ADR/per-share unit
+    // mix-up (set by the nightly build, insiderOutcome.checkPriceUnits)
+    price_unverified: Boolean(r?.pu),
   };
 }
 

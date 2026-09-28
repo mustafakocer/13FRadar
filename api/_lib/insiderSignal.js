@@ -91,13 +91,21 @@ function roleWord(r, c) {
 
 // → { level, why, role, value, ownIncrease, largeHolder }
 //   why  the rule that decided it: not_open_buy · plan · zero_price · small ·
-//        top_value · insider_value_own · insider_value · own_increase · base
+//        top_value · insider_value_own · insider_value · own_increase · base ·
+//        large_holder_cap · price_unverified
+//   value / lines  the filing's total open-market buy and how many lines it has
+//   holder  'fund' | 'owner10' | null
 export function signalLevel(r, context = {}) {
   const c = context.classification || classify(r);
   const f = context.filing;
   const value = f ? f.value : Number.isFinite(r?.v) ? r.v : null;
   const inc = f ? f.increase : ownIncreasePct(r);
-  const out = (level, why) => ({ level, why, role: roleWord(r, c), value, ownIncrease: inc, largeHolder: c.ten_pct_owner_only || c.fund_insider });
+  // holder: 'fund' (a fund or company) or 'owner10' (a person who is only a
+  // 10% owner). The page shows these with a holder badge and the amount and
+  // NO size label: "Küçük alım" beside Berkshire's $140M LEN purchase would
+  // mislead. The level is still computed (capped at weak) for the calibration.
+  const holder = c.fund_insider ? 'fund' : c.ten_pct_owner_only ? 'owner10' : null;
+  const out = (level, why) => ({ level, why, role: roleWord(r, c), value, ownIncrease: inc, largeHolder: Boolean(holder), holder, lines: f ? f.lines : 1 });
 
   if (c.category !== 'open_buy') return out('none', 'not_open_buy');
   if (c.plan_trade) return out('none', 'plan');
@@ -116,6 +124,12 @@ export function signalLevel(r, context = {}) {
   if ((c.ten_pct_owner_only || c.fund_insider) && rank(level) > rank('weak')) {
     level = 'weak';
     why = 'large_holder_cap';
+  }
+  // a price that does not match that day's market close (a foreign currency
+  // or unit, roadmap item 4) makes the amount unreliable: at most weak
+  if (c.price_unverified && rank(level) > rank('weak')) {
+    level = 'weak';
+    why = 'price_unverified';
   }
   return out(level, why);
 }

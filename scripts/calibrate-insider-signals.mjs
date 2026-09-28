@@ -25,7 +25,7 @@
 import { currentRows, readServed } from '../api/_lib/insiderStore.js';
 import { classify } from '../api/_lib/insiderClassify.js';
 import { filingTotals, signalLevel, LEVELS } from '../api/_lib/insiderSignal.js';
-import { forwardExcess } from '../api/_lib/insiderOutcome.js';
+import { forwardExcess, priceMismatch } from '../api/_lib/insiderOutcome.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { SIGNAL } from '../api/_lib/insiderSignalConfig.js';
 import { fetchCharts } from '../api/_lib/marketData.js';
@@ -151,11 +151,38 @@ function markdown() {
   for (const h of SIGNAL.horizons)
     out.push(`- ${h} gün: ${ladder[h].map((x) => `${x.pair}: ${x.holds == null ? 'örnek yetersiz' : x.holds ? 'tutuyor' : 'TUTMUYOR'}${x.overlap ? ' (aralıklar çakışıyor)' : ''}`).join(' · ')}`);
   out.push('');
+  out.push(`Fiyat birimi kontrolü: kapanışı bilinen ${mismatch.checked} açık piyasa satırının ${mismatch.lines}'i (${Object.keys(mismatch.byTicker).length} hisse) işlem günü kapanışından %25'ten fazla sapıyor. İlk 20 (satır sayısına göre; oran = form fiyatı / kapanış):`);
+  out.push('');
+  out.push('| Hisse | Satır | Medyan oran |');
+  out.push('|---|---:|---:|');
+  for (const m of topMismatch) out.push(`| ${m.ticker} | ${m.lines} | ${m.medianRatio} |`);
+  out.push('');
   out.push('Bu bir yatırım tavsiyesi değil; etiketlerin tutarlılık kontrolüdür. Maliyet ve zamanlama yok; fiyat verisi Yahoo günlük kapanışları ve fiyat önbelleği.');
   return out.join('\n');
 }
 
-const result = { generatedAt: new Date().toISOString(), filings: firstLine.size, noSeries, config: SIGNAL, table, ladder };
+// Price unit check (input to roadmap item 4): open-market lines whose form
+// price is more than 25% away from that day's close — a foreign currency or
+// a per-ADR/per-share mix-up. The nightly build flags these (`pu`).
+const mismatch = { lines: 0, checked: 0, byTicker: {} };
+for (const r of rows) {
+  const cat = classify(r).category;
+  if (!r.t || (cat !== 'open_buy' && cat !== 'open_sell')) continue;
+  const m = priceMismatch(r, series(r.t));
+  if (m == null) continue;
+  mismatch.checked++;
+  if (!m) continue;
+  mismatch.lines++;
+  const e = (mismatch.byTicker[r.t] ||= { lines: 0, ratios: [] });
+  e.lines++;
+  e.ratios.push(m.ratio);
+}
+const topMismatch = Object.entries(mismatch.byTicker)
+  .sort((a, b) => b[1].lines - a[1].lines)
+  .slice(0, 20)
+  .map(([t, e]) => ({ ticker: t, lines: e.lines, medianRatio: [...e.ratios].sort((a, b) => a - b)[e.ratios.length >> 1] }));
+
+const result = { generatedAt: new Date().toISOString(), filings: firstLine.size, noSeries, config: SIGNAL, table, ladder, priceUnits: { checked: mismatch.checked, flagged: mismatch.lines, tickers: Object.keys(mismatch.byTicker).length, top: topMismatch } };
 if (JSON_OUT) console.log(JSON.stringify(result, null, 1));
 else console.log(markdown());
 

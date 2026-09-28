@@ -11,6 +11,7 @@ import { readServed } from '../_lib/insiderStore.js';
 import { classify } from '../_lib/insiderClassify.js';
 import { filingTotals, signalLevel } from '../_lib/insiderSignal.js';
 import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
+import { adjustedPrice, sinceTrade } from '../_lib/splitAdjust.js';
 import { createRequire } from 'node:module';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
@@ -88,7 +89,11 @@ const numQ = (v) => {
 function shape(r, meta, companies, d) {
   const m = (r.t && meta[r.t]) || {};
   const c = d.cls.get(r) || classify(r);
-  const ret = c.openMarket && m.px != null && r.p > 0 ? ((m.px - r.p) / r.p) * 100 : null;
+  // …and not when the form's price is in an unknown unit (CEMEX in pesos
+  // read as dollars showed −43.8%): the page says "fiyat birimi doğrulanamadı"
+  // Both prices in today's shares: a split since the trade is not a loss.
+  const base = adjustedPrice(r);
+  const ret = c.openMarket && !c.price_unverified && m.px != null && base > 0 ? ((m.px - base) / base) * 100 : null;
   const sig = levelOf(r, d);
   return {
     ticker: r.t,
@@ -106,8 +111,10 @@ function shape(r, meta, companies, d) {
     category: c.category,
     planned: c.plan_trade,
     largeHolder: c.ten_pct_owner_only || c.fund_insider,
+    holder: sig.holder,
     fund: c.fund_insider,
-    signal: { level: sig.level, why: sig.why, role: sig.role, value: sig.value, ownIncrease: Number.isFinite(sig.ownIncrease) ? Number(sig.ownIncrease.toFixed(1)) : sig.ownIncrease === Infinity ? 'new' : null },
+    priceUnverified: c.price_unverified,
+    signal: { level: sig.level, why: sig.why, role: sig.role, value: sig.value, lines: sig.lines, ownIncrease: Number.isFinite(sig.ownIncrease) ? Number(sig.ownIncrease.toFixed(1)) : sig.ownIncrease === Infinity ? 'new' : null },
     shares: r.s,
     price: r.p,
     value: r.v,
@@ -142,7 +149,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const signals = [];
   for (const r of last24) {
     const m = (r.t && meta[r.t]) || {};
-    const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+    const ret = sinceTrade(r, m.px);
     const cl = clusters.get(r.t);
     let kind = null;
     if (cl) kind = 'cluster';
@@ -164,8 +171,10 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
       ret: ret != null ? Number(ret.toFixed(1)) : null,
     });
   }
+  // the higher level first, then the kind of buy, then the amount
   const rank = { cluster: 0, ceo: 1, cfo: 2, director: 3 };
-  signals.sort((a, b) => rank[a.kind] - rank[b.kind] || (b.value || 0) - (a.value || 0));
+  const levelRank = { strong: 0, medium: 1, weak: 2, none: 3 };
+  signals.sort((a, b) => levelRank[a.level] - levelRank[b.level] || rank[a.kind] - rank[b.kind] || (b.value || 0) - (a.value || 0));
   const seen = new Set();
   const topSignals = signals.filter((s) => !seen.has(s.ticker) && seen.add(s.ticker)).slice(0, 3);
 
@@ -175,7 +184,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
       .slice(0, 3)
       .map((r) => {
         const m = (r.t && meta[r.t]) || {};
-        const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+        const ret = sinceTrade(r, m.px);
         return {
           ticker: r.t,
           insider: r.n,
@@ -323,7 +332,8 @@ export async function answer(rawQuery, { free = true } = {}) {
     lag: (r) => businessDaysBetween(r.d, r.f) ?? 0,
     return: (r) => {
       const m = (r.t && meta[r.t]) || {};
-      return m.px != null && r.p ? (m.px - r.p) / r.p : -Infinity;
+      const x = sinceTrade(r, m.px);
+      return x == null ? -Infinity : x;
     },
   }[sort];
   out.sort((a, b) => {

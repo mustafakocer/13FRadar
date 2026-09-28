@@ -1,5 +1,7 @@
 import { businessDaysBetween, daySummary, findClusters, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
 import { categorize } from './insiderClassify.js';
+import { filingTotals, signalLevel } from './insiderSignal.js';
+import { sinceTrade } from './splitAdjust.js';
 
 // An open-market purchase with a real price (insiderClassify.js). The C-suite
 // and penny lists, the highlight and the newest-buys list use this; the
@@ -28,7 +30,7 @@ const round = (x, d = 1) => (x == null ? null : Number(x.toFixed(d)));
 
 function brief(r, companies, meta) {
   const m = (r.t && meta?.[r.t]) || {};
-  const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+  const ret = sinceTrade(r, m.px);
   return {
     t: r.t,
     c: companies[r.t] || null,
@@ -47,7 +49,7 @@ function brief(r, companies, meta) {
 // optional ticker-meta enrichment and are simply omitted when it is empty.
 function pennyRow(r, companies, meta, clusters) {
   const m = (r.t && meta?.[r.t]) || {};
-  const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+  const ret = sinceTrade(r, m.px);
   const off = m.px != null && m.lo > 0 ? ((m.px - m.lo) / m.lo) * 100 : null;
   const vol = m.px != null && m.vol > 0 ? m.px * m.vol : null;
   const cl = clusters?.get(r.t);
@@ -108,13 +110,17 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
   // "High conviction" ranks the signal, not the size: several insiders buying
   // beats one, and an executive beats a 10% owner (usually a fund).
   const rank = { cluster: 0, ceo: 1, cfo: 2, director: 3 };
+  // the higher label first (insiderSignal.js, on the filing total), then the
+  // kind of buy, then the amount
+  const totals = filingTotals(buys);
+  const levelRank = { strong: 0, medium: 1, weak: 2, none: 3 };
   const signals = dedupe([...buys].sort(byValue))
     .map((r) => {
       const kind = clusters.has(r.t) ? 'cluster' : rank[r.r] != null ? r.r : null;
-      return kind ? { ...shape(r), kind } : null;
+      return kind ? { ...shape(r), kind, level: signalLevel(r, { filing: totals.get(r.a) }).level } : null;
     })
     .filter(Boolean)
-    .sort((a, b) => rank[a.kind] - rank[b.kind] || byValue(a, b))
+    .sort((a, b) => levelRank[a.level] - levelRank[b.level] || rank[a.kind] - rank[b.kind] || byValue(a, b))
     .slice(0, 3);
 
   return {

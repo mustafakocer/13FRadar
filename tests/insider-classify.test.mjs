@@ -194,3 +194,92 @@ test('level labels describe the trade, promise nothing, and "none" shows no labe
   assert.match(page, /level !== 'none' &&/, 'no badge for a buy that rates none');
   assert.match(page, /ins\.levelDisclaimer/, 'the disclaimer is in the tooltip');
 });
+
+// ---- review fixes (PR #41) ---------------------------------------------------------
+
+import { priceMismatch, checkPriceUnits, hitRate as hitRateOf, buysByPerson } from '../api/_lib/insiderOutcome.js';
+import { splitFactor, sinceTrade } from '../api/_lib/splitAdjust.js';
+
+const closes = (day, close) => [{ date: day, close }, { date: '2026-12-31', close }];
+
+test('1) a form price 25%+ away from the day\'s close is flagged: no return, no İsabet, at most "Küçük alım"', async () => {
+  // CEMEX: $17.28 on the form, $9.71 at the close — pesos read as dollars
+  const cx = { t: 'CX', n: 'Zambrano Lozano Rogelio', r: 'ceo', ti: 'CEO', k: 'P', d: '2026-09-25', f: '2026-09-25', s: 400800, p: 17.2812, v: 6_926_305, a: 'CX-1', li: 0, o: 5_000_000 };
+  assert.deepEqual(priceMismatch(cx, closes('2026-09-25', 9.71), {}).ratio, 1.78);
+  assert.equal(priceMismatch({ ...cx, p: 9.9 }, closes('2026-09-25', 9.71), {}), false, 'within 25%: fine');
+  const flagged = checkPriceUnits([cx], () => closes('2026-09-25', 9.71));
+  assert.equal(flagged.length, 1);
+  assert.equal(cx.pu, 1);
+  assert.equal(signalLevel(cx).level, 'weak', 'a $6.9M CEO buy, but the amount cannot be trusted');
+  assert.equal(signalLevel(cx).why, 'price_unverified');
+  assert.deepEqual(hitRateOf(cx, buysByPerson([cx])), { unverified: true });
+  assert.equal(sinceTrade(cx, 9.71, {}), null, 'no return');
+  const feed = await feedOver([{ ...cx, d: '2026-09-17', f: '2026-09-18' }], { tab: 'latest' });
+  assert.deepEqual([feed.rows[0].ret, feed.rows[0].priceUnverified], [null, true]);
+});
+
+test('1b) a split is not a currency problem, and not a −75% loss', () => {
+  const splits = { CRWD: [{ date: '2026-07-02', ratio: 4 }] };
+  const buy = { t: 'CRWD', k: 'P', d: '2026-06-01', p: 400, s: 10, v: 4000 };
+  assert.equal(splitFactor('CRWD', '2026-06-01', splits), 4);
+  assert.equal(splitFactor('CRWD', '2026-08-01', splits), 1, 'a split before the trade does not count');
+  assert.equal(priceMismatch(buy, closes('2026-06-01', 100), splits), false, 'split-adjusted closes match the adjusted price');
+  assert.equal(sinceTrade(buy, 110, splits), 10, '$400 pre-split is $100 today: +10%, not −72.5%');
+});
+
+test('2) fund status comes from the form: people who are 10% owners are not funds', () => {
+  const white = { n: 'White Parker', r: 'owner10', k: 'P', p: 8.9, s: 538, v: 4788, t: 'DFDV' };
+  const c = classify(white);
+  assert.deepEqual([c.fund_insider, c.ten_pct_owner_only], [false, true]);
+  assert.equal(signalLevel(white).holder, 'owner10', '"Büyük ortak (%10+)", not "(fon)"');
+  assert.equal(classify({ n: 'HOLDING FRANK B JR', r: 'officer', ti: 'EVP' }).fund_insider, false, 'Mr Holding is an officer');
+  assert.equal(classify({ n: 'HOLDING FRANK B JR', r: 'director' }).fund_insider, false);
+  for (const n of ['LIBERTY MUTUAL INSURANCE CO', 'FHMLS X, L.P.', 'GOULD INVESTORS L P', 'CANTOR FITZGERALD, L. P.', 'BERKSHIRE HATHAWAY INC'])
+    assert.equal(classify({ n, r: 'owner10' }).fund_insider, true, n);
+  assert.equal(classify({ n: 'Artal Group S.A.', r: 'officer', ti: 'See remarks' }).fund_insider, true, 'a legal form is never a person');
+});
+
+test('3) the level is judged on the filing total, and the page says so', async () => {
+  // White Parker's filing: $84,780 + $4,788 — the $4,788 line is not a "small buy" on its own
+  const lines = [
+    { n: 'White Parker', r: 'owner10', t: 'DFDV', k: 'P', a: 'DFDV-1', li: 0, s: 9462, p: 8.96, v: 84780, o: 9462, d: '2026-09-17', f: '2026-09-18' },
+    { n: 'White Parker', r: 'owner10', t: 'DFDV', k: 'P', a: 'DFDV-1', li: 1, s: 538, p: 8.9, v: 4788, o: 10000, d: '2026-09-17', f: '2026-09-18' },
+    // an officer's $6K line inside a $60K filing: "Kayda değer alım", total shown
+    { n: 'Kang Daniel', r: 'officer', ti: 'Chief Strategy Officer', t: 'DFDV', k: 'P', a: 'DFDV-2', li: 0, s: 6000, p: 9, v: 54000, o: 20000, d: '2026-09-17', f: '2026-09-18' },
+    { n: 'Kang Daniel', r: 'officer', ti: 'Chief Strategy Officer', t: 'DFDV', k: 'P', a: 'DFDV-2', li: 1, s: 700, p: 9, v: 6300, o: 20700, d: '2026-09-17', f: '2026-09-18' },
+  ];
+  const feed = await feedOver(lines, { tab: 'latest' });
+  const small = feed.rows.find((r) => r.value === 4788);
+  assert.deepEqual([small.signal.value, small.signal.lines, small.holder], [89568, 2, 'owner10']);
+  const kang = feed.rows.find((r) => r.value === 6300);
+  assert.deepEqual([kang.signal.level, kang.signal.value, kang.signal.lines], ['medium', 60300, 2]);
+  const page = fs.readFileSync(path.join(root, 'client', 'src', 'pages', 'Insiders.jsx'), 'utf8');
+  assert.match(page, /sig\.lines > 1 \? .*ins\.filingTotal/, 'the tooltip names the filing total when the level comes from it');
+  assert.match(fs.readFileSync(path.join(root, 'client', 'src', 'i18n.jsx'), 'utf8'), /'ins\.filingTotal': 'Bu bildirimde toplam alım: \{v\}/);
+});
+
+test('4) the /insiders card is named for what it shows, and the higher label comes first', async () => {
+  const i18n = fs.readFileSync(path.join(root, 'client', 'src', 'i18n.jsx'), 'utf8');
+  assert.match(i18n, /'ins\.highConviction': 'Son Günün Yönetici ve Küme Alımları'/);
+  assert.ok(!/'ins\.highConviction': 'Öne Çıkan Alımlar'/.test(i18n), 'no longer the name of the top level');
+  const day = { d: '2026-09-17', f: '2026-09-18', k: 'P', p: 10 };
+  const feed = await feedOver(
+    [
+      { ...day, t: 'AAA', n: 'Dir One', r: 'director', s: 6000, v: 60_000, a: 'X1', li: 0 }, // medium
+      { ...day, t: 'BBB', n: 'Ceo Two', r: 'ceo', ti: 'CEO', s: 20000, v: 200_000, a: 'X2', li: 0 }, // strong
+      { ...day, t: 'CCC', n: 'Dir Three', r: 'director', s: 2000, v: 20_000, a: 'X3', li: 0 }, // weak
+    ],
+    { tab: 'latest' }
+  );
+  assert.deepEqual(feed.stats.signals.map((s) => [s.ticker, s.level]), [['BBB', 'strong'], ['AAA', 'medium'], ['CCC', 'weak']]);
+});
+
+test('5) a fund or 10%-only holder gets the holder badge and the amount, never a size label', async () => {
+  // Berkshire buying LEN: $43.5M in one line — a "small buy" label would be absurd
+  const len = { n: 'BERKSHIRE HATHAWAY INC', r: 'owner10', t: 'LEN', k: 'P', a: 'LEN-1', li: 0, s: 532993, p: 81.65, v: 43_518_878, o: 5_000_000, d: '2026-09-17', f: '2026-09-18' };
+  const feed = await feedOver([len], { tab: 'latest' });
+  assert.equal(feed.rows[0].holder, 'fund');
+  const page = fs.readFileSync(path.join(root, 'client', 'src', 'pages', 'Insiders.jsx'), 'utf8');
+  assert.match(page, /\{!r\.holder && level !== 'none' && \(/, 'no size label when there is a holder badge');
+  assert.match(page, /t\(`ins\.holder\.\$\{r\.holder\}`\)/);
+});

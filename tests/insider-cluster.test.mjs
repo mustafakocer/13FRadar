@@ -120,7 +120,7 @@ test('outside 10 business days is not a cluster', () => {
 
 test('footnotes: employee purchase plan / dividend reinvestment → plan; private placement → offering', () => {
   const r = (n, note) => ({ t: 'X', k: 'P', r: 'officer', n, d: '2026-09-10', p: 10, s: 2000, v: 20000, a: n, li: 0, note });
-  const rows = [r('A', 'Shares purchased under the Employee Stock Purchase Plan.'), r('B', 'Purchased in the private placement directly from the issuer.'), r('C', 'Includes shares acquired through dividend reinvestment plan.')];
+  const rows = [r('A', 'Shares purchased under the Employee Stock Purchase Plan.'), r('B', 'Purchased in the private placement directly from the issuer.'), r('C', 'Shares acquired through the dividend reinvestment plan.')];
   const labels = lineLabels(rows, (x) => ({ fn: { F1: x.note } }));
   assert.deepEqual(rows.map((x) => labels.get(x)?.label), ['plan_bulk', 'offering', 'plan_bulk']);
 });
@@ -156,4 +156,12 @@ test('the home page and /insiders/cluster show the same list the /insiders feed 
     delete process.env.INSIDER_DATA_DIR;
     resetServedCache();
   }
+});
+
+test('a footnote about the holding ("Includes shares acquired through the dividend reinvestment plan") does not label the purchase', () => {
+  const r = (n, note) => ({ t: 'X', k: 'P', r: 'director', n, d: '2026-09-10', p: 10, s: 2000, v: 20000, a: n, li: 0, note });
+  const rows = [r('A', 'Includes shares acquired through dividend reinvestment plan.'), r('B', 'Includes 1,137 shares acquired pursuant to the Issuer\'s Employee Stock Purchase Plan.')];
+  const labels = lineLabels(rows, (x) => ({ fn: { F1: x.note } }));
+  assert.equal(labels.size, 0);
+  assert.equal(buildClusters(rows, { rawOf: (x) => ({ fn: { F1: x.note } }) }).clusters.length, 1);
 });

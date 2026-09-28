@@ -77,7 +77,10 @@ export function lineLabels(lines, rawOf = () => null, toUsd = (x, cu) => (cu ===
   const out = new Map();
   const offerPrices = [];
   for (const r of lines) {
-    const t = notesOf(rawOf(r));
+    // sentences about the HOLDING ("Includes shares acquired through the
+    // dividend reinvestment plan") say nothing about how this purchase was
+    // made: they are left out before the plan/offering words are read
+    const t = aboutTheTrade(notesOf(rawOf(r)));
     if (!t) continue;
     if (OFFERING_RE.test(t)) {
       out.set(r, { label: 'offering', why: 'footnote', quote: sentence(t, OFFERING_RE) });
@@ -128,6 +131,15 @@ function statedPrices(t) {
     if (amount > 0 && amount < 100000) out.push({ amount, cu: CUR(m[1] ?? m[4]) });
   }
   return out;
+}
+const HOLDING_NOTE_RE = /^(this (amount|total|number) )?(also )?includes\b|^(the )?(amount|number|total) of (securities|shares) (beneficially )?owned[^.]*includes\b/i;
+export function aboutTheTrade(text) {
+  if (!text) return '';
+  return text
+    .split(/(?<=\.)\s+(?=[A-Z(])/)
+    .filter((x) => !HOLDING_NOTE_RE.test(x.trim()))
+    .join(' ')
+    .trim();
 }
 function sentence(t, re) {
   const m = re.exec(t);

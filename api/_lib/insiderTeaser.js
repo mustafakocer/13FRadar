@@ -1,4 +1,10 @@
 import { businessDaysBetween, daySummary, findClusters, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
+import { categorize } from './insiderClassify.js';
+
+// An open-market purchase with a real price (insiderClassify.js). The C-suite
+// and penny lists, the highlight and the newest-buys list use this; the
+// cluster detector keeps its own input (roadmap item 3).
+const openBuy = (r) => categorize(r) === 'open_buy';
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
@@ -175,23 +181,23 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now()) {
   };
   const csuite = dedupe(
     recentBuys
-      .filter((r) => r.r === 'ceo' || r.r === 'cfo')
+      .filter((r) => openBuy(r) && (r.r === 'ceo' || r.r === 'cfo'))
       .sort((a, b) => (b.v || 0) - (a.v || 0))
   )
     .slice(0, 8)
     .map((r) => brief(r, companies, meta));
   const penny = dedupe(
     recentBuys
-      .filter((r) => r.p > 0 && r.p < 5 && (r.v || 0) >= 25000)
+      .filter((r) => openBuy(r) && r.p < 5 && (r.v || 0) >= 25000)
       .sort((a, b) => (b.v || 0) - (a.v || 0))
   )
     .slice(0, 8)
     .map((r) => brief(r, companies, meta));
 
-  const buys = rows.filter(isBuy).slice().sort((a, b) => (a.f === b.f ? (a.d < b.d ? 1 : -1) : a.f < b.f ? 1 : -1));
+  const buys = rows.filter(openBuy).slice().sort((a, b) => (a.f === b.f ? (a.d < b.d ? 1 : -1) : a.f < b.f ? 1 : -1));
   // Highlight: the largest buy by an executive or director on the newest day;
   // 10% owners are usually funds, so they are only a fallback.
-  const dayBuys = today.filter(isBuy);
+  const dayBuys = today.filter(openBuy);
   const pool = dayBuys.length ? dayBuys : buys.slice(0, 50);
   const people = pool.filter((r) => r.r !== 'owner10');
   const pick = (list) => list.reduce((m, r) => ((r.v || 0) > (m.v || 0) ? r : m));

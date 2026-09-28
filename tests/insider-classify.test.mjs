@@ -109,3 +109,75 @@ test('entity names: funds and companies, not people', () => {
   for (const n of ['Lyons Michael P.', 'Newstead Jennifer', 'Colis Peter George', 'Wei Che-Chia', 'Cooper Anderson'])
     assert.ok(!isEntityName(n), n);
 });
+
+// ---- the feed, through the real handler ------------------------------------------
+
+import os from 'node:os';
+import { resetServedCache } from '../api/_lib/insiderStore.js';
+import { buildTeaser } from '../api/_lib/insiderTeaser.js';
+
+async function feedOver(rows, query) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ins-'));
+  fs.writeFileSync(path.join(dir, 'insiders.json'), JSON.stringify({ updatedAt: '2026-09-19T04:00:00Z', rows, companies: {} }));
+  process.env.INSIDER_DATA_DIR = dir;
+  resetServedCache();
+  try {
+    // the Pro feed, past the sign-in check the tests cannot pass
+    const { answer } = await import('../api/_handlers/insider-feed.js');
+    return await answer(query, { free: false });
+  } finally {
+    delete process.env.INSIDER_DATA_DIR;
+    resetServedCache();
+  }
+}
+
+const recent = (r) => ({ ...r, d: '2026-09-17', f: '2026-09-18' });
+const mixed = [
+  recent(cases.TFC_ceo_1m),
+  recent(cases.FLY_M_cfo_exercise),
+  recent(cases.DRI_M_zero_price),
+  recent({ ...cases.DRI_M_zero_price, k: 'A', a: 'AWARD-1' }),
+  recent(cases.AAPL_newstead_F),
+  recent(cases.LIFE_C_10b5_1),
+  recent(cases.TPL_horizon_1_share),
+  recent({ ...cases.TFC_ceo_1m, k: 'S', a: 'SELL-1', n: 'Seller Sam', r: 'director' }),
+];
+
+test('the subtitle says "open-market buys and sales only" — and the default feed is exactly that', async () => {
+  const i18n = fs.readFileSync(path.join(root, 'client', 'src', 'i18n.jsx'), 'utf8');
+  assert.match(i18n, /'ins\.note': '[^']*yalnızca açık piyasa alım \(P\) ve satımları \(S\)/, 'the Turkish note promises P and S by default');
+  assert.match(i18n, /'ins\.note': '[^']*only open-market purchases \(P\) and sales \(S\)/);
+  const buys = await feedOver(mixed, { tab: 'latest' });
+  const sells = await feedOver(mixed, { tab: 'sells' });
+  assert.deepEqual([...new Set(buys.rows.map((r) => r.category))], ['open_buy']);
+  assert.deepEqual([...new Set(sells.rows.map((r) => r.category))], ['open_sell']);
+  assert.ok(!buys.rows.some((r) => r.ticker === 'DRI'), 'the $0 DRI lines are not in the default feed');
+  // with other types shown, each is labelled by its category
+  const all = await feedOver(mixed, { tab: 'latest', types: 'all' });
+  assert.ok(all.total > buys.total);
+  assert.deepEqual([...new Set(all.rows.map((r) => r.category))].sort(), ['award', 'conversion', 'exercise', 'open_buy']);
+});
+
+test('returns and signal levels only where they mean something', async () => {
+  const all = await feedOver(mixed, { tab: 'latest', types: 'all' });
+  for (const r of all.rows) {
+    if (r.category !== 'open_buy') {
+      assert.equal(r.ret, null, `${r.ticker} ${r.category}: no return`);
+      assert.equal(r.signal.level, 'none');
+    }
+  }
+  const tfc = all.rows.find((r) => r.ticker === 'TFC');
+  assert.equal(tfc.signal.level, 'strong');
+  assert.equal('pe' in tfc, false, 'the empty F/K column is gone');
+  const tpl = all.rows.find((r) => r.ticker === 'TPL');
+  assert.deepEqual([tpl.signal.level, tpl.largeHolder, tpl.hitRate], ['none', true, null], 'a fund: large holder, no İsabet');
+});
+
+test('home page and /insiders headline numbers still come from one function and agree', async () => {
+  const feed = await feedOver(mixed, { tab: 'latest' });
+  const teaser = buildTeaser(mixed, {}, {}, Date.parse('2026-09-19'));
+  assert.equal(feed.stats.buyCount, teaser.pulse.buyCount);
+  assert.equal(feed.stats.buyValue, teaser.pulse.buyValue);
+  assert.equal(feed.stats.sellCount, teaser.pulse.sellCount);
+  assert.equal(feed.stats.buyCount, 2, 'TFC and the one-share TPL buy; no exercise, award or conversion');
+});

@@ -1,14 +1,16 @@
 import { requirePro } from '../_lib/auth.js';
 import { cached, TTL } from '../_lib/cache.js';
-import { daySummary, findClusters, sizeBucket, businessDaysBetween, rowClass, CODES, KEPT_CODES,
+import { daySummary, findClusters, sizeBucket, businessDaysBetween, CODES, KEPT_CODES,
   CLUSTER_DENSITY,
   clusterDensity,
   clusterMatches,
   clusterSpanDays,
-  winRate,
 } from '../_lib/insiderModel.js';
 import { isPenny } from '../_lib/insiderTeaser.js';
 import { readServed } from '../_lib/insiderStore.js';
+import { classify } from '../_lib/insiderClassify.js';
+import { filingTotals, signalLevel } from '../_lib/insiderSignal.js';
+import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
 import { createRequire } from 'node:module';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
@@ -34,7 +36,8 @@ import { createRequire } from 'node:module';
 //   codes    P,S,M,… restrict to specific Form 4 transaction codes
 //   clusterMin      2 | 3 | 5  minimum distinct insiders in the cluster
 //   density  blitz | tight | standard | extended  how tightly it is packed
-//   cls      comma list of conviction|liquidity|noise (default: conviction,liquidity)
+//   types    'all' shows every transaction type; by default only open-market
+//            buys (buy tabs) and sales (sells tab) — insiderClassify.js
 //   sort     date|value|return|shares|lag   dir asc|desc   page, perPage
 //
 // The dataset ships with the deployment, built by .github/workflows/insiders.yml
@@ -43,6 +46,21 @@ import { createRequire } from 'node:module';
 // never listed, counted or used for a signal.
 const require = createRequire(import.meta.url);
 const load = readServed;
+
+// Per dataset (the rows only change with a deploy): each line's category and
+// flags, the open-market buy totals per filing, and each person's buys.
+let derivedFor = null;
+let derived = null;
+function derive(db) {
+  if (derivedFor === db) return derived;
+  const cls = new Map();
+  for (const r of db.rows) cls.set(r, classify(r));
+  derived = { cls, filings: filingTotals(db.rows), people: buysByPerson(db.rows) };
+  derivedFor = db;
+  return derived;
+}
+// Signal level on the filing total, with the line's classification reused.
+const levelOf = (r, d) => signalLevel(r, { classification: d.cls.get(r), filing: d.filings.get(r.a) });
 function loadMeta() {
   try {
     return require('../_data/ticker-meta.json');
@@ -64,9 +82,14 @@ const numQ = (v) => {
 };
 
 // Row as the client sees it: short keys expanded, price-derived fields added.
-function shape(r, meta, companies) {
+// The return since the trade is only meaningful for an open-market buy or
+// sale with a real price; for an exercise at $0.49 or a $0 award it read
+// +4,889% and meant nothing, so it is null there.
+function shape(r, meta, companies, d) {
   const m = (r.t && meta[r.t]) || {};
-  const ret = m.px != null && r.p ? ((m.px - r.p) / r.p) * 100 : null;
+  const c = d.cls.get(r) || classify(r);
+  const ret = c.openMarket && m.px != null && r.p > 0 ? ((m.px - r.p) / r.p) * 100 : null;
+  const sig = levelOf(r, d);
   return {
     ticker: r.t,
     company: companies[r.t] || null,
@@ -77,11 +100,14 @@ function shape(r, meta, companies) {
     date: r.d,
     filed: r.f,
     lag: businessDaysBetween(r.d, r.f),
-    side: rowClass(r) === 'liquidity' ? 'sell' : 'buy',
+    side: c.side,
     code: r.k,
     kind: CODES[r.k] || 'other',
-    cls: rowClass(r),
-    planned: Boolean(r.p5),
+    category: c.category,
+    planned: c.plan_trade,
+    largeHolder: c.ten_pct_owner_only || c.fund_insider,
+    fund: c.fund_insider,
+    signal: { level: sig.level, why: sig.why, role: sig.role, value: sig.value, ownIncrease: Number.isFinite(sig.ownIncrease) ? Number(sig.ownIncrease.toFixed(1)) : sig.ownIncrease === Infinity ? 'new' : null },
     shares: r.s,
     price: r.p,
     value: r.v,
@@ -95,14 +121,13 @@ function shape(r, meta, companies) {
     offLow: m.px != null && m.lo > 0 ? Number((((m.px - m.lo) / m.lo) * 100).toFixed(1)) : null,
     sector: m.sector || null,
     size: sizeBucket(m.mcap),
-    pe: m.pe ?? null,
     url: r.ci && r.a ? `https://www.sec.gov/Archives/edgar/data/${Number(r.ci)}/${String(r.a).replace(/-/g, '')}/` : null,
   };
 }
 
 // Market activity + signal cards for the header, computed over the newest day
 // that actually has filings.
-function buildStats(all, meta, scope = null) {
+function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   // the headline numbers: one definition shared with the home page (daySummary)
   const summary = daySummary(all, scope);
   const rows = scope ? all.filter(scope) : all;
@@ -125,9 +150,14 @@ function buildStats(all, meta, scope = null) {
     else if (r.r === 'cfo') kind = 'cfo';
     else if (r.r === 'director') kind = 'director';
     if (!kind) continue;
+    // a card for a buy that rates no signal (a planned trade, a $5K top-up)
+    // would contradict the label beside it; clusters are item 3's business
+    const level = levelOf(r, d).level;
+    if (level === 'none' && kind !== 'cluster') continue;
     signals.push({
       ticker: r.t,
       kind,
+      level,
       insiders: cl?.insiders ?? 1,
       price: r.p,
       value: r.v,
@@ -173,14 +203,22 @@ export default async function handler(req, res) {
   const wantFull = req.query.full === '1';
   if (wantFull && !(await requirePro(req, res))) return;
   const free = !wantFull;
+  const body = await answer(req.query, { free });
+  if (free && !body.empty) res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=7200');
+  res.status(200).json(body);
+}
+
+// The feed itself, once the caller is allowed to see it (`free` = the
+// preview). Exported for the tests, which have no Pro session to sign in with.
+export async function answer(rawQuery, { free = true } = {}) {
   // the preview knows only the tab: a filter a free reader typed is ignored
-  const query = free ? { tab: req.query.tab } : req.query;
+  const query = free ? { tab: rawQuery.tab } : rawQuery;
 
   const db = load();
   const meta = loadMeta();
   const rows = db.rows || [];
   if (!rows.length) {
-    return res.status(200).json({ rows: [], total: 0, stats: null, updatedAt: null, lastFilingDay: null, empty: true });
+    return { rows: [], total: 0, stats: null, updatedAt: null, lastFilingDay: null, empty: true };
   }
 
   const q = String(query.q || '').trim().toUpperCase();
@@ -214,11 +252,11 @@ export default async function handler(req, res) {
   );
   const clusterMin = Number(query.clusterMin) || 0;
   const density = CLUSTER_DENSITY.includes(String(query.density)) ? String(query.density) : '';
-  const classes = new Set(
-    String(query.cls || 'conviction,liquidity')
-      .split(',')
-      .filter((c) => ['conviction', 'liquidity', 'noise'].includes(c))
-  );
+  // Default: open-market buys and sales only — what the page subtitle says.
+  // "Diğer işlem türlerini göster" (types=all) adds exercises, awards, tax
+  // withholding, gifts, conversions and the rest, each labelled. The old
+  // cls=…noise switch means the same thing.
+  const showOther = query.types === 'all' || /noise/.test(String(query.cls || ''));
   const sort = ['date', 'value', 'return', 'shares', 'lag'].includes(query.sort) ? query.sort : 'date';
   const dir = query.dir === 'asc' ? 1 : -1;
   const perPage = free ? (tab === 'latest' || tab === 'sells' ? FREE_ROWS : FREE_ROWS_TAB) : Math.min(Math.max(Number(query.perPage) || 50, 10), 200);
@@ -231,22 +269,27 @@ export default async function handler(req, res) {
   );
   const clusterMap = await clusters;
 
-  // Buy tabs show High-conviction acquisitions (P, C, exercise-and-hold);
-  // the sells tab shows Liquidity events (S, D, exercise cash-outs). Noise
-  // (grants, tax withholding, gifts…) only appears when cls includes it.
+  // The latest tab lists open-market buys, the sells tab open-market sales;
+  // with other types shown, each tab takes the other categories on its side
+  // (an award or exercise with the buys, tax withholding or a gift with the
+  // sells). The role, cluster and penny tabs are about buying: open-market
+  // buys only, always.
+  const d = derive(db);
   const wantSells = tab === 'sells';
+  const listTab = tab === 'latest' || tab === 'sells';
   let out = [];
   for (const r of rows) {
-    const cl = rowClass(r);
-    if (!classes.has(cl)) continue;
-    if (wantSells ? cl === 'conviction' : cl === 'liquidity') continue;
-    if (tab !== 'latest' && tab !== 'sells' && r.k !== 'P') continue;
+    const c = d.cls.get(r);
+    if (listTab) {
+      if (c.side !== (wantSells ? 'sell' : 'buy')) continue;
+      if (!showOther && !c.openMarket) continue;
+    } else if (c.category !== 'open_buy') continue;
     if (r.d < from) continue;
     if (to && r.d > to) continue;
     if (tab === 'ceo' && r.r !== 'ceo') continue;
     if (tab === 'cfo' && r.r !== 'cfo') continue;
     if (tab === 'cluster' && !clusterMap.has(r.t)) continue;
-    if (excludePlanned && r.p5) continue;
+    if (excludePlanned && c.plan_trade) continue;
     if (codes.size && !codes.has(String(r.k || '').toUpperCase())) continue;
     if (!clusterMatches(clusterMap.get(r.t), { min: clusterMin, density })) continue;
     if (tab === 'penny' && !isPenny(r)) continue;
@@ -292,17 +335,11 @@ export default async function handler(req, res) {
 
   const total = out.length;
   const companies = db.companies || {};
-  // Per-row cluster context and the ticker's hit rate. Both are computed over
-  // the whole dataset rather than the page, and only for the rows actually
-  // returned — a hit rate per ticker across a year of rows is not free.
-  const byTicker = new Map();
-  for (const r of rows) {
-    if (!r.t) continue;
-    if (!byTicker.has(r.t)) byTicker.set(r.t, []);
-    byTicker.get(r.t).push(r);
-  }
+  // Per-row cluster context and "İsabet": of this person's earlier
+  // open-market buys, the share that beat SPY over the next 90 days
+  // (insiderOutcome.hitRate; null for funds, `insufficient` under n = 3).
   const slice = out.slice((page - 1) * perPage, page * perPage).map((r) => {
-    const row = shape(r, meta, companies);
+    const row = shape(r, meta, companies, d);
     const cl = r.t ? clusterMap.get(r.t) : null;
     if (cl) {
       row.cluster = {
@@ -314,14 +351,12 @@ export default async function handler(req, res) {
         density: clusterDensity(cl),
       };
     }
-    const px = (r.t && meta[r.t]?.px) ?? null;
-    row.winRate = px != null ? winRate(byTicker.get(r.t) || [], px) : null;
+    row.hitRate = d.cls.get(r).category === 'open_buy' ? hitRate(r, d.people) : null;
     return row;
   });
   const sectors = [...new Set(Object.values(meta).map((m) => m.sector).filter(Boolean))].sort();
 
-  if (free) res.setHeader('Cache-Control', 's-maxage=1800, stale-while-revalidate=7200');
-  res.status(200).json({
+  return {
     rows: slice,
     total,
     page,
@@ -332,8 +367,8 @@ export default async function handler(req, res) {
     // the newest filing date in the rows: what "Güncelleme" / "Son veri" shows
     lastDay: db.lastFilingDay,
     lastFilingDay: db.lastFilingDay,
-    stats: page === 1 ? buildStats(rows, meta, tab === 'penny' ? isPenny : null) : null,
+    stats: page === 1 ? buildStats(rows, meta, tab === 'penny' ? isPenny : null, d) : null,
     sectors: page === 1 ? sectors : undefined,
     clusterCount: clusterMap.size,
-  });
+  };
 }

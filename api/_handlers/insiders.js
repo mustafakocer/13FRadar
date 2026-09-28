@@ -5,6 +5,7 @@ import { getSubmissions, numCik } from '../_lib/sec.js';
 import { tickerToCik } from '../_lib/tickers.js';
 import { requirePro } from '../_lib/auth.js';
 import { readServed } from '../_lib/insiderStore.js';
+import { categorize, classify } from '../_lib/insiderClassify.js';
 import { dataFreshness } from '../../client/src/lib/secCalendar.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
@@ -43,11 +44,13 @@ async function parseForm4(cik, acc) {
     const shares = Number(val(tx.transactionAmounts?.transactionShares)) || 0;
     const price = Number(val(tx.transactionAmounts?.transactionPricePerShare)) || null;
     const ad = val(tx.transactionAmounts?.transactionAcquiredDisposedCode);
+    const code = tx.transactionCoding?.transactionCode || null;
     return {
       date: val(tx.transactionDate),
       owner: name,
       title: title || null,
-      code: tx.transactionCoding?.transactionCode || null,
+      code,
+      category: categorize({ k: code, p: price }),
       side: ad === 'A' ? 'buy' : ad === 'D' ? 'sell' : null,
       shares,
       price,
@@ -56,29 +59,33 @@ async function parseForm4(cik, acc) {
   });
 }
 
-// Side of a stored row, from its transaction code (the dataset keeps the code,
-// not the A/D flag, for rows stored before raw fields were kept). J ("other")
-// can go either way and stays unlabelled.
-const SIDE = { P: 'buy', M: 'buy', X: 'buy', C: 'buy', A: 'buy', L: 'buy', W: 'buy', I: 'buy', S: 'sell', D: 'sell', F: 'sell', G: 'sell' };
 const TITLE = { director: 'Director', owner10: '10% Owner' };
 
 // The same rows every other insider view reads (insiderStore), newest first.
+// Each carries its category (insiderClassify.js) — the stock page prints
+// "Opsiyon kullanımı", "Vergi kesintisi"… instead of calling an exercise a
+// buy and a tax withholding a sale.
 export function fromDataset(db, ticker, limit = 25) {
   return db.rows
     .filter((r) => r.t === ticker)
     .sort((a, b) => (a.d === b.d ? (a.f < b.f ? 1 : -1) : a.d < b.d ? 1 : -1))
     .slice(0, limit)
-    .map((r) => ({
-      date: r.d,
-      filed: r.f,
-      owner: r.n,
-      title: r.ti || TITLE[r.r] || null,
-      code: r.k,
-      side: SIDE[r.k] || null,
-      shares: r.s,
-      price: r.p,
-      value: r.v,
-    }));
+    .map((r) => {
+      const c = classify(r);
+      return {
+        date: r.d,
+        filed: r.f,
+        owner: r.n,
+        title: r.ti || TITLE[r.r] || null,
+        code: r.k,
+        category: c.category,
+        side: c.side,
+        planned: c.plan_trade,
+        shares: r.s,
+        price: r.p,
+        value: r.v,
+      };
+    });
 }
 
 // GET /api/insiders/:ticker — recent Form 4 transactions for the issuer.

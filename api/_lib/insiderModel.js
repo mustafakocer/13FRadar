@@ -6,6 +6,8 @@
 //   d transaction date · f filing date · k transaction code
 //   s shares · p price · v value · o shares owned after · oc ownership change %
 //   a accession
+import { categorize } from './insiderClassify.js';
+
 export const ROLES = ['ceo', 'cfo', 'officer', 'director', 'owner10'];
 
 // SEC Form 4 transaction codes and how they are classified:
@@ -215,10 +217,11 @@ export function cleanSymbol(raw) {
 //              see insiderStore.currentRows) with a listed ticker; a row with
 //              no ticker is nothing a reader can click through to or buy
 //   day        the newest FILING date among those rows (not the trade date)
-//   buyCount   transaction lines filed that day with code P (open-market
-//              purchase); one Form 4 with three P lines counts three
+//   buyCount   open-market purchase lines filed that day (insiderClassify:
+//              code P, not a derivative, price > 0); one Form 4 with three
+//              such lines counts three
 //   buyValue   sum of shares × price over those lines, in dollars
-//   sellCount  lines filed that day with code S (open-market sale)
+//   sellCount  open-market sale lines filed that day (S, price > 0)
 //   sellValue  sum of shares × price over those lines
 //   sellShare  sellValue / (buyValue + sellValue) × 100, null when both are 0
 //   companies  distinct tickers with any line filed that day, any code
@@ -228,8 +231,8 @@ export function daySummary(all, scope = null) {
   const rows = all.filter((r) => isListed(r) && !r.sb && (!scope || scope(r)));
   const day = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
   const today = rows.filter((r) => r.f === day);
-  const buys = today.filter(isBuy);
-  const sells = today.filter(isSell);
+  const buys = today.filter((r) => categorize(r) === 'open_buy');
+  const sells = today.filter((r) => categorize(r) === 'open_sell');
   const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
   const buyValue = Math.round(sum(buys));
   const sellValue = Math.round(sum(sells));

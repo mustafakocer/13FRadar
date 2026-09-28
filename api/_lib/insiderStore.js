@@ -14,6 +14,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { normalizeRows } from './fpiNormalize.js';
+import { fpiContext, loadFpi, resetFpiCache } from './fpiContext.js';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
@@ -38,13 +40,16 @@ export function readServed() {
     db = null;
   }
   db = db || { rows: [], companies: {}, updatedAt: null };
-  const rows = currentRows(db.rows || []);
+  // foreign issuers' lines in US dollars per US security, or marked as not
+  // convertible (fpiNormalize.js); raw rows are not changed
+  const rows = normalizeRows(currentRows(db.rows || []), fpiContext({ raw: readRawServed() }));
   served = { ...db, rows, lastFilingDay: lastFilingDay(rows) };
   return served;
 }
 export const resetServedCache = () => {
   served = null;
   servedRaw = null;
+  resetFpiCache();
 };
 
 // The raw Form 4 fields (security title, footnotes…) for the price check at
@@ -55,6 +60,9 @@ export function readRawServed() {
   if (servedRaw) return servedRaw;
   try {
     servedRaw = (process.env.INSIDER_DATA_DIR ? readJson(files.raw(), null) : require('../_data/insiders-raw.json'))?.rows || {};
+    // older foreign-issuer lines: fields re-read by scripts/build-fpi.mjs
+    const extra = loadFpi()?.raw;
+    if (extra) servedRaw = { ...extra, ...servedRaw };
   } catch {
     servedRaw = {};
   }

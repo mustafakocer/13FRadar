@@ -124,14 +124,18 @@ export function findClusters(rows, windowDays = 7) {
       const start = new Date(`${list[i].d}T00:00:00Z`).getTime();
       const names = new Set();
       let value = 0;
+      let fxExcluded = 0;
       let j = i;
       for (; j < list.length; j++) {
         if (new Date(`${list[j].d}T00:00:00Z`).getTime() - start > ms) break;
         names.add(list[j].n);
-        value += list[j].v || 0;
+        // a foreign-currency line that could not be converted has no dollar
+        // amount: left out of the total and counted (fpiNormalize.js)
+        if (list[j].fx?.fail) fxExcluded++;
+        else value += list[j].v || 0;
       }
       if (names.size >= 2 && (!best || names.size > best.insiders || value > best.value)) {
-        best = { insiders: names.size, value, from: list[i].d, to: list[j - 1].d };
+        best = { insiders: names.size, value, from: list[i].d, to: list[j - 1].d, ...(fxExcluded ? { fxExcluded } : {}) };
       }
     }
     if (best) out.set(ticker, best);
@@ -231,8 +235,14 @@ export function daySummary(all, scope = null) {
   const rows = all.filter((r) => isListed(r) && !r.sb && (!scope || scope(r)));
   const day = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
   const today = rows.filter((r) => r.f === day);
-  const buys = today.filter((r) => categorize(r) === 'open_buy');
-  const sells = today.filter((r) => categorize(r) === 'open_sell');
+  // lines of a foreign issuer whose currency could not be verified have no
+  // dollar amount (fpiNormalize.js): out of the counts and totals, counted
+  // separately so the page can say so
+  const fxOut = (r) => Boolean(r.fx?.fail);
+  const open = today.filter((r) => ['open_buy', 'open_sell'].includes(categorize(r)));
+  const buys = open.filter((r) => !fxOut(r) && categorize(r) === 'open_buy');
+  const sells = open.filter((r) => !fxOut(r) && categorize(r) === 'open_sell');
+  const fxExcluded = open.filter(fxOut).length;
   const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
   const buyValue = Math.round(sum(buys));
   const sellValue = Math.round(sum(sells));
@@ -247,5 +257,6 @@ export function daySummary(all, scope = null) {
     buyValue,
     sellValue,
     sellShare: buyValue + sellValue > 0 ? Number(((sellValue / (buyValue + sellValue)) * 100).toFixed(1)) : null,
+    fxExcluded,
   };
 }

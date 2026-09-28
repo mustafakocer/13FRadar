@@ -1,0 +1,88 @@
+name: Foreign issuer data (FX + ADR ratios)
+
+# api/_data/fpi.json: Federal Reserve H.10 exchange rates (FRED), which
+# insider-data issuers are foreign private issuers, their ADR ratios from
+# SEC F-6 / 20-F filings, closes for their trade days, and the Form 4 fields
+# of their older lines (scripts/build-fpi.mjs). The site converts foreign
+# issuers' Form 4 prices with it (api/_lib/fpiNormalize.js).
+#
+#   · nightly, before the insider build (03:31 UTC) so the home page teaser
+#     it writes uses tonight's rates;
+#   · on a pull request: rebuilt and checked, the report (diagnosis, ratio
+#     sources, home page before/after) goes to the job summary, nothing is
+#     committed. The run fails when more than 20% of the last six months'
+#     priced FPI lines cannot be converted. Refresh the branch's fpi.json
+#     with a manual run on the branch (workflow_dispatch) when needed.
+on:
+  schedule:
+    - cron: '47 2 * * *'
+  pull_request:
+    paths:
+      - 'scripts/build-fpi.mjs'
+      - 'scripts/fpi-report.mjs'
+      - 'api/_lib/fx.js'
+      - 'api/_lib/adrRatio.js'
+      - 'api/_lib/fpiNormalize.js'
+      - 'api/_lib/fpiContext.js'
+      - 'config/adr-overrides.json'
+      - '.github/workflows/fpi.yml'
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: 'Re-check every issuer at the SEC (not only those older than 30 days)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fpi-data-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      - name: Build fpi.json
+        env:
+          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          SEC_RETRY_BACKOFF: '2,4,8,16,30'
+          # the verified examples: their 20-F / F-6 ratio sentences go to the log
+          FPI_DEBUG: 'TSM,BBD,CX,BABA,ASX,GGAL,VIPS'
+        run: |
+          set -o pipefail
+          node scripts/build-fpi.mjs --report fpi-report.md ${{ inputs.refresh == true && '--refresh' || '' }} 2>&1 | tee fpi-build.log
+          cat fpi-report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # Commits only on the nightly and manual runs. On a pull request the run
+      # reports and gates but does not commit: GitHub's `paths` filter on
+      # pull_request looks at the whole PR, so every push would start it, and
+      # a commit by the bot becomes the PR head that no check runs on
+      # (workflows triggered by GITHUB_TOKEN pushes need approval).
+      - name: Commit
+        if: github.event_name != 'pull_request'
+        run: |
+          git config user.name 'fpi-bot'
+          git config user.email 'actions@github.com'
+          git add api/_data/fpi.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh foreign issuer data (FX, ADR ratios)'
+          branch="${{ github.head_ref || github.ref_name }}"
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "$branch" && git push origin "HEAD:$branch" && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1
+
+      - name: Conversion gate
+        run: node scripts/fpi-report.mjs --gate > /dev/null

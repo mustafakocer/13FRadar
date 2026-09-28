@@ -305,21 +305,28 @@ async function feedWithRaw(entries, query) {
   }
 }
 
-test('CX: a price in Mexican pesos per participation certificate — no return, capped level, said why', async () => {
+test('CX: a price in Mexican pesos with no exchange rate to convert it — no dollar amount, no return, said why', async () => {
+  // with api/_data/fpi.json (rates, ADR ratio) the line is converted: see
+  // fpi-cases.test.mjs. Here the fixture directory has no rates.
   const { row, raw } = cases.CX_pesos;
   assert.match(raw.fn.F2, /Mexican Pesos/);
   assert.deepEqual(priceCheck(row, { raw, current: 9.71 }), { ok: false, reason: 'currency' });
   const feed = await feedWithRaw([cases.CX_pesos], { tab: 'latest' });
   const r = feed.rows[0];
-  assert.deepEqual([r.ret, r.priceUnverified, r.priceNote, r.signal.level, r.hitRate], [null, true, 'currency', 'weak', { unverified: true }]);
+  assert.deepEqual([r.ret, r.priceUnverified, r.priceNote, r.hitRate], [null, true, 'currency', { unverified: true }]);
+  assert.deepEqual([r.value, r.valueUnverified, r.currency, r.localValue], [null, true, 'MXN', Math.round(row.s * row.p)]);
+  assert.equal(r.signal.level, 'none', 'no verified amount, no size label');
 });
 
 test('DFDV: a preferred-stock purchase is not compared with the common price', async () => {
   const { row, raw } = cases.DFDV_preferred;
   assert.match(raw.st, /Preferred/);
   assert.deepEqual(priceCheck(row, { raw, current: 6.04 }), { ok: false, reason: 'security' });
-  const feed = await feedWithRaw([cases.DFDV_preferred], { tab: 'latest' });
-  assert.deepEqual([feed.rows[0].ret, feed.rows[0].priceNote, feed.rows[0].holder], [null, 'security', 'owner10']);
+  // its own category ("İmtiyazlı hisse alımı"): not in the default
+  // open-market feed, shown with the other transaction types
+  assert.equal((await feedWithRaw([cases.DFDV_preferred], { tab: 'latest' })).rows.length, 0);
+  const feed = await feedWithRaw([cases.DFDV_preferred], { tab: 'latest', types: 'all' });
+  assert.deepEqual([feed.rows[0].category, feed.rows[0].side, feed.rows[0].ret, feed.rows[0].holder], ['preferred', 'buy', null, 'owner10']);
   // the common stock of the same company is still compared
   assert.equal(priceCheck(row, { raw: { ...raw, st: 'Common Stock' }, current: 8.5 }).ok, true);
 });

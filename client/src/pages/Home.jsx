@@ -280,6 +280,11 @@ function InsiderSignals({ teaser }) {
               <span>{t('landing.ins.buys')} $</span>
             </div>
           </div>
+          {pulse?.fxExcluded > 0 && (
+            <div className="muted small" data-fx-excluded={pulse.fxExcluded}>
+              {t('ins.fxExcluded').replace('{n}', pulse.fxExcluded)}
+            </div>
+          )}
 
           {hl && (
             <>
@@ -298,6 +303,7 @@ function InsiderSignals({ teaser }) {
                   <span className="dot" />
                 </div>
                 <div className="amt">{fmtMoney(hl.v)}</div>
+                {hl.fx?.cu && hl.fx.cu !== 'USD' && <div className="muted small">{t('ins.fxConverted').replace('{cu}', hl.fx.cu)}</div>}
               </Link>
             </>
           )}
@@ -355,7 +361,10 @@ function InsiderSignals({ teaser }) {
                           {Math.max(1, (daysBetween(r.from, r.to) ?? 0) + 1)} {t('landing.ins.days')}
                         </div>
                       </td>
-                      <td className="sig-val">{fmtMoney(r.v)}</td>
+                      <td className="sig-val">
+                        {fmtMoney(r.v)}
+                        {r.fxExcluded > 0 && <div className="muted small">{t('ins.fxExcluded').replace('{n}', r.fxExcluded)}</div>}
+                      </td>
                       <td>
                         <Link to={`/stock/${r.t}`} className="btn outline">
                           {t('landing.ins.details')} ›

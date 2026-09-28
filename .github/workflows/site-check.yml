@@ -36,3 +36,19 @@ jobs:
           echo "checking $URL"
           node scripts/check-site.mjs "$URL" | tee report.md
           cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # A production deployment is also checked on the public domain, the
+      # site readers actually open (the unique deployment URL above is the
+      # same build, but the domain goes through its own alias and CDN).
+      - name: Check the public domain
+        if: github.event_name == 'deployment_status' && (github.event.deployment_status.environment == 'Production' || github.event.deployment.environment == 'Production' || github.event.deployment.production_environment == true)
+        env:
+          URL: https://www.fundocap.co
+        run: |
+          set -o pipefail
+          # the alias moves to the new build a few seconds after the deployment
+          # reports success
+          sleep 45
+          echo "checking $URL"
+          node scripts/check-site.mjs "$URL" | tee report-domain.md
+          cat report-domain.md >> "$GITHUB_STEP_SUMMARY"

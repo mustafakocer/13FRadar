@@ -14,6 +14,12 @@
 //   gift        G                                  bağış / hediye
 //   conversion  C                                  dönüşüm
 //   other       everything else (D, J, I, W, L, and P/S with no price)
+//   preferred   any code, in a preferred stock that is not the quoted
+//               security (DFDV's Series C Perpetual Preferred) — own label,
+//               never a return computed from the common stock's price
+//   other_security  warrants, rights, notes, SPAC units… (same rule)
+// The last two come from the Form 4 security title (`sk` on the served
+// row, api/_lib/fpiNormalize.securityKind).
 //
 // plus flags that do not change the category but do change what a line
 // means as a signal (insiderSignal.js):
@@ -26,7 +32,7 @@
 // The stored dataset only holds non-derivative lines today, so `dv` (the
 // derivative flag) is absent and read as false; the rule is here so a
 // derivative line can never be taken for an open-market trade later.
-export const CATEGORIES = ['open_buy', 'open_sell', 'exercise', 'award', 'tax', 'gift', 'conversion', 'other'];
+export const CATEGORIES = ['open_buy', 'open_sell', 'exercise', 'award', 'tax', 'gift', 'conversion', 'preferred', 'other_security', 'other'];
 export const OPEN_MARKET = new Set(['open_buy', 'open_sell']);
 
 // Which way the shares moved, for the buy/sell tabs when "other types" are on.
@@ -39,6 +45,8 @@ export const hasPrice = (r) => Number.isFinite(price(r)) && price(r) > 0;
 export function categorize(r) {
   const code = String(r?.k || '').trim().toUpperCase();
   const derivative = Boolean(r?.dv);
+  if (r?.sk === 'preferred') return 'preferred';
+  if (r?.sk === 'other') return 'other_security';
   switch (code) {
     case 'P':
       return !derivative && hasPrice(r) ? 'open_buy' : 'other';
@@ -64,7 +72,7 @@ export function categorize(r) {
 // ("other") still follows its code.
 export function sideOf(r, category = categorize(r)) {
   if (SELL_SIDE.has(category)) return 'sell';
-  if (category === 'other') return SELL_CODES.has(String(r?.k || '').toUpperCase()) ? 'sell' : 'buy';
+  if (category === 'other' || category === 'preferred' || category === 'other_security') return SELL_CODES.has(String(r?.k || '').toUpperCase()) ? 'sell' : 'buy';
   return 'buy';
 }
 

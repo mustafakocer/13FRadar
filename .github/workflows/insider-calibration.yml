@@ -19,6 +19,8 @@ on:
       - 'api/_lib/insiderSignalConfig.js'
       - 'api/_lib/insiderClassify.js'
       - 'api/_lib/insiderOutcome.js'
+      - 'api/_lib/fpiNormalize.js'
+      - 'api/_data/fpi.json'
       - 'scripts/calibrate-insider-signals.mjs'
       - '.github/workflows/insider-calibration.yml'
   schedule:
@@ -49,6 +51,12 @@ jobs:
           if [ "${{ github.event_name }}" != "pull_request" ]; then out="--out docs/calibration/insider-signals"; fi
           node scripts/calibrate-insider-signals.mjs --fetch $out | tee calibration.md
           { echo '## Insider signal calibration'; echo; cat calibration.md; } >> "$GITHUB_STEP_SUMMARY"
+          # on a PR, the same table with foreign issuers' lines as filed
+          # (not converted to US dollars): the before/after of that change
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            node scripts/calibrate-insider-signals.mjs --fetch --no-fpi | tee calibration-before.md
+            { echo; echo '## Before: foreign issuers as filed (no USD conversion)'; echo; cat calibration-before.md; } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Commit the monthly report
         if: github.event_name != 'pull_request'

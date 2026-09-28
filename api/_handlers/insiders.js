@@ -87,6 +87,7 @@ export function fromDataset(db, ticker, limit = 25) {
         // a foreign issuer's line (fpiNormalize.js): converted, or kept in
         // its own currency with no dollar amount
         ...(r.fx?.fail ? { valueUnverified: true, currency: r.fx.cu || null, localValue: r.fx.lv, localPrice: r.fx.lp } : {}),
+        ...(r.fx?.off != null ? { offMarket: r.fx.off } : {}),
         ...(r.fx?.ok && (r.fx.cu !== 'USD' || r.fx.ar !== 1) ? { currency: r.fx.cu, adrRatio: r.fx.ar, localPrice: r.fx.lp, ratioSource: r.fx.as } : {}),
       };
     });

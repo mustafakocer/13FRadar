@@ -3,7 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { dataFreshness } from '../lib/secCalendar.js';
-import { fmtMoney, fmtNum, fmtPct, fmtLocal, deltaClass } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtLocal, fmtOffPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
@@ -405,6 +405,7 @@ export default function Insiders() {
                 </div>
               </div>
               {stats.fxExcluded > 0 && <div className="muted small" data-fx-excluded={stats.fxExcluded}>{t('ins.fxExcluded').replace('{n}', stats.fxExcluded)}</div>}
+              {stats.offMarket > 0 && <div className="muted small" data-off-market-count={stats.offMarket}>{t('ins.offMarketExcluded').replace('{n}', stats.offMarket)}</div>}
             </>
           ) : (
             <div className="muted small">{t('common.loading')}</div>
@@ -590,6 +591,11 @@ export default function Insiders() {
                         <>
                           <b>{r.value != null ? `$${fmtNum(r.value, 2)}` : '—'}</b>
                           <div className="muted small">{t('ins.price')}: {r.price != null ? `$${fmtNum(r.price, 2)}` : '—'}</div>
+                          {r.offMarket != null && (
+                            <div className="muted small" data-off-market={r.offMarket} title={t('ins.offMarketTip')}>
+                              {t('ins.offMarket').replace('{pct}', fmtOffPct(r.offMarket, lang))}
+                            </div>
+                          )}
                           {r.currency && (
                             <div
                               className="muted small"

@@ -15,6 +15,13 @@ export function fmtNum(v, digits = 0) {
   return v.toLocaleString('en-US', { maximumFractionDigits: digits });
 }
 
+// "−22,6" / "-22.6": an off-market price's distance from the close
+export function fmtOffPct(v, lang = 'tr') {
+  if (v == null || Number.isNaN(v)) return '—';
+  const s = `${v > 0 ? '+' : ''}${Number(v).toFixed(1)}`;
+  return lang === 'tr' ? s.replace('.', ',') : s;
+}
+
 export function fmtPct(v, { sign = true, digits = 1 } = {}) {
   if (v == null || Number.isNaN(v)) return '—';
   const s = sign && v > 0 ? '+' : '';

@@ -15,6 +15,7 @@ import {
   fmtRatio,
   deltaClass,
   fmtLocal,
+  fmtOffPct,
 } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -343,6 +344,11 @@ export default function Stock() {
                         <>
                           {fmtMoney(tx.value)}
                           {tx.currency && <div className="muted small">{t('ins.fxConverted').replace('{cu}', tx.currency)}</div>}
+                          {tx.offMarket != null && (
+                            <div className="muted small" data-off-market={tx.offMarket} title={t('ins.offMarketTip')}>
+                              {t('ins.offMarket').replace('{pct}', fmtOffPct(tx.offMarket, lang))}
+                            </div>
+                          )}
                         </>
                       )}
                     </td>

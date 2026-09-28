@@ -181,6 +181,7 @@ function fxShape(r) {
   const b = fxBrief(r).fx;
   if (!b) return {};
   if (r.fx.fail) return { valueUnverified: true, currency: b.cu, localValue: b.lv, localPrice: b.lp };
+  if (r.fx.off != null) return { offMarket: r.fx.off };
   return { currency: b.cu, adrRatio: b.ar, localPrice: b.lp, ratioSource: r.fx.as, fxRate: r.fx.rate };
 }
 
@@ -200,7 +201,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const clusters = d.recentClusters;
   const signals = [];
   for (const r of last24) {
-    if (r.fx?.fail) continue;
+    if (r.fx?.fail || r.fx?.off != null) continue;
     const m = (r.t && meta[r.t]) || {};
     const ret = retOf(r, meta, d);
     const cl = clusters.get(r.t);
@@ -233,7 +234,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
 
   const top = (list) =>
     list
-      .filter((r) => !r.fx?.fail)
+      .filter((r) => !r.fx?.fail && r.fx?.off == null)
       .sort((a, b) => (b.v || 0) - (a.v || 0))
       .slice(0, 3)
       .map((r) => {
@@ -257,6 +258,7 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
     sellValue,
     sellShare: summary.sellShare,
     fxExcluded: summary.fxExcluded || 0,
+    offMarket: summary.offMarket || 0,
     signals: topSignals,
     // the list the home page and /insiders/cluster show (insiderCluster.js)
     clusters: d.recentList,

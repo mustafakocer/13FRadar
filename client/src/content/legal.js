@@ -4,7 +4,7 @@
 // client/vite.config.js) with a placeholder until it is set.
 export const CONTACT_EMAIL = typeof __CONTACT_EMAIL__ !== 'undefined' && __CONTACT_EMAIL__ ? __CONTACT_EMAIL__ : 'hello@fundocap.co';
 export const OPERATOR = 'KOCERLER LTD';
-export const LEGAL_UPDATED = '2026-09-22';
+export const LEGAL_UPDATED = '2026-09-28';
 
 export const LEGAL_CONTENT = {
   privacy: {
@@ -14,7 +14,7 @@ export const LEGAL_CONTENT = {
       sections: [
         { h2: 'Hangi verileri topluyoruz?', p: [
           'Hesap açarsanız e-posta adresiniz ve (şifreyle giriş yapıyorsanız) şifrenizin karması. Google ile giriş yaparsanız Google’dan yalnız adınız, e-postanız ve profil resminizin adresi gelir; şifreniz bize ulaşmaz.',
-          'Kullanım verisi: izleme listeniz, kaydettiğiniz bildirimler, plan bilginiz (ücretsiz / Pro) ve e-posta özeti tercihiniz. Bunlar sizin için tutulur; başka bir amaçla işlenmez.',
+          'Kullanım verisi: izleme listeniz ve plan bilginiz (ücretsiz / Pro). Daha önce kaydettiğiniz uyarılar ve e-posta özeti tercihiniz hesabınızda saklı kalır; e-posta uyarısı gönderimi şu an kapalıdır ve bu kayıtlar başka bir amaçla işlenmez.',
           'Pro aboneliği alırsanız ödeme kart bilgileriniz Stripe’ta kalır; biz yalnız Stripe müşteri ve abonelik numaralarını ve abonelik durumunu saklarız. Kart numaranızı hiç görmeyiz.',
           'Teknik veri: barındırma sağlayıcımızın (Vercel) standart sunucu günlükleri (IP adresi, tarayıcı, istenen sayfa, zaman) kısa süre tutulur. Ziyaretçinin ülkesi yalnız bölgesel fiyat ve dil seçimi için, anlık olarak kullanılır; saklanmaz.',
         ] },
@@ -22,13 +22,13 @@ export const LEGAL_CONTENT = {
           'Reklam veya davranış izleme çerezi kullanmıyoruz. Yalnız işlevsel kayıtlar vardır: dil tercihi (çerez), tema ve izleme listenizin cihazdaki kopyası (tarayıcı depolaması) ve giriş yaptıysanız oturum anahtarınız. Üçüncü taraf analitik veya reklam ağı yüklenmez.',
         ] },
         { h2: 'Verileri kim işliyor?', p: [
-          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı), Resend (opt-in e-posta özetleri) ve GitHub (günlük veri üretimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
+          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı) ve GitHub (günlük veri üretimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
         ] },
         { h2: 'Sitedeki veriler nereden geliyor?', p: [
           'Portföy ve insider verileri SEC EDGAR’daki kamuya açık bildirimlerden (13F, Form 4, 13D/G) otomatik derlenir. Fiyat verileri lisanslı sağlayıcılardan (Financial Modeling Prep, Twelve Data, Finnhub) ve gece üretimlerinde Yahoo Finance’ten; menkul kıymet kimlikleri OpenFIGI’den alınır. Bu veriler kişisel veri değildir; şirket içi işlemlerdeki kişi adları SEC’in yayımladığı kamu kayıtlarıdır.',
         ] },
         { h2: 'Ne kadar süre saklıyoruz?', p: [
-          'Hesap verileri hesabınız açık kaldığı sürece. Hesabınızı silmek isterseniz yazın; hesap, izleme listesi ve bildirimler silinir, Stripe’taki fatura kayıtları yasal süre boyunca Stripe’ta kalır. Sunucu günlükleri sağlayıcının standart süresi (en fazla 30 gün) sonunda silinir.',
+          'Hesap verileri hesabınız açık kaldığı sürece. Hesabınızı silmek isterseniz yazın; hesap, izleme listesi ve kayıtlı uyarılar silinir, Stripe’taki fatura kayıtları yasal süre boyunca Stripe’ta kalır. Sunucu günlükleri sağlayıcının standart süresi (en fazla 30 gün) sonunda silinir.',
         ] },
         { h2: 'Haklarınız', p: [
           'Verilerinize erişme, düzeltme, silme, taşıma ve işlemeye itiraz etme hakkınız var (UK GDPR ve, Türkiye’deki kullanıcılar için, KVKK). Talebinizi aşağıdaki adrese yazın; 30 gün içinde yanıtlarız. Şikâyet için Birleşik Krallık’ta ICO’ya, Türkiye’de KVKK’ya başvurabilirsiniz.',
@@ -42,7 +42,7 @@ export const LEGAL_CONTENT = {
       sections: [
         { h2: 'What we collect', p: [
           'If you create an account: your email address and, for password sign-in, a hash of your password. If you sign in with Google, we receive only your name, email and profile picture URL from Google; your password never reaches us.',
-          'Usage data: your watchlist, the alerts you save, your plan (free / Pro) and your email digest preference. These are kept for you and not processed for any other purpose.',
+          'Usage data: your watchlist and your plan (free / Pro). Alerts you saved earlier and your email digest preference stay stored with your account; sending email alerts is currently switched off and these records are not processed for any other purpose.',
           'If you subscribe to Pro, your card details stay with Stripe; we store only the Stripe customer and subscription ids and the subscription status. We never see your card number.',
           'Technical data: our hosting provider (Vercel) keeps standard server logs (IP address, browser, requested page, time) for a short period. A visitor’s country is used momentarily for regional pricing and language, and is not stored.',
         ] },
@@ -50,13 +50,13 @@ export const LEGAL_CONTENT = {
           'We use no advertising or behavioural tracking cookies. Only functional records exist: your language preference (a cookie), your theme and a copy of your watchlist on the device (browser storage), and, when signed in, your session key. No third-party analytics or ad network is loaded.',
         ] },
         { h2: 'Who processes the data', p: [
-          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), Resend (opt-in email digests) and GitHub (the nightly data builds). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
+          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery) and GitHub (the nightly data builds). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
         ] },
         { h2: 'Where the site’s data comes from', p: [
           'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Prices come from licensed providers (Financial Modeling Prep, Twelve Data, Finnhub) and, in the nightly builds, Yahoo Finance; security identifiers from OpenFIGI. This is not personal data; the names in insider transactions are public records published by the SEC.',
         ] },
         { h2: 'How long we keep it', p: [
-          'Account data for as long as your account exists. Write to us to delete your account: the account, watchlist and alerts are removed; invoice records stay with Stripe for the statutory period. Server logs are deleted after the provider’s standard retention (30 days at most).',
+          'Account data for as long as your account exists. Write to us to delete your account: the account, watchlist and saved alerts are removed; invoice records stay with Stripe for the statutory period. Server logs are deleted after the provider’s standard retention (30 days at most).',
         ] },
         { h2: 'Your rights', p: [
           'You can access, correct, delete and port your data and object to its processing (UK GDPR; KVKK for users in Türkiye). Write to the address below; we answer within 30 days. You may complain to the ICO in the United Kingdom or to KVKK in Türkiye.',

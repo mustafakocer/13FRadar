@@ -1,11 +1,12 @@
 name: Send alert digests
 
-# Runs after the data jobs have had time to land (consensus 04:30, insiders
-# 05:30, filings alongside them), so a digest never reports a filing the site
-# cannot yet show.
+# E-POSTA UYARILARI 2026-09'DA KALDIRILDI / email alerts removed in 2026-09.
+# The schedule is gone and scripts/send-alerts.mjs stops at its first line
+# ("email alerts are removed"): a hand-run reads nothing, sends nothing and
+# marks nothing as sent. The file stays so the feature can come back — see
+# docs/EMAIL_ALERTS.md for the steps, including how to keep the backlog of
+# old alerts from going out in one burst.
 on:
-  schedule:
-    - cron: '23 8 * * *'
   workflow_dispatch:
     inputs:
       dry_run:

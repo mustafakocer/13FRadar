@@ -8,8 +8,8 @@ export const MATRIX_LABEL = {
   tr: { coverage: 'Kapsam (13F dosyalayıcı)', history: 'Geçmiş derinliği', insider: 'Insider (Form 4) verisi', export: 'Dışa aktarma', alerts: 'Uyarılar', tr: 'Türkçe desteği', price: 'Fiyat' },
 };
 export const US = {
-  en: { coverage: 'All ~7,800 13F-HR filers; 20 curated gurus', history: '10 years (40 quarters) for curated gurus; 8 quarters for any filer', insider: 'Daily Form 4 feed, cluster / C-suite / penny signals, 10b5-1 flag', export: 'CSV and Excel (Pro)', alerts: 'Watchlist "new filing" badges; email alerts on the roadmap', tr: 'Full Turkish UI and content', price: 'Free tier; Pro from $10/month (Türkiye) or $19.90/month' },
-  tr: { coverage: 'Tüm ~7.800 13F-HR dosyalayıcı; 20 küratörlü usta yatırımcı', history: 'Küratörlü ustalar için 10 yıl (40 çeyrek); her kurum için 8 çeyrek', insider: 'Günlük Form 4 akışı, küme / C-suite / kuruş hisse sinyalleri, 10b5-1 bayrağı', export: 'CSV ve Excel (Pro)', alerts: 'İzleme listesinde "yeni bildirim" rozeti; e-posta uyarıları yol haritasında', tr: 'Tam Türkçe arayüz ve içerik', price: 'Ücretsiz plan; Pro 10 $/ay (Türkiye) veya 19,90 $/ay' },
+  en: { coverage: 'All ~7,800 13F-HR filers; 20 curated gurus', history: '10 years (40 quarters) for curated gurus; 8 quarters for any filer', insider: 'Daily Form 4 feed, cluster / C-suite / penny signals, 10b5-1 flag', export: 'CSV and Excel (Pro)', alerts: 'Watchlist "new filing" badges', tr: 'Full Turkish UI and content', price: 'Free tier; Pro from $10/month (Türkiye) or $19.90/month' },
+  tr: { coverage: 'Tüm ~7.800 13F-HR dosyalayıcı; 20 küratörlü usta yatırımcı', history: 'Küratörlü ustalar için 10 yıl (40 çeyrek); her kurum için 8 çeyrek', insider: 'Günlük Form 4 akışı, küme / C-suite / kuruş hisse sinyalleri, 10b5-1 bayrağı', export: 'CSV ve Excel (Pro)', alerts: 'İzleme listesinde "yeni bildirim" rozeti', tr: 'Tam Türkçe arayüz ve içerik', price: 'Ücretsiz plan; Pro 10 $/ay (Türkiye) veya 19,90 $/ay' },
 };
 const todoRow = () => Object.fromEntries(MATRIX_ROWS.map((r) => [r, TODO]));
 

@@ -24,6 +24,17 @@ import { matchFilings, matchInsiders, nextMark, renderDigest, digestSubject, rec
 import { CANONICAL_SITE } from '../api/_lib/site.js';
 import { readServed } from '../api/_lib/insiderStore.js';
 
+// Email alerts were REMOVED in 2026-09 until the product is final
+// (docs/EMAIL_ALERTS.md). This stop runs before anything else: no Supabase
+// read, no email, and — the part that matters — no alert is ever marked as
+// sent, so nothing is consumed while the feature is off. Turning it back on
+// is a deliberate change here plus the steps in that document.
+const EMAIL_ALERTS_ENABLED = false;
+if (!EMAIL_ALERTS_ENABLED) {
+  console.log('email alerts are removed — nothing was read, sent or marked (see docs/EMAIL_ALERTS.md)');
+  process.exit(0);
+}
+
 const DRY = process.argv.includes('--dry-run');
 const FORCE = process.argv.includes('--force');
 const SITE = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');

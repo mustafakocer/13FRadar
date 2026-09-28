@@ -4,6 +4,9 @@
 //
 //   node scripts/calibrate-insider-signals.mjs            markdown table
 //   node scripts/calibrate-insider-signals.mjs --json     machine-readable
+//   node scripts/calibrate-insider-signals.mjs --fetch    also download daily
+//        closes (Yahoo chart, ~400 days) for tickers the price cache lacks —
+//        what the nightly build does; needs the network of a GitHub runner
 //
 // One observation per FILING (a buy split into price lots is one decision),
 // rated on the filing's total (insiderSignal.filingTotals). The outcome is the
@@ -21,8 +24,10 @@ import { filingTotals, signalLevel, LEVELS } from '../api/_lib/insiderSignal.js'
 import { forwardExcess } from '../api/_lib/insiderOutcome.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { SIGNAL } from '../api/_lib/insiderSignalConfig.js';
+import { fetchCharts } from '../api/_lib/marketData.js';
 
 const JSON_OUT = process.argv.includes('--json');
+const FETCH = process.argv.includes('--fetch');
 const rows = currentRows(readServed().rows);
 const spy = readSeries('SPY')?.prices || [];
 if (!spy.length) {
@@ -39,6 +44,13 @@ for (const r of rows) {
 }
 
 const seriesMemo = new Map();
+if (FETCH) {
+  const need = [...new Set([...firstLine.values()].map((r) => r.t).filter((t) => t && !readSeries(t)))];
+  console.error(`fetching daily closes for ${need.length} ticker(s) without a cached series…`);
+  const { snapshots, failed } = await fetchCharts(need, { onProgress: (d, n) => console.error(`  ${d}/${n}`) });
+  for (const [t, snap] of snapshots) if (snap?.closes?.length) seriesMemo.set(t, snap.closes);
+  console.error(`  ${[...snapshots.values()].filter((s) => s?.closes?.length).length} fetched, ${failed} failed`);
+}
 const series = (t) => {
   if (!seriesMemo.has(t)) seriesMemo.set(t, readSeries(t)?.prices || null);
   return seriesMemo.get(t);

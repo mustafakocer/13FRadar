@@ -1,0 +1,35 @@
+name: Insider signal calibration
+
+# Do the signal levels (Güçlü / Orta / Zayıf) mean anything? Recomputes the
+# 30/90-day return vs SPY per level whenever the rules change, with daily
+# closes for every ticker (the price cache alone covers ~22% of buy
+# filings). Read-only: nothing is committed. The table is in the job
+# summary; the run fails only if the script itself fails.
+on:
+  pull_request:
+    paths:
+      - 'api/_lib/insiderSignal.js'
+      - 'api/_lib/insiderSignalConfig.js'
+      - 'api/_lib/insiderClassify.js'
+      - 'api/_lib/insiderOutcome.js'
+      - 'scripts/calibrate-insider-signals.mjs'
+      - '.github/workflows/insider-calibration.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Calibrate
+        run: |
+          node scripts/calibrate-insider-signals.mjs --fetch | tee calibration.md
+          { echo '## Insider signal calibration'; echo; cat calibration.md; } >> "$GITHUB_STEP_SUMMARY"

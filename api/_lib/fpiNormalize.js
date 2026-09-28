@@ -98,6 +98,9 @@ export function needsNormalizing(r, raw, issuer) {
 
 // "Price per ADS" while the share count is in home-market units — CEMEX's
 // sale of 21,268 ADSs was filed as 212,680 CPOs at $10.68 "per ADS".
+// codes priced at the market: an open-market buy or sale, and shares
+// withheld for tax (valued at the day's price)
+const MARKET_CODES = new Set(['P', 'S', 'F']);
 const PRICE_PER_ADS_RE = /\bprice[s]? (is |are )?(reported |shown )?per (ads|adr|american depositary (share|receipt))\b|\bper ads\b/i;
 
 // → null (untouched) | { kind } (a non-quoted security) | { ok, … } | { fail, … }
@@ -129,38 +132,48 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   if (doc) ratios.push({ ratio: doc.ratio, src: doc.src });
   if (hasAds && der && !ratios.some((x) => x.ratio === der)) ratios.push({ ratio: der, src: 'derived' });
   const perAds = PRICE_PER_ADS_RE.test(notes);
-  const curs = stated ? [stated] : [...new Set([home, 'USD'].filter(Boolean))];
-  // a US-dollar price of a company with no ADS and no foreign currency on
-  // the form: nothing to convert — a mismatch there is a split or a data
-  // problem (NCT), which the price check already handles
-  if (!hasAds && curs.every((c) => c === 'USD')) return null;
+  const homeTrusted = home && issuer?.curSrc !== 'derived' ? home : null;
+  const homeDerived = home && issuer?.curSrc === 'derived' ? home : null;
+  // a dollar-priced company with no ADS and no foreign currency on the form
+  // (no home currency known, or a note already in dollars): nothing to
+  // convert — a mismatch there is a split or a data problem (NCT), which
+  // the price check already handles
+  if (!hasAds && (!stated || stated === 'USD') && !homeTrusted && !homeDerived) return null;
 
   const ref = marketRef(r, series, meta);
   // the daily closes are split-adjusted: so is the price compared with them
   const split = splitFactor(r.t, r.d, splits);
 
+  // Readings in priority order. With a 25% market tolerance more than one
+  // can fit (Sea's dollar price also lands 21% off as Singapore dollars),
+  // so the order carries the evidence:
+  //   1. the currency the form itself names
+  //   2. US dollars — how most foreign issuers' insiders report
+  //   3. the home currency from the SEC address, then one derived from
+  //      the closes
+  // each with the documented ratio before a derived one (TSMC's ADS trades
+  // ~20% above five Taipei shares: 5 must beat a "closer" 6).
   const cands = [];
   const add = (cu, pr, sr, as) => {
     if (!cu || !(pr > 0) || !(sr > 0) || cands.some((c) => c.cu === cu && c.pr === pr && c.sr === sr)) return;
     cands.push({ cu, pr, sr, as });
   };
-  for (const cu of curs) {
-    if (kind === 'ads') {
-      add(cu, 1, 1, 'ads');
-      continue;
-    }
-    if (!hasAds) {
-      add(cu, 1, 1, 'direct');
-      continue;
-    }
-    for (const { ratio, src } of ratios) {
+  const readings = (cu, list) => {
+    if (kind === 'ads') return add(cu, 1, 1, 'ads');
+    if (!hasAds) return add(cu, 1, 1, 'direct');
+    for (const { ratio, src } of list) {
       if (perAds) add(cu, 1, ratio, src);
       add(cu, ratio, ratio, src);
       if (!perAds && kind === 'share') add(cu, 1, ratio, src);
     }
     // no title stored: possibly a trade in the ADSs themselves
     if (kind == null && cu === 'USD') add('USD', 1, 1, 'ads');
-  }
+  };
+  const docRatios = ratios.filter((x) => x.src !== 'derived');
+  const derRatios = ratios.filter((x) => x.src === 'derived');
+  const tiers = [...new Set([stated, 'USD', homeTrusted, homeDerived].filter(Boolean))];
+  for (const cu of tiers) readings(cu, docRatios);
+  for (const cu of tiers) readings(cu, derRatios);
 
   const tried = cands.map((c) => {
     const rate = usdPerUnit(c.cu, r.d, rates);
@@ -181,7 +194,7 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
     }
   } else if (ref?.close && hasAds && !ratios.length) {
     // no ratio at all: derive it from the close (±10% of a common ratio)
-    for (const cu of curs) {
+    for (const cu of tiers) {
       const rate = usdPerUnit(cu, r.d, rates);
       const ar = deriveRatio(ref.close * split, r.p, rate);
       if (ar) {
@@ -200,7 +213,12 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   if (!pick) {
     // no ratio anywhere: a data gap when there is nothing to derive it from,
     // a failed market check when a close was there and no common ratio fit
-    const why = !tried.length ? (ref?.close ? 'mismatch' : 'no_ratio') : !tried.some((t) => t.rate != null) ? 'no_rate' : ref ? 'mismatch' : 'unverifiable';
+    // …and a currency that could not be tested for want of a rate (YPF in
+    // Argentine pesos, ASE in New Taiwan dollars) is a missing rate, not a
+    // failed check
+    // …and an option exercise, award or phantom unit is priced at a strike
+    // or a grant value, not the market: it cannot fail a market check
+    const why = !tried.length ? (ref?.close ? 'mismatch' : 'no_ratio') : tried.some((t) => t.rate == null) ? 'no_rate' : !MARKET_CODES.has(r.k) ? 'non_market' : ref ? 'mismatch' : 'unverifiable';
     return { fail: why, cu: stated || (kind === 'ads' ? 'USD' : home) || null, lp: r.p, lv };
   }
   const src = pick.as === doc?.src ? doc : null;

@@ -21,7 +21,7 @@ import { isListed } from '../api/_lib/insiderModel.js';
 export const GATE = 0.2;
 const KIND_TR = { ads: 'ADS / ADR', share: 'Ana hisse (ordinary / CPO / common)', preferred: 'İmtiyazlı hisse', other: 'Unit / varant / diğer', null: 'Bilinmiyor (form alanları yok)' };
 const SRC_TR = { f6: 'SEC F-6', '20f': 'SEC 20-F kapak', footnote: 'Form 4 dipnotu', derived: 'türetilmiş', override: 'elle düzeltme', direct: 'doğrudan (ADR yok)', ads: 'ADS (oran 1)' };
-const WHY_TR = { no_rate: 'kur yok (H.10 bu para birimini yayımlamıyor)', mismatch: 'hiçbir okuma o günün kapanışıyla uyuşmuyor', unverifiable: 'karşılaştıracak piyasa verisi yok', no_ratio: 'ADR oranı bulunamadı' };
+const WHY_TR = { no_rate: 'kur yok (H.10 bu para birimini yayımlamıyor)', mismatch: 'hiçbir okuma o günün kapanışıyla uyuşmuyor', unverifiable: 'karşılaştıracak piyasa verisi yok', no_ratio: 'ADR oranı bulunamadı', non_market: 'piyasa fiyatı olmayan işlem' };
 const fmt = (n) => (n == null ? '—' : Math.abs(n) >= 1e6 ? `${(n / 1e6).toFixed(2)}M` : Math.abs(n) >= 1e3 ? `${(n / 1e3).toFixed(1)}K` : String(Math.round(n)));
 const pct = (a, b) => (b ? `%${((a / b) * 100).toFixed(1)}` : '—');
 
@@ -84,7 +84,7 @@ export function compute({ since = null } = {}) {
   // data gaps: no exchange rate, no market data, no ratio and nothing to
   // derive it from. The rest failed the market check (a reading error or a
   // unit the rules do not know).
-  const DATA_GAP = new Set(['no_rate', 'unverifiable', 'no_ratio']);
+  const DATA_GAP = new Set(['no_rate', 'unverifiable', 'no_ratio', 'non_market']);
   const gap = failed.filter(({ n }) => DATA_GAP.has(n.fx.fail)).length;
   const topOf = (m) => Object.entries(m || {}).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([t, k]) => `${t} ${k}`);
   const reasons = [
@@ -93,7 +93,8 @@ export function compute({ since = null } = {}) {
     { key: 'unverifiable', label: 'Fiyat geçmişi yok (piyasa verisi yok)', n: failWhy.unverifiable || 0, top: topOf(failTickers.unverifiable), gap: true },
     { key: 'mismatch', label: 'Piyasa kontrolünü geçmedi (birim/oran uyuşmuyor)', n: failWhy.mismatch || 0, top: topOf(failTickers.mismatch), gap: false },
     { key: 'zero', label: 'Fiyat 0 (paydada değil)', n: zeroPrice.length, top: topOf(zeroTickers), gap: null },
-    { key: 'other', label: 'Diğer', n: Object.entries(failWhy).filter(([k]) => !['no_rate', 'no_ratio', 'unverifiable', 'mismatch'].includes(k)).reduce((a, [, v]) => a + v, 0), top: [], gap: false },
+    { key: 'non_market', label: 'Diğer: piyasa fiyatı olmayan işlem (opsiyon kullanımı, ödül, phantom hisse — fiyat kullanım/hibe fiyatı, kapanışla karşılaştırılamaz)', n: failWhy.non_market || 0, top: topOf(failTickers.non_market), gap: true },
+    { key: 'other', label: 'Diğer', n: Object.entries(failWhy).filter(([k]) => !['no_rate', 'no_ratio', 'unverifiable', 'mismatch', 'non_market'].includes(k)).reduce((a, [, v]) => a + v, 0), top: [], gap: false },
   ];
   const openPriced = priced.filter(({ r }) => ['open_buy', 'open_sell'].includes(categorize(r)));
   const openFailed = openPriced.filter(({ n }) => n.fx?.fail);

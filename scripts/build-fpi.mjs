@@ -149,7 +149,7 @@ const issuers = { ...(prev.issuers || {}) };
 const domestic = { ...(prev.domestic || {}) };
 const stale = (at) => !at || REFRESH || (Date.parse(today) - Date.parse(at)) / 86400000 > STALE_DAYS;
 // an FPI read by an older version of the rules below is read again
-const VERSION = 2;
+const VERSION = 3;
 const todo = [...byCik.keys()]
   .filter((cik) => stale(issuers[cik]?.checkedAt || domestic[cik]) || (issuers[cik] && (issuers[cik].v || 1) < VERSION))
   .slice(0, MAX_ISSUERS);
@@ -318,6 +318,11 @@ for (const cik of fpiCiks) {
   const series = snap?.closes?.length ? snap.closes : readSeries(list[0]?.t)?.prices || null;
   if (!series?.length) continue;
   const cached = Boolean(readSeries(list[0].t));
+  // a home currency derived on an earlier run is derived again from scratch
+  if (iss.curSrc === 'derived') {
+    delete iss.cur;
+    delete iss.curSrc;
+  }
   const votes = new Map();
   const curVotes = new Map();
   let curTried = 0;
@@ -334,7 +339,11 @@ for (const cik of fpiCiks) {
     // currency, at the documented ratio, puts this line at the close?
     if (!iss.cur && !stated) {
       curTried++;
-      for (const cu of Object.keys(rates)) {
+      // a line already in dollars votes for USD: Sea and TSMC report in
+      // dollars, and a currency "fitting" 20% off must not win over that
+      const usd = r.p * (iss.ratio || 1);
+      if (Math.abs(usd / bar.close - 1) <= 0.15) curVotes.set('USD', (curVotes.get('USD') || 0) + 1);
+      else for (const cu of Object.keys(rates)) {
         const px = r.p * usdPerUnit(cu, r.d, rates) * (iss.ratio || 1);
         if (px > 0 && Math.abs(px / bar.close - 1) <= 0.15) curVotes.set(cu, (curVotes.get(cu) || 0) + 1);
       }
@@ -346,7 +355,7 @@ for (const cik of fpiCiks) {
     }
   }
   const topCur = [...curVotes.entries()].sort((a, b) => b[1] - a[1])[0];
-  if (!iss.cur && topCur && topCur[1] >= 3 && topCur[1] / curTried >= 0.6) {
+  if (!iss.cur && topCur && topCur[0] !== 'USD' && topCur[1] >= 3 && topCur[1] / curTried >= 0.8) {
     iss.cur = topCur[0];
     iss.curSrc = 'derived';
   }

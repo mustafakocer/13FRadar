@@ -28,16 +28,19 @@ const WORDS = {
 const FRACTIONS = {
   half: 2, third: 3, quarter: 4, fourth: 4, fifth: 5, sixth: 6, eighth: 8, tenth: 10, twentieth: 20, fortieth: 40, fiftieth: 50, hundredth: 100,
 };
-const NUM = String.raw`(\d+(?:[.,]\d+)?|one[- ]hundred|one[- ]thousand|twenty[- ]five|[a-z]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*\))?`;
+const NUM = String.raw`(\d+(?:[.,]\d+)?|one[- ]hundred|one[- ]thousand|(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)[- ](?:one|two|three|four|five|six|seven|eight|nine)|[a-z]+)(?:\s*\(\s*(\d+(?:\.\d+)?)\s*\))?`;
 const FRACTION = String.raw`(one|a|an)[- ](half|third|quarter|fourth|fifth|sixth|eighth|tenth|twentieth|fortieth|fiftieth|hundredth)`;
 const ADS = String.raw`(?:american depositary shares?|american depositary receipts?|adss?|adrs?|depositary shares?)`;
 const UNDERLYING = String.raw`(?:of\s+(?:one|an?|1)\s+)?(?:fully[- ]paid\s+|issued\s+)?(ordinary|common|class\s+[a-z]|series\s+[a-z]|preferred|preference|non[- ]voting|voting|cpos?|participation|equity|h|a|b|registered|bearer|units?|shares?)`;
 
+const TENS = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
 const toNumber = (w, digits) => {
   if (digits) return Number(digits);
   const s = String(w || '').toLowerCase().replace(/\s+/g, ' ').replace('-', ' ');
   if (/^\d/.test(s)) return Number(s.replace(',', '.'));
-  return WORDS[s] ?? WORDS[s.replace(' ', '-')] ?? null;
+  const [a, b] = s.split(' ');
+  if (TENS[a] && b && WORDS[b] < 10) return TENS[a] + WORDS[b]; // "forty-five"
+  return WORDS[s] ?? WORDS[s.replace(' ', '-')] ?? TENS[s] ?? null;
 };
 
 // The underlying class a sentence names, for telling BBD's preferred ADS
@@ -85,7 +88,16 @@ export function parseRatios(text) {
 
 // The ratio a document states, when its statements agree (the most frequent
 // one otherwise, since an F-6 also quotes the ratio of older ADR series).
+// "changed the ratio … from one ADS representing fifteen Class A ordinary
+// shares to one ADS representing forty-five" — the ratio now is the second.
+const CHANGE_RE = new RegExp(String.raw`from\s+(?:one|1)\s+${ADS}\s+(?:representing|to)\s+[^.;]{0,80}?\bto\s+(?:one|1)\s+${ADS}\s+(?:representing|to)\s+`, 'i');
 export function statedRatio(text) {
+  const s = String(text || '').replace(/\s+/g, ' ');
+  const change = CHANGE_RE.exec(s);
+  if (change) {
+    const after = parseRatios(`each ADS representing ${s.slice(change.index + change[0].length, change.index + change[0].length + 120)}`);
+    if (after.length) return { ...after[0], quote: s.slice(change.index, change.index + change[0].length + 60).trim() };
+  }
   const all = parseRatios(text);
   if (!all.length) return null;
   const count = new Map();

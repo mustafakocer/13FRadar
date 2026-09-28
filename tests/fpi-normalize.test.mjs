@@ -225,3 +225,33 @@ test('a dollar-priced company without ADSs is left alone: its mismatch is a spli
   const r = { t: 'NCT', ci: '1', d: '2026-09-25', k: 'P', s: 1625000, p: 0.4, v: 650000, a: 'N', li: 0 };
   assert.equal(normalizeRow(r, { raw: { st: 'Class B Ordinary Shares' }, issuer: nct, rates: {}, series: [{ date: '2026-09-25', close: 4.43 }] }), null);
 });
+
+test('US dollars before the home currency: Sea reports in dollars, a Singapore-dollar reading 21% off must not win', () => {
+  const sea = { t: 'SE', fpi: 1, ads: 1, cur: 'SGD', ratio: 1, src: '20f' };
+  const r = { t: 'SE', ci: '1', d: '2026-09-24', k: 'S', s: 574, p: 101.75, v: 58405, a: 'S', li: 0 };
+  const n = normalizeRow(r, { raw: { st: 'Class A Ordinary Shares' }, issuer: sea, rates: { SGD: [['2026-09-24', 0.7813]] }, series: [{ date: '2026-09-24', close: 100.73 }] });
+  assert.deepEqual([n.cu, n.p, n.v], ['USD', 101.75, 58405]);
+});
+
+test('a currency the note merely mentions does not rule out a dollar price (Vesta: "a per ordinary share sale price of MXN$58.25")', () => {
+  const vesta = { t: 'VTMX', fpi: 1, ads: 1, cur: 'MXN', ratio: 10, src: '20f' };
+  const r = { t: 'VTMX', ci: '1', d: '2026-08-28', k: 'S', s: 1800, p: 3.43, v: 6174, a: 'V', li: 0 };
+  const raw = { st: 'Ordinary Shares', fn: { F1: 'EXERCISE PRICE REPRESENTS A PER ORDINARY SHARE SALE PRICE OF MXN$58.25' } };
+  const n = normalizeRow(r, { raw, issuer: vesta, rates: { MXN: [['2026-08-28', 0.0536]] }, series: [{ date: '2026-08-28', close: 33.93 }] });
+  assert.deepEqual([n.cu, n.ar, n.s], ['USD', 10, 180]);
+  assert.equal(n.v, Math.round(1800 * 3.43), 'the dollar amount does not change with the ratio');
+});
+
+test('an option exercise at its strike is "not a market price", not a failed check; an untestable currency is "no rate"', () => {
+  const phvs = { t: 'PHVS', fpi: 1, ads: 0, cur: 'EUR' };
+  const m = { t: 'PHVS', ci: '1', d: '2026-09-23', k: 'M', s: 11969, p: 8.05, v: 96350, a: 'M', li: 0 };
+  assert.equal(normalizeRow(m, { raw: { st: 'Common Shares' }, issuer: phvs, rates: { EUR: [['2026-09-23', 1.1]] }, series: [{ date: '2026-09-23', close: 33.07 }] }).fail, 'non_market');
+  const ypf = { t: 'YPF', fpi: 1, ads: 1, cur: 'ARS', ratio: 1, src: '20f' };
+  const f = { t: 'YPF', ci: '1', d: '2026-08-31', k: 'F', s: 10507, p: 7983, v: 83877381, a: 'Y', li: 0 };
+  assert.equal(normalizeRow(f, { raw: { st: 'Class D Shares' }, issuer: ypf, rates: {}, series: [{ date: '2026-08-31', close: 51.58 }] }).fail, 'no_rate');
+});
+
+test('a ratio change sentence gives the new ratio, not the old one (51Talk)', () => {
+  const x = statedRatio('we changed the ratio of our ADSs to Class A ordinary shares from one ADS representing fifteen Class A ordinary shares to one ADS representing forty-five Class A ordinary shares');
+  assert.equal(x.ratio, 45);
+});

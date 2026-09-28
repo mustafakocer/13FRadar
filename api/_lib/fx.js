@@ -166,10 +166,12 @@ const USD_RE = /\bu\.?s\.? ?dollars?\b|\bus\$|\busd\b|united states dollars?/i;
 // figure there is a translation, the reported price is the local one.
 // A note that says the price was CONVERTED into dollars ("The price was
 // translated from New Taiwan dollars, NT$1,795, at the rate of NT$32.092 to
-// US$1" — TSMC; "converted from Argentine pesos to U.S. dollars" — Galicia)
-// reports a dollar price: the foreign currency there is where it came from.
+// US$1" — TSMC; "converted from Argentine pesos to U.S. dollars" — Galicia;
+// "converted from Canadian price of C$2.41 per share using an exchange rate
+// of C$1.4 = US$1.00" — Aptose) reports a dollar price: the foreign currency
+// there is where it came from.
 const CONVERTED_TO_USD_RE =
-  /(translated|converted|conversion)\b(?:[^.]|\.\d){0,160}?\b(in)?to\s+(u\.?s\.?\s?dollars?|us\$|usd|united states dollars?)|\bat (the|an) (exchange )?rate of (?:[^.]|\.\d){0,40}?\bto (us\$|u\.?s\.?\s?\$?)\s?1\b|(price|prices|amount)s? (is |are |has been |have been )?(reported |presented |stated )?in u\.?s\.? dollars/i;
+  /(translated|converted|conversion)\b(?:[^.]|\.\d){0,160}?\b(in)?to\s+(u\.?s\.?\s?dollars?|us\$|usd|united states dollars?)|\bat (the|an) (exchange )?rate of (?:[^.]|\.\d){0,40}?\bto (us\$|u\.?s\.?\s?\$?)\s?1\b|(price|prices|amount)s? (is |are |has been |have been )?(reported |presented |stated )?in u\.?s\.? dollars|\brate of (?:[^.]|\.\d){0,40}?=\s?(us\$|u\.?s\.?\s?\$)\s?1(?:\.0+)?\b/i;
 export function currencyOf(text) {
   if (!text) return null;
   const s = String(text);

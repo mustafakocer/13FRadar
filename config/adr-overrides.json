@@ -1,4 +1,15 @@
 {
-  "_readme": "Reviewed manual corrections for foreign issuers' Form 4 lines (api/_lib/fpiNormalize.js). Keyed by ticker. ratio = home-market shares per ONE US-listed security; cur = the currency the issuer's insiders report in. An entry fills in only when the SEC documents (F-6 / 20-F) and the market-derived ratio give nothing; add \"force\": true to make it win over them. Always cite the source.",
-  "byTicker": {}
+  "_readme": "Reviewed manual corrections for foreign issuers' Form 4 lines (api/_lib/fpiNormalize.js). Keyed by ticker. ratio = home-market shares per ONE US-listed security; cur = the currency the issuer's insiders report in; count = \"home\" when the issuer's insiders report a price per ADS with the share count in home-market units. An entry fills in only when the SEC documents (F-6 / 20-F) and the market-derived ratio give nothing; add \"force\": true to make it win over them. Always cite the source.",
+  "byTicker": {
+    "CX": {
+      "count": "home",
+      "source": "CEMEX insiders file CPO counts at the ADS price: the 2026-08-19 sale of 21,268 ADSs was filed as 212,680 CPOs at $10.68 \"per ADS\"; the 20-F: \"each ADS representing ten CPOs\"."
+    },
+    "SVRE": {
+      "ratio": 43200,
+      "force": true,
+      "source": "SaverOne 20-F (2026-03-27): \"American Depositary Shares, each representing 43,200 ordinary shares\" — fpi.json read it as 43.2 before the thousands separator was parsed.",
+      "url": "https://www.sec.gov/Archives/edgar/data/1894693/000121390026035545/ea0283503-20f_saverone.htm"
+    }
+  }
 }

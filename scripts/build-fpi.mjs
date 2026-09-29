@@ -29,6 +29,7 @@ import axios from 'axios';
 import { secGet, padCik, numCik } from '../api/_lib/sec.js';
 import { FRED_SERIES, parseFredCsv, usdPerUnit, currencyOf, FED_H10_URL, parseFedH10Csv, ECB_URL, parseEcb, ECB_EXTRA } from '../api/_lib/fx.js';
 import { statedRatio, deriveRatio } from '../api/_lib/adrRatio.js';
+import { annualStatus } from '../api/_lib/annualForm.js';
 import { loadDataset, currentRows, loadRaw, readJson, rowId } from '../api/_lib/insiderStore.js';
 import { parseForm4Submission } from '../api/_lib/insiderForm4.js';
 import { fetchCharts } from '../api/_lib/marketData.js';
@@ -147,6 +148,9 @@ for (const r of rows) {
 }
 const issuers = { ...(prev.issuers || {}) };
 const domestic = { ...(prev.domestic || {}) };
+// companies that file 10-Ks now (a 10-K newer than their last 20-F/40-F):
+// cik → that 10-K's date. No FPI rule touches their lines (fpiNormalize.js).
+const tenK = { ...(prev.tenK || {}) };
 const stale = (at) => !at || REFRESH || (Date.parse(today) - Date.parse(at)) / 86400000 > STALE_DAYS;
 // an FPI read by an older version of the rules below is read again
 const VERSION = 4;
@@ -208,7 +212,16 @@ for (const cik of todo) {
   // date, drives the "Yabancı şirket" badge, which needs one in the last 24
   // months (fpiContext.isForeignWith) — the badge does not move conversions.
   const lf = filings.filter((f) => FPI_FORMS.test(f.form)).reduce((m, f) => (f.date > m ? f.date : m), '');
+  // a 20-F in the history is not enough: the newest annual report decides.
+  // A company that now files 10-Ks (Indivior, Merus, Summit) reports in
+  // dollars, one share per share, like any US company: it is marked in
+  // `tenK` and no FPI rule applies (fpiNormalize.js). Its issuer record is
+  // kept, so the lines those rules used to convert still get the US
+  // market check rather than none.
+  const yearly = annualStatus(filings);
   const fpi = Boolean(lf);
+  if (lf && yearly.status === 'domestic') tenK[cik] = yearly.tenK;
+  else delete tenK[cik];
   if (!fpi) {
     domestic[cik] = today;
     delete issuers[cik];
@@ -263,6 +276,7 @@ for (const cik of todo) {
 }
 for (const cik of Object.keys(issuers)) if (!byCik.has(cik)) delete issuers[cik];
 for (const cik of Object.keys(domestic)) if (!byCik.has(cik)) delete domestic[cik];
+for (const cik of Object.keys(tenK)) if (!byCik.has(cik)) delete tenK[cik];
 const fpiCiks = Object.keys(issuers);
 console.log(`FPIs: ${fpiCiks.length} (${fpiCiks.filter((c) => issuers[c].ads).length} with ADSs, ${fpiCiks.filter((c) => issuers[c].ratio).length} with a ratio from the SEC)`);
 
@@ -387,6 +401,7 @@ const out = {
   rates,
   issuers,
   domestic,
+  tenK,
   closes: Object.fromEntries(Object.entries(closes).map(([t, m]) => [t, Object.entries(m).sort((a, b) => (a[0] < b[0] ? -1 : 1))])),
   raw: fpiRaw,
 };

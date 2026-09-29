@@ -103,9 +103,11 @@ export function toUsdWith(data = loadFpi()) {
 export const FOREIGN_WINDOW_DAYS = 730;
 export function isForeignWith(data = loadFpi(), now = Date.now()) {
   const issuers = data?.issuers || {};
+  // a company whose newest annual report is a 10-K is not foreign
+  const tenK = data?.tenK || {};
   const since = new Date(now - FOREIGN_WINDOW_DAYS * 86400000).toISOString().slice(0, 10);
   return (cik) => {
     const i = cik ? issuers[cik] : null;
-    return Boolean(i?.fpi && (!i.lf || i.lf >= since));
+    return Boolean(i?.fpi && !tenK[cik] && (!i.lf || i.lf >= since));
   };
 }

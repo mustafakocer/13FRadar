@@ -61,3 +61,30 @@ export function overlapPairs(books, { min = 0.9, minLines = 10, maxHolders = 200
   }
   return out;
 }
+
+// The declared total of a period whose filing was amended, the way the
+// effective snapshot reads the tables: a RESTATEMENT replaces the total, a
+// NEW HOLDINGS amendment adds to it. `amendments`: oldest first, each
+// { type, total } (type from the latest-holdings record or the cover page).
+// Null when a needed total is missing.
+export function effectiveDeclared(base, amendments = []) {
+  let total = Number.isFinite(base) ? base : null;
+  for (const a of amendments) {
+    const t = Number.isFinite(a?.total) ? a.total : null;
+    if (/^RESTATEMENT$/i.test(a?.type || '')) total = t;
+    else if (/^NEW HOLDINGS$/i.test(a?.type || '')) total = total == null || t == null ? null : total + t;
+    else total = null;
+  }
+  return total;
+}
+
+// Our stored total against a fresh read of the same filing (full table,
+// amendments applied, unit judged on every priced line): a pure unit slip
+// the stored copy missed is a factor of 1000 either way.
+export function storedUnitSlip(stored, fresh) {
+  if (!(stored > 0) || !(fresh > 0)) return null;
+  const r = fresh / stored;
+  if (Math.abs(r / 1000 - 1) <= 0.001) return 1000;
+  if (Math.abs(r * 1000 - 1) <= 0.001) return 0.001;
+  return null;
+}

@@ -79,3 +79,42 @@ test('a book on the reviewed duplicate list is counted once', () => {
   assert.equal(s.totalAum, 100);
   assert.equal(s.duplicates, 1);
 });
+
+test('effectiveDeclared: a restatement replaces the total, new holdings add to it', async () => {
+  const { effectiveDeclared } = await import('../api/_lib/universeAudit.js');
+  assert.equal(effectiveDeclared(100, []), 100);
+  assert.equal(effectiveDeclared(100, [{ type: 'RESTATEMENT', total: 90 }]), 90);
+  // CAZ Investments: the original's $95.9M plus a NEW HOLDINGS amendment
+  assert.equal(effectiveDeclared(95.9, [{ type: 'NEW HOLDINGS', total: 357.1 }]), 95.9 + 357.1);
+  assert.equal(effectiveDeclared(100, [{ type: 'NEW HOLDINGS', total: null }]), null);
+  assert.equal(effectiveDeclared(100, [{ type: null, total: 50 }]), null);
+});
+
+test('storedUnitSlip: only an exact factor of 1000 is a unit slip', async () => {
+  const { storedUnitSlip } = await import('../api/_lib/universeAudit.js');
+  // Betterment: $59,125,356 stored, $59,125,356,000 in a full read
+  assert.equal(storedUnitSlip(59125356, 59125356000), 1000);
+  assert.equal(storedUnitSlip(59125356000, 59125356), 0.001);
+  assert.equal(storedUnitSlip(453007905, 95926025), null);
+  assert.equal(storedUnitSlip(0, 5), null);
+});
+
+test('apply-audit: a SLIP rescales the stored filing once and marks it', async () => {
+  const { parseSlips, applySlips } = await import('../scripts/apply-audit.mjs');
+  const log = '2026-09-29T23:00:00Z SLIP 0001633901 0001633901-26-000004 59125356 59125356000 1000\nCMP 0001 1 2 3 1 0 0 0\nSLIP 0000000009 0000000009-26-000001 5 5000 1000';
+  const slips = parseSlips(log);
+  assert.equal(slips.length, 2);
+  const U = { rows: [{ cik: '0001633901', acc: '0001633901-26-000004', aum: 59125356, putCallValue: 0 }, { cik: '0000000009', acc: '0000000009-26-000002', aum: 5 }] };
+  const L = { byCik: { '0001633901': { acc: '0001633901-26-000004', aum: 59125356, top: [{ value: 9884311 }] } } };
+  const { applied, skipped } = applySlips(slips, U, L);
+  assert.equal(applied.length, 1);
+  assert.equal(skipped[0].why, 'newer filing');
+  assert.equal(U.rows[0].aum, 59125356000);
+  assert.equal(L.byCik['0001633901'].top[0].value, 9884311000);
+  assert.deepEqual(L.byCik['0001633901'].unitFix, { factor: 1000, by: 'audit-full-table' });
+  // a second run leaves it alone
+  assert.equal(applySlips(slips, U, L).applied.length, 0);
+  // and repair-units does not rescale it again
+  const { repairLatest } = await import('../scripts/repair-units.mjs');
+  assert.equal(repairLatest(L, U.rows).length, 0);
+});

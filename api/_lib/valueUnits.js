@@ -86,7 +86,9 @@ export function defaultCloseOf(row, period) {
 export function correctionEntry({ cik, name, period, acc, filed, verdict, source }) {
   const wrong = verdict.factor < 1 ? 'dollars written into a thousands filing' : 'thousands written into a dollars filing';
   const m = Number(verdict.median);
-  const evidence = Number.isFinite(m)
+  const evidence = verdict.by === 'audit-full-table'
+    ? 'every priced row of the full table (universe audit; the stored top lines had too few prices to decide)'
+    : Number.isFinite(m)
     ? `median implied price ÷ close = ${m >= 1 ? Math.round(m) : m.toPrecision(3)} over ${verdict.priced} priced rows (${Math.round((verdict.agree || 0) * 100)}% agree)`
     : 'median implied share price outside any traded price';
   return { cik, name: name || null, period: period || null, acc: acc || null, filed: filed || null, factor: verdict.factor, reason: `${evidence}: ${wrong}`, source };

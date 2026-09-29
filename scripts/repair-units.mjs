@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { filingScale, correctionEntry } from '../api/_lib/valueUnits.js';
-import { periodOf, summarizeUniverse } from '../api/_lib/universeSummary.js';
+import { periodOf, summarizeUniverse, loadSameBooks } from '../api/_lib/universeSummary.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const CHECK = process.argv.includes('--check');
@@ -117,7 +117,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   console.log(`guru-history: ${h.length} filings rescaled${h.length ? ` (${[...new Set(h.map((x) => x.name))].join(', ')})` : ''}`);
   console.log(`latest-holdings / universe: ${l.length} filings rescaled`);
 
-  const summary = { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows, { asOf: U.updatedAt }) };
+  const summary = { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows, { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
   console.log(`universe-summary: ${summary.count} funds, ${summary.inTotal} in the ${summary.quarter} total, $${(summary.totalAum / 1e12).toFixed(2)}T`);
 
   const log = correctionLog(H, L, U.rows);

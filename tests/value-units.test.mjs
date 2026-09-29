@@ -112,13 +112,14 @@ test('summarizeUniverse: the latest quarter, one row per fund, stale funds and a
   assert.equal(withOpts.optionsExcluded, 30);
 });
 
-test('the universe holds one row per fund: an original and its amendment are never both counted', () => {
+test('the universe holds one row per fund: an original and its amendment are never both counted', async () => {
   const U = json('client/public/universe.json');
   const ciks = U.rows.map((r) => r.cik);
   assert.equal(new Set(ciks).size, ciks.length);
   // the published summary is exactly what the shared definition gives
   const S = json('client/public/universe-summary.json');
-  const again = summarizeUniverse(U.rows, { asOf: U.updatedAt });
+  const { loadSameBooks } = await import('../api/_lib/universeSummary.js');
+  const again = summarizeUniverse(U.rows, { asOf: U.updatedAt, sameBooks: loadSameBooks(new URL('..', import.meta.url).pathname) });
   assert.equal(S.totalAum, again.totalAum);
   assert.equal(S.count, U.rows.length);
 });

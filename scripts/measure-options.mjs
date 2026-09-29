@@ -14,7 +14,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
-import { completeQuarter, inferPeriod, summarizeUniverse } from '../api/_lib/universeSummary.js';
+import { completeQuarter, inferPeriod, summarizeUniverse, loadSameBooks } from '../api/_lib/universeSummary.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const UFILE = path.join(root, 'client', 'public', 'universe.json');
@@ -34,12 +34,13 @@ if (applyAt > -1) {
   let set = 0;
   for (const r of U.rows) {
     const k = `${r.cik}|${r.acc}`;
-    if ((r.reportDate || inferPeriod(r.filed)) < quarter || failed.has(k)) continue;
+    // a value the universe build recorded itself is never overwritten
+    if ((r.reportDate || inferPeriod(r.filed)) < quarter || failed.has(k) || r.putCallValue != null) continue;
     r.putCallValue = got.get(k) || 0;
     set++;
   }
   fs.writeFileSync(UFILE, JSON.stringify(U));
-  const s = { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows, { asOf: U.updatedAt }) };
+  const s = { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows, { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
   fs.writeFileSync(path.join(root, 'client', 'public', 'universe-summary.json'), JSON.stringify(s));
   console.log(`putCallValue set on ${set} rows; headline $${(s.totalAum / 1e12).toFixed(2)}T (options excluded $${(s.optionsExcluded / 1e12).toFixed(2)}T)`);
   process.exit(0);

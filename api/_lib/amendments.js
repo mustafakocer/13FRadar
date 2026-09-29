@@ -94,7 +94,11 @@ export function parseCoverPage(xml) {
   const amendmentType = /RESTATE/.test(typeRaw) ? RESTATEMENT : /NEW/.test(typeRaw) ? NEW_HOLDINGS : null;
   const isAmendment = /^(true|y|yes|1)$/i.test(tag('isAmendment') || '') || amendmentType != null;
   const no = Number(tag('amendmentNo'));
+  // the summary page: the filer's own count and total of its table
+  const num = (v) => (v == null || v === '' || !Number.isFinite(Number(String(v).replace(/,/g, ''))) ? null : Number(String(v).replace(/,/g, '')));
   return {
+    tableEntryTotal: num(tag('tableEntryTotal')),
+    tableValueTotal: num(tag('tableValueTotal')),
     periodOfReport: isoDate(period),
     isAmendment,
     amendmentNo: Number.isFinite(no) && no > 0 ? no : null,

@@ -69,7 +69,10 @@ test('effectiveFilings: a period with only amendments in the window keeps the ea
 // ---- pure: cover page ---------------------------------------------------------
 test('parseCoverPage reads the period and the amendment type, with or without a namespace prefix', () => {
   const plain = parseCoverPage('<coverPage><reportCalendarOrQuarter>03-31-2025</reportCalendarOrQuarter><isAmendment>true</isAmendment><amendmentNo>1</amendmentNo><amendmentInfo><amendmentType>NEW HOLDINGS</amendmentType></amendmentInfo></coverPage>');
-  assert.deepEqual(plain, { periodOfReport: '2025-03-31', isAmendment: true, amendmentNo: 1, amendmentType: NEW_HOLDINGS, reportType: null });
+  assert.deepEqual(plain, { tableEntryTotal: null, tableValueTotal: null, periodOfReport: '2025-03-31', isAmendment: true, amendmentNo: 1, amendmentType: NEW_HOLDINGS, reportType: null });
+  // the summary page's own totals, commas and all
+  const sum = parseCoverPage('<edgarSubmission><summaryPage><tableEntryTotal>1,286</tableEntryTotal><tableValueTotal>6012345678</tableValueTotal></summaryPage></edgarSubmission>');
+  assert.deepEqual([sum.tableEntryTotal, sum.tableValueTotal], [1286, 6012345678]);
   const ns = parseCoverPage('<ns1:coverPage><ns1:periodOfReport>12-31-2023</ns1:periodOfReport><ns1:amendmentInfo><ns1:amendmentType>RESTATEMENT</ns1:amendmentType></ns1:amendmentInfo></ns1:coverPage>');
   assert.equal(ns.periodOfReport, '2023-12-31');
   assert.equal(ns.amendmentType, RESTATEMENT);

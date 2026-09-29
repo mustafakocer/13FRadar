@@ -13,7 +13,7 @@ import { fetchInfoTableXml, parse13F, aggregatePositions, getSubmissions, list13
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
-import { inferPeriod, summarizeUniverse } from '../api/_lib/universeSummary.js';
+import { inferPeriod, summarizeUniverse, universeRow, loadSameBooks } from '../api/_lib/universeSummary.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -138,23 +138,7 @@ async function main() {
         try {
           const snap = await latestSnapshot(e);
           const { aum, positions } = snap;
-          const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
-          rows.push({
-            cik: e.cik.padStart(10, '0'),
-            name: e.name,
-            filed: snap.filed,
-            // the accession these numbers were computed from (the period's
-            // base document), so the filings feed can attach them to that
-            // filing and not to a later amendment
-            acc: snap.acc,
-            ...(snap.reportDate ? { reportDate: snap.reportDate, periodFrom: snap.periodFrom } : {}),
-            aum: Math.round(aum),
-            // option lines are notional exposure; kept apart so the total can
-            // be read with or without them
-            putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value : 0), 0)),
-            positions: positions.length,
-            top10: Number(top10.toFixed(1)),
-          });
+          rows.push(universeRow(e, snap));
           snapshot[e.cik.padStart(10, '0')] = snapshotEntry({
             acc: snap.acc,
             filed: snap.filed,
@@ -263,7 +247,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
 // home page, the pricing page and the tooltips share.
 export function writeUniverseSummary(pub) {
   const u = JSON.parse(fs.readFileSync(path.join(pub, 'universe.json'), 'utf8'));
-  const summary = { updatedAt: u.updatedAt, ...summarizeUniverse(u.rows || [], { asOf: u.updatedAt }) };
+  const summary = { updatedAt: u.updatedAt, ...summarizeUniverse(u.rows || [], { asOf: u.updatedAt, sameBooks: loadSameBooks(process.cwd()) }) };
   fs.writeFileSync(path.join(pub, 'universe-summary.json'), JSON.stringify(summary));
   console.log(`Wrote universe-summary.json (${summary.count} funds, ${summary.inTotal} in the ${summary.quarter} total, $${(summary.totalAum / 1e12).toFixed(2)}T)`);
   return summary;

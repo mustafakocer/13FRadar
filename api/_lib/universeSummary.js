@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+
 // The home page's headline numbers — funds tracked and assets in the latest
 // quarter — computed in one place so every page that states them agrees.
 //
@@ -39,7 +42,7 @@ export function periodOf(row, reportByAcc = null) {
 }
 
 // rows: universe.json rows ({ aum, positions, reportDate?, filed }).
-export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}) {
+export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameBooks = [] } = {}) {
   const quarter = completeQuarter(asOf);
   let totalAum = 0;
   let totalPositions = 0;
@@ -50,6 +53,8 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}
   // the same book filed under two CIKs (a filing agent's slip: Sixth Street
   // Partners carried Schwab's $751B table in 2026-Q2) is counted once
   const seen = new Set();
+  // and a subsidiary's book its parent also files (config/duplicate-books.json)
+  const dropped = new Set(sameBooks.map((p) => String(p.drop).padStart(10, '0')));
   for (const r of rows) {
     const p = r.reportDate || inferPeriod(r.filed);
     if (!p || p < quarter) {
@@ -57,7 +62,7 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}
       continue;
     }
     const book = r.aum > 0 ? `${r.aum}|${r.positions}` : null;
-    if (book && seen.has(book)) {
+    if ((book && seen.has(book)) || dropped.has(r.cik)) {
       duplicates++;
       continue;
     }
@@ -69,6 +74,37 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}
     totalPositions += Number.isFinite(r.positions) ? r.positions : 0;
   }
   return { count: rows.length, quarter, inTotal, stale, duplicates, optionsExcluded: Math.round(optionsExcluded), totalAum: Math.round(totalAum), totalPositions };
+}
+
+// The reviewed list of books filed twice (parent and subsidiary).
+export function loadSameBooks(root) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(root, 'config', 'duplicate-books.json'), 'utf8')).pairs || [];
+  } catch {
+    return [];
+  }
+}
+
+// One universe.json row from a filer's snapshot — what the nightly universe
+// build writes. putCallValue (the option lines' notional) is computed here on
+// every run, so the headline total never falls back to counting options.
+export function universeRow({ cik, name }, snap) {
+  const positions = snap.positions || [];
+  const top10 = positions.slice(0, 10).reduce((s, p) => s + (p.weight || 0), 0);
+  return {
+    cik: String(cik).padStart(10, '0'),
+    name,
+    filed: snap.filed,
+    // the accession these numbers were computed from (the period's base
+    // document), so the filings feed attaches them to that filing and not to
+    // a later amendment
+    acc: snap.acc,
+    ...(snap.reportDate ? { reportDate: snap.reportDate, periodFrom: snap.periodFrom } : {}),
+    aum: Math.round(snap.aum),
+    putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value : 0), 0)),
+    positions: positions.length,
+    top10: Number(top10.toFixed(1)),
+  };
 }
 
 // the label every page states the count with

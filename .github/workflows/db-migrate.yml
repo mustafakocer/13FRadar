@@ -24,6 +24,7 @@ on:
           - 0002_constraints
           - 0003_stripe_events
           - 0004_alerts
+          - 0005_job_triggers
 
 permissions:
   contents: read
@@ -113,11 +114,11 @@ jobs:
           set -euo pipefail
           source .github/scripts/db-url.sh
           case "$MIGRATION" in
-            all|0001_rls|0002_constraints|0003_stripe_events|0004_alerts) ;;
+            all|0001_rls|0002_constraints|0003_stripe_events|0004_alerts|0005_job_triggers) ;;
             *) echo "::error::unknown migration '$MIGRATION'"; exit 1 ;;
           esac
           if [ "$MIGRATION" = "all" ]; then
-            files="0001_rls 0002_constraints 0003_stripe_events 0004_alerts"
+            files="0001_rls 0002_constraints 0003_stripe_events 0004_alerts 0005_job_triggers"
           else
             files="$MIGRATION"
           fi
@@ -156,3 +157,12 @@ jobs:
             -c "select tgrelid::regclass as table, tgname from pg_trigger where not tgisinternal and (tgrelid = 'public.profiles'::regclass or tgrelid = 'public.watchlists'::regclass or tgrelid = 'auth.users'::regclass or tgrelid = 'public.alerts'::regclass or tgrelid = 'public.notification_prefs'::regclass) order by 1, 2" \
             -c "select 'profiles   ' || count(*) from public.profiles union all select 'watchlists ' || count(*) from public.watchlists union all select 'auth.users ' || count(*) from auth.users union all select 'prefs      ' || count(*) from public.notification_prefs union all select 'alerts     ' || count(*) from public.alerts" \
             || true
+          # 0005: the job triggers and the test call's answer (GitHub answers
+          # within seconds; 204 = accepted)
+          if $PSQL "$DB_URL" -Atc "select to_regnamespace('ops') is not null" | grep -q t; then
+            sleep 20
+            $PSQL "$DB_URL" -X \
+              -c "select jobname, schedule, command, active from cron.job where jobname like 'gh-%' order by jobname" \
+              -c "select l.id, l.workflow, l.attempt, l.requested_at, coalesce(l.status, h.status_code) as status, coalesce(l.error, h.error_msg) as error from ops.dispatch_log l left join net._http_response h on h.id = l.request_id order by l.id desc limit 5" \
+              || true
+          fi

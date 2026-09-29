@@ -3,6 +3,10 @@ name: Build insider trading data
 on:
   workflow_dispatch:
     inputs:
+      trigger:
+        description: 'Who started this run (cron = Supabase pg_cron; leave as manual)'
+        type: string
+        default: 'manual'
       allow_drift:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
@@ -11,7 +15,17 @@ on:
         description: 'Alarm drill: every EDGAR request answers 403, the run must go red and alert (no data changes)'
         type: boolean
         default: false
+  # The morning run follows the FX / ADR-ratio build, which Supabase pg_cron
+  # starts at 02:47 UTC (migrations/0005_job_triggers): the insider lines are
+  # valued with that morning's rates. It follows a failed fpi run too (the
+  # last good rates are used). The 11:02 catch-up is started by pg_cron.
+  workflow_run:
+    workflows: ['Foreign issuer data (FX + ADR ratios)']
+    types: [completed]
+    branches: [main]
   schedule:
+    # Fallback only: the runs above normally start on the minute, and a
+    # fallback run finds its window built and skips itself (the guard job).
     # Twice a day. EDGAR publishes a day's daily index in the evening, Eastern
     # time; 03:31 UTC is after that, and 11:02 UTC is the catch-up for a late
     # index or a queued morning run. GitHub often starts scheduled runs hours
@@ -46,7 +60,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Does this run need to do the work? A cron / fallback / chained run skips
+  # itself when another run already built in the same window; a person's run
+  # and a push always build (scripts/run-guard.mjs, api/_lib/jobTriggers.js).
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            api/_lib/jobTriggers.js
+            scripts/run-guard.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: decide
+        run: node scripts/run-guard.mjs
+        env:
+          WORKFLOW: insiders.yml
+          EVENT: ${{ github.event_name }}
+          TRIGGER: ${{ inputs.trigger }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: guard
+    # the guard failing (GitHub API down) must not cost a day of data
+    if: ${{ !cancelled() && needs.guard.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     # a normal run reads one or two new days plus three re-read days (~15 min);
     # a long backlog is capped at INSIDER_MAX_DAYS per run

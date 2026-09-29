@@ -102,6 +102,15 @@ else {
   if (feedClusters) check(JSON.stringify(feedClusters.map((c) => c.t)) === JSON.stringify(cl.map((c) => c.t)), `/insiders uses the same cluster list as the home page (${feedClusters.slice(0, 5).map((c) => c.t).join(', ')})`);
 }
 
+// Old fund addresses (config/slug-aliases.json) answer a permanent redirect
+// to the current page — /guru/berkshire-hathaway broke once when a data run
+// shrank the redirect table.
+for (const [from, to] of [['/tr/guru/berkshire-hathaway', '/tr/guru/berkshire-hathaway-warren-buffett'], ['/en/guru/berkshire-hathaway/changes', '/en/guru/berkshire-hathaway-warren-buffett/changes']]) {
+  const r = await fetch(base + from, { headers, redirect: 'manual' });
+  const loc = (r.headers.get('location') || '').replace(/^https?:\/\/[^/]+/, '');
+  check(r.status === 301 && loc === to, `${from} → ${r.status} ${loc || '(no location)'}`);
+}
+
 console.log(out.join('\n'));
 if (failed) {
   console.error(`\n${failed} check(s) failed`);

@@ -132,6 +132,17 @@ test('SSR: the redirect keeps the sub-page and the per-stock route', async () =>
   assert.equal(tick.headers.location, '/tr/guru/berkshire-hathaway-warren-buffett/AAPL');
 });
 
+// On Vercel the rewrite hands the page both ?__path= and a copy as ?path=
+// (the :path* segment); neither is the visitor's and neither may reach the
+// Location header. A visitor's own query string is kept.
+test('SSR: the redirect drops the rewrite parameters Vercel adds', async () => {
+  const r = await ssr('/api/ssr?__path=tr%2Fguru%2Fberkshire-hathaway&path=tr%2Fguru%2Fberkshire-hathaway');
+  assert.equal(r.status, 301);
+  assert.equal(r.headers.location, '/tr/guru/berkshire-hathaway-warren-buffett');
+  const q = await ssr('/api/ssr?__path=en%2Fguru%2Fberkshire-hathaway%2Fchanges&path=en%2Fguru%2Fberkshire-hathaway%2Fchanges&q=1');
+  assert.equal(q.headers.location, '/en/guru/berkshire-hathaway-warren-buffett/changes?q=1');
+});
+
 test('SSR: a real slug still serves its page, and a made-up one still 404s', async () => {
   const live = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
   assert.equal(live.status, 200, 'the canonical URL is not caught by the alias path');
@@ -139,4 +150,29 @@ test('SSR: a real slug still serves its page, and a made-up one still 404s', asy
 
   const nope = await ssr('/tr/guru/bu-fon-hic-var-olmadi');
   assert.equal(nope.status, 404);
+});
+
+// config/slug-aliases.json is the durable copy of every published fund
+// address: a run that shrank the generated table (old code wrote 79 of 113 on
+// 2026-09-23) is repaired by the next run, which merges the pinned list back.
+test('pinned aliases restore a table that an old run shrank', async () => {
+  const fs = await import('node:fs');
+  const { mergeAliases, slugTable } = await import('../api/_lib/slugs.js');
+  const pinned = JSON.parse(fs.readFileSync(new URL('../config/slug-aliases.json', import.meta.url))).aliases;
+  const { bySlug, aliases } = slugTable();
+  assert.equal(Object.keys(pinned).length >= 113, true);
+  // every published address is in the pinned list and in the served table
+  for (const [from, to] of Object.entries(aliases)) assert.equal(pinned[from], to, from);
+  const shrunk = Object.fromEntries(Object.entries(aliases).slice(0, 79));
+  delete shrunk['berkshire-hathaway'];
+  const merged = mergeAliases({ bySlug, pinned, previous: shrunk, derived: {} });
+  assert.equal(Object.keys(merged).length, Object.keys(aliases).length);
+  assert.equal(merged['berkshire-hathaway'], 'berkshire-hathaway-warren-buffett');
+});
+
+test('mergeAliases drops a redirect whose target is gone or whose slug became a real page', async () => {
+  const { mergeAliases } = await import('../api/_lib/slugs.js');
+  const bySlug = { live: {}, taken: {} };
+  const out = mergeAliases({ bySlug, pinned: { old: 'live', gone: 'missing', taken: 'live', self: 'self' }, previous: { old: 'taken' }, derived: { fresh: 'live' } });
+  assert.deepEqual(out, { old: 'live', fresh: 'live' });
 });

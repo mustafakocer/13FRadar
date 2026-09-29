@@ -34,6 +34,10 @@ export default async function handler(req, res) {
   const qs = new URLSearchParams(search);
   let pathname = qs.get('__path');
   pathname = pathname != null ? `/${String(pathname).replace(/^\/+/, '')}` : rawUrl.split('?')[0];
+  // Vercel also passes the rewrite's :path* segment as ?path=, a copy of
+  // __path; it must not leak into a redirect (/tr/guru/berkshire-hathaway →
+  // …-warren-buffett?path=tr%2Fguru%2F…). A visitor's own ?path= is kept.
+  if (qs.get('__path') != null && qs.get('path') === qs.get('__path')) qs.delete('path');
   qs.delete('__path');
   const cleanSearch = qs.toString() ? `?${qs.toString()}` : '';
 

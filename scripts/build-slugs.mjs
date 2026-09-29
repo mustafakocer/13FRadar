@@ -26,7 +26,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { GURUS } from '../api/_lib/gurus.js';
-import { slugify } from '../api/_lib/slugs.js';
+import { slugify, mergeAliases } from '../api/_lib/slugs.js';
 
 const root = process.cwd();
 const OUT = path.join(root, 'api', '_data', 'slugs.json');
@@ -68,18 +68,22 @@ for (const r of [...uni.rows].sort((a, b) => b.aum - a.aum)) assign(r.cik, r.nam
 // A redirect, once published, stays: a curated name can change (Berkshire
 // became "Berkshire Hathaway (Warren Buffett)"), and rebuilding the map from
 // today's names alone dropped 34 addresses on 2026-09-23 — /guru/berkshire-
-// hathaway among them. Earlier aliases are kept while their target exists
-// and no real page has taken their slug.
-const aliases = {};
-for (const [from, to] of Object.entries(prev.aliases || {})) if (bySlug[to] && !bySlug[from]) aliases[from] = to;
+// hathaway among them. config/slug-aliases.json pins every published address;
+// it is merged with the table's earlier aliases and today's derived slugs
+// (api/_lib/slugs.mergeAliases).
+const PINNED = path.join(root, 'config', 'slug-aliases.json');
+const pinned = fs.existsSync(PINNED) ? JSON.parse(fs.readFileSync(PINNED, 'utf8')).aliases || {} : {};
+const derived = {};
 for (const m of GURUS) {
   const cik = String(m.cik).padStart(10, '0');
   const stored = byCik[cik];
   if (!stored) continue;
-  const derived = slugify(m.name);
-  if (!derived || derived === stored.slug || bySlug[derived]) continue;
-  aliases[derived] = stored.slug;
+  const slug = slugify(m.name);
+  if (slug && slug !== stored.slug) derived[slug] = stored.slug;
 }
+const aliases = mergeAliases({ bySlug, pinned, previous: prev.aliases, derived });
+const unpinned = Object.keys(aliases).filter((a) => !pinned[a]);
+if (unpinned.length) console.log(`new redirect(s) not yet in config/slug-aliases.json: ${unpinned.join(', ')}`);
 
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), bySlug, byCik, aliases }));

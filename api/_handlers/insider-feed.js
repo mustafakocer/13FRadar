@@ -150,6 +150,8 @@ function shape(r, meta, companies, d) {
     code: r.k,
     kind: CODES[r.k] || 'other',
     category: c.category,
+    // shares taken as pay: the sentence that says so (insiderNotes.js)
+    ...(r.cp ? { compensationNote: r.cp } : {}),
     planned: c.plan_trade,
     largeHolder: c.ten_pct_owner_only || c.fund_insider,
     holder: sig.holder,

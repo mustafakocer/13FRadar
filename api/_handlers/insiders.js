@@ -79,6 +79,7 @@ export function fromDataset(db, ticker, limit = 25) {
         title: r.ti || TITLE[r.r] || null,
         code: r.k,
         category: c.category,
+        ...(r.cp ? { compensationNote: r.cp } : {}),
         side: c.side,
         planned: c.plan_trade,
         shares: r.s,

@@ -13,6 +13,7 @@ import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 import { currentRows, readRawServed } from '../api/_lib/insiderStore.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { normalizeRows } from '../api/_lib/fpiNormalize.js';
+import { markCompensation } from '../api/_lib/insiderNotes.js';
 import { fpiContext, toUsdWith, isForeignWith } from '../api/_lib/fpiContext.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -40,7 +41,8 @@ const now = db.updatedAt ? Date.parse(db.updatedAt) : Date.now();
 const raw = readRawServed();
 const seriesFor = (t) => readSeries(t)?.prices || null;
 // foreign issuers' lines in US dollars, as the pages serve them (fpiNormalize.js)
-const rows = normalizeRows(currentRows(db.rows), fpiContext({ raw, seriesFor, meta }));
+// …and pay taken in shares is not an open-market buy (insiderNotes.js)
+const rows = markCompensation(normalizeRows(currentRows(db.rows), fpiContext({ raw, seriesFor, meta })), (r) => raw[`${r.a}:${r.li}`] || null);
 const teaser = buildTeaser(rows, db.companies || {}, meta, now, { raw, seriesFor, toUsd: toUsdWith(), isForeign: isForeignWith() });
 fs.writeFileSync(OUT, JSON.stringify(teaser));
 

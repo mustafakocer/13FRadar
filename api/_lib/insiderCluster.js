@@ -31,6 +31,8 @@
 // the average increase in the buyers' own holdings.
 import { businessDaysBetween, isListed } from './insiderModel.js';
 import { classify } from './insiderClassify.js';
+import { aboutTheTrade, sentence, notesOf, COMPENSATION_RE } from './insiderNotes.js';
+export { aboutTheTrade };
 
 export const CLUSTER = {
   windowBusinessDays: 10,
@@ -50,16 +52,10 @@ export const SAME_PRICE_MIN_PEOPLE = 5;
 export const SAME_PRICE_TOLERANCE = 0.001;
 export const SAME_PRICE_MIN_UNIT = 0.01;
 
-// Shares paid as director or officer compensation — a fee program, a
-// retainer, stock "in lieu of cash", an issuer grant exempt under Rule
-// 16b-3 (Eastern Company: "shares issued under The Eastern Company
-// Director's Fee Program pursuant to rule 16b-3(d)"), filed with code P
-export const COMPENSATION_RE = /\bfee program\b|in lieu of cash|\bretainers?\b|\b16b-3\b/i;
 export const EMPLOYEE_PLAN_RE = /employee stock purchase|\bespp\b|employee (share|stock) (purchase|ownership) plan|dividend reinvestment|\bdrip\b|payroll deduction/i;
 export const OFFERING_RE = /\b(public|underwritten|registered|secondary|follow-on|best efforts)\b[^.]{0,40}\boffering\b|\bin the (company's |issuer's )?offering\b|\boffering\b[^.]{0,60}\b(price|underwrit)|private placement|directly from the (issuer|company)|from the issuer in|subscription agreement|securities purchase agreement/i;
 
 // footnotes and the filing's remarks
-const notesOf = (raw) => [raw?.fn ? Object.values(raw.fn).join(' ') : '', raw?.rm || ''].join(' ').trim();
 const roleOk = (r) => ['ceo', 'cfo', 'officer', 'director'].includes(r?.r);
 
 // Why a buy does or does not count. `rawOf(r)` gives the raw Form 4 fields.
@@ -80,9 +76,11 @@ export function exclusionOf(r, c = classify(r)) {
 // Labels per line, for one company's open-market buys:
 //   'offering'  its footnotes name an offering / private placement / a
 //               purchase directly from the issuer
-//   'plan_bulk' its footnotes name an employee purchase plan, dividend
-//               reinvestment or compensation shares (fee program, retainer,
-//               in lieu of cash, Rule 16b-3), or it is one of ≥5 people
+//   'compensation' its notes say the shares were pay (insiderNotes.js:
+//               fee program, retainer, in lieu of cash, compensation, Rule
+//               16b-3) — the served row is not an open-market buy at all
+//   'plan_bulk' its footnotes name an employee purchase plan or dividend
+//               reinvestment, or it is one of ≥5 people
 //               buying that day at (nearly) the same price with a median
 //               under $10,000 each
 // → Map line → { label, why, quote? }
@@ -98,6 +96,12 @@ export function lineLabels(lines, rawOf = () => null, toUsd = (x, cu) => (cu ===
     // dividend reinvestment plan") say nothing about how this purchase was
     // made: they are left out before the plan/offering words are read
     const t = aboutTheTrade(notesOf(rawOf(r)));
+    // shares paid as pay (insiderNotes.compensationOf): its own label
+    const pay = r.cp || (t && COMPENSATION_RE.test(t) ? sentence(t, COMPENSATION_RE) : null);
+    if (pay) {
+      out.set(r, { label: 'compensation', why: 'footnote', quote: pay });
+      continue;
+    }
     if (!t) continue;
     if (OFFERING_RE.test(t)) {
       out.set(r, { label: 'offering', why: 'footnote', quote: sentence(t, OFFERING_RE) });
@@ -106,7 +110,7 @@ export function lineLabels(lines, rawOf = () => null, toUsd = (x, cu) => (cu ===
         if (usd > 0) offerPrices.push({ usd, d: r.d, cu, amount });
       }
     } else if (EMPLOYEE_PLAN_RE.test(t)) out.set(r, { label: 'plan_bulk', why: 'footnote', quote: sentence(t, EMPLOYEE_PLAN_RE) });
-    else if (COMPENSATION_RE.test(t)) out.set(r, { label: 'plan_bulk', why: 'footnote', quote: sentence(t, COMPENSATION_RE) });
+
   }
   for (const r of lines) {
     if (out.has(r) || !(r.p > 0)) continue;
@@ -198,25 +202,6 @@ function statedPrices(t) {
   }
   return out;
 }
-const HOLDING_NOTE_RE = /^(this (amount|total|number) )?(also )?includes\b|^(the )?(amount|number|total) of (securities|shares) (beneficially )?owned[^.]*includes\b/i;
-export function aboutTheTrade(text) {
-  if (!text) return '';
-  // …and the sentence that carries one on ("Includes shares acquired
-  // pursuant to the ESPP. Such acquisitions are exempt under Rule 16b-3.")
-  const parts = text.split(/(?<=\.)\s+(?=[A-Z(])/);
-  return parts
-    .filter((x, i) => !HOLDING_NOTE_RE.test(x.trim()) && !(i > 0 && HOLDING_NOTE_RE.test(parts[i - 1].trim()) && /^such\b/i.test(x.trim())))
-    .join(' ')
-    .trim();
-}
-function sentence(t, re) {
-  const m = re.exec(t);
-  if (!m) return null;
-  const start = Math.max(0, t.lastIndexOf('.', m.index) + 1);
-  const end = t.indexOf('.', m.index + m[0].length);
-  return t.slice(start, end < 0 ? undefined : end + 1).trim().slice(0, 240);
-}
-
 // Holding change of one person over their counted buys: from before the
 // first to after the last (%), Infinity for a new position, null unknown.
 function ownIncrease(lines) {

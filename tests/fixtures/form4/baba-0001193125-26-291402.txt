@@ -1,0 +1,198 @@
+<SEC-DOCUMENT>0001193125-26-291402.txt : 20260701
+<SEC-HEADER>0001193125-26-291402.hdr.sgml : 20260701
+<ACCEPTANCE-DATETIME>20260701060221
+ACCESSION NUMBER:		0001193125-26-291402
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260629
+FILED AS OF DATE:		20260701
+DATE AS OF CHANGE:		20260701
+
+REPORTING-OWNER:
+
+	OWNER DATA:
+		COMPANY CONFORMED NAME:			EVANS J. MICHAEL
+		CENTRAL INDEX KEY:			0001428339
+		ORGANIZATION NAME:
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-36614
+		FILM NUMBER:		261142449
+
+	MAIL ADDRESS:
+		STREET 1:		C/O GOLDMAN, SACHS & CO.
+		STREET 2:		200 WEST STREET
+		CITY:			NEW YORK
+		STATE:			NY
+		ZIP:			10282
+
+ISSUER:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			Alibaba Group Holding Ltd
+		CENTRAL INDEX KEY:			0001577552
+		STANDARD INDUSTRIAL CLASSIFICATION:	SERVICES-BUSINESS SERVICES, NEC [7389]
+		ORGANIZATION NAME:           	07 Trade & Services
+		EIN:				000000000
+		STATE OF INCORPORATION:			K3
+
+	BUSINESS ADDRESS:
+		ADDRESS IS A NON US LOCATION: 	YES
+		STREET 1:		26/F TOWER ONE
+		STREET 2:		TIMES SQUARE, 1 MATHESON STREET
+		CITY:			CAUSEWAY BAY
+		PROVINCE COUNTRY:   	K3
+		ZIP:			00000
+		BUSINESS PHONE:		852-2215-5100
+
+	MAIL ADDRESS:
+		ADDRESS IS A NON US LOCATION: 	YES
+		STREET 1:		26/F TOWER ONE
+		STREET 2:		TIMES SQUARE, 1 MATHESON STREET
+		CITY:			CAUSEWAY BAY
+		PROVINCE COUNTRY:   	K3
+		ZIP:			00000
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-06-29</periodOfReport>
+
+    <issuer>
+        <issuerCik>0001577552</issuerCik>
+        <issuerName>Alibaba Group Holding Ltd</issuerName>
+        <issuerTradingSymbol>BABA</issuerTradingSymbol>
+        <issuerForeignTradingSymbol></issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0001428339</rptOwnerCik>
+            <rptOwnerName>EVANS J. MICHAEL</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>26/F TOWER ONE, TIMES SQUARE</rptOwnerStreet1>
+            <rptOwnerStreet2>1 MATHESON STREET, CAUSEWAY BAY</rptOwnerStreet2>
+            <rptOwnerCity>HONG KONG</rptOwnerCity>
+            <rptOwnerNonUSStateTerritory></rptOwnerNonUSStateTerritory>
+            <rptOwnerCountry>K3</rptOwnerCountry>
+            <rptOwnerZipCode>00000</rptOwnerZipCode>
+            <rptOwnerStateDescription>HONG KONG</rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>true</isDirector>
+            <isOfficer>true</isOfficer>
+            <isTenPercentOwner>false</isTenPercentOwner>
+            <isOther>false</isOther>
+            <officerTitle>President</officerTitle>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>false</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Ordinary Shares</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-06-29</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+                <footnoteId id="F1"/>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>692992</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>94.92</value>
+                    <footnoteId id="F2"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>55008</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Ordinary Shares</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-06-29</value>
+            </transactionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>S</transactionCode>
+                <equitySwapInvolved>false</equitySwapInvolved>
+                <footnoteId id="F1"/>
+            </transactionCoding>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>27008</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>95.59</value>
+                    <footnoteId id="F3"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>28000</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">This transaction is in connection with a sale pursuant to Rule 144 of the Securities Act of 1933, as amended, through a broker-dealer.</footnote>
+        <footnote id="F2">The price reported in Column 4 is a weighted average price. These shares were sold in multiple transactions at prices denominated in US dollars ranging from 94.455 to 95.45 inclusive. The reporting person undertakes to provide to
+the issuer, any security holder of the issuer, or the staff of the SEC, upon request, full information regarding the number of shares sold at each separate price within the range set forth in this footnote.</footnote>
+        <footnote id="F3">The price reported in Column 4 is a weighted average price. These shares were sold in multiple transactions at prices denominated in US dollars ranging from 95.455 to 95.905 inclusive. The reporting person undertakes to provide to
+the issuer, any security holder of the issuer, or the staff of the SEC, upon request, full information regarding the number of shares sold at each separate price within the range set forth in this footnote.</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Kevin Jinwei Zhang, as Attorney-in-Fact for J. Michael Evans</signatureName>
+        <signatureDate>2026-07-01</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

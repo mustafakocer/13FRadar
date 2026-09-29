@@ -204,3 +204,12 @@ test('off-market price: a dollar price no unit brings within ±15% — amount ke
   assert.deepEqual([day.buyCount, day.buyValue, day.offMarket], [2, 58000, 1]);
   assert.equal(buildClusters(rows).byTicker.get('THM').insiders, 2);
 });
+
+test('the thresholds come from config/fpi-rules.js, and a caller can pass its own', async () => {
+  const { FPI_RULES } = await import('../config/fpi-rules.js');
+  assert.deepEqual([FPI_RULES.matchTolerance, FPI_RULES.declaredTolerance, FPI_RULES.offMarketMax], [0.15, 0.25, 0.5]);
+  const c = F.cases.THM;
+  const opts = { raw: c.raw, issuer: c.issuer, rates: F.rates, series: [c.close] };
+  assert.equal(normalizeRow(c.row, opts).off, -22.6, '22.6% off: within the ±50% off-market band');
+  assert.equal(normalizeRow(c.row, { ...opts, rules: { ...FPI_RULES, offMarketMax: 0.2 } }).fail, 'mismatch', 'a ±20% band: not verified');
+});

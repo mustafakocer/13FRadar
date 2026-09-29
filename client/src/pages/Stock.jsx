@@ -331,6 +331,11 @@ export default function Stock() {
                       ) : (
                         tx.code || '—'
                       )}
+                      {tx.compensationNote && (
+                        <div className="muted small" data-compensation="1" title={tx.compensationNote}>
+                          {t('ins.compensationWhy').replace('{code}', tx.code || 'P')}
+                        </div>
+                      )}
                     </td>
                     <td className="num">{fmtNum(tx.shares)}</td>
                     <td className="num">{tx.valueUnverified ? `${tx.currency || '?'} ${fmtNum(tx.localPrice, 2)}` : fmtNum(tx.price, 2)}</td>

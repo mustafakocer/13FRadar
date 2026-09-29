@@ -15,6 +15,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import { normalizeRows } from './fpiNormalize.js';
+import { markCompensation } from './insiderNotes.js';
 import { fpiContext, loadFpi, resetFpiCache } from './fpiContext.js';
 
 const require = createRequire(import.meta.url);
@@ -43,7 +44,10 @@ export function readServed() {
   db = db || { rows: [], companies: {}, updatedAt: null };
   // foreign issuers' lines in US dollars per US security, or marked as not
   // convertible (fpiNormalize.js); raw rows are not changed
-  const rows = normalizeRows(currentRows(db.rows || []), fpiContext({ raw: readRawServed() }));
+  // …and a buy whose notes say the shares were pay is not an open-market
+  // buy (insiderNotes.markCompensation)
+  const raw = readRawServed();
+  const rows = markCompensation(normalizeRows(currentRows(db.rows || []), fpiContext({ raw })), (r) => raw[`${r.a}:${r.li}`] || null);
   served = { ...db, rows, lastFilingDay: lastFilingDay(rows) };
   return served;
 }

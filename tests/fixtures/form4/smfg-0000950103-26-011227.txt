@@ -1,0 +1,249 @@
+<SEC-DOCUMENT>0000950103-26-011227.txt : 20260728
+<SEC-HEADER>0000950103-26-011227.hdr.sgml : 20260728
+<ACCEPTANCE-DATETIME>20260728094411
+ACCESSION NUMBER:		0000950103-26-011227
+CONFORMED SUBMISSION TYPE:	4
+PUBLIC DOCUMENT COUNT:		1
+CONFORMED PERIOD OF REPORT:	20260724
+FILED AS OF DATE:		20260728
+DATE AS OF CHANGE:		20260728
+
+REPORTING-OWNER:
+
+	OWNER DATA:
+		COMPANY CONFORMED NAME:			Takashima Makoto
+		CENTRAL INDEX KEY:			0002116048
+		ORGANIZATION NAME:
+
+	FILING VALUES:
+		FORM TYPE:		4
+		SEC ACT:		1934 Act
+		SEC FILE NUMBER:	001-34919
+		FILM NUMBER:		261208361
+
+	MAIL ADDRESS:
+		ADDRESS IS A NON US LOCATION: 	YES
+		STREET 1:		1-2, MARUNOUCHI 1-CHOME
+		CITY:			CHIYODA-KU, TOKYO
+		PROVINCE COUNTRY:   	M0
+		ZIP:			100-0005
+
+ISSUER:
+
+	COMPANY DATA:
+		COMPANY CONFORMED NAME:			SUMITOMO MITSUI FINANCIAL GROUP, INC.
+		CENTRAL INDEX KEY:			0001022837
+		STANDARD INDUSTRIAL CLASSIFICATION:	COMMERCIAL BANKS, NEC [6029]
+		ORGANIZATION NAME:           	02 Finance
+		EIN:				000000000
+		STATE OF INCORPORATION:			M0
+		FISCAL YEAR END:			0331
+
+	BUSINESS ADDRESS:
+		STREET 1:		1-2, MARUNOUCHI 1-CHOME
+		STREET 2:		CHIYODA-KU
+		CITY:			TOKYO
+		STATE:			M0
+		ZIP:			100-0005
+		BUSINESS PHONE:		81-3-3282-8111
+
+	MAIL ADDRESS:
+		STREET 1:		1-2, MARUNOUCHI 1-CHOME
+		STREET 2:		CHIYODA-KU
+		CITY:			TOKYO
+		STATE:			M0
+		ZIP:			100-0005
+
+	FORMER COMPANY:
+		FORMER CONFORMED NAME:	SUMITOMO MITSUI FINANCIAL GROUP/FI
+		DATE OF NAME CHANGE:	20021226
+
+	FORMER COMPANY:
+		FORMER CONFORMED NAME:	SUMITOMO BANK LTD TOKYO     /FI
+		DATE OF NAME CHANGE:	19960913
+</SEC-HEADER>
+<DOCUMENT>
+<TYPE>4
+<SEQUENCE>1
+<FILENAME>ownership.xml
+<DESCRIPTION>FORM 4
+<TEXT>
+<XML>
+<?xml version="1.0"?>
+<ownershipDocument>
+
+    <schemaVersion>X0609</schemaVersion>
+
+    <documentType>4</documentType>
+
+    <periodOfReport>2026-07-24</periodOfReport>
+
+    <notSubjectToSection16>0</notSubjectToSection16>
+
+    <issuer>
+        <issuerCik>0001022837</issuerCik>
+        <issuerName>SUMITOMO MITSUI FINANCIAL GROUP, INC.</issuerName>
+        <issuerTradingSymbol>SMFG</issuerTradingSymbol>
+        <issuerForeignTradingSymbol>TYO:8316</issuerForeignTradingSymbol>
+    </issuer>
+
+    <reportingOwner>
+        <reportingOwnerId>
+            <rptOwnerCik>0002116048</rptOwnerCik>
+            <rptOwnerName>Takashima Makoto</rptOwnerName>
+        </reportingOwnerId>
+        <reportingOwnerAddress>
+            <rptOwnerNonUSAddressFlag>true</rptOwnerNonUSAddressFlag>
+            <rptOwnerStreet1>1-2, MARUNOUCHI 1-CHOME</rptOwnerStreet1>
+            <rptOwnerStreet2></rptOwnerStreet2>
+            <rptOwnerCity>CHIYODA-KU, TOKYO</rptOwnerCity>
+            <rptOwnerNonUSStateTerritory></rptOwnerNonUSStateTerritory>
+            <rptOwnerCountry>M0</rptOwnerCountry>
+            <rptOwnerZipCode>100-0005</rptOwnerZipCode>
+            <rptOwnerStateDescription>JAPAN</rptOwnerStateDescription>
+        </reportingOwnerAddress>
+        <reportingOwnerRelationship>
+            <isDirector>1</isDirector>
+            <isOfficer>0</isOfficer>
+            <isTenPercentOwner>0</isTenPercentOwner>
+            <isOther>0</isOther>
+            <officerTitle></officerTitle>
+            <otherText></otherText>
+        </reportingOwnerRelationship>
+    </reportingOwner>
+
+    <aff10b5One>0</aff10b5One>
+
+    <nonDerivativeTable>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-07-24</value>
+            </transactionDate>
+            <deemedExecutionDate>
+                <value>2026-07-24</value>
+            </deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>A</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>2279</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <footnoteId id="F1"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>217534</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-07-27</value>
+            </transactionDate>
+            <deemedExecutionDate>
+                <value>2026-07-27</value>
+            </deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>A</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>41166</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <footnoteId id="F2"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>A</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>258700</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+        <nonDerivativeTransaction>
+            <securityTitle>
+                <value>Common Stock</value>
+            </securityTitle>
+            <transactionDate>
+                <value>2026-07-27</value>
+            </transactionDate>
+            <deemedExecutionDate>
+                <value>2026-07-27</value>
+            </deemedExecutionDate>
+            <transactionCoding>
+                <transactionFormType>4</transactionFormType>
+                <transactionCode>D</transactionCode>
+                <equitySwapInvolved>0</equitySwapInvolved>
+            </transactionCoding>
+            <transactionTimeliness></transactionTimeliness>
+            <transactionAmounts>
+                <transactionShares>
+                    <value>7100</value>
+                </transactionShares>
+                <transactionPricePerShare>
+                    <value>43.99</value>
+                    <footnoteId id="F3"/>
+                </transactionPricePerShare>
+                <transactionAcquiredDisposedCode>
+                    <value>D</value>
+                </transactionAcquiredDisposedCode>
+            </transactionAmounts>
+            <postTransactionAmounts>
+                <sharesOwnedFollowingTransaction>
+                    <value>251600</value>
+                </sharesOwnedFollowingTransaction>
+            </postTransactionAmounts>
+            <ownershipNature>
+                <directOrIndirectOwnership>
+                    <value>D</value>
+                </directOrIndirectOwnership>
+            </ownershipNature>
+        </nonDerivativeTransaction>
+    </nonDerivativeTable>
+
+    <footnotes>
+        <footnote id="F1">The Reporting Person acquired the shares under the Issuer's stock compensation plans on July 24, 2026. The Reporting Person did not make any out-of-pocket cash payment for the shares.</footnote>
+        <footnote id="F2">The Reporting Person acquired the shares under the Issuer's stock compensation plans when the performance conditions were certified on July 27, 2026. The Reporting Person did not make any out-of-pocket cash payment for the shares.</footnote>
+        <footnote id="F3">A portion of the shares acquired under the Issuer's stock compensation plan on July 27, 2026 was automatically sold on the same day in accordance with the pre-arranged trading plan under the Issuer's stock compensation plans. The purchase was made in Japanese Yen and the price was converted into U.S. dollars based on the foreign currency exchange rate as of July 27, 2026 (at Japanese Yen 1.00 = U.S. dollar 0.0061091).</footnote>
+    </footnotes>
+
+    <ownerSignature>
+        <signatureName>/s/ Masahiro Hokura, attorney-in-fact for Makoto Takashima</signatureName>
+        <signatureDate>2026-07-28</signatureDate>
+    </ownerSignature>
+</ownershipDocument>
+</XML>
+</TEXT>
+</DOCUMENT>
+</SEC-DOCUMENT>

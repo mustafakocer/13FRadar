@@ -233,9 +233,18 @@ function RowLabel({ r, t }) {
   }
   return (
     <>
-      <span className={`badge sm ${r.category === 'open_sell' ? 'neg' : 'plain'}`} title={r.code ? `Form 4: ${r.code}` : undefined} data-category={r.category}>
+      <span
+        className={`badge sm ${r.category === 'open_sell' ? 'neg' : 'plain'}`}
+        title={r.compensationNote ? `Form 4: ${r.code} — ${r.compensationNote}` : r.code ? `Form 4: ${r.code}` : undefined}
+        data-category={r.category}
+      >
         {t(r.category === 'preferred' || r.category === 'other_security' ? `ins.cat.${r.category}.${r.side === 'sell' ? 'sell' : 'buy'}` : `ins.cat.${r.category || 'other'}`)}
       </span>
+      {r.compensationNote && (
+        <div className="muted small" data-compensation="1">
+          {t('ins.compensationWhy').replace('{code}', r.code || 'P')}: “{r.compensationNote}”
+        </div>
+      )}
       {holderBadge && <span style={{ marginLeft: 4 }}>{holderBadge}</span>}
       {planned}
     </>

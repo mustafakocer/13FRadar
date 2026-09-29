@@ -132,6 +132,17 @@ test('SSR: the redirect keeps the sub-page and the per-stock route', async () =>
   assert.equal(tick.headers.location, '/tr/guru/berkshire-hathaway-warren-buffett/AAPL');
 });
 
+// On Vercel the rewrite hands the page both ?__path= and a copy as ?path=
+// (the :path* segment); neither is the visitor's and neither may reach the
+// Location header. A visitor's own query string is kept.
+test('SSR: the redirect drops the rewrite parameters Vercel adds', async () => {
+  const r = await ssr('/api/ssr?__path=tr%2Fguru%2Fberkshire-hathaway&path=tr%2Fguru%2Fberkshire-hathaway');
+  assert.equal(r.status, 301);
+  assert.equal(r.headers.location, '/tr/guru/berkshire-hathaway-warren-buffett');
+  const q = await ssr('/api/ssr?__path=en%2Fguru%2Fberkshire-hathaway%2Fchanges&path=en%2Fguru%2Fberkshire-hathaway%2Fchanges&q=1');
+  assert.equal(q.headers.location, '/en/guru/berkshire-hathaway-warren-buffett/changes?q=1');
+});
+
 test('SSR: a real slug still serves its page, and a made-up one still 404s', async () => {
   const live = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
   assert.equal(live.status, 200, 'the canonical URL is not caught by the alias path');

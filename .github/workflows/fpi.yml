@@ -15,6 +15,9 @@ name: Foreign issuer data (FX + ADR ratios)
 #     with a manual run on the branch (workflow_dispatch) when needed.
 on:
   schedule:
+    # Started on time by Supabase pg_cron (migrations/0005_job_triggers);
+    # this is the fallback. The morning insider run follows this one
+    # (insiders.yml, workflow_run).
     - cron: '47 2 * * *'
   pull_request:
     paths:
@@ -28,6 +31,10 @@ on:
       - '.github/workflows/fpi.yml'
   workflow_dispatch:
     inputs:
+      trigger:
+        description: 'Who started this run (cron = Supabase pg_cron; leave as manual)'
+        type: string
+        default: 'manual'
       refresh:
         description: 'Re-check every issuer at the SEC (not only those older than 30 days)'
         type: boolean
@@ -41,7 +48,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Does this run need to do the work? A cron / fallback / chained run skips
+  # itself when another run already built in the same window; a person's run
+  # and a push always build (scripts/run-guard.mjs, api/_lib/jobTriggers.js).
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            api/_lib/jobTriggers.js
+            scripts/run-guard.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: decide
+        run: node scripts/run-guard.mjs
+        env:
+          WORKFLOW: fpi.yml
+          EVENT: ${{ github.event_name }}
+          TRIGGER: ${{ inputs.trigger }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: guard
+    # the guard failing (GitHub API down) must not cost a day of data
+    if: ${{ !cancelled() && needs.guard.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:

@@ -8,6 +8,10 @@ on:
   # rebuilds rather than being mistaken for work already done.
   workflow_dispatch:
     inputs:
+      trigger:
+        description: 'Who started this run (cron = Supabase pg_cron; leave as manual)'
+        type: string
+        default: 'manual'
       guru_quarters:
         description: 'Quarters of history per guru (40 = full ten years)'
         type: string
@@ -75,7 +79,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Does this run need to do the work? A cron / fallback / chained run skips
+  # itself when another run already built in the same window; a person's run
+  # and a push always build (scripts/run-guard.mjs, api/_lib/jobTriggers.js).
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            api/_lib/jobTriggers.js
+            scripts/run-guard.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: decide
+        run: node scripts/run-guard.mjs
+        env:
+          WORKFLOW: consensus.yml
+          EVENT: ${{ github.event_name }}
+          TRIGGER: ${{ inputs.trigger }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: guard
+    # the guard failing (GitHub API down) must not cost a day of data
+    if: ${{ !cancelled() && needs.guard.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     # 88 minutes was the 20-guru run; 99 gurus and the filings crawl need room
     timeout-minutes: 330

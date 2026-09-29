@@ -63,3 +63,30 @@ grant execute on all functions in schema public to anon, authenticated, service_
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;
+
+-- pg_cron, pg_net and Vault stand-ins for migrations/0005_job_triggers:
+-- cron.schedule() records the job, net.http_post() records the request and
+-- answers nothing (tests write net._http_response rows themselves), and
+-- vault.decrypted_secrets is a plain table.
+create schema if not exists cron;
+create table if not exists cron.job (jobid bigserial primary key, jobname text unique, schedule text, command text);
+create table if not exists cron.job_run_details (runid bigserial primary key, jobid bigint, end_time timestamptz);
+create or replace function cron.schedule(job_name text, schedule text, command text) returns bigint
+language sql as $$
+  insert into cron.job (jobname, schedule, command) values (job_name, schedule, command)
+  on conflict (jobname) do update set schedule = excluded.schedule, command = excluded.command
+  returning jobid
+$$;
+create or replace function cron.unschedule(job_name text) returns boolean
+language sql as $$ delete from cron.job where jobname = job_name returning true $$;
+
+create schema if not exists net;
+create table if not exists net.http_request_queue (id bigserial primary key, url text, body jsonb, headers jsonb, timeout_milliseconds int);
+create table if not exists net._http_response (id bigint primary key, status_code int, content text, timed_out boolean, error_msg text, created timestamptz default now());
+create or replace function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds int default 5000) returns bigint
+language sql as $$
+  insert into net.http_request_queue (url, body, headers, timeout_milliseconds) values (url, body, headers, timeout_milliseconds) returning id
+$$;
+
+create schema if not exists vault;
+create table if not exists vault.decrypted_secrets (name text primary key, decrypted_secret text);

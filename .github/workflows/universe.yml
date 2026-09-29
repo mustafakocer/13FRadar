@@ -3,12 +3,17 @@ name: Build 13F universe
 on:
   workflow_dispatch:
     inputs:
+      trigger:
+        description: 'Who started this run (cron = Supabase pg_cron; leave as manual)'
+        type: string
+        default: 'manual'
       allow_drift:
         description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
         type: boolean
         default: false
   schedule:
-    # Daily at 01:23 UTC (04:23 Istanbul), first in the nightly chain: the
+    # Started on time by Supabase pg_cron (migrations/0005_job_triggers);
+    # this entry is the fallback. Daily at 01:23 UTC (04:23 Istanbul), first in the nightly chain: the
     # consensus build runs when this finishes (workflow_run), the insider
     # build follows at 04:53. The repository is public, so Actions minutes
     # are free and a run that commits nothing costs nothing; weekly left the
@@ -19,8 +24,46 @@ on:
 permissions:
   contents: write
 
+# the cron and its GitHub fallback queue instead of racing; the second one's
+# guard then finds the day built and skips
+concurrency:
+  group: universe-data
+  cancel-in-progress: false
+
 jobs:
+  # Does this run need to do the work? A cron / fallback / chained run skips
+  # itself when another run already built in the same window; a person's run
+  # and a push always build (scripts/run-guard.mjs, api/_lib/jobTriggers.js).
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      run: ${{ steps.decide.outputs.run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            api/_lib/jobTriggers.js
+            scripts/run-guard.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - id: decide
+        run: node scripts/run-guard.mjs
+        env:
+          WORKFLOW: universe.yml
+          EVENT: ${{ github.event_name }}
+          TRIGGER: ${{ inputs.trigger }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: guard
+    # the guard failing (GitHub API down) must not cost a day of data
+    if: ${{ !cancelled() && needs.guard.outputs.run != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:

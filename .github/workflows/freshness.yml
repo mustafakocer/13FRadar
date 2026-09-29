@@ -8,8 +8,16 @@ name: Data freshness
 # reads the committed data and fails if anything is past its allowed age, so
 # the rot surfaces the next morning instead of the next time someone looks.
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+    inputs:
+      trigger:
+        description: 'Who started this run (cron = Supabase pg_cron; leave as manual)'
+        type: string
+        default: 'manual'
   schedule:
+    # Started on time by Supabase pg_cron (migrations/0005_job_triggers);
+    # these entries are the fallback, and a late fallback run is itself
+    # reported by the trigger check below.
     # 07:23 UTC — after the night chain (universe 01:23 → consensus on its
     # completion, insiders 03:31) has had time to finish and push — and again
     # at 13:17, after the 11:02 insider catch-up.
@@ -25,10 +33,13 @@ on:
     paths:
       - 'scripts/check-freshness.mjs'
       - 'api/_lib/freshnessChecks.js'
+      - 'scripts/check-triggers.mjs'
+      - 'api/_lib/jobTriggers.js'
       - '.github/workflows/freshness.yml'
 
 permissions:
   contents: read
+  actions: read # the trigger check lists the data workflows' runs
   issues: write # the alarm issue (scripts/notify.mjs)
 
 jobs:
@@ -40,6 +51,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      # notify.mjs needs axios. Without this every alarm step crashed on
+      # "Cannot find package 'axios'" (25–28 Sep 2026): a stale feed would
+      # have raised no issue, and a healthy one turned the run red.
+      - run: npm ci
+      # Did every job start within 15 minutes of its slot, and did the morning
+      # insider run follow fpi? A late start means the Supabase trigger
+      # stopped (token, paused project); the fallback runs the jobs hours
+      # late and the data check above would only notice a day later.
+      - name: Check the job start times
+        id: triggers
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-triggers.mjs 2>&1 | tee triggers.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # slots before the day the trigger went live are not judged
+          TRIGGERS_ACTIVE_FROM: '2026-09-30T00:00:00Z'
+      - name: Alert (start times)
+        if: steps.triggers.outcome == 'failure'
+        run: node scripts/notify.mjs --title "Data jobs started late" --log triggers.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+      - name: Close the start-time alarm on recovery
+        if: steps.triggers.outcome == 'success'
+        run: node scripts/notify.mjs --title "Data jobs started late" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
       - name: Check every dataset
         shell: bash
         run: |

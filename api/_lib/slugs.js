@@ -50,3 +50,19 @@ export function filerPath(cik) {
   if (!e) return `/manager/${String(cik).padStart(10, '0')}`;
   return `/${e.kind === 'guru' ? 'guru' : 'filer'}/${e.slug}`;
 }
+
+// The redirects to serve: the reviewed list of published addresses
+// (config/slug-aliases.json), the table's earlier aliases, and a slug derived
+// from each curated name — each kept only while its target exists and no
+// real page has taken its slug (a live page always outranks a redirect).
+// scripts/build-slugs.mjs writes the result; the pinned list is why a run
+// that shrank the table (2026-09-23: 113 → 79) is repaired by the next one.
+export function mergeAliases({ bySlug, pinned = {}, previous = {}, derived = {} }) {
+  const out = {};
+  for (const src of [pinned, previous, derived]) {
+    for (const [from, to] of Object.entries(src || {})) {
+      if (from && to && from !== to && bySlug[to] && !bySlug[from] && !out[from]) out[from] = to;
+    }
+  }
+  return out;
+}

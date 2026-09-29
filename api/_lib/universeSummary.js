@@ -65,11 +65,5 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}
   return { count: rows.length, quarter, inTotal, stale, duplicates, totalAum: Math.round(totalAum), totalPositions };
 }
 
-// "9,023" for the stat band, "9,000+" where a round figure reads better —
-// both from the same count.
-export function fundCountLabel(count, { round = false, locale = 'en-US' } = {}) {
-  if (!Number.isFinite(count) || count <= 0) return null;
-  if (!round) return count.toLocaleString(locale);
-  const step = count >= 1000 ? 1000 : 100;
-  return `${(Math.floor(count / step) * step).toLocaleString(locale)}+`;
-}
+// the label every page states the count with
+export { fundCountLabel } from '../../client/src/lib/fundCount.js';

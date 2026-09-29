@@ -149,3 +149,35 @@ test('report periods group by quarter, and an unknown period is not guessed', ()
     { quarter: 'Q1 2026', count: 1 },
   ]);
 });
+
+// Bullock Wealth sent seven periods on 2026-09-24: each is its own accession,
+// the universe measured one of them, and the feed showed "—" for the rest.
+test('multi-period submissions: every original the universe did not measure is read on its own', async () => {
+  const { rowsToMeasure, needsLookup } = await import('../api/_lib/filings.js');
+  const rows = [
+    { cik: '0002067581', acc: 'A-12', filed: '2026-09-24', reportDate: '2024-03-31' },
+    { cik: '0002067581', acc: 'A-11', filed: '2026-09-24', reportDate: '2024-06-30' },
+    { cik: '0002067581', acc: 'A-10', filed: '2026-09-24', reportDate: '2025-09-30' },
+    { cik: '0000000001', acc: 'B-1', filed: '2026-09-24', amended: true },
+    { cik: '0000000002', acc: 'C-1', filed: '2026-09-23', aum: 5, positions: 2 },
+  ];
+  const universe = [{ cik: '0002067581', acc: 'A-12', aum: 149272739, positions: 50 }];
+  assert.deepEqual(rowsToMeasure(rows, universe).map((r) => r.acc), ['A-11', 'A-10']);
+  assert.deepEqual(rowsToMeasure(rows, universe, 1).map((r) => r.acc), ['A-11']);
+  // periods: a filer read on the day it filed, before its feed listed the new
+  // documents, is read again the next day; one already dated is not
+  const meta = { checkedAt: '2026-09-23', reportByAcc: { 'A-12': '2024-03-31' } };
+  assert.equal(needsLookup(rows[0], meta, '2026-09-29'), false);
+  assert.equal(needsLookup(rows[1], meta, '2026-09-29'), true);
+  assert.equal(needsLookup(rows[1], { ...meta, checkedAt: '2026-09-29' }, '2026-09-29'), false, 'once a day');
+  assert.equal(needsLookup(rows[1], null, '2026-09-29'), true);
+});
+
+test('joinUniverse: a period the universe inferred from the filing date yields to the stated one', () => {
+  const rows = [{ acc: 'X', reportDate: '2024-03-31' }, { acc: 'Y', reportDate: null }];
+  const out = joinUniverse(rows, [
+    { acc: 'X', aum: 1, positions: 1, reportDate: '2026-06-30', periodFrom: 'filing-date' },
+    { acc: 'Y', aum: 2, positions: 2, reportDate: '2026-06-30', periodFrom: 'filing-date' },
+  ]);
+  assert.deepEqual(out.map((r) => r.reportDate), ['2024-03-31', '2026-06-30']);
+});

@@ -5,6 +5,8 @@ import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { api } from '../lib/api.js';
+import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
+import { fundCountLabel } from '../lib/fundCount.js';
 import Ico from '../components/Ico.jsx';
 import { Gift, Check } from 'lucide-react';
 
@@ -27,6 +29,8 @@ export function money(v, currency, lang) {
 export default function Pricing() {
   const { t, lang } = useI18n();
   const { user, isPro, configured, loading } = useAuth();
+  // the same count, in the same words, as the home page's stat band
+  const funds = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || '9.000+';
   const [params, setParams] = useSearchParams();
   // ?plan=pro_monthly|pro_yearly: the plan a signed-out reader picked
   // before signing in; the page starts that checkout as soon as it can
@@ -135,7 +139,7 @@ export default function Pricing() {
             )}
           </div>
           {PRO_FEATURES.map((k) => (
-            <div key={k} className="kv"><span className="k"><Ico icon={Check} /> {t(`pricing.${k}`)}</span></div>
+            <div key={k} className="kv"><span className="k"><Ico icon={Check} /> {t(`pricing.${k}`).replace('{funds}', funds)}</span></div>
           ))}
           <div className="mt16">
             {isPro && configured ? (

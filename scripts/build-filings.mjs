@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
-import { parseFilingIndex, mergeFilings, joinUniverse, quartersOf } from '../api/_lib/filings.js';
+import { parseFilingIndex, mergeFilings, joinUniverse, quartersOf, needsLookup, rowsToMeasure } from '../api/_lib/filings.js';
 import { fetchCoverPage, fetchInfoTableXml, parse13F, aggregatePositions } from '../api/_lib/sec.js';
 
 const DAYS = Number(process.env.FILINGS_DAYS || 10);
@@ -25,6 +25,9 @@ const META_BUDGET = Number(process.env.FILER_META_BUDGET || 400);
 // the feed can say what the amendment did: the period it corrects, whether
 // it restates the book or adds to it, and how many positions it carries.
 const AMEND_BUDGET = Number(process.env.FILINGS_AMEND_BUDGET || 150);
+// originals the universe did not measure (other periods of a multi-period
+// submission), one info-table read each
+const MEASURE_BUDGET = Number(process.env.FILINGS_MEASURE_BUDGET || 200);
 const UA = process.env.SEC_USER_AGENT || 'Fundocap filings build (contact via fundocap.com)';
 
 const root = process.cwd();
@@ -144,8 +147,7 @@ let rows = mergeFilings(stored.rows || [], incoming, { today: iso(new Date()), w
 const need = [];
 for (const r of rows) {
   if (need.length >= META_BUDGET) break;
-  const m = meta.byCik[r.cik];
-  if (m && (m.reportByAcc?.[r.acc] || m.checkedAt >= r.filed)) continue;
+  if (!needsLookup(r, meta.byCik[r.cik], iso(new Date()))) continue;
   if (!need.includes(r.cik)) need.push(r.cik);
 }
 if (need.length) {
@@ -208,6 +210,25 @@ if (toEnrich.length) {
   }
   rows = rows.map((r) => (enriched.has(r.acc) ? { ...r, ...enriched.get(r.acc) } : r));
   console.log(`  ${enriched.size} amendments read (${[...enriched.values()].filter((e) => e.amendmentType).length} with a stated type)`);
+}
+// Originals with no figures: each period of a multi-period submission is its
+// own accession and gets its own value and position count.
+const toMeasure = rowsToMeasure(rows, universe.rows || [], MEASURE_BUDGET);
+if (toMeasure.length) {
+  console.log(`Reading ${toMeasure.length} filings the universe did not measure…`);
+  const measured = new Map();
+  for (const r of toMeasure) {
+    try {
+      const xml = await fetchInfoTableXml(r.cik, r.acc);
+      const { aum, positions } = aggregatePositions(await parse13F(xml), r.filed, { period: r.reportDate || null });
+      measured.set(r.acc, { aum: Math.round(aum), positions: positions.length });
+    } catch (e) {
+      console.warn(`  ${r.acc}: ${e.message}`);
+    }
+    await sleep(140);
+  }
+  rows = rows.map((r) => (measured.has(r.acc) ? { ...r, ...measured.get(r.acc) } : r));
+  console.log(`  ${measured.size} read`);
 }
 rows = joinUniverse(rows, universe.rows || []);
 

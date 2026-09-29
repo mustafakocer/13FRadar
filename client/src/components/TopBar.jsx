@@ -1,3 +1,5 @@
+import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
+import { fundCountLabel } from '../lib/fundCount.js';
 import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
@@ -75,6 +77,7 @@ function Dropdown({ label, icon, items, active }) {
 
 export default function TopBar({ theme, onToggleTheme }) {
   const { t, lang, toggle } = useI18n();
+  const fundCount = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || (lang === 'tr' ? '9.000+' : '9,000+');
   const { configured, user, plan } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -86,7 +89,7 @@ export default function TopBar({ theme, onToggleTheme }) {
 
   const funds = [
     { to: '/consensus', label: t('nav.consensus'), icon: Compass, desc: t('topnav.d.consensus') },
-    { to: '/screen', label: t('nav.screen'), icon: ChartColumn, desc: t('topnav.d.screen') },
+    { to: '/screen', label: t('nav.screen'), icon: ChartColumn, desc: t('topnav.d.screen').replace('{funds}', fundCount) },
     { to: '/compare', label: t('nav.compare'), icon: Scale, desc: t('topnav.d.compare') },
     { to: '/report', label: t('nav.report'), icon: Newspaper, desc: t('topnav.d.report') },
   ];

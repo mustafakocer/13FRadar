@@ -47,3 +47,25 @@ test('topRankedCusips keeps a position that was ever in a quarter top N', () => 
   const keep = topRankedCusips(positions, 2);
   assert.deepEqual([...keep].sort(), ['A', 'B', 'C']); // B: top-2 in Q4, C: top-2 in Q1, D never
 });
+
+// KO has been in Berkshire's book since 1988; the history starts in 2016.
+test('time held that reaches the start of the data says so: "9,8+ Yıl (veri 2016\'dan)"', async () => {
+  assert.equal(timeHeldLabel(39, 'tr', { dataFrom: '2016-12-31' }), "9,8+ Yıl (veri 2016'dan)");
+  assert.equal(timeHeldLabel(39, 'en', { dataFrom: '2016-12-31' }), '9.8+ Years (data from 2016)');
+  assert.equal(timeHeldLabel(22, 'tr', { dataFrom: '2021-03-31' }), "5,5+ Yıl (veri 2021'den)");
+  assert.equal(timeHeldLabel(3, 'tr', { dataFrom: '2026-03-31' }), "3+ Çeyrek (veri 2026'dan)");
+  assert.equal(timeHeldLabel(39, 'tr'), '9,8 Yıl', 'a streak that started inside the data is exact');
+  assert.equal(timeHeldLabel(40, 'tr', { dataFrom: '2016-09-30' }), '>10 Yıl');
+  const { trAblative } = await import('../client/src/lib/timeHeld.js');
+  assert.deepEqual([2014, 2015, 2016, 2017, 2018, 2019, 2020, 2010, 2023].map((y) => `${y}${trAblative(y)}`), ["2014'ten", "2015'ten", "2016'dan", "2017'den", "2018'den", "2019'dan", "2020'den", "2010'dan", "2023'ten"]);
+});
+
+test('Berkshire KO in the stored history: held since the first quarter of the data, labelled as such', async () => {
+  const fs = await import('node:fs');
+  const H = JSON.parse(fs.readFileSync(new URL('../api/_data/guru-history.json', import.meta.url), 'utf8'));
+  const { resolveTimeHeld } = await import('../api/_lib/historyResolve.js');
+  const g = H.gurus['0001067983'];
+  const ko = Object.values(resolveTimeHeld(g)).find((x) => x.ticker === 'KO');
+  assert.equal(ko.dataFrom, g.quarters[0].reportDate);
+  assert.match(timeHeldLabel(ko.quarters, 'tr', { dataFrom: ko.dataFrom }), /^\d+,\d\+ Yıl \(veri 2016'dan\)$|^>10 Yıl$/);
+});

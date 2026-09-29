@@ -14,10 +14,11 @@ import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
+import { fundCountLabel } from '../lib/fundCount.js';
 import { securityLabel } from '../lib/label.js';
 import Ico from '../components/Ico.jsx';
 import { dataFreshness } from '../lib/secCalendar.js';
-import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star } from 'lucide-react';
+import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star, Info } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
 // Landing page. Every block reads a static CDN file written by the daily
@@ -143,8 +144,10 @@ function Hero({ summary }) {
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
 
   const stats = [
-    [Landmark, compact(summary?.count, locale) || '7.800+', t('landing.stat.funds2')],
-    [Coins, summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '$50T+', t('landing.stat.aum')],
+    [Landmark, fundCountLabel(summary?.count, { locale }) || '9.000+', t('landing.stat.funds2')],
+    // the latest complete quarter, one filing per fund (universeSummary.js);
+    // the tooltip says so, since a reader will compare it with other sites
+    [Coins, summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '—', t('landing.stat.aum'), summary?.quarter ? t('landing.stat.aumTip').replace('{q}', quarterLabel(summary.quarter)) : null],
     [Receipt, compact(summary?.totalPositions, locale) || '1M+', t('landing.stat.positions')],
     [Radar, t('landing.stat.live.v'), t('landing.stat.live')],
   ];
@@ -171,11 +174,18 @@ function Hero({ summary }) {
         </Link>
       </div>
       <div className="hero-stats">
-        {stats.map(([ico, v, label]) => (
-          <div className="hero-stat" key={label}>
+        {stats.map(([ico, v, label, tip]) => (
+          <div className="hero-stat" key={label} title={tip || undefined}>
             <div className="ico"><Ico icon={ico} size={20} /></div>
             <b>{v}</b>
-            <span>{label}</span>
+            <span>
+              {label}
+              {tip && (
+                <span className="stat-tip" tabIndex={0} role="note" aria-label={tip} data-tip={tip}>
+                  <Ico icon={Info} size={12} />
+                </span>
+              )}
+            </span>
           </div>
         ))}
       </div>

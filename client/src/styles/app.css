@@ -647,6 +647,16 @@ th.sortable { cursor: pointer; user-select: none; }
 }
 .hero-stat b { font-size: 26px; font-weight: 800; letter-spacing: -0.02em; color: var(--text); font-variant-numeric: tabular-nums; }
 .hero-stat span { color: var(--text-2); font-size: 13.5px; }
+/* what the headline total means, on hover, focus or tap */
+.hero-stat .stat-tip { position: relative; display: inline-flex; margin-left: 4px; vertical-align: -1px; cursor: help; color: var(--text-3, var(--text-2)); }
+.hero-stat .stat-tip:focus { outline: none; color: var(--text); }
+.hero-stat .stat-tip::after {
+  content: attr(data-tip); position: absolute; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%);
+  width: max-content; max-width: min(260px, 80vw); padding: 8px 10px; border-radius: 8px;
+  background: var(--popover); color: var(--text); border: 1px solid var(--border-strong); font-size: 12.5px; line-height: 1.4;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18); opacity: 0; pointer-events: none; transition: opacity 0.12s; z-index: 20;
+}
+.hero-stat .stat-tip:hover::after, .hero-stat .stat-tip:focus::after { opacity: 1; }
 @media (max-width: 840px) {
   .hero-band h1 { font-size: 32px; }
   .hero-band .lead { font-size: 16px; }

@@ -289,7 +289,8 @@ async function loadCompare() {
 // depends on the country, so the page is not CDN-cached.
 async function loadPricing({ _country } = {}) {
   const p = ok(await withBudget(invoke(plansHandler, {}, { 'x-vercel-ip-country': _country || '' }), 7000));
-  return p ? [[['plans'], p]] : [];
+  const s = staticSummary();
+  return [...(p ? [[['plans'], p]] : []), ...(s ? [[['universe-summary'], s]] : [])];
 }
 
 // Public routes rendered on the server. Anything else renders the shell

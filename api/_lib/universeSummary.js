@@ -6,7 +6,10 @@
 // amendments folded in — never the original and its amendment both), funds
 // whose newest filing is older than that quarter left out. A share held by
 // two funds is counted twice: 13F is a report per manager, not a census of
-// securities.
+// securities. Option lines (puts and calls) are left out: they report the
+// value of the underlying shares, not an asset the fund holds, and a few
+// market makers carry trillions of them (putCallValue on each row, recorded
+// by the universe build).
 
 const DAY = 86_400_000;
 export const FILING_DEADLINE_DAYS = 45;
@@ -43,6 +46,7 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}
   let inTotal = 0;
   let stale = 0;
   let duplicates = 0;
+  let optionsExcluded = 0;
   // the same book filed under two CIKs (a filing agent's slip: Sixth Street
   // Partners carried Schwab's $751B table in 2026-Q2) is counted once
   const seen = new Set();
@@ -59,10 +63,12 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString() } = {}
     }
     if (book) seen.add(book);
     inTotal++;
-    totalAum += Number.isFinite(r.aum) ? r.aum : 0;
+    const opts = Number.isFinite(r.putCallValue) ? Math.min(r.putCallValue, r.aum || 0) : 0;
+    optionsExcluded += opts;
+    totalAum += (Number.isFinite(r.aum) ? r.aum : 0) - opts;
     totalPositions += Number.isFinite(r.positions) ? r.positions : 0;
   }
-  return { count: rows.length, quarter, inTotal, stale, duplicates, totalAum: Math.round(totalAum), totalPositions };
+  return { count: rows.length, quarter, inTotal, stale, duplicates, optionsExcluded: Math.round(optionsExcluded), totalAum: Math.round(totalAum), totalPositions };
 }
 
 // the label every page states the count with

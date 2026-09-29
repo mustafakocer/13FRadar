@@ -1,0 +1,32 @@
+name: Measure option notional
+
+# One-off measurement for the home page's headline total (options excluded):
+# reads every current filing's info table and prints each fund's put/call
+# value (PCV lines) and the total to the log and the job summary. Commits
+# nothing; `node scripts/measure-options.mjs --apply <log>` writes the result
+# into universe.json. The universe build records the same figure itself from
+# its next run.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/measure-options.mjs'
+      - '.github/workflows/measure-options.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Read every current filing's option lines
+        run: node scripts/measure-options.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'

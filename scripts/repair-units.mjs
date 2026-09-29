@@ -132,6 +132,10 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   writeJson(file('api/_data/latest-holdings.json'), L);
   writeJson(file('client/public/universe.json'), U);
   writeJson(file('client/public/universe-summary.json'), summary);
-  fs.writeFileSync(file('api/_data/unit-corrections.json'), JSON.stringify({ updatedAt: new Date().toISOString(), count: log.length, corrections: log }, null, 1));
+  // the timestamp moves only when the record does, so a clean run commits nothing
+  const logFile = file('api/_data/unit-corrections.json');
+  const before = fs.existsSync(logFile) ? readJson(logFile) : null;
+  const same = before && JSON.stringify(before.corrections) === JSON.stringify(log);
+  fs.writeFileSync(logFile, JSON.stringify({ updatedAt: same ? before.updatedAt : new Date().toISOString(), count: log.length, corrections: log }, null, 1));
   console.log(`unit-corrections.json: ${log.length} filings on record`);
 }

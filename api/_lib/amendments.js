@@ -177,7 +177,7 @@ export function effectiveSnapshot(base, amendments = []) {
   return {
     aum: snap.aum,
     positions: snap.positions,
-    ...(base.unitFix ? { unitFix: true } : {}),
+    ...(base.unitFix ? { unitFix: base.unitFix } : {}),
     ...(applied.length ? { amended: true, amendments: applied } : {}),
   };
 }

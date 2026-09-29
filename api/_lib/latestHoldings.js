@@ -59,12 +59,14 @@ export function latestHoldings(cik, acc) {
 // One filer's entry as the universe build stores it: the totals and the ten
 // largest positions, rounded to what the table shows. `amendments` lists the
 // 13F-HR/A documents folded into the snapshot, when there were any.
-export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, amendments = null }, top = 10) {
+export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, amendments = null, unitFix = null }, top = 10) {
   return {
     acc,
     filed,
     ...(reportDate ? { reportDate } : {}),
     ...(amendments?.length ? { amendments: amendments.map((a) => ({ acc: a.acc, filingDate: a.filingDate, type: a.type })) } : {}),
+    // the filing was rescaled by 1000 (valueUnits.js); kept for the log
+    ...(unitFix && typeof unitFix === 'object' ? { unitFix } : {}),
     aum: Math.round(aum),
     count: positions.length,
     top: positions.slice(0, top).map((p) => ({

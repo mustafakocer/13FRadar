@@ -85,7 +85,8 @@ test('a filing that neither unit makes sane is reported rather than mangled', ()
 test('the correction reaches the aggregate, and says that it did', () => {
   const rows = filing(20, 150, 1);
   const { aum, positions, unitFix } = aggregatePositions(rows, '2021-05-15');
-  assert.equal(unitFix, true);
+  // the record says by how much and on what evidence
+  assert.deepEqual(unitFix, { factor: 1 / 1000, by: 'implied-price' });
   // 20 positions × 1000 shares × $150
   assert.equal(Math.round(aum), 20 * 1000 * 150);
   assert.ok(positions.every((p) => Math.abs(p.weight - 5) < 0.001));

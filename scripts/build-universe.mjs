@@ -13,6 +13,7 @@ import { fetchInfoTableXml, parse13F, aggregatePositions, getSubmissions, list13
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
+import { inferPeriod, summarizeUniverse } from '../api/_lib/universeSummary.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -74,9 +75,13 @@ async function main() {
       const acc = /(\d{10}-\d{2}-\d{6})/.exec(file)?.[1];
       if (!acc) continue;
       const existing = latestByCik.get(cik);
+      // several originals in the window (a filer catching up files many
+      // periods on one day) means the newest filing date says nothing about
+      // the newest period: those go through the submissions feed below
+      const originals = (existing?.originals || 0) + (form === '13F-HR' ? 1 : 0);
       if (!existing || existing.filed <= filed) {
-        latestByCik.set(cik, { cik, name, filed, acc, form });
-      }
+        latestByCik.set(cik, { cik, name, filed, acc, form, originals });
+      } else existing.originals = originals;
     }
   }
 
@@ -102,19 +107,28 @@ async function main() {
   // needs the filer's submissions feed for the period and the accessions —
   // one extra request for the few percent of filers whose latest is an
   // amendment. Everything else reads the one table as before.
+  //
+  // A filer with several originals in the window takes the same route: its
+  // newest *period* is picked from the feed (Bullock Wealth filed seven
+  // periods on 2026-09-24 and the last index line, its 2024-Q1 book, used to
+  // be published as its current portfolio).
+  //
+  // The period also feeds the unit check (valueUnits.js): a single original
+  // is dated from its filing date — a July filing reports June.
   async function latestSnapshot(e) {
-    if (e.form !== '13F-HR/A') {
+    if (e.form !== '13F-HR/A' && (e.originals || 0) < 2) {
       const xml = await fetchInfoTableXml(e.cik, e.acc);
       const parsed = await parse13F(xml);
-      const { aum, positions } = aggregatePositions(parsed, e.filed);
-      return { acc: e.acc, filed: e.filed, reportDate: null, aum, positions, amendments: null };
+      const period = inferPeriod(e.filed);
+      const { aum, positions, unitFix } = aggregatePositions(parsed, e.filed, { period });
+      return { acc: e.acc, filed: e.filed, reportDate: period, periodFrom: 'filing-date', aum, positions, amendments: null, unitFix };
     }
     const filings = list13F(await getSubmissions(e.cik));
     const f = filings[0];
     if (!f) throw new Error('no 13F in the submissions feed');
-    const { aum, positions, amendments } = await getEffectiveHoldings(e.cik, f);
-    amended++;
-    return { acc: f.acc, filed: f.filingDate, reportDate: f.reportDate, aum, positions, amendments: amendments || null };
+    const { aum, positions, amendments, unitFix } = await getEffectiveHoldings(e.cik, f);
+    if (e.form === '13F-HR/A') amended++;
+    return { acc: f.acc, filed: f.filingDate, reportDate: f.reportDate, periodFrom: 'submissions', aum, positions, amendments: amendments || null, unitFix };
   }
 
   await Promise.all(
@@ -133,8 +147,11 @@ async function main() {
             // base document), so the filings feed can attach them to that
             // filing and not to a later amendment
             acc: snap.acc,
-            ...(snap.reportDate ? { reportDate: snap.reportDate } : {}),
+            ...(snap.reportDate ? { reportDate: snap.reportDate, periodFrom: snap.periodFrom } : {}),
             aum: Math.round(aum),
+            // option lines are notional exposure; kept apart so the total can
+            // be read with or without them
+            putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value : 0), 0)),
             positions: positions.length,
             top10: Number(top10.toFixed(1)),
           });
@@ -145,6 +162,7 @@ async function main() {
             aum,
             positions,
             amendments: snap.amendments,
+            unitFix: snap.unitFix,
           });
           // whale-heatmap aggregate across ALL filers (equity positions only)
           for (const p of positions) {
@@ -240,18 +258,13 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
 }
 
 // Small companion file for the landing-page stat band: the full universe.json
-// is ~1 MB, far too much to download just for three headline numbers.
+// is ~1 MB, far too much to download just for three headline numbers. The
+// numbers themselves come from universeSummary.js, the one definition the
+// home page, the pricing page and the tooltips share.
 export function writeUniverseSummary(pub) {
   const u = JSON.parse(fs.readFileSync(path.join(pub, 'universe.json'), 'utf8'));
-  const rows = u.rows || [];
-  const sum = (k) => rows.reduce((s, r) => s + (Number.isFinite(r[k]) ? r[k] : 0), 0);
-  const summary = {
-    updatedAt: u.updatedAt,
-    count: rows.length,
-    totalAum: Math.round(sum('aum')),
-    totalPositions: sum('positions'),
-  };
+  const summary = { updatedAt: u.updatedAt, ...summarizeUniverse(u.rows || [], { asOf: u.updatedAt }) };
   fs.writeFileSync(path.join(pub, 'universe-summary.json'), JSON.stringify(summary));
-  console.log(`Wrote universe-summary.json (${summary.count} funds, $${(summary.totalAum / 1e12).toFixed(2)}T)`);
+  console.log(`Wrote universe-summary.json (${summary.count} funds, ${summary.inTotal} in the ${summary.quarter} total, $${(summary.totalAum / 1e12).toFixed(2)}T)`);
   return summary;
 }

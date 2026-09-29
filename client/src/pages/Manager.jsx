@@ -109,6 +109,17 @@ export default function Manager({ segment = 'portfolio' }) {
     staleTime: 6 * 60 * 60 * 1000,
   });
 
+  // What this filing bought and sold vs the one before: one answer for the
+  // FAQ and the Changes tab (GET /api/changes; by shares, complete books).
+  // Free: true counts and the five largest lines per list; Pro: every line.
+  const changes = useQuery({
+    queryKey: ['changes', cik, acc, isPro],
+    queryFn: () => api.changes(cik, acc, isPro ? { full: '1' } : {}),
+    enabled: !!acc,
+    staleTime: 6 * 60 * 60 * 1000,
+  });
+  const changesData = changes.data?.available ? changes.data : null;
+
   const aumHist = useQuery({
     queryKey: ['aum', cik],
     queryFn: () => api.aumHistory(cik),
@@ -155,11 +166,11 @@ export default function Manager({ segment = 'portfolio' }) {
         manager: mgr.data,
         filing,
         holdings: holdings.data,
-        prevPositions: prevHoldings.data?.positions ?? null,
+        changes: changesData,
         history: hist.data || null,
         segment: tab,
       }),
-    [lang, cik, mgr.data, filing, holdings.data, prevHoldings.data, hist.data, tab]
+    [lang, cik, mgr.data, filing, holdings.data, changesData, hist.data, tab]
   );
   useSeo(seo);
 
@@ -397,8 +408,8 @@ export default function Manager({ segment = 'portfolio' }) {
 
           {tab === 'changes' && (
             <>
-              <ChangeStory positions={positions} prevPositions={prevHoldings.data?.positions || null} />
-              <PositionCards positions={positions} prevPositions={prevHoldings.data?.positions || null} />
+              <ChangeStory changes={changesData} />
+              <PositionCards positions={positions} changes={changesData} />
             </>
           )}
 

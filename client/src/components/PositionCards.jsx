@@ -20,7 +20,7 @@ function Row({ p, badge, delta }) {
       <div className="right">
         <div className="w">{fmtPct(p.weight, { sign: false })}</div>
         {delta != null && (
-          <div className={`d ${deltaClass(delta)}`}>{fmtPct(delta, { digits: 2 })} pp</div>
+          <div className={`d ${deltaClass(delta)}`}>{fmtPct(delta, { digits: 1 })}</div>
         )}
       </div>
     </>
@@ -34,45 +34,22 @@ function Row({ p, badge, delta }) {
   );
 }
 
-// Three-column portfolio digest: biggest positions, new/increased, reduced/exited.
-// Weight-change (percentage points) vs the previous quarter.
-export default function PositionCards({ positions, prevPositions }) {
+// Three-column portfolio digest: biggest positions, new/added, reduced/exited
+// — the last two from the filing's `changes` (GET /api/changes, the same
+// answer the FAQ gives): by share count, the change shown in shares.
+export default function PositionCards({ positions, changes }) {
   const { t } = useI18n();
-  const prevMap = new Map(
-    (prevPositions || []).map((p) => [`${p.cusip}|${p.putCall}`, p])
-  );
-  const curMap = new Map(positions.map((p) => [`${p.cusip}|${p.putCall}`, p]));
-  const hasPrev = prevPositions && prevPositions.length > 0;
-
-  const withDelta = positions.map((p) => {
-    const prev = prevMap.get(`${p.cusip}|${p.putCall}`);
-    return { ...p, delta: prev ? p.weight - prev.weight : null, isNew: !prev };
-  });
-
-  const top = withDelta.slice(0, 8);
-  const increased = hasPrev
-    ? withDelta
-        .filter((p) => p.isNew || (p.delta != null && p.delta > 0.05))
-        .sort((a, b) => (b.isNew ? b.weight : b.delta) - (a.isNew ? a.weight : a.delta))
-        .slice(0, 8)
-    : [];
-  const exited = hasPrev
-    ? [...prevMap.values()]
-        .filter((p) => !curMap.has(`${p.cusip}|${p.putCall}`))
-        .map((p) => ({ ...p, delta: -p.weight, isExit: true }))
-    : [];
-  const decreased = hasPrev
-    ? [...withDelta.filter((p) => p.delta != null && p.delta < -0.05), ...exited]
-        .sort((a, b) => a.delta - b.delta)
-        .slice(0, 8)
-    : [];
+  const hasPrev = Boolean(changes?.counts);
+  const top = positions.slice(0, 8);
+  const increased = hasPrev ? [...changes.new.map((p) => ({ ...p, isNew: true })), ...changes.added].slice(0, 8) : [];
+  const decreased = hasPrev ? [...changes.reduced, ...changes.exited.map((p) => ({ ...p, isExit: true, weight: p.prevWeight }))].slice(0, 8) : [];
 
   return (
     <div className="grid grid-3">
       <div className="card pos-col">
         <h3><Ico icon={Trophy} /> {t('manager.topHoldings')}</h3>
         {top.map((p) => (
-          <Row key={`${p.cusip}|${p.putCall}`} p={p} delta={hasPrev ? p.delta : null} />
+          <Row key={`${p.cusip}|${p.putCall}`} p={p} delta={null} />
         ))}
       </div>
       <div className="card pos-col">
@@ -83,7 +60,7 @@ export default function PositionCards({ positions, prevPositions }) {
             key={`${p.cusip}|${p.putCall}`}
             p={p}
             badge={p.isNew ? t('manager.newBadge') : null}
-            delta={p.isNew ? null : p.delta}
+            delta={p.isNew ? null : p.pct}
           />
         ))}
       </div>
@@ -95,7 +72,7 @@ export default function PositionCards({ positions, prevPositions }) {
             key={`${p.cusip}|${p.putCall}`}
             p={p}
             badge={p.isExit ? t('manager.exitBadge') : null}
-            delta={p.isExit ? null : p.delta}
+            delta={p.isExit ? null : p.pct}
           />
         ))}
       </div>

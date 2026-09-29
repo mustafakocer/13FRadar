@@ -22,7 +22,7 @@ const num = (n, lang) => (n == null ? '—' : n.toLocaleString(lang === 'tr' ? '
 // Person/Dataset entities and the FAQ describe the fund, not a sub-page, so
 // they are emitted on the front only — a segment carries breadcrumbs and no
 // duplicate of the entity that lives one level up.
-export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions, history = null, segment = 'portfolio' }) {
+export function managerSeo({ lang, cik, manager, filing, holdings, changes = null, history = null, segment = 'portfolio' }) {
   if (!cik) return { title: lang === 'tr' ? 'Yükleniyor… | Fundocap' : 'Loading… | Fundocap', path: '/gurus' };
   const name = manager?.displayName || manager?.name || `CIK ${cik}`;
   const qt = quarterText(filing?.reportDate, lang);
@@ -45,9 +45,9 @@ export function managerSeo({ lang, cik, manager, filing, holdings, prevPositions
     description += ' Quarterly buys, sells, new positions and exits from SEC EDGAR data.';
   }
   const front = manager?.path || `/manager/${cik}`;
-  const answer = guruAnswerFromPage({ manager, filing, holdings, prevPositions, update: manager?.update }, lang);
+  const answer = guruAnswerFromPage({ manager, filing, holdings, changes, update: manager?.update }, lang);
   if (answer) description = truncate155(answer);
-  const faq = managerFaq({ lang, name, filing, holdings, prevPositions });
+  const faq = managerFaq({ lang, name, filing, holdings, changes });
   const parent = manager?.kind === 'guru' ? [lang === 'tr' ? 'Usta Yatırımcılar' : 'Superinvestors', '/gurus'] : [lang === 'tr' ? '13F Dosyalayan Kurumlar' : '13F Filers', '/filers'];
 
   if (segment !== 'portfolio') {
@@ -344,20 +344,28 @@ const list = (arr, lang) => {
 };
 const sym = (p) => p.ticker || p.issuer;
 
-// Programmatic FAQ for a guru page — answers computed from the free tier
-// data (top 10 positions and their previous-quarter counterparts).
-export function managerFaq({ lang, name, filing, holdings, prevPositions }) {
+// Programmatic FAQ for a guru page. The buy/sell answers read the same
+// `changes` the Changes tab shows (GET /api/changes, portfolioChanges.js):
+// by share count, against the complete previous book.
+export function managerFaq({ lang, name, filing, holdings, changes }) {
   if (!holdings?.positions?.length || !filing) return [];
   const qt = quarterText(filing.reportDate, lang);
   const pos = holdings.positions.slice(0, 10);
-  const prev = new Map((prevPositions || []).map((p) => [p.cusip, p]));
   const top = pos.slice(0, 5).map((p) => `${sym(p)} (${p.weight.toFixed(1)}%)`);
-  const bought = pos.filter((p) => !prev.has(p.cusip) || p.shares > prev.get(p.cusip).shares).map(sym);
-  const sold = pos.filter((p) => prev.has(p.cusip) && p.shares < prev.get(p.cusip).shares).map(sym);
-  const exits = (prevPositions || []).filter((q) => !pos.some((p) => p.cusip === q.cusip)).map(sym);
   const count = holdings.count ?? holdings.positions.length;
-  const hasPrev = prevPositions != null;
+  const has = Boolean(changes?.counts);
+  const names = (arr) => list((arr || []).slice(0, 5).map(sym), lang);
+  const more = (arr, n) => (n > (arr || []).slice(0, 5).length ? (lang === 'tr' ? ` (toplam ${n})` : ` (${n} in all)`) : '');
+  const c = changes?.counts || {};
   if (lang === 'tr') {
+    const bought = [
+      c.new ? `Yeni alınan: ${names(changes.new)}${more(changes.new, c.new)}.` : '',
+      c.added ? `Artırılan: ${names(changes.added)}${more(changes.added, c.added)}.` : '',
+    ].filter(Boolean).join(' ');
+    const sold = [
+      c.reduced ? `Azaltılan: ${names(changes.reduced)}${more(changes.reduced, c.reduced)}.` : '',
+      c.exited ? `Tamamen çıkılan: ${names(changes.exited)}${more(changes.exited, c.exited)}.` : '',
+    ].filter(Boolean).join(' ');
     return [
       [
         `${name} ${qt} itibarıyla hangi hisseleri tutuyor?`,
@@ -365,22 +373,22 @@ export function managerFaq({ lang, name, filing, holdings, prevPositions }) {
       ],
       [
         `${name} ${qt} çeyreğinde ne aldı?`,
-        hasPrev
-          ? bought.length
-            ? `En büyük 10 pozisyon arasında ${qt} çeyreğinde yeni alınan veya artırılan hisseler: ${list(bought, lang)}.`
-            : `En büyük 10 pozisyon arasında ${qt} çeyreğinde artırılan hisse yok.`
-          : 'Önceki çeyrek verisi henüz yok; karşılaştırma bir sonraki bildirimle mümkün olacak.',
+        has ? bought || `${qt} çeyreğinde yeni alım veya artırım yok.` : 'Önceki çeyrek verisi henüz yok; karşılaştırma bir sonraki bildirimle mümkün olacak.',
       ],
       [
         `${name} ${qt} çeyreğinde ne sattı?`,
-        hasPrev
-          ? sold.length || exits.length
-            ? `${sold.length ? `Azaltılan pozisyonlar: ${list(sold, lang)}.` : ''}${exits.length ? ` Tamamen çıkılan pozisyonlar (görünen kısım): ${list(exits.slice(0, 5), lang)}.` : ''}`.trim()
-            : `En büyük 10 pozisyon arasında ${qt} çeyreğinde azaltılan hisse yok.`
-          : 'Önceki çeyrek verisi henüz yok.',
+        has ? sold || `${qt} çeyreğinde azaltılan veya tamamen çıkılan pozisyon yok.` : 'Önceki çeyrek verisi henüz yok.',
       ],
     ];
   }
+  const bought = [
+    c.new ? `New positions: ${names(changes.new)}${more(changes.new, c.new)}.` : '',
+    c.added ? `Added to: ${names(changes.added)}${more(changes.added, c.added)}.` : '',
+  ].filter(Boolean).join(' ');
+  const sold = [
+    c.reduced ? `Reduced: ${names(changes.reduced)}${more(changes.reduced, c.reduced)}.` : '',
+    c.exited ? `Sold out entirely: ${names(changes.exited)}${more(changes.exited, c.exited)}.` : '',
+  ].filter(Boolean).join(' ');
   return [
     [
       `What stocks does ${name} hold as of ${qt}?`,
@@ -388,19 +396,11 @@ export function managerFaq({ lang, name, filing, holdings, prevPositions }) {
     ],
     [
       `What did ${name} buy in ${qt}?`,
-      hasPrev
-        ? bought.length
-          ? `Among its top 10 positions, ${name} opened or added to ${list(bought, lang)} in ${qt}.`
-          : `${name} did not add to any of its top 10 positions in ${qt}.`
-        : 'No previous quarter is available yet; the comparison appears with the next filing.',
+      has ? bought || `${name} opened or added to no positions in ${qt}.` : 'No previous quarter is available yet; the comparison appears with the next filing.',
     ],
     [
       `What did ${name} sell in ${qt}?`,
-      hasPrev
-        ? sold.length || exits.length
-          ? `${sold.length ? `Reduced positions: ${list(sold, lang)}.` : ''}${exits.length ? ` Positions sold out entirely (visible portion): ${list(exits.slice(0, 5), lang)}.` : ''}`.trim()
-          : `${name} did not reduce any of its top 10 positions in ${qt}.`
-        : 'No previous quarter is available yet.',
+      has ? sold || `${name} reduced or sold out of no positions in ${qt}.` : 'No previous quarter is available yet.',
     ],
   ];
 }

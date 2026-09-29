@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { root, ssr } from './helpers.mjs';
-import { guruAnswer, guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, biggestMove, movesFromPositions, truncate155 } from '../client/src/lib/answerBox.js';
+import { portfolioChanges } from '../client/src/lib/portfolioChanges.js';
+import { guruAnswer, guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, biggestMove, movesFromChanges, truncate155 } from '../client/src/lib/answerBox.js';
 
 const consensus = JSON.parse(fs.readFileSync(path.join(root, 'client', 'public', 'consensus.json'), 'utf8'));
 const NO_PLACEHOLDER = /\{|\}|undefined|null|NaN|\$—|—\)/;
@@ -32,9 +33,10 @@ test('biggest move is derived from top-10 vs previous quarter when no update car
     { cusip: 'A', ticker: 'AAA', issuer: 'A', shares: 200, value: 2000 },
     { cusip: 'C', ticker: 'CCC', issuer: 'C', shares: 10, value: 9000 },
   ];
-  const m = biggestMove(movesFromPositions(positions, prev));
+  const changes = portfolioChanges(positions, prev);
+  const m = biggestMove(movesFromChanges(changes));
   assert.deepEqual({ kind: m.kind, ticker: m.ticker }, { kind: 'exit', ticker: 'CCC' });
-  const text = guruAnswerFromPage({ manager: { name: 'F', displayName: 'F' }, filing: { reportDate: '2026-06-30', filingDate: '2026-08-01' }, holdings: { positions, count: 2, aum: 6000 }, prevPositions: prev }, 'en');
+  const text = guruAnswerFromPage({ manager: { name: 'F', displayName: 'F' }, filing: { reportDate: '2026-06-30', filingDate: '2026-08-01' }, holdings: { positions, count: 2, aum: 6000 }, changes }, 'en');
   assert.match(text, /Biggest move: exit CCC \(\$9\.0K\)/);
 });
 

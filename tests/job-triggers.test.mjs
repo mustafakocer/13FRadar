@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { TRIGGERS, WINDOWS, windowStart, decideRun, checkSlots } from '../api/_lib/jobTriggers.js';
+import { TRIGGERS, WINDOWS, windowStart, decideRun, checkSlots, isAutomatic } from '../api/_lib/jobTriggers.js';
 
 const sql = fs.readFileSync(new URL('../migrations/0005_job_triggers.up.sql', import.meta.url), 'utf8');
 
@@ -27,7 +27,13 @@ test('the guarded workflows run the guard, and their build job waits for it', ()
     assert.match(yml, /  build:\n    needs: guard\n(    #.*\n)*    if: \$\{\{ !cancelled\(\) && needs\.guard\.outputs\.run != 'false' \}\}/, w);
   }
   const ins = fs.readFileSync(new URL('../.github/workflows/insiders.yml', import.meta.url), 'utf8');
-  assert.match(ins, /workflow_run:\n\s+workflows: \['Foreign issuer data \(FX \+ ADR ratios\)'\]\n\s+types: \[completed\]\n\s+branches: \[main\]/);
+  assert.match(ins, /workflow_run:\n\s+workflows: \['Foreign issuer data \(FX \+ ADR ratios\)'\]\n\s+types: \[completed\]\n/);
+  assert.doesNotMatch(ins, /types: \[completed\]\n\s+branches:/);
+  // fpi.yml dispatches insiders.yml itself, as an automatic ('chain') run
+  const fpi = fs.readFileSync(new URL('../.github/workflows/fpi.yml', import.meta.url), 'utf8');
+  assert.match(fpi, /  chain:\n    needs: \[guard, build\]\n/);
+  assert.match(fpi, /gh workflow run insiders\.yml --ref main -f trigger=chain/);
+  assert.match(fpi, /  chain:[\s\S]*permissions:\n      actions: write/);
   const fpiName = fs.readFileSync(new URL('../.github/workflows/fpi.yml', import.meta.url), 'utf8').match(/^name: (.*)$/m)[1];
   assert.equal(fpiName, 'Foreign issuer data (FX + ADR ratios)');
 });
@@ -59,6 +65,16 @@ test('decideRun: the late GitHub fallback skips a window the cron already built'
   assert.equal(decideRun({ workflow: 'insiders.yml', event: 'workflow_run', now: '2026-09-30T09:06:10Z', runs: ins, selfId: 5 }).run, false);
   // GitHub's 03:31 fallback at 10:00: same window, skip
   assert.equal(decideRun({ workflow: 'insiders.yml', event: 'schedule', now: '2026-09-30T10:00:00Z', runs: ins, selfId: 6 }).run, false);
+});
+
+test('decideRun: the fpi → insiders dispatch (chain) is automatic and skips a built window', () => {
+  assert.equal(isAutomatic('workflow_dispatch', 'chain'), true);
+  assert.equal(isAutomatic('workflow_dispatch', 'cron'), true);
+  assert.equal(isAutomatic('workflow_dispatch', 'manual'), false);
+  const ins = [run(4, '2026-09-30T02:49:00Z', 'workflow_dispatch')];
+  assert.equal(decideRun({ workflow: 'insiders.yml', event: 'workflow_run', now: '2026-09-30T02:50:00Z', runs: ins, selfId: 5 }).run, false);
+  assert.equal(decideRun({ workflow: 'insiders.yml', event: 'workflow_dispatch', trigger: 'chain', now: '2026-09-30T02:50:00Z', runs: ins, selfId: 5 }).run, false);
+  assert.equal(decideRun({ workflow: 'insiders.yml', event: 'workflow_dispatch', trigger: 'chain', now: '2026-09-30T02:49:00Z', runs: [], selfId: 4 }).run, true);
 });
 
 test('decideRun: the 11:02 catch-up runs even though the morning built', () => {

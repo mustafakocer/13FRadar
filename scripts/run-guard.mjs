@@ -5,7 +5,7 @@
 //
 //   WORKFLOW=insiders.yml EVENT=schedule node scripts/run-guard.mjs
 import fs from 'node:fs';
-import { decideRun, windowStart, WINDOWS, listRuns, builtOf } from '../api/_lib/jobTriggers.js';
+import { decideRun, isAutomatic, windowStart, WINDOWS, listRuns, builtOf } from '../api/_lib/jobTriggers.js';
 
 const { WORKFLOW, EVENT, TRIGGER, GITHUB_TOKEN, GITHUB_RUN_ID, GITHUB_OUTPUT, GITHUB_REPOSITORY } = process.env;
 const repo = GITHUB_REPOSITORY || undefined;
@@ -15,8 +15,7 @@ let decision;
 try {
   const slots = WINDOWS[WORKFLOW];
   let runs = [];
-  const automatic = EVENT === 'schedule' || EVENT === 'workflow_run' || (EVENT === 'workflow_dispatch' && TRIGGER === 'cron');
-  if (automatic && slots) {
+  if (isAutomatic(EVENT, TRIGGER) && slots) {
     const from = windowStart(slots, now);
     const listed = await listRuns({ token: GITHUB_TOKEN, workflow: WORKFLOW, since: from, repo });
     for (const r of listed) {

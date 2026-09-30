@@ -16,8 +16,9 @@ name: Foreign issuer data (FX + ADR ratios)
 on:
   schedule:
     # Started on time by Supabase pg_cron (migrations/0005_job_triggers);
-    # this is the fallback. The morning insider run follows this one
-    # (insiders.yml, workflow_run).
+    # this is the fallback. The morning insider run follows this one: the
+    # `chain` job below dispatches insiders.yml (insiders.yml's workflow_run
+    # is the backup).
     - cron: '47 2 * * *'
   pull_request:
     paths:
@@ -125,3 +126,27 @@ jobs:
 
       - name: Conversion gate
         run: node scripts/fpi-report.mjs --gate > /dev/null
+
+  # Start the morning insider run now (insiders.yml values its lines with
+  # tonight's rates). After a failed or self-skipped build too, like the
+  # workflow_run it backs up; insiders' guard skips a window already built.
+  # A workflow_dispatch sent with GITHUB_TOKEN does start a run.
+  chain:
+    needs: [guard, build]
+    if: ${{ !cancelled() && github.event_name != 'pull_request' && github.ref_name == 'main' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+    steps:
+      - name: Dispatch insiders.yml
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          for i in 1 2 3 4; do
+            gh workflow run insiders.yml --ref main -f trigger=chain && exit 0
+            echo "dispatch attempt $i failed, retrying…"; sleep $((i * 10))
+          done
+          echo "::error::could not dispatch insiders.yml; its 03:31 schedule / workflow_run are the fallback"
+          exit 1

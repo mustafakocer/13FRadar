@@ -159,7 +159,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 138
+        "rows": 140
       },
       "findings": []
     },
@@ -167,7 +167,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 47
+        "filers": 49
       },
       "findings": []
     },

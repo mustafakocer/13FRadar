@@ -19,10 +19,14 @@ on:
   # starts at 02:47 UTC (migrations/0005_job_triggers): the insider lines are
   # valued with that morning's rates. It follows a failed fpi run too (the
   # last good rates are used). The 11:02 catch-up is started by pg_cron.
+  # fpi.yml's last job dispatches this workflow (trigger 'chain'): the
+  # workflow_run below never fired in its first two days (2026-09-29/30),
+  # while universe → consensus did. Both stay; the guard skips the second.
+  # No `branches:` filter: workflow_run only reads the default branch's file,
+  # and the filter is the one difference from the consensus chain that works.
   workflow_run:
     workflows: ['Foreign issuer data (FX + ADR ratios)']
     types: [completed]
-    branches: [main]
   schedule:
     # Fallback only: the runs above normally start on the minute, and a
     # fallback run finds its window built and skips itself (the guard job).

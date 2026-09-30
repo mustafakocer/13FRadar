@@ -52,17 +52,23 @@ export function windowStart(slots, now) {
   return new Date(Math.max(...starts));
 }
 
+// A run started by a machine: GitHub's scheduler, a workflow_run chain, or a
+// workflow_dispatch with inputs.trigger 'cron' (Supabase pg_cron) or 'chain'
+// (fpi.yml starting insiders.yml once it ends).
+export const AUTOMATIC_TRIGGERS = ['cron', 'chain'];
+export const isAutomatic = (event, trigger) =>
+  event === 'schedule' || event === 'workflow_run' || (event === 'workflow_dispatch' && AUTOMATIC_TRIGGERS.includes(trigger));
+
 // Whether this run should do the work.
 //   event    github.event_name
-//   trigger  inputs.trigger ('cron' from Supabase, else a person)
+//   trigger  inputs.trigger ('cron' from Supabase, 'chain' from fpi.yml, else a person)
 //   runs     this workflow's runs on main, newest first, each
 //            { id, created_at, event, built } — built: its `build` job
 //            finished with success (a run that skipped itself did not build)
 // A person's dispatch and a push always run. Everything automatic runs
 // unless another run in the same window has already built.
 export function decideRun({ workflow, event, trigger, now, runs, selfId }) {
-  const automatic = event === 'schedule' || event === 'workflow_run' || (event === 'workflow_dispatch' && trigger === 'cron');
-  if (!automatic) return { run: true, reason: `${event}${trigger ? ` (${trigger})` : ''}: always runs` };
+  if (!isAutomatic(event, trigger)) return { run: true, reason: `${event}${trigger ? ` (${trigger})` : ''}: always runs` };
   const slots = WINDOWS[workflow];
   if (!slots) return { run: true, reason: `${workflow} has no window` };
   const from = windowStart(slots, now);

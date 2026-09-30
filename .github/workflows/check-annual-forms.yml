@@ -1,0 +1,28 @@
+name: Check annual report forms
+
+# The newest annual report (10-K vs 20-F/40-F) of every issuer fpi.json treats
+# as foreign (scripts/check-annual-forms.mjs). Commits nothing; ~2 minutes.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/check-annual-forms.mjs'
+      - 'api/_lib/annualForm.js'
+      - '.github/workflows/check-annual-forms.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/check-annual-forms.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap fpi bot (kocergpt@gmail.com)'

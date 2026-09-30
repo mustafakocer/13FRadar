@@ -391,6 +391,30 @@ export function normalizeRow(r, { raw = null, issuer = null, override = null, ra
   };
 }
 
+// A line of a company that files a 10-K (no longer a foreign private
+// issuer): the price is read as it stands — US dollars, one share per share,
+// no ADR ratio, no home-currency guess — but it is still checked against the
+// trade day's close, as every reading above is. Near the close (±15%): the
+// line is left as filed (null). A market trade 15–50% away: off-market, the
+// amount shown and kept out of totals. Anything else — a market trade
+// further away (Mynaric's 402,000 "dollar" price: euro cents), or an option
+// exercise or award priced away from the market — gets no dollar amount.
+// No close and no 52-week range: left as filed (the caller keeps a line the
+// foreign-issuer check had failed unverified).
+export function domesticRow(r, { series = null, meta = null, splits, rules = FPI_RULES } = {}) {
+  if (!(r?.p > 0)) return null;
+  const ref = marketRef(r, series, meta);
+  if (!ref) return null;
+  const px = r.p / splitFactor(r.t, r.d, splits);
+  if (fits(px, ref, rules.matchTolerance)) return null;
+  const lv = Math.round(r.s * r.p);
+  const gap = ref.close ? px / ref.close - 1 : null;
+  if (gap != null && Math.abs(gap) <= rules.offMarketMax && MARKET_CODES.has(r.k)) {
+    return { ok: 1, off: Number((gap * 100).toFixed(1)), cu: 'USD', rate: 1, ar: 1, as: 'asis', quote: null, url: null, p: r.p, s: r.s, v: lv, lp: r.p, ls: r.s, lv };
+  }
+  return { fail: MARKET_CODES.has(r.k) ? (ref.close ? 'mismatch' : 'unverifiable') : 'non_market', cu: 'USD', lp: r.p, lv };
+}
+
 // The served copy of every row: normalised lines replaced by a copy with US
 // dollar fields, lines that could not be normalised by a copy with no dollar
 // amount. `ctx`:
@@ -424,12 +448,31 @@ export function normalizeRows(rows, ctx = {}) {
       seen.get(r.ci).add(cu);
     }
   }
+  // a company whose newest annual report is a 10-K files as a US company:
+  // no FPI rule applies — no ADR ratio, no home-currency guess, no override.
+  // What stays is what applies to any US company: a price the filing itself
+  // states in another currency (Canopy Growth's TSX sales "in Canadian
+  // dollars, C$1.47") is converted.
+  const tenK = ctx.fpi?.tenK || {};
   const out = rows.map((r) => {
+    const us = Boolean(r.ci && tenK[r.ci]);
     const raw = ctx.rawOf ? ctx.rawOf(r) : null;
-    const issuer = issuers[r.ci] || null;
-    const override = (r.t && overrides[r.t]) || null;
+    const issuer = us ? null : issuers[r.ci] || null;
+    const override = us ? null : (r.t && overrides[r.t]) || null;
     if (!raw && !issuer && !override) return r;
-    const n = normalizeRow(r, { raw, issuer, override, rates, series: series(r.t), meta: r.t ? ctx.meta?.[r.t] : null, splits: ctx.splits, homeSeen: seen.get(r.ci) || null, ...(ctx.rules ? { rules: ctx.rules } : {}) });
+    const opts = { series: series(r.t), meta: r.t ? ctx.meta?.[r.t] : null, splits: ctx.splits, ...(ctx.rules ? { rules: ctx.rules } : {}) };
+    let n = normalizeRow(r, { raw, issuer, override, rates, homeSeen: seen.get(r.ci) || null, ...opts });
+    // a 10-K filer's line the foreign-issuer rules would have touched: the
+    // US-company check instead (domesticRow) — never a line they leave alone
+    if (!n && us && (issuers[r.ci] || (r.t && overrides[r.t]))) {
+      const fpiRead = normalizeRow(r, { raw, issuer: issuers[r.ci] || null, override: (r.t && overrides[r.t]) || null, rates, homeSeen: seen.get(r.ci) || null, ...opts });
+      if (fpiRead && !fpiRead.kind) {
+        n = domesticRow(r, opts);
+        // no close or range to check it against: a line the foreign-issuer
+        // check could not verify stays unverified (Mynaric's 402,000)
+        if (!n && fpiRead.fail && !marketRef(r, opts.series, opts.meta)) n = { fail: 'unverifiable', cu: 'USD', lp: r.p, lv: Math.round(r.s * r.p) };
+      }
+    }
     if (!n) return r;
     if (n.kind) {
       stats.security++;

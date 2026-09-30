@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-09-29T11:52:41.654Z",
- "count": 402,
+ "updatedAt": "2026-09-30T00:50:19.328Z",
+ "count": 439,
  "corrections": [
   {
    "cik": "0001061768",
@@ -1723,6 +1723,26 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001071061",
+   "name": "HANTZ FINANCIAL SERVICES, INC.",
+   "period": null,
+   "acc": "0001071061-26-000008",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001071640",
+   "name": "PARK AVENUE SECURITIES LLC",
+   "period": null,
+   "acc": "0001071640-26-000012",
+   "filed": "2026-07-20",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001072843",
    "name": "First Fiduciary Investment Counsel, Inc.",
    "period": null,
@@ -1730,6 +1750,16 @@
    "filed": "2026-07-27",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001076809",
+   "name": "GLAZER CAPITAL, LLC",
+   "period": null,
+   "acc": "0001076809-26-000096",
+   "filed": "2026-08-17",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1953,6 +1983,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001163902",
+   "name": "FOSTER & MOTLEY INC",
+   "period": null,
+   "acc": "0001163902-26-000004",
+   "filed": "2026-08-07",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001164062",
    "name": "TEALWOOD ASSET MANAGEMENT INC",
    "period": null,
@@ -2110,6 +2150,26 @@
    "filed": "2026-08-05",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001330325",
+   "name": "Opus Capital Group, LLC",
+   "period": null,
+   "acc": "0001330325-26-000005",
+   "filed": "2026-07-31",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001357867",
+   "name": "Evensky & Katz LLC",
+   "period": null,
+   "acc": "0001357867-26-000008",
+   "filed": "2026-07-22",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2363,6 +2423,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001466697",
+   "name": "FLOW TRADERS U.S. LLC",
+   "period": null,
+   "acc": "0001466697-26-000026",
+   "filed": "2026-08-14",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001472190",
    "name": "PGGM Investments",
    "period": null,
@@ -2390,6 +2460,16 @@
    "filed": "2026-07-22",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001498383",
+   "name": "Asset Allocation & Management Company, LLC",
+   "period": null,
+   "acc": "0001498383-26-000004",
+   "filed": "2026-07-15",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2723,6 +2803,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001601622",
+   "name": "LBJ Family Wealth Advisors, Ltd.",
+   "period": null,
+   "acc": "0001601622-26-000003",
+   "filed": "2026-07-14",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001606152",
    "name": "Hikari Power Ltd",
    "period": null,
@@ -2760,6 +2850,16 @@
    "filed": "2026-07-09",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001624758",
+   "name": "Capital Analysts, LLC",
+   "period": null,
+   "acc": "0001624758-26-000011",
+   "filed": "2026-08-05",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2820,6 +2920,26 @@
    "filed": "2026-08-11",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 5 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001632813",
+   "name": "CMT Capital Markets Trading GmbH",
+   "period": null,
+   "acc": "0001632813-26-000009",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001633901",
+   "name": "Betterment LLC",
+   "period": null,
+   "acc": "0001633901-26-000004",
+   "filed": "2026-08-14",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2923,6 +3043,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001664147",
+   "name": "Colorado Capital Management, Inc.",
+   "period": null,
+   "acc": "0001664147-26-000003",
+   "filed": "2026-07-08",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001664713",
    "name": "Intermede Investment Partners Ltd",
    "period": null,
@@ -2993,6 +3123,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001695214",
+   "name": "Polianta Ltd",
+   "period": null,
+   "acc": "0001695214-26-000004",
+   "filed": "2026-07-08",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001695658",
    "name": "VALUE HOLDINGS MANAGEMENT CO. LLC",
    "period": null,
@@ -3000,6 +3140,16 @@
    "filed": "2026-08-11",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001697375",
+   "name": "Farmers & Merchants Trust Co of Chambersburg PA",
+   "period": null,
+   "acc": "0001697375-26-000006",
+   "filed": "2026-07-24",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3030,6 +3180,16 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001698607",
+   "name": "Main Management ETF Advisors, LLC",
+   "period": null,
+   "acc": "0001698607-26-000004",
+   "filed": "2026-08-14",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3080,6 +3240,16 @@
    "filed": "2026-08-11",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001719165",
+   "name": "Capital Markets Trading UK LLP",
+   "period": null,
+   "acc": "0001719165-26-000008",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3223,6 +3393,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001735605",
+   "name": "USAdvisors Wealth Management, LLC",
+   "period": null,
+   "acc": "0001735605-26-000003",
+   "filed": "2026-07-29",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001737089",
    "name": "CX Institutional",
    "period": null,
@@ -3363,6 +3543,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001784277",
+   "name": "Matrix Trust Co",
+   "period": null,
+   "acc": "0001784277-26-000006",
+   "filed": "2026-07-09",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001790837",
    "name": "Bull Street Advisors, LLC",
    "period": null,
@@ -3370,6 +3560,16 @@
    "filed": "2026-07-28",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001792704",
+   "name": "Avion Wealth",
+   "period": null,
+   "acc": "0001792704-26-000003",
+   "filed": "2026-07-31",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3513,6 +3713,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001811739",
+   "name": "Annandale Capital, LLC",
+   "period": null,
+   "acc": "0001811739-26-000003",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001811907",
    "name": "Citadel Investment Advisory, Inc.",
    "period": null,
@@ -3643,6 +3853,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001848237",
+   "name": "SkyView Investment Advisors, LLC",
+   "period": null,
+   "acc": "0001848237-26-000013",
+   "filed": "2026-09-15",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001853635",
    "name": "Ampfield Management, L.P.",
    "period": null,
@@ -3710,6 +3930,36 @@
    "filed": "2026-08-13",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001906937",
+   "name": "Silver Oak Advisory Group, Inc.",
+   "period": null,
+   "acc": "0001906937-26-000003",
+   "filed": "2026-08-03",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001906967",
+   "name": "Evolution Advisers, Inc.",
+   "period": null,
+   "acc": "0001906967-26-000006",
+   "filed": "2026-07-31",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001908380",
+   "name": "BCR Wealth Strategies, LLC",
+   "period": null,
+   "acc": "0001908380-26-000003",
+   "filed": "2026-07-31",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3823,6 +4073,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0002005743",
+   "name": "One Degree Advisors Inc",
+   "period": null,
+   "acc": "0002005743-26-000004",
+   "filed": "2026-08-03",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0002010374",
    "name": "PFC CAPITAL GROUP, INC.",
    "period": null,
@@ -3883,6 +4143,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0002041065",
+   "name": "von Borstel & Associates, Inc.",
+   "period": null,
+   "acc": "0002041065-26-000003",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0002044901",
    "name": "Investor's Fiduciary Advisor Network, LLC",
    "period": null,
@@ -3900,6 +4170,36 @@
    "filed": "2026-08-03",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 4 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002054795",
+   "name": "Warburton Capital Management, LLC",
+   "period": null,
+   "acc": "0002054795-26-000003",
+   "filed": "2026-08-03",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002056100",
+   "name": "Navigoe, LLC",
+   "period": null,
+   "acc": "0002056100-26-000003",
+   "filed": "2026-07-31",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002057074",
+   "name": "Columbia River Financial Group, LLC",
+   "period": null,
+   "acc": "0002057074-26-000004",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3923,6 +4223,46 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0002059344",
+   "name": "Wood Tarver Financial Group, LLC",
+   "period": null,
+   "acc": "0002059344-26-000003",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002059349",
+   "name": "Elite Financial, Inc.",
+   "period": null,
+   "acc": "0002059349-26-000003",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002060492",
+   "name": "Cloud Capital Management, LLC",
+   "period": null,
+   "acc": "0002060492-26-000003",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002107449",
+   "name": "Strategic Wealth Advisors LLC",
+   "period": null,
+   "acc": "0002107449-26-000003",
+   "filed": "2026-08-07",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0002107460",
    "name": "Merrithew & Thorsten Inc",
    "period": null,
@@ -3940,6 +4280,16 @@
    "filed": "2026-08-04",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002109387",
+   "name": "Ferguson Johnson Wealth Management Inc",
+   "period": null,
+   "acc": "0002109387-26-000003",
+   "filed": "2026-07-31",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3990,6 +4340,26 @@
    "filed": "2026-08-13",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00105 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002137933",
+   "name": "Stillwater Private Wealth, LLC",
+   "period": null,
+   "acc": "0002137933-26-000002",
+   "filed": "2026-08-13",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002140776",
+   "name": "Steelhead Wealth Management LLC",
+   "period": null,
+   "acc": "0002140776-26-000002",
+   "filed": "2026-08-14",
+   "factor": 1000,
+   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

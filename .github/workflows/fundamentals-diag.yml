@@ -18,9 +18,10 @@ permissions:
   contents: read
 
 jobs:
-  diag:
+  # the test tickers: values, the raw lines behind them, and seed lines
+  tickers:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
@@ -36,22 +37,40 @@ jobs:
         run: npm ci
       - if: steps.ask.outputs.run == 'true'
         name: Download SEC companyfacts.zip
-        run: |
-          curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
-          ls -la "$RUNNER_TEMP/companyfacts.zip"
+        run: curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
       - if: steps.ask.outputs.run == 'true'
         name: The test tickers
         run: node scripts/build-fundamentals.mjs
         env:
           SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
           COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
-          FUNDAMENTALS_TICKERS: 'AAPL,MSFT,BRK-B,BRK-A,TSM,SLBT,GOOGL,GOOG,META,NVDA,KO,JPM,BABA,TM,ASML,SONY,RIVN,INTC,PFE,XOM'
+          FUNDAMENTALS_TICKERS: 'AAPL,MSFT,BRK-B,BRK-A,TSM,SLBT,GOOGL,GOOG,META,NVDA,KO,JPM,BABA,TM,ASML,SONY,RIVN,INTC,PFE,XOM,AMZN'
           FUNDAMENTALS_DRY: '1'
+          FUNDAMENTALS_SEED: '1'
+  # every page's ticker: coverage over the top 500 by 13F value
+  coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: ask
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[diag\]'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [diag] in the head commit: skipped"; fi
       - if: steps.ask.outputs.run == 'true'
-        name: Every page's ticker, dry (coverage + top-500 seed lines)
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: steps.ask.outputs.run == 'true'
+        run: npm ci
+      - if: steps.ask.outputs.run == 'true'
+        name: Download SEC companyfacts.zip
+        run: curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
+      - if: steps.ask.outputs.run == 'true'
+        name: Every page's ticker, dry
         run: node scripts/build-fundamentals.mjs
         env:
           SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
           COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
           FUNDAMENTALS_DRY: '1'
-          FUNDAMENTALS_SEED: 'top500'

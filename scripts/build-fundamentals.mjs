@@ -151,7 +151,8 @@ const missAny = stocks500.filter((t) => byTicker[t]?.eps?.value == null || byTic
 const pct = (n) => (stocks500.length ? ((n / stocks500.length) * 100).toFixed(1) : '0');
 console.log(`fundamentals: ${Object.keys(byTicker).length} tickers written of ${tickers.length} (${noCik} without a CIK in SEC's index, ${noFacts} without XBRL facts)`);
 console.log(`top 500 by 13F value: ${stocks500.length} stocks (+${top500.length - stocks500.length} ETFs set apart) — EPS missing ${missEps.length} (${pct(missEps.length)}%), shares missing ${missShares.length} (${pct(missShares.length)}%), either missing ${missAny.length} (${pct(missAny.length)}%)`);
-console.log(`  missing either: ${missAny.join(' ') || '—'}`);
+console.log(`  EPS missing: ${missEps.join(' ') || '—'}`);
+console.log(`  shares missing: ${missShares.join(' ') || '—'}`);
 const px = (t) => readSeries(t)?.prices?.at(-1)?.close ?? null;
 const showN = Number(process.env.FUNDAMENTALS_PRINT || 0);
 for (const t of [...new Set([...(only || []), ...top500.slice(0, showN)])]) {

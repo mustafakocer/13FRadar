@@ -28,6 +28,22 @@ function prevQuarter({ y, q }) {
   return q === 1 ? { y: y - 1, q: 4 } : { y, q: q - 1 };
 }
 
+// How one master.idx answer reads. A full index is thousands of lines; the
+// current quarter's index in its first days is the header and a handful of
+// lines, or the header alone (2026-10-01 and 10-02: a 200 of a few hundred
+// bytes, which the old length check took for a failed fetch and stopped the
+// whole run on). The header line is what tells a real index from an error
+// page, not its size.
+//   'ok'     an index (any number of lines)
+//   'empty'  not published yet (404)
+//   'retry'  anything else: a throttle, an error page, a cut transfer
+const MASTER_HEADER = /^CIK\|Company Name\|Form Type\|Date Filed\|File ?name\s*$/im;
+export function readMasterIdx(status, body) {
+  if (status === 404) return 'empty';
+  if (status === 200 && typeof body === 'string' && MASTER_HEADER.test(body)) return 'ok';
+  return 'retry';
+}
+
 // The quarterly index is the backbone of the run: a missed fetch silently
 // drops thousands of filers, so retry before giving up (the Sep 7 run wrote
 // 1,379 funds instead of 7,830 after one such miss).
@@ -40,12 +56,13 @@ async function masterIdx({ y, q }) {
       transformResponse: [(d) => d],
       validateStatus: () => true,
     });
-    if (r.status === 200 && typeof r.data === 'string' && r.data.length > 1000) return r.data;
-    if (r.status === 404) return null; // quarter index not published yet
-    last = r.status;
+    const kind = readMasterIdx(r.status, r.data);
+    if (kind === 'ok') return r.data;
+    if (kind === 'empty') return null; // quarter index not published yet
+    last = `HTTP ${r.status}, ${typeof r.data === 'string' ? r.data.length : 0} bytes`;
     await sleep(4000 * (attempt + 1));
   }
-  throw new Error(`master.idx ${y}Q${q} unavailable (HTTP ${last})`);
+  throw new Error(`master.idx ${y}Q${q} unavailable (${last})`);
 }
 
 async function main() {
@@ -59,7 +76,13 @@ async function main() {
       idx = await masterIdx(qt);
     } catch (e) {
       // the previous quarter holds the bulk of current filers — without it the
-      // universe would be a fraction of reality, so stop rather than publish it
+      // universe would be a fraction of reality, so stop rather than publish it.
+      // The current quarter only adds the filings since its first day: a run
+      // without it is complete up to the quarter's end and is published.
+      if (qt === cur) {
+        console.warn(`  ${qt.y}Q${qt.q}: ${e.message} — built from ${quarters[0].y}Q${quarters[0].q} alone`);
+        continue;
+      }
       console.error(e.message);
       process.exit(1);
     }

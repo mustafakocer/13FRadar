@@ -276,3 +276,22 @@ test('a quote only extends a series: Finnhub gets every stale series, the symbol
     clearSeriesCache();
   }
 });
+
+test('Finnhub 429 is the minute limit: wait a minute and go on; three waits in a row end the night', async () => {
+  const { finnhubQuote, resetFinnhubRefusals, FINNHUB_429_RETRIES } = await import('../api/_lib/pricesBuild.js');
+  process.env.FINNHUB_API_KEY = 'test-key';
+  try {
+    resetFinnhubRefusals();
+    const waits = [];
+    const wait = async (ms) => waits.push(ms);
+    let n = 0;
+    const once = async () => (n++ === 0 ? { status: 429, data: {} } : { status: 200, data: { c: 9, t: Date.parse('2026-10-02T20:00:00Z') / 1000 } });
+    assert.deepEqual(await finnhubQuote('AAPL', null, { get: once, wait }), [{ date: '2026-10-02', close: 9 }]);
+    assert.deepEqual(waits, [61000], 'one minute, then the answer');
+    waits.length = 0;
+    await assert.rejects(finnhubQuote('AAPL', null, { get: async () => ({ status: 429, data: {} }), wait }), (e) => e.quota && /429/.test(e.message));
+    assert.equal(waits.length, FINNHUB_429_RETRIES);
+  } finally {
+    delete process.env.FINNHUB_API_KEY;
+  }
+});

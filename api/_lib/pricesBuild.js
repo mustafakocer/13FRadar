@@ -130,10 +130,19 @@ export const resetFinnhubRefusals = () => {
   refusedTotal = 0;
 };
 
-export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.get(url, opts) } = {}) {
+// 429 is Finnhub's per-minute limit (shared with the live site's calls on the
+// same key), not a daily one: wait the minute out and ask again, and give
+// up for the night only after FINNHUB_429_RETRIES waits in a row.
+export const FINNHUB_429_RETRIES = 3;
+
+export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.get(url, opts), wait = sleep } = {}) {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new Error('FINNHUB_API_KEY not set');
-  const r = await get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  let r = await get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  for (let n = 0; r.status === 429 && n < FINNHUB_429_RETRIES; n++) {
+    await wait(61000);
+    r = await get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  }
   if (r.status === 401) throw deadError('Finnhub quote: key refused (HTTP 401)');
   if (r.status === 403) {
     refusedInARow++;
@@ -141,7 +150,7 @@ export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.ge
     if (refusedInARow >= FINNHUB_REFUSALS_IN_A_ROW) throw deadError(`Finnhub quote: refused (HTTP 403) ${refusedInARow} times in a row`);
     return null;
   }
-  if (r.status === 429) throw quotaError('Finnhub HTTP 429');
+  if (r.status === 429) throw quotaError(`Finnhub HTTP 429 after ${FINNHUB_429_RETRIES} one-minute waits`);
   if (r.status !== 200) throw new Error(`Finnhub HTTP ${r.status}`);
   refusedInARow = 0;
   const c = Number(r.data?.c);

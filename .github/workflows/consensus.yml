@@ -190,6 +190,8 @@ jobs:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           SEC_RPS: '6'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          # build-splits.mjs reads TwelveData's /splits
+          TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
           GURU_HISTORY_FORCE: ${{ inputs.force_history == true && '1' || '0' }}
       # the history's values in dollars, filing by filing (valueUnits.js)

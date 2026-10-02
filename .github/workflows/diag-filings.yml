@@ -1,0 +1,49 @@
+name: Diagnose filings
+
+# One-off reads of named filers' filings document by document
+# (scripts/diag-filings.mjs) and what the live site serves
+# (scripts/live-report.mjs). Commits nothing. On a pull request it runs only
+# when the head commit's message carries [diag].
+on:
+  workflow_dispatch:
+    inputs:
+      ciks:
+        description: 'CIKs, space separated'
+        type: string
+  pull_request:
+    paths:
+      - 'scripts/diag-filings.mjs'
+      - 'scripts/live-report.mjs'
+      - '.github/workflows/diag-filings.yml'
+
+permissions:
+  contents: read
+
+env:
+  DIAG_CIKS: '0001081019 0001777271 0001044929 0001032814 0001630939 0001388168 0001206792 0000319933 0001639943 0001846236 0001845003 0001894188 0001513193 0001536054'
+
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: ask
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[diag\]'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [diag] in the head commit: skipped"; fi
+      - if: steps.ask.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: steps.ask.outputs.run == 'true'
+        run: npm ci
+      - if: steps.ask.outputs.run == 'true'
+        name: Read the filings
+        run: node scripts/diag-filings.mjs ${{ inputs.ciks || env.DIAG_CIKS }}
+        env:
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+      - if: steps.ask.outputs.run == 'true'
+        name: What the live site serves
+        run: node scripts/live-report.mjs

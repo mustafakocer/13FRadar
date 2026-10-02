@@ -211,7 +211,12 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                       <span className="muted small">SH</span>
                     )}
                   </td>
-                  <td className="num" data-col="value">{fmtMoney(p.value)}</td>
+                  <td className="num" data-col="value">
+                    {fmtMoney(p.value)}
+                    {p.putCall && (
+                      <span className="muted small" title={t('tips.notional')}> {t('opt.nominalShort')}</span>
+                    )}
+                  </td>
                   <td className="num" data-col="weight">
                     {fmtPct(p.weight, { sign: false, digits: 2 })}
                     <span className="wbar-track">

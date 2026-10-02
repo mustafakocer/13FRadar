@@ -98,8 +98,13 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameB
 // wrote it by another definition ($79T, options and stale funds counted):
 // tests/universe-summary-file.test.mjs and the Site check hold the file to
 // this function.
-export function universeSummaryFile(U, root = process.cwd()) {
-  return { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows || [], { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
+//
+// updatedAt is when the file was written (every writer moves it: the nightly
+// build, and repair-units on every consensus run); dataUpdatedAt is when
+// universe.json was built, which also fixes the reference quarter, so a
+// later rewrite never moves the quarter by itself.
+export function universeSummaryFile(U, root = process.cwd(), { now = new Date().toISOString() } = {}) {
+  return { updatedAt: now, dataUpdatedAt: U.updatedAt, ...summarizeUniverse(U.rows || [], { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
 }
 
 export function writeUniverseSummaryFile(U, root = process.cwd()) {

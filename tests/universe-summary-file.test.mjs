@@ -13,8 +13,10 @@ const read = (p) => JSON.parse(fs.readFileSync(path.join(root, p), 'utf8'));
 
 test('the committed universe-summary.json is universeSummaryFile(universe.json), field for field', () => {
   const file = read('client/public/universe-summary.json');
-  const def = universeSummaryFile(read('client/public/universe.json'), root);
+  const def = universeSummaryFile(read('client/public/universe.json'), root, { now: file.updatedAt });
   assert.deepEqual(file, def);
+  // the write time, at or after the universe build it summarises
+  assert.ok(file.updatedAt >= file.dataUpdatedAt, `updatedAt ${file.updatedAt} before dataUpdatedAt ${file.dataUpdatedAt}`);
   for (const k of ['quarter', 'inTotal', 'stale', 'duplicates', 'optionsExcluded']) assert.ok(k in file, `missing ${k}`);
 });
 

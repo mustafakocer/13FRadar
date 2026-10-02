@@ -17,7 +17,8 @@ import { managerPath } from '../lib/paths.js';
 import { fundCountLabel } from '../lib/fundCount.js';
 import { securityLabel } from '../lib/label.js';
 import Ico from '../components/Ico.jsx';
-import { dataFreshness } from '../lib/secCalendar.js';
+import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
+import UpdatedLine from '../components/UpdatedLine.jsx';
 import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star, Info } from 'lucide-react';
 
 // ---------------------------------------------------------------------------
@@ -224,8 +225,6 @@ function InsiderSignals({ teaser }) {
   if (!teaser) return null;
 
   const pulse = teaser.pulse;
-  const total = (pulse?.buyValue || 0) + (pulse?.sellValue || 0);
-  const buyPct = total > 0 ? (pulse.buyValue / total) * 100 : 50;
   const hl = teaser.highlight;
   const signals = teaser.signals || {};
   // older teaser files only carry `rows`; derive a C-suite list from them
@@ -240,18 +239,8 @@ function InsiderSignals({ teaser }) {
           <h2>{t('landing.ins.title')}</h2>
           <p>{t('landing.ins.sub')}</p>
         </div>
-        {/* "Canlı veri" only while the newest filing in the data is at most one
-            business day behind (secCalendar.dataFreshness — the same rule the
-            freshness alarm uses); otherwise say how old it actually is. */}
-        {dataFreshness(teaser.lastDay).live ? (
-          <span className="live-pill">
-            <i /> {t('landing.ins.live')}
-          </span>
-        ) : (
-          <span className="live-pill stale">
-            {t('data.latest')}: {teaser.lastDay || '—'}
-          </span>
-        )}
+        {/* when the data was built and the newest filing day in it */}
+        <UpdatedLine updatedAt={teaser.updatedAt} dataDay={teaser.lastDay} />
       </div>
 
       <div className="ins-grid">
@@ -260,46 +249,7 @@ function InsiderSignals({ teaser }) {
             <div className="ico"><Ico icon={TrendingUp} size={18} /></div>
             <b>{t('landing.ins.pulse')}</b>
           </div>
-          <div className="pulse-label">
-            {t('landing.ins.sentiment')}
-            {pulse?.day && <span>({shortDate(pulse.day, locale)})</span>}
-          </div>
-          <div className="ins-bar big">
-            <div className="buy" style={{ width: `${buyPct}%` }} />
-            <div className="sell" style={{ width: `${100 - buyPct}%` }} />
-          </div>
-          <div className="row ins-bar-legend">
-            <span className="delta-pos">
-              {t('landing.ins.buys')} {Math.round(buyPct)}%
-            </span>
-            <span className="delta-neg" style={{ marginLeft: 'auto' }}>
-              {t('landing.ins.sells')} {Math.round(100 - buyPct)}%
-            </span>
-          </div>
-          <div className="ins-counts">
-            <div className="pos">
-              <b>{pulse?.buyCount ?? '—'}</b>
-              <span>{t('landing.ins.buys')}</span>
-            </div>
-            <div className="neg">
-              <b>{pulse?.sellCount ?? '—'}</b>
-              <span>{t('landing.ins.sells')}</span>
-            </div>
-            <div className="warn">
-              <b>{fmtMoney(pulse?.buyValue)}</b>
-              <span>{t('landing.ins.buys')} $</span>
-            </div>
-          </div>
-          {pulse?.fxExcluded > 0 && (
-            <div className="muted small" data-fx-excluded={pulse.fxExcluded}>
-              {t('ins.fxExcluded').replace('{n}', pulse.fxExcluded)}
-            </div>
-          )}
-          {pulse?.offMarket > 0 && (
-            <div className="muted small" data-off-market-count={pulse.offMarket}>
-              {t('ins.offMarketExcluded').replace('{n}', pulse.offMarket)}
-            </div>
-          )}
+          <InsiderDaySummary summary={pulse} big />
 
           {hl && (
             <>
@@ -622,7 +572,7 @@ function PortfolioUpdates({ updates }) {
 // /rankings/most-sold rank — so the number here is the number there. The
 // page used to filter the thirty most-held names by sign instead, which
 // was a different list computed in the browser.
-function MarketActivity({ activity, mostHeld, managers, coverage, returns }) {
+function MarketActivity({ activity, mostHeld, managers, coverage, returns, updatedAt }) {
   const { t } = useI18n();
   const [side, setSide] = useState('buys');
   const rows = useMemo(() => {
@@ -645,6 +595,7 @@ function MarketActivity({ activity, mostHeld, managers, coverage, returns }) {
           {q} {t('landing.act.title')}
         </h2>
         <p>{t('landing.act.sub')}</p>
+        <UpdatedLine updatedAt={updatedAt} quarter={latest} quarterText={q} />
       </div>
       <div className="card act-card">
         <div className="act-tools">
@@ -751,7 +702,7 @@ export default function Home() {
       <InsiderSignals teaser={teaser.data} />
       <GuruConviction mostHeld={consensus.data?.mostHeld} />
       <PortfolioUpdates updates={consensus.data?.updates} />
-      <MarketActivity activity={consensus.data?.activity} mostHeld={consensus.data?.mostHeld} managers={consensus.data?.managers} coverage={consensus.data?.coverage} returns={returns.data} />
+      <MarketActivity activity={consensus.data?.activity} mostHeld={consensus.data?.mostHeld} managers={consensus.data?.managers} coverage={consensus.data?.coverage} returns={returns.data} updatedAt={consensus.data?.updatedAt} />
 
       <div className="section-title">{t('landing.features')}</div>
       <div className="grid grid-3 mt16">

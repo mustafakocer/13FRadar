@@ -4,6 +4,7 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useGuruStocks, useGuruOptions } from '../hooks/useGuruStocks.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { useI18n } from '../i18n.jsx';
+import InfoTip from '../components/InfoTip.jsx';
 import { useSeo } from '../seo.jsx';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { quarterText, rankingJsonLd } from '../lib/seoTemplates.js';
@@ -163,7 +164,10 @@ export default function Rankings() {
                 <th className="l">{t('table.symbol')}</th>
                 <th className="l">{t('table.company')}</th>
                 {isOptions && <th className="l">{t('rank.side')}</th>}
-                <th>{kind === 'most-bought' ? t('landing.act.netBuy') : kind === 'most-sold' ? t('landing.act.netSell') : t('consensus.totalValue')}</th>
+                <th>
+                  {kind === 'most-bought' ? t('landing.act.netBuy') : kind === 'most-sold' ? t('landing.act.netSell') : isOptions ? t('opt.notional') : t('consensus.totalValue')}
+                  {isOptions && <InfoTip tip="tips.notional" />}
+                </th>
                 {!isOptions && <th>{kind === 'consensus' ? t('consensus.avgWeight') : kind === 'conviction' ? t('rank.topWeight') : '%'}</th>}
                 <th>{t('consensus.funds')}</th>
                 {!isOptions && <th>{t('landing.act.ytd')}</th>}

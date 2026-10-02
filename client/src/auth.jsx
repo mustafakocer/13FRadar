@@ -1,9 +1,10 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { getSupabase, supabaseConfigured } from './lib/supabase.js';
 import { setAuthToken } from './lib/api.js';
 import { mergeFavorites, addFavorite } from './hooks/useFavorites.js';
 import { consumePendingFavorite } from './lib/pendingFavorite.js';
 import { authReturnUrl } from './lib/authRedirect.js';
+import { sessionPlan, localOnly } from './lib/sessionSync.js';
 
 const AuthCtx = createContext(null);
 
@@ -16,8 +17,10 @@ export function AuthProvider({ children }) {
   // decide what the account page offers
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(supabaseConfigured);
+  // the user whose profile is loaded (lib/sessionSync.js)
+  const loadedUid = useRef(undefined);
 
-  const loadProfile = useCallback(async (session) => {
+  const loadProfile = useCallback(async (session, { upload = false } = {}) => {
     setUser(session?.user ?? null);
     setAuthToken(session?.access_token ?? null);
     if (!session?.user) {
@@ -48,13 +51,13 @@ export function AuthProvider({ children }) {
     }
     setLoading(false);
 
-    // two-way watchlist sync (best effort)
+    // watchlist: read and merge on every load; write only on a sign-in, and
+    // only the funds starred while signed out (lib/sessionSync.js)
     try {
       const { data: rows } = await supabase.from('watchlists').select('cik,name');
       const merged = mergeFavorites(rows || []);
-      await supabase
-        .from('watchlists')
-        .upsert(merged.map((f) => ({ user_id: session.user.id, cik: f.cik, name: f.name })));
+      const missing = upload ? localOnly(merged, rows) : [];
+      if (missing.length) await supabase.from('watchlists').upsert(missing.map((f) => ({ user_id: session.user.id, cik: f.cik, name: f.name })));
     } catch {
       /* sync is optional */
     }
@@ -63,20 +66,33 @@ export function AuthProvider({ children }) {
     if (pending) addFavorite({ cik: pending.cik, name: pending.name });
   }, []);
 
+  // one auth event → at most one profile load
+  const onAuth = useCallback(
+    (event, session) => {
+      setAuthToken(session?.access_token ?? null);
+      const plan = sessionPlan(event, session, loadedUid.current);
+      if (!plan.load) return;
+      loadedUid.current = plan.uid;
+      // outside the SDK callback: Supabase calls awaited inside it can deadlock
+      setTimeout(() => loadProfile(session, { upload: plan.upload }), 0);
+    },
+    [loadProfile]
+  );
+
   useEffect(() => {
     if (!supabaseConfigured) return;
     let sub = null;
     let cancelled = false;
     getSupabase().then((supabase) => {
       if (cancelled || !supabase) return;
-      supabase.auth.getSession().then(({ data }) => loadProfile(data.session));
-      sub = supabase.auth.onAuthStateChange((_e, session) => loadProfile(session)).data;
+      // INITIAL_SESSION carries the stored session: no separate getSession()
+      sub = supabase.auth.onAuthStateChange(onAuth).data;
     });
     return () => {
       cancelled = true;
       sub?.subscription.unsubscribe();
     };
-  }, [loadProfile]);
+  }, [onAuth]);
 
   // every auth action loads the SDK first (no-op once cached)
   const withSb = (fn) => async (...args) => fn(await getSupabase(), ...args);

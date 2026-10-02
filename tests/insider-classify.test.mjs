@@ -180,6 +180,18 @@ test('home page and /insiders headline numbers still come from one function and 
   assert.equal(feed.stats.buyValue, teaser.pulse.buyValue);
   assert.equal(feed.stats.sellCount, teaser.pulse.sellCount);
   assert.equal(feed.stats.buyCount, 2, 'TFC and the one-share TPL buy; no exercise, award or conversion');
+  // A4: the same day, sell $ and split, rendered by one component on both pages
+  for (const k of ['day', 'sellValue', 'sellShare']) assert.equal(feed.stats[k], teaser.pulse[k], k);
+  assert.ok(teaser.pulse.day, 'the date travels with the numbers');
+  const { pulsePercents } = await import('../client/src/lib/insiderPulse.js');
+  assert.deepEqual(pulsePercents(feed.stats), pulsePercents(teaser.pulse));
+  const pct = pulsePercents({ sellShare: 85.6 });
+  assert.equal(pct.buy + pct.sell, 100);
+  for (const page of ['Home.jsx', 'Insiders.jsx']) {
+    const src = fs.readFileSync(path.join(root, 'client', 'src', 'pages', page), 'utf8');
+    assert.match(src, /<InsiderDaySummary summary=\{(pulse|stats)\}/, `${page} renders the shared block`);
+    assert.doesNotMatch(src, /buyPct|sellShare \?\? 50/, `${page} computes no percentages of its own`);
+  }
 });
 
 test('level labels describe the trade, promise nothing, and "none" shows no label', () => {

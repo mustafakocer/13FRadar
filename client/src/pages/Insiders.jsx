@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { dataFreshness } from '../lib/secCalendar.js';
 import { fmtMoney, fmtNum, fmtPct, fmtLocal, fmtOffPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -13,6 +12,8 @@ import FilterSelect from '../components/FilterSelect.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { SkeletonRows } from '../components/Skeleton.jsx';
 import Ico from '../components/Ico.jsx';
+import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
+import UpdatedLine from '../components/UpdatedLine.jsx';
 import { X, UserSearch, SlidersHorizontal } from 'lucide-react';
 
 const TABS = ['latest', 'ceo', 'cfo', 'cluster', 'penny', 'sells'];
@@ -371,14 +372,13 @@ export default function Insiders() {
         </h1>
         <div className="sub">
           {t('ins.subtitle')}
-          {/* the newest filing date in the rows, never the file's write time:
-              "Güncelleme <date>" while live, "Son veri: <date>" once it is
-              more than one business day behind */}
-          {feed.data?.lastFilingDay &&
-            (dataFreshness(feed.data.lastFilingDay).live
-              ? ` · ${t('ins.updated')} ${feed.data.lastFilingDay}`
-              : ` · ${t('data.latest')}: ${feed.data.lastFilingDay}`)}
         </div>
+        {/* when the data was built and the newest filing day in it */}
+        {feed.data?.lastFilingDay && (
+          <div className="mt8">
+            <UpdatedLine updatedAt={feed.data.updatedAt} dataDay={feed.data.lastFilingDay} />
+          </div>
+        )}
       </div>
     </div>
   );
@@ -391,30 +391,11 @@ export default function Insiders() {
 
       {/* ---- signal cards ------------------------------------------------ */}
       <div className="grid grid-3">
-        <Stat label={`${t('ins.marketActivity')}${stats?.day ? ` (${stats.day.slice(5)})` : ''}`} tip="tips.insActivity">
+        <Stat label={t('ins.marketActivity')} tip="tips.insActivity">
           {stats ? (
             <>
               <div className="muted small">{fmtNum(stats.companies)} {t('ins.companies')}</div>
-              <div className="ins-bar">
-                <span className="buy" style={{ width: `${100 - (stats.sellShare ?? 50)}%` }} />
-                <span className="sell" style={{ width: `${stats.sellShare ?? 50}%` }} />
-              </div>
-              <div className="row ins-bar-legend">
-                <span className="delta-pos">{t('ins.purchases')}: {fmtMoney(stats.buyValue)}</span>
-                <span className="delta-neg" style={{ marginLeft: 'auto' }}>
-                  {t('ins.sells')}: {fmtMoney(stats.sellValue)}
-                </span>
-              </div>
-              <div className="ins-counts">
-                <div className="pos"><b>{fmtNum(stats.buyCount)}</b><span>{t('ins.purchases')}</span></div>
-                <div className="neg"><b>{fmtNum(stats.sellCount)}</b><span>{t('ins.sells')}</span></div>
-                <div className="warn">
-                  <b>{stats.sellShare != null ? `${Math.round(stats.sellShare)}%` : '—'}</b>
-                  <span>{t('ins.sellShare')}</span>
-                </div>
-              </div>
-              {stats.fxExcluded > 0 && <div className="muted small" data-fx-excluded={stats.fxExcluded}>{t('ins.fxExcluded').replace('{n}', stats.fxExcluded)}</div>}
-              {stats.offMarket > 0 && <div className="muted small" data-off-market-count={stats.offMarket}>{t('ins.offMarketExcluded').replace('{n}', stats.offMarket)}</div>}
+              <InsiderDaySummary summary={stats} />
             </>
           ) : (
             <div className="muted small">{t('common.loading')}</div>

@@ -123,8 +123,8 @@ test('buildPrices runs the plan through the providers in order, drops a provider
   ];
   const log = [];
   const r = await buildPrices({ root, now, providers, log: (m) => log.push(m) });
-  assert.match(log[0], /8 symbols in the universe, 1 on file — 8 missing/, 'BRK-B from the earlier test is on file but not in this universe');
-  assert.match(log[0], /yahoo → twelvedata \(3\) → finnhub \(1\)/);
+  assert.match(log[0], /8 symbols in the universe, 1 on file — 8 without a history/, 'BRK-B from the earlier test is on file but not in this universe');
+  assert.match(log[0], /yahoo \(Infinity\) → twelvedata \(3\) → finnhub \(1\)/);
   assert.ok(calls.yahoo.length <= 5 && calls.yahoo.length >= 3, `yahoo stopped at the 429 (${calls.yahoo.length} calls)`);
   assert.equal(calls.twelvedata.length, 3, 'twelvedata spent its budget on what yahoo left');
   assert.equal(calls.finnhub.length, 1);
@@ -220,4 +220,59 @@ test('backtest: without an SPY series the benchmark is null and the points carry
   assert.equal(r.totalSpy, null);
   assert.ok(r.points.every((p) => !('spy' in p)));
   assert.equal(Math.round(r.coverage), 100);
+});
+
+test('Finnhub 403 is about one symbol: skipped, the night goes on; ten in a row or a 401 stop it', async () => {
+  const { finnhubQuote, resetFinnhubRefusals, finnhubRefusals, FINNHUB_REFUSALS_IN_A_ROW } = await import('../api/_lib/pricesBuild.js');
+  process.env.FINNHUB_API_KEY = 'test-key';
+  try {
+    resetFinnhubRefusals();
+    const ok = async () => ({ status: 200, data: { c: 12.5, t: Date.parse('2026-10-01T20:00:00Z') / 1000 } });
+    const refused = async () => ({ status: 403, data: { error: "You don't have access to this resource." } });
+    assert.equal(await finnhubQuote('ABCD', null, { get: refused }), null, 'a refused symbol is unknown, not fatal');
+    assert.deepEqual(await finnhubQuote('AAPL', null, { get: ok }), [{ date: '2026-10-01', close: 12.5 }]);
+    for (let i = 1; i < FINNHUB_REFUSALS_IN_A_ROW; i++) assert.equal(await finnhubQuote(`X${i}`, null, { get: refused }), null);
+    await assert.rejects(finnhubQuote('XLAST', null, { get: refused }), (e) => e.dead && /10 times in a row/.test(e.message));
+    assert.equal(finnhubRefusals(), FINNHUB_REFUSALS_IN_A_ROW + 1);
+    resetFinnhubRefusals();
+    await assert.rejects(finnhubQuote('AAPL', null, { get: async () => ({ status: 401, data: {} }) }), (e) => e.dead && /401/.test(e.message));
+  } finally {
+    delete process.env.FINNHUB_API_KEY;
+    resetFinnhubRefusals();
+  }
+});
+
+test('a quote only extends a series: Finnhub gets every stale series, the symbols without history wait for TwelveData', async () => {
+  const pdir = fs.mkdtempSync(path.join(os.tmpdir(), 'prices-quote-'));
+  const was = process.env.PRICES_DIR;
+  process.env.PRICES_DIR = pdir;
+  clearSeriesCache();
+  try {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'prices-root2-'));
+    fs.mkdirSync(path.join(root, 'api/_data'), { recursive: true });
+    const stale = ['AAPL', 'MSFT', 'NVDA'];
+    const missing = ['AMZN', 'GOOGL', 'META', 'TSLA'];
+    fs.writeFileSync(path.join(root, 'api/_data/guru-stocks.json'), JSON.stringify({ stocks: [...missing, ...stale].map((ticker) => ({ ticker })), exited: [] }));
+    for (const s of stale) writeSeries(s, series('2016-09-22', '2026-09-20', { seed: s.length }), { src: 'twelvedata' });
+    // a symbol with two quoted closes and no history is still missing one
+    writeSeries('TSLA', series('2026-09-17', '2026-09-18'), { src: 'finnhub' });
+    const now = Date.parse('2026-09-22T22:00:00Z');
+    const calls = { td: [], fh: [] };
+    const providers = [
+      { name: 'twelvedata', budget: 2, pauseMs: 0, concurrency: 1, fetch: async (sym) => { calls.td.push(sym); return series('2016-09-22', '2026-09-22', { seed: 3 }); } },
+      { name: 'finnhub', budget: 10, pauseMs: 0, concurrency: 1, appendOnly: true, fetch: async (sym) => { calls.fh.push(sym); return [{ date: '2026-09-22', close: 1 }]; } },
+    ];
+    const log = [];
+    const r = await buildPrices({ root, now, providers, log: (m) => log.push(m) });
+    assert.match(log[0], /7 without a history, 3 stale/, 'the three benchmarks, the four names (TSLA with two quoted closes)');
+    assert.match(log[0], /histories for every symbol in 4 nights/);
+    assert.deepEqual(calls.td, ['SPY', 'QQQ'], 'TwelveData: the first symbols without history, in universe order');
+    assert.deepEqual(calls.fh.sort(), ['AAPL', 'MSFT', 'NVDA'], 'Finnhub: every stale series, none of the symbols without one');
+    assert.equal(r.bySource.finnhub, 3);
+    assert.equal(readSeries('AAPL').asOf, '2026-09-22');
+    assert.equal(r.unknown, 5, 'IWM and the four names without history wait for TwelveData');
+  } finally {
+    process.env.PRICES_DIR = was;
+    clearSeriesCache();
+  }
 });

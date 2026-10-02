@@ -14,7 +14,7 @@
 // PRICES_MAX_AGE_DAYS (1). The log opens with the plan: how many symbols
 // are missing or stale, what tonight covers, and how many nights a full
 // fill takes at this budget.
-import { buildPrices } from '../api/_lib/pricesBuild.js';
+import { buildPrices, finnhubRefusals } from '../api/_lib/pricesBuild.js';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 
 // Without Finnhub only TwelveData's ~400 symbols a night are refreshed: say
@@ -25,5 +25,7 @@ for (const key of ['TWELVEDATA_API_KEY', 'FINNHUB_API_KEY']) {
 
 const r = await buildPrices();
 if (r.dryRun) console.log('dry run — nothing written');
+// symbols the free Finnhub plan does not quote (HTTP 403 on that symbol)
+if (finnhubRefusals()) console.log(`  finnhub: ${finnhubRefusals()} symbol(s) not covered by the plan (HTTP 403), skipped`);
 
 flushProviderHealth();

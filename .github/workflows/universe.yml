@@ -129,7 +129,7 @@ jobs:
           fi
           # the branch may have moved during the multi-hour run — rebase and retry
           for i in 1 2 3 4; do
-            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && git push && exit 0
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
@@ -146,3 +146,22 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ALERT_FROM: ${{ secrets.ALERT_FROM }}
           OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      # A failed build (EDGAR down, a gate, or the stale-code guard: the code
+      # changed on main while this run was building) opens the alarm issue.
+      - name: Alert
+        if: failure()
+        run: node scripts/notify.mjs --title "13F universe build failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "13F universe build failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

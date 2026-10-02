@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { filingScale, correctionEntry } from '../api/_lib/valueUnits.js';
-import { periodOf, summarizeUniverse, loadSameBooks } from '../api/_lib/universeSummary.js';
+import { periodOf, universeSummaryFile, writeUniverseSummaryFile } from '../api/_lib/universeSummary.js';
 import { markMisfiled } from '../api/_lib/misfiledBooks.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -119,7 +119,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   console.log(`guru-history: ${h.length} filings rescaled${h.length ? ` (${[...new Set(h.map((x) => x.name))].join(', ')})` : ''}`);
   console.log(`latest-holdings / universe: ${l.length} filings rescaled`);
 
-  const summary = { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows, { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
+  const summary = universeSummaryFile(U, root);
   console.log(`universe-summary: ${summary.count} funds, ${summary.inTotal} in the ${summary.quarter} total, $${(summary.totalAum / 1e12).toFixed(2)}T`);
 
   const log = correctionLog(H, L, U.rows);
@@ -133,7 +133,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   writeJson(file('api/_data/guru-history.json'), H);
   writeJson(file('api/_data/latest-holdings.json'), L);
   writeJson(file('client/public/universe.json'), U);
-  writeJson(file('client/public/universe-summary.json'), summary);
+  writeUniverseSummaryFile(U, root);
   // the timestamp moves only when the record does, so a clean run commits nothing
   const logFile = file('api/_data/unit-corrections.json');
   const before = fs.existsSync(logFile) ? readJson(logFile) : null;

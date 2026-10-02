@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 import { createRequire } from 'node:module';
 import { invoke, withBudget } from './invoke.js';
 import managerHandler from '../../_handlers/manager.js';
@@ -21,12 +22,36 @@ import { knownSymbol, priceUnavailable } from '../priceSnapshot.js';
 import { guruStock } from '../guruStocks.js';
 
 const require = createRequire(import.meta.url);
-const json = (file) => {
-  try {
-    return require(file);
-  } catch {
-    return null;
+// A static data file, read from the deployment's built site first
+// (client/dist/<name>, the very file the browser fetches as /<name>, and
+// bundled into this function by vercel.json includeFiles) and only then from
+// client/public (tests, local runs). The old require() of a path in a
+// variable was never traced into the function bundle: production read
+// nothing and the home page's server HTML fell back to "9.000+" while the
+// browser then showed the file's count.
+const staticCache = new Map();
+export function readStatic(name, roots = [path.join(process.cwd(), 'client', 'dist'), path.join(process.cwd(), 'client', 'public'), path.resolve(path.dirname(new URL(import.meta.url).pathname), '../../../client/public')]) {
+  if (staticCache.has(name)) return staticCache.get(name);
+  for (const dir of roots) {
+    try {
+      const v = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
+      staticCache.set(name, v);
+      return v;
+    } catch {
+      // next root
+    }
   }
+  return null;
+}
+const json = (file) => {
+  const name = path.basename(file);
+  return readStatic(name) ?? (() => {
+    try {
+      return require(file);
+    } catch {
+      return null;
+    }
+  })();
 };
 // Static files written by the GitHub Actions (same files the client fetches).
 const staticConsensus = () => json('../../../client/public/consensus.json');

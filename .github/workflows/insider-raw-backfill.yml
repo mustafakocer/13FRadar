@@ -55,7 +55,7 @@ jobs:
           git commit -m 'chore: backfill Form 4 fields of recent open-market buys'
           branch="${{ github.head_ref || github.ref_name }}"
           for i in 1 2 3 4; do
-            git pull --rebase -X theirs origin "$branch" && git push origin "HEAD:$branch" && exit 0
+            git pull --rebase -X theirs origin "$branch" && { node scripts/stale-code-guard.mjs || exit 1; } && git push origin "HEAD:$branch" && exit 0
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1

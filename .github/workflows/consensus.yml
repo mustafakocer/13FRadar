@@ -229,7 +229,7 @@ jobs:
           # the branch may have moved during the long run — rebase our data
           # commit on top and retry the push a few times
           for i in 1 2 3 4; do
-            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && git push && exit 0
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1

@@ -102,6 +102,27 @@ else {
   if (feedClusters) check(JSON.stringify(feedClusters.map((c) => c.t)) === JSON.stringify(cl.map((c) => c.t)), `/insiders uses the same cluster list as the home page (${feedClusters.slice(0, 5).map((c) => c.t).join(', ')})`);
 }
 
+// The headline total and fund count: the file the browser reads, the
+// definition (api/_lib/universeSummary.js on the served universe.json) and
+// the number in the home page's server HTML must agree. A data run on older
+// code once put $79.6T back in the file while the definition said $74.9T.
+{
+  const { universeSummaryFile } = await import('../api/_lib/universeSummary.js');
+  const [sumR, uniR, homeR] = await Promise.all([get('/universe-summary.json'), get('/universe.json'), get('/tr')]);
+  if (sumR.status !== 200 || uniR.status !== 200) check(false, `/universe-summary.json → ${sumR.status}, /universe.json → ${uniR.status}`);
+  else {
+    const file = JSON.parse(sumR.text);
+    const def = universeSummaryFile(JSON.parse(uniR.text));
+    const off = def.totalAum ? Math.abs(file.totalAum / def.totalAum - 1) : 1;
+    check(off <= 0.02, `universe-summary.json total $${(file.totalAum / 1e12).toFixed(2)}T vs the definition $${(def.totalAum / 1e12).toFixed(2)}T (${(off * 100).toFixed(2)}% apart, limit 2%)`);
+    check(file.count === def.count && file.quarter === def.quarter && file.inTotal === def.inTotal, `universe-summary.json counts ${file.count} funds, ${file.inTotal} in ${file.quarter}; the definition ${def.count}, ${def.inTotal} in ${def.quarter}`);
+    const shown = `$${Math.floor(def.totalAum / 1e12)}T+`;
+    const count = def.count.toLocaleString('tr-TR');
+    check(homeR.status === 200 && homeR.text.includes(shown), `home page server HTML shows ${shown}`);
+    check(homeR.status === 200 && homeR.text.includes(count) && !/9\.000\+/.test(homeR.text), `home page server HTML shows ${count} funds (not a fixed "9.000+")`);
+  }
+}
+
 // Old fund addresses (config/slug-aliases.json) answer a permanent redirect
 // to the current page — /guru/berkshire-hathaway broke once when a data run
 // shrank the redirect table.

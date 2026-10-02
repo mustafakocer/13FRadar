@@ -77,6 +77,22 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameB
   return { count: rows.length, quarter, inTotal, stale, duplicates, optionsExcluded: Math.round(optionsExcluded), totalAum: Math.round(totalAum), totalPositions };
 }
 
+// THE contents of client/public/universe-summary.json, from universe.json's
+// rows: the only way that file is written (build-universe, repair-units,
+// measure-options all call writeUniverseSummaryFile). A run on older code once
+// wrote it by another definition ($79T, options and stale funds counted):
+// tests/universe-summary-file.test.mjs and the Site check hold the file to
+// this function.
+export function universeSummaryFile(U, root = process.cwd()) {
+  return { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows || [], { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
+}
+
+export function writeUniverseSummaryFile(U, root = process.cwd()) {
+  const summary = universeSummaryFile(U, root);
+  fs.writeFileSync(path.join(root, 'client', 'public', 'universe-summary.json'), JSON.stringify(summary));
+  return summary;
+}
+
 // The reviewed list of books filed twice (parent and subsidiary).
 export function loadSameBooks(root) {
   try {

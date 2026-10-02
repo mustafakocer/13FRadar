@@ -14,7 +14,7 @@ import { declaredCandidates, lineKey, overlapPairs } from '../api/_lib/universeA
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
-import { inferPeriod, summarizeUniverse, universeRow, loadSameBooks } from '../api/_lib/universeSummary.js';
+import { inferPeriod, universeRow, writeUniverseSummaryFile } from '../api/_lib/universeSummary.js';
 import { misfiledFor, markMisfiled } from '../api/_lib/misfiledBooks.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
@@ -304,8 +304,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
 // home page, the pricing page and the tooltips share.
 export function writeUniverseSummary(pub) {
   const u = JSON.parse(fs.readFileSync(path.join(pub, 'universe.json'), 'utf8'));
-  const summary = { updatedAt: u.updatedAt, ...summarizeUniverse(u.rows || [], { asOf: u.updatedAt, sameBooks: loadSameBooks(process.cwd()) }) };
-  fs.writeFileSync(path.join(pub, 'universe-summary.json'), JSON.stringify(summary));
+  const summary = writeUniverseSummaryFile(u, path.resolve(pub, '..', '..'));
   console.log(`Wrote universe-summary.json (${summary.count} funds, ${summary.inTotal} in the ${summary.quarter} total, $${(summary.totalAum / 1e12).toFixed(2)}T)`);
   return summary;
 }

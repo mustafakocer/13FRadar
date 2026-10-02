@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-09-30T03:17:06.188Z",
- "count": 439,
+ "updatedAt": "2026-10-02T08:55:15.735Z",
+ "count": 436,
  "corrections": [
   {
    "cik": "0001061768",
@@ -28,6 +28,16 @@
    "period": "2026-06-30",
    "acc": "0001419186-26-000005",
    "filed": "2026-07-27",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001439805",
+   "name": "Greenwich Wealth Management LLC",
+   "period": "2026-06-30",
+   "acc": "0001439805-26-000004",
+   "filed": "2026-08-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
@@ -1313,16 +1323,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0000816788",
-   "name": "TANAKA CAPITAL MANAGEMENT INC",
-   "period": null,
-   "acc": "0000816788-26-000002",
-   "filed": "2026-05-18",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (83% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0000842766",
    "name": "ADVISORS MANAGEMENT GROUP INC /ADV",
    "period": null,
@@ -2373,16 +2373,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001439805",
-   "name": "Greenwich Wealth Management LLC",
-   "period": null,
-   "acc": "0001439805-26-000004",
-   "filed": "2026-08-12",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001445911",
    "name": "Quantitative Investment Management, LLC",
    "period": null,
@@ -2803,16 +2793,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001601622",
-   "name": "LBJ Family Wealth Advisors, Ltd.",
-   "period": null,
-   "acc": "0001601622-26-000003",
-   "filed": "2026-07-14",
-   "factor": 1000,
-   "reason": "every priced row of the full table (universe audit; the stored top lines had too few prices to decide): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001606152",
    "name": "Hikari Power Ltd",
    "period": null,
@@ -3030,16 +3010,6 @@
    "filed": "2026-08-13",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001664017",
-   "name": "Packer & Co Ltd",
-   "period": null,
-   "acc": "0001664017-26-000002",
-   "filed": "2026-05-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

@@ -30,7 +30,7 @@ export default function Pricing() {
   const { t, lang } = useI18n();
   const { user, isPro, configured, loading } = useAuth();
   // the same count, in the same words, as the home page's stat band
-  const funds = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || '9.000+';
+  const funds = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || '—';
   const [params, setParams] = useSearchParams();
   // ?plan=pro_monthly|pro_yearly: the plan a signed-out reader picked
   // before signing in; the page starts that checkout as soon as it can

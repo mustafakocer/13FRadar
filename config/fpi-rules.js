@@ -30,6 +30,18 @@ export const FPI_RULES = Object.freeze({
   // amount is not verified instead.
   offMarketMax: 0.5,
 
+  // Every Form 4 line, foreign or not (fpiNormalize.js amountGuard): a
+  // dollar amount is not verified when the price is more than this many
+  // times away from the trade day's close…
+  amountMaxPriceRatio: 5,
+  // …or when one line is worth more than the company (market cap), or more
+  // than this when the market cap is not known. SLBT 2026-09-29: the filer
+  // put the aggregate price ($2,272,653) in the per-share field and the line
+  // read $10.33T.
+  amountMaxNoCap: 5e9,
+  // a stored market cap under this is a bad share count, not a company
+  amountMinCap: 10e6,
+
   // Home currencies tried for a company without an ADS programme even when
   // none of its filings name the currency: Canadian issuers are normally
   // listed on the TSX/TSXV as well as a US exchange (Canopy, Fortis, Lithium

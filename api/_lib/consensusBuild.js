@@ -1,5 +1,5 @@
 import { getSubmissions, list13F, getEffectiveHoldings } from './sec.js';
-import { mapLimit } from './yahooClient.js';
+import { mapLimit } from './mapLimit.js';
 import { mapCusipsToTickers } from './figi.js';
 import { GURUS, consensusPanel, coverage as coverageOf } from './gurus.js';
 import { netActivity, storiesByManager } from './netActivity.js';

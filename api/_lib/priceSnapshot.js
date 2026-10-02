@@ -1,8 +1,8 @@
 // Last-known price and identity for a symbol, from the files the nightly
 // builds commit — the cache that is always there.
 //
-// The quote providers the stock page reads live (Yahoo, FMP, TwelveData,
-// Stooq) all block or throttle a serverless region on a bad day, and a page
+// The quote providers the stock page reads live (TwelveData,
+// Finnhub) can block or throttle a serverless region on a bad day, and a page
 // whose status depends on them is a page that is down when they are. The
 // daily build already prices every symbol the curated funds hold
 // (api/_data/ticker-meta.json: close, 52-week range, volume, market cap,

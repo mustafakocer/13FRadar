@@ -20,8 +20,9 @@ import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedH
 // Stooq are out for good: from Vercel's IP range Yahoo answers 429 on every
 // endpoint and Stooq serves a JavaScript-challenge HTML page instead of
 // CSV — a day of X-Stock-Chain said exactly that, on every request — so
-// they cost budget and never a price. The nightly builds still read Yahoo's
-// chart endpoint from GitHub runners, where it answers.
+// they cost budget and never a price. The nightly builds do not read Yahoo
+// either (its terms do not cover a paid site): the closes come from
+// TwelveData and Finnhub (api/_lib/pricesBuild.js).
 //
 //   TwelveData  quote (800/day free)
 //   Finnhub     quote (60/min free, no daily cap)

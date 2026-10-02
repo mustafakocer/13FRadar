@@ -1,5 +1,5 @@
 import { cached, TTL } from '../_lib/cache.js';
-import { mapLimit } from '../_lib/yahooClient.js';
+import { mapLimit } from '../_lib/mapLimit.js';
 import { dailyCloses } from '../_lib/providers.js';
 import { returnsFromSeries } from '../_lib/priceStore.js';
 import { priceSnapshot } from '../_lib/priceSnapshot.js';

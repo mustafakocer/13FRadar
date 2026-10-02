@@ -2,7 +2,7 @@ import { cached, TTL } from '../_lib/cache.js';
 import { requirePro } from '../_lib/auth.js';
 import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
-import { mapLimit } from '../_lib/yahooClient.js';
+import { mapLimit } from '../_lib/mapLimit.js';
 import { dailyCloses } from '../_lib/providers.js';
 import { simulate } from '../_lib/backtest.js';
 

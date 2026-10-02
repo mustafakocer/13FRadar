@@ -1,0 +1,15 @@
+{
+  "_readme": "How a filer's per-class share counts (dei:EntityCommonStockSharesOutstanding, one line per class in SEC XBRL) and its EPS become the listed ticker's units (api/_lib/secFundamentals.js). Classes with equal economics (GOOG/GOOGL, META, …) need nothing: they are summed. classes: [{ below, ratio }] multiplies a class line smaller than `below` by `ratio`; divideAll divides the summed count; epsDivisor divides the reported EPS. Always cite the source.",
+  "byTicker": {
+    "BRK-B": {
+      "classes": [{ "below": 5000000, "ratio": 1500 }],
+      "epsDivisor": 1500,
+      "source": "Berkshire Hathaway 10-K: each Class A share is convertible into 1,500 Class B shares; net earnings per share are stated per average equivalent Class A share."
+    },
+    "BRK-A": {
+      "classes": [{ "below": 5000000, "ratio": 1500 }],
+      "divideAll": 1500,
+      "source": "Berkshire Hathaway 10-K: Class B = 1/1,500 of a Class A share; the count is stated in Class A equivalents."
+    }
+  }
+}

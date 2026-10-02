@@ -1,6 +1,6 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
-import { mapLimit } from '../_lib/yahooClient.js';
+import { mapLimit } from '../_lib/mapLimit.js';
 import { guruHistory } from '../_lib/history.js';
 import { managerStatsFromGuru } from '../_lib/managerHistory.js';
 import { turnover as turnoverOf, heldQuarters } from '../_lib/turnover.js';

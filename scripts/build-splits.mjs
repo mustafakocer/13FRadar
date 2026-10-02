@@ -1,20 +1,26 @@
-// Stock split events for the securities in guru-history.json, from Yahoo's
-// chart endpoint (events=splits). Writes api/_data/splits.json:
-//   { updatedAt, byTicker: { AAPL: [{ date: '2020-08-31', ratio: 4 }, …] } }
+// Stock split events for the securities in guru-history.json, from Twelve
+// Data's /splits (TWELVEDATA_API_KEY). Writes api/_data/splits.json:
+//   { updatedAt, checked: { AAPL: '2026-10-02', … }, byTicker: { AAPL: [{ date: '2020-08-31', ratio: 4 }, …] } }
 // Historical 13F share counts are adjusted with this table so quarter-over-
 // quarter share changes are comparable ("split-adjusted").
 //
 //   node scripts/build-splits.mjs        (runs after build-guru-history in consensus.yml)
-// TODO: Yahoo is often blocked from datacenters; when that happens the
-// previous table is kept. A second source (EDGAR 8-K item 8.01 / FMP) can
-// be added behind the same schema.
+//
+// Yahoo's chart (events=splits) used to answer this for every ticker every
+// night; it is out of every chain (its terms do not cover a paid site). The
+// free Twelve Data plan has a daily credit budget, so each night re-checks
+// the tickers checked longest ago, SPLITS_BUDGET of them (default 60), and a
+// table entry stays until its ticker comes round again. When the provider
+// refuses (no key, plan, quota) the previous table is kept as it is.
 import fs from 'node:fs';
 import path from 'node:path';
-import axios from 'axios';
+import { tdGet, hasTd } from '../api/_lib/providers.js';
 
 const root = process.cwd();
 const OUT = path.join(root, 'api', '_data', 'splits.json');
 const prev = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : { byTicker: {} };
+const BUDGET = Number(process.env.SPLITS_BUDGET || 60);
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let history;
 try {
   history = JSON.parse(fs.readFileSync(path.join(root, 'api', '_data', 'guru-history.json'), 'utf8'));
@@ -22,32 +28,38 @@ try {
   console.log('no guru-history.json yet — nothing to do');
   process.exit(0);
 }
+if (!hasTd() || !(BUDGET > 0)) {
+  console.log('splits: no TWELVEDATA_API_KEY or no budget — keeping the previous table');
+  process.exit(0);
+}
 const tickers = new Set();
 for (const g of Object.values(history.gurus)) for (const e of Object.values(g.positions)) if (e.ticker) tickers.add(e.ticker);
 
+const checked = { ...(prev.checked || {}) };
 const byTicker = { ...prev.byTicker };
+// never checked first, then the oldest check
+const queue = [...tickers].sort((a, b) => String(checked[a] || '').localeCompare(String(checked[b] || ''))).slice(0, BUDGET);
+const today = new Date().toISOString().slice(0, 10);
 let ok = 0;
 let failed = 0;
-for (const t of tickers) {
+for (const t of queue) {
   try {
-    const { data } = await axios.get(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(t)}`, {
-      params: { range: '10y', interval: '3mo', events: 'splits' },
-      timeout: 10000,
-      headers: { 'User-Agent': 'Mozilla/5.0' },
-    });
-    const ev = data?.chart?.result?.[0]?.events?.splits || {};
-    byTicker[t] = Object.values(ev)
-      .map((s) => ({ date: new Date(s.date * 1000).toISOString().slice(0, 10), ratio: s.numerator / s.denominator }))
-      .filter((s) => s.ratio > 0 && s.ratio !== 1)
+    const d = await tdGet('/splits', { symbol: t, range: 'full' });
+    byTicker[t] = (d?.splits || [])
+      .map((s) => ({ date: String(s.date).slice(0, 10), ratio: Number(s.to_factor) / Number(s.from_factor) }))
+      .filter((s) => Number.isFinite(s.ratio) && s.ratio > 0 && s.ratio !== 1)
       .sort((a, b) => a.date.localeCompare(b.date));
+    checked[t] = today;
     ok++;
-  } catch {
+  } catch (e) {
     failed++;
-    if (failed > 20 && ok === 0) {
-      console.warn('Yahoo unreachable — keeping the previous splits table');
-      process.exit(0);
+    const msg = String(e.message || e);
+    if (/run out|limit|credits|429|plan|upgrade|access/i.test(msg)) {
+      console.warn(`splits: Twelve Data refused (${msg}) — stopping, the rest keep their entries`);
+      break;
     }
   }
+  await sleep(7600); // 8 credits a minute on the free plan
 }
-fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), byTicker }));
-console.log(`splits.json: ${Object.keys(byTicker).length} tickers (${ok} refreshed, ${failed} failed)`);
+fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), checked, byTicker }));
+console.log(`splits.json: ${Object.keys(byTicker).length} tickers (${ok} re-checked tonight of ${tickers.size}, ${failed} failed)`);

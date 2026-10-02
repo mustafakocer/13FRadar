@@ -5,7 +5,8 @@ import {
   frameNames,
   latestShares,
   marketCap,
-  chartSnapshot,
+  seriesSnapshot,
+  priceSnapshots,
   SECTORS,
 } from '../api/_lib/marketData.js';
 
@@ -75,87 +76,55 @@ test('market cap is shares times price, or nothing', () => {
   assert.equal(marketCap(undefined, 10), null);
 });
 
-// A chart the way Yahoo returns it: unix timestamps, a close per bar, the
-// live price in meta. Built for a "now" of 2026-09-19 with the last bar being
-// the live session of the 18th.
-function chart({ live = true } = {}) {
-  const days = [];
-  const start = Date.UTC(2025, 8, 15); // 2025-09-15
-  for (let i = 0; i < 370; i++) {
-    const t = start + i * 86400 * 1000;
+// ~400 daily bars ending 2026-09-18, from the price store's shape
+function bars() {
+  const out = [];
+  let t = Date.parse('2025-08-14T00:00:00Z');
+  let px = 100;
+  while (t <= Date.parse('2026-09-18T00:00:00Z')) {
     const d = new Date(t);
-    if (d.getUTCDay() === 0 || d.getUTCDay() === 6) continue;
-    days.push(Math.floor(t / 1000));
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6) {
+      px = Number((px * (1 + Math.sin(out.length / 7) / 100)).toFixed(4));
+      out.push({ date: d.toISOString().slice(0, 10), close: px });
+    }
+    t += 86400000;
   }
-  const closes = days.map((_, i) => 100 + i * 0.5); // rising steadily
-  const volumes = days.map(() => 1000);
-  const last = days[days.length - 1];
-  return {
-    meta: {
-      regularMarketPrice: live ? closes[closes.length - 1] : closes[closes.length - 1],
-      regularMarketTime: last + 6 * 3600,
-      instrumentType: 'EQUITY',
-      currency: 'USD',
-      fiftyTwoWeekLow: 100,
-      fiftyTwoWeekHigh: 230,
-    },
-    timestamp: days,
-    indicators: { quote: [{ close: closes, volume: volumes }] },
-    _closes: closes,
-    _days: days,
-  };
+  return out;
 }
 
-test('returns are measured from the right bars', () => {
-  const c = chart();
+test('returns and the 52-week range are measured from the stored closes', () => {
+  const b = bars();
   const now = Date.parse('2026-09-19T12:00:00Z');
-  const s = chartSnapshot(c, now);
-  const price = c._closes[c._closes.length - 1];
+  const s = seriesSnapshot(b, now);
+  const price = b.at(-1).close;
   assert.equal(s.price, price);
-  assert.equal(s.asOf, new Date(c._days[c._days.length - 1] * 1000).toISOString().slice(0, 10));
-  // 1D: against the bar before the session the price belongs to
-  const prev = c._closes[c._closes.length - 2];
+  assert.equal(s.asOf, '2026-09-18');
+  const prev = b.at(-2).close;
   assert.equal(s.ret1d.toFixed(4), (((price - prev) / prev) * 100).toFixed(4));
-  // YTD: against the last close of the previous year
-  const iso = (secs) => new Date(secs * 1000).toISOString().slice(0, 10);
-  let ytdIx = -1;
-  c._days.forEach((d, i) => {
-    if (iso(d) < '2026-01-01') ytdIx = i;
-  });
-  const ytdBase = c._closes[ytdIx];
+  const ytdBase = b.filter((x) => x.date < '2026-01-01').at(-1).close;
   assert.equal(s.retYtd.toFixed(4), (((price - ytdBase) / ytdBase) * 100).toFixed(4));
-  // 1Y: against the first bar on or after a year ago
   const yearAgo = new Date(now - 365 * 86400 * 1000).toISOString().slice(0, 10);
-  const yIx = c._days.findIndex((d) => iso(d) >= yearAgo);
-  const yBase = c._closes[yIx];
+  const yBase = b.find((x) => x.date >= yearAgo).close;
   assert.equal(s.ret1y.toFixed(4), (((price - yBase) / yBase) * 100).toFixed(4));
-  assert.equal(s.vol, 1000);
-  assert.equal(s.lo, 100);
-  assert.equal(s.hi, 230);
-  assert.equal(s.etf, false);
+  const year = b.filter((x) => x.date >= yearAgo).map((x) => x.close);
+  assert.equal(s.lo, Math.min(...year));
+  assert.equal(s.hi, Math.max(...year));
+  assert.equal(s.vol, null, 'no volume in the store: none borrowed');
 });
 
-test('a live session price is compared with the previous close, not itself', () => {
-  const c = chart();
-  // the provider marks the market time as the last bar's own day: the last
-  // bar is today, the previous close is the bar before
-  const s = chartSnapshot(c, Date.parse('2026-09-19T12:00:00Z'));
-  assert.notEqual(s.ret1d, 0);
+test('a listing younger than a year has no 1Y return; empty series are nothing', () => {
+  const b = bars().filter((x) => x.date >= '2026-06-12');
+  const s = seriesSnapshot(b, Date.parse('2026-09-19T12:00:00Z'));
+  assert.equal(s.ret1y, null);
+  assert.equal(s.retYtd, null);
+  assert.equal(seriesSnapshot([]), null);
+  assert.equal(seriesSnapshot(null), null);
 });
 
-test('funds are flagged and empty charts are nothing', () => {
-  const c = chart();
-  c.meta.instrumentType = 'ETF';
-  assert.equal(chartSnapshot(c).etf, true);
-  assert.equal(chartSnapshot({ meta: {}, timestamp: [], indicators: { quote: [{ close: [] }] } }), null);
-  assert.equal(chartSnapshot(null), null);
-});
-
-test('null closes (holidays, halts) are skipped rather than counted', () => {
-  const c = chart();
-  c.indicators.quote[0].close[c._closes.length - 2] = null;
-  const s = chartSnapshot(c, Date.parse('2026-09-19T12:00:00Z'));
-  const price = c._closes[c._closes.length - 1];
-  const prev = c._closes[c._closes.length - 3];
-  assert.equal(s.ret1d.toFixed(4), (((price - prev) / prev) * 100).toFixed(4));
+test('priceSnapshots reads the store and asks no provider', () => {
+  const store = { AAA: { prices: bars() }, BBB: null };
+  const { snapshots, failed, blocked } = priceSnapshots(['AAA', 'BBB'], { now: Date.parse('2026-09-19T12:00:00Z'), read: (t) => store[t] });
+  assert.equal(snapshots.get('AAA').asOf, '2026-09-18');
+  assert.equal(snapshots.get('BBB'), null);
+  assert.deepEqual([failed, blocked], [0, false]);
 });

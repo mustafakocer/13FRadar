@@ -4,17 +4,17 @@
 // and throwing for anything transient. The planning is pure and tested; the
 // fetchers are thin. scripts/build-prices.mjs is the entry point.
 //
-// Sources, in the order they are asked:
-//   yahoo       chart v8 from a GitHub runner — no key, no daily quota, ten
-//               years in one request. It answers from runners (the nightly
-//               return columns come from it today) and 429s Vercel, which is
-//               why it is a build source here and not in the live chain.
+// Sources, in the order they are asked (Yahoo and FMP are out of every
+// chain: their terms do not cover showing the data on a paid site):
 //   twelvedata  /time_series, 5000 rows a call, 800 credits a day and 8 a
 //               minute on the free plan (a batch call is one credit per
 //               symbol, so batching buys nothing): the build paces at the
-//               minute limit and spends PRICES_TD_BUDGET a night.
-//   finnhub     /stock/candle — off the free plan since 2024 (403); asked
-//               once a run and dropped for the night on a 403.
+//               minute limit and spends PRICES_TD_BUDGET a night. It takes
+//               the symbols with no series first — the history.
+//   finnhub     /quote — the last close, 60 calls a minute and no daily cap
+//               on the free plan: appended to a series that has its history
+//               already, so the closes stay current without a history call.
+//               (Its /stock/candle history is off the free plan.)
 import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -36,7 +36,7 @@ export const listedTicker = (t) => /^[A-Z][A-Z0-9]{0,5}([.-][A-Z0-9]{1,3})?$/.te
 // The symbols to price, best-ranked first: the benchmarks, the per-security
 // table in rank order (most held first), then names the panel sold out of
 // (the backtest's older quarters hold them).
-export function universeSymbols({ guruStocks } = {}) {
+export function universeSymbols({ guruStocks, insiderTickers = [] } = {}) {
   const out = [];
   const seen = new Set();
   const add = (t) => {
@@ -48,7 +48,22 @@ export function universeSymbols({ guruStocks } = {}) {
   for (const b of BENCHMARKS) add(b);
   for (const s of guruStocks?.stocks || []) add(s.ticker);
   for (const s of guruStocks?.exited || []) add(s.ticker);
+  // then the tickers insiders traded recently (newest first): their pages
+  // and the insider returns read the same closes
+  for (const t of insiderTickers) add(t);
   return out;
+}
+
+// Tickers insiders traded in the last `days` days of the dataset, the most
+// recently traded first.
+export function recentInsiderTickers(db, { days = 90 } = {}) {
+  const rows = db?.rows || [];
+  const last = rows.reduce((m, r) => (r.f > m ? r.f : m), '');
+  if (!last) return [];
+  const since = isoDay(Date.parse(`${last}T00:00:00Z`) - days * DAY);
+  const newest = new Map();
+  for (const r of rows) if (r.t && r.f >= since && (!newest.has(r.t) || r.f > newest.get(r.t))) newest.set(r.t, r.f);
+  return [...newest].sort((a, b) => (a[1] < b[1] ? 1 : a[1] > b[1] ? -1 : 0)).map(([t]) => t);
 }
 
 // What tonight fetches, in order: symbols with no series at all (in
@@ -79,24 +94,6 @@ const tenYearsAgo = (now) => isoDay(now - HISTORY_YEARS * 365.25 * DAY);
 const quotaError = (msg) => Object.assign(new Error(msg), { quota: true });
 const deadError = (msg) => Object.assign(new Error(msg), { dead: true });
 
-export async function yahooSeries(symbol, from, { now = Date.now() } = {}) {
-  const period1 = Math.floor(Date.parse(`${from || tenYearsAgo(now)}T00:00:00Z`) / 1000);
-  const period2 = Math.floor(now / 1000);
-  const r = await http.get(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`, {
-    params: { period1, period2, interval: '1d' },
-    headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
-  });
-  if (r.status === 404 || r.status === 400) return null;
-  if (r.status === 429) throw quotaError('Yahoo HTTP 429');
-  if (r.status !== 200) throw new Error(`Yahoo HTTP ${r.status}`);
-  const result = r.data?.chart?.result?.[0];
-  const ts = result?.timestamp || [];
-  const closes = result?.indicators?.quote?.[0]?.close || [];
-  const out = [];
-  for (let i = 0; i < ts.length; i++) if (closes[i] != null && Number.isFinite(closes[i])) out.push({ date: isoDay(ts[i] * 1000), close: closes[i] });
-  return out.length ? out : null;
-}
-
 export async function twelveDataSeries(symbol, from, { now = Date.now() } = {}) {
   let d;
   try {
@@ -112,19 +109,20 @@ export async function twelveDataSeries(symbol, from, { now = Date.now() } = {}) 
   return out.length ? out : null;
 }
 
-export async function finnhubSeries(symbol, from, { now = Date.now() } = {}) {
+// The last close from Finnhub's quote: [{ date, close }] — one row, merged
+// into the stored series by the build. null for a symbol it does not price
+// (a zero quote); throws on the quota.
+export async function finnhubQuote(symbol) {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new Error('FINNHUB_API_KEY not set');
-  const r = await http.get('https://finnhub.io/api/v1/stock/candle', {
-    params: { symbol, resolution: 'D', from: Math.floor(Date.parse(`${from || tenYearsAgo(now)}T00:00:00Z`) / 1000), to: Math.floor(now / 1000), token: key },
-  });
-  if (r.status === 403) throw deadError('Finnhub candles: not on this plan (HTTP 403)');
+  const r = await http.get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  if (r.status === 403) throw deadError('Finnhub quote: refused (HTTP 403)');
   if (r.status === 429) throw quotaError('Finnhub HTTP 429');
   if (r.status !== 200) throw new Error(`Finnhub HTTP ${r.status}`);
-  if (r.data?.s !== 'ok') return null;
-  const out = [];
-  for (let i = 0; i < (r.data.t || []).length; i++) if (Number.isFinite(r.data.c[i])) out.push({ date: isoDay(r.data.t[i] * 1000), close: r.data.c[i] });
-  return out.length ? out : null;
+  const c = Number(r.data?.c);
+  const t = Number(r.data?.t);
+  if (!(c > 0) || !(t > 0)) return null;
+  return [{ date: isoDay(t * 1000), close: c }];
 }
 
 // The providers a run can use, with tonight's budget and the pause between
@@ -132,9 +130,8 @@ export async function finnhubSeries(symbol, from, { now = Date.now() } = {}) {
 export function providerPlan(env = process.env) {
   const n = (k, dflt) => (env[k] === undefined || env[k] === '' ? dflt : Number(env[k]));
   return [
-    { name: 'yahoo', enabled: env.PRICES_YAHOO !== '0', budget: n('PRICES_YAHOO_BUDGET', Infinity), pauseMs: 250, concurrency: 4, fetch: yahooSeries },
     { name: 'twelvedata', enabled: hasTd(), budget: n('PRICES_TD_BUDGET', 400), pauseMs: 7600, concurrency: 1, fetch: twelveDataSeries },
-    { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 300), pauseMs: 1100, concurrency: 1, fetch: finnhubSeries },
+    { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 2400), pauseMs: 1050, concurrency: 1, fetch: finnhubQuote },
   ].filter((p) => p.enabled && p.budget > 0);
 }
 
@@ -161,7 +158,7 @@ export async function buildPrices({
   const guruStocks = read('api/_data/guru-stocks.json');
   if (!guruStocks?.stocks) throw new Error('api/_data/guru-stocks.json is missing — run build-consensus.mjs first');
 
-  const symbols = universeSymbols({ guruStocks });
+  const symbols = universeSymbols({ guruStocks, insiderTickers: recentInsiderTickers(read('api/_data/insiders.json')) });
   const index = seriesIndex();
   const capacity = providers.reduce((s, p) => s + p.budget, 0);
   const plan = planFetch(symbols, index, { now, maxAgeDays, capacity });
@@ -170,7 +167,7 @@ export async function buildPrices({
       `tonight: ${plan.jobs.length} of ${plan.total} jobs through ${providers.map((p) => `${p.name}${Number.isFinite(p.budget) ? ` (${p.budget})` : ''}`).join(' → ') || 'no provider'}; ` +
       `full fill at this rate: ${plan.nights} night${plan.nights === 1 ? '' : 's'}`
   );
-  if (!providers.length) log('  no price provider is enabled (Yahoo off, no TWELVEDATA/FINNHUB key) — nothing fetched');
+  if (!providers.length) log('  no price provider is enabled (no TWELVEDATA/FINNHUB key) — nothing fetched');
   if (dryRun) return { plan, written: 0, unknown: 0, failed: 0, bySource: {}, dryRun: true };
 
   const tally = { written: 0, unknown: 0, failed: 0, bySource: {} };
@@ -273,4 +270,38 @@ export async function buildPrices({
     }
   }
   return { plan, ...tally, summary };
+}
+
+// The last close for symbols whose stored series is behind, from Finnhub's
+// quote, within `budget` calls (the insider build: the tickers traded today
+// that the nightly price build has not reached). Missing series first, then
+// the oldest. Returns { asked, written, unknown }.
+export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAgeDays = 1, log = console.log, quote = finnhubQuote, pauseMs = 1050 } = {}) {
+  if (!(budget > 0) || !hasFinnhub()) return { asked: 0, written: 0, unknown: 0 };
+  const plan = planFetch(symbols.filter(listedTicker), seriesIndex(), { now, maxAgeDays, capacity: budget });
+  let written = 0;
+  let unknown = 0;
+  let asked = 0;
+  for (const job of plan.jobs) {
+    asked++;
+    try {
+      const rows = await quote(job.symbol);
+      noteProvider('finnhub', { ok: true });
+      if (!rows) unknown++;
+      else {
+        const have = readSeries(job.symbol)?.prices || [];
+        writeSeries(job.symbol, have.length ? mergeSeries(have, rows) : rows, { src: have.length ? readSeries(job.symbol)?.src || 'finnhub' : 'finnhub', now });
+        written++;
+      }
+    } catch (e) {
+      noteProvider('finnhub', { error: e.message });
+      if (e.quota || e.dead) {
+        log(`  finnhub: ${e.message} — stopping after ${asked} calls`);
+        break;
+      }
+    }
+    if (pauseMs) await sleep(pauseMs);
+  }
+  log(`  closes topped up: ${written} of ${plan.jobs.length} asked (${plan.missing} without a series, ${plan.stale} behind), ${unknown} unknown to Finnhub`);
+  return { asked, written, unknown };
 }

@@ -135,24 +135,12 @@ jobs:
           key: edgar-docs-v1-${{ github.run_id }}
           restore-keys: |
             edgar-docs-v1-
-      # Sector comes from SEC (SIC code), market cap from SEC's share count
-      # times Yahoo's chart price, returns from the same chart. FMP is only
-      # asked, one symbol at a time within its free quota, for the caps SEC
-      # cannot price (dual-class names, funds).
-      - name: Build consensus.json, guru-stocks.json & returns.json
-        run: node scripts/build-consensus.mjs
-        env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
-          SEC_RPS: '6'
-          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-          FMP_BUDGET: '100'
-          SECTOR_BUDGET: ${{ inputs.sector_budget || '2500' }}
+      # First, so the consensus step below reads today's closes.
       # Ten years of daily closes per symbol into api/_data/prices/ — what
       # the backtest, the price chart and the return columns read before any
-      # live provider. Yahoo's chart answers from a runner (not from Vercel)
-      # and fills most of it in one night; TwelveData fills the rest within
-      # its free quota (FMP is out: 402 on its historical endpoint). The log opens with the plan and how many
+      # live provider. TwelveData fills the history within its free quota,
+      # Finnhub's quote appends each day's close (Yahoo and FMP are out: their
+      # terms do not cover a paid site). The log opens with the plan and how many
       # nights a full fill takes. Best-effort: a provider outage leaves
       # yesterday's files in place.
       - name: Build the price cache (api/_data/prices)
@@ -161,6 +149,16 @@ jobs:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           PRICES_TD_BUDGET: '400'
+      # Sector comes from SEC (SIC code), market cap from SEC's share count
+      # times the stored close, returns from the same closes (the price cache
+      # the step below keeps current). No FMP, no Yahoo.
+      - name: Build consensus.json, guru-stocks.json & returns.json
+        run: node scripts/build-consensus.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_RPS: '6'
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          SECTOR_BUDGET: ${{ inputs.sector_budget || '2500' }}
       # A dry run first: what the walk will fetch, how much of it the cache
       # already holds, and the minutes it should take — in the log before
       # the first request, so a two-hour run is never a surprise again.

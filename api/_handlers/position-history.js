@@ -1,6 +1,6 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
-import { mapLimit } from '../_lib/yahooClient.js';
+import { mapLimit } from '../_lib/mapLimit.js';
 import { requirePro } from '../_lib/auth.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { splitAdjust } from '../_lib/history.js';

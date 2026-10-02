@@ -67,6 +67,16 @@ export function overlapPairs(books, { min = 0.9, minLines = 10, maxHolders = 200
 // NEW HOLDINGS amendment adds to it. `amendments`: oldest first, each
 // { type, total } (type from the latest-holdings record or the cover page).
 // Null when a needed total is missing.
+// Many NEW HOLDINGS amendments put the period's cumulative total on their
+// cover, not the added lines' (about 25 of the 2026-Q2 amended filers sat at
+// −30…−50% under the sum): declaredCandidates() lists every reading — the
+// chain below, the original's total, each amendment's own — and a filer
+// matches when any of them does.
+export function declaredCandidates(base, amendments = []) {
+  const out = [effectiveDeclared(base, amendments), base, ...amendments.map((a) => a?.total)];
+  return [...new Set(out.filter((v) => Number.isFinite(v) && v > 0))];
+}
+
 export function effectiveDeclared(base, amendments = []) {
   let total = Number.isFinite(base) ? base : null;
   for (const a of amendments) {
@@ -87,4 +97,41 @@ export function storedUnitSlip(stored, fresh) {
   if (Math.abs(r / 1000 - 1) <= 0.001) return 1000;
   if (Math.abs(r * 1000 - 1) <= 0.001) return 0.001;
   return null;
+}
+
+// ---- the nightly check (scripts/check-universe-audit.mjs) -----------------
+export const NIGHTLY_TOP = 500;
+export const NIGHTLY_TOLERANCE = 0.05;
+const pad = (cik) => String(cik || '').replace(/\D/g, '').padStart(10, '0');
+export const pairKey = (a, b) => [pad(a), pad(b)].sort().join('|');
+
+// Our total against the declared one among the `top` largest current funds
+// (a filing that carries another filer's table is not ranked). A filer that
+// wrote the table and the cover in different units matches at ×1000 or
+// ÷1000: the unit is checked elsewhere, not here.
+export function totalDeviations(rows, { quarter, top = NIGHTLY_TOP, tolerance = NIGHTLY_TOLERANCE } = {}) {
+  const ranked = rows
+    .filter((r) => !r.misfiled && r.aum > 0 && (!quarter || (r.reportDate || '') >= quarter))
+    .sort((a, b) => b.aum - a.aum)
+    .slice(0, top);
+  const out = [];
+  ranked.forEach((r, i) => {
+    if (!(r.declared > 0)) return;
+    const candidates = [r.declared, ...(r.declaredAlt || [])];
+    const near = candidates.some((d) => [1, 1000, 1 / 1000].some((f) => Math.abs(r.aum / (d * f) - 1) <= tolerance));
+    if (!near) out.push({ cik: r.cik, name: r.name, acc: r.acc, rank: i + 1, aum: r.aum, declared: r.declared, diffPct: Number(((r.aum / r.declared - 1) * 100).toFixed(1)) });
+  });
+  return out;
+}
+
+// What is new against the previous night's state. `known` is
+// { deviations: ['cik|acc'], pairs: ['cik|cik'] }; `reviewed` pair keys
+// (config/misfiled-books.json, config/duplicate-books.json) never alarm.
+export function newFindings({ deviations, pairs }, known = {}, reviewed = new Set()) {
+  const kd = new Set(known.deviations || []);
+  const kp = new Set(known.pairs || []);
+  return {
+    deviations: deviations.filter((d) => !kd.has(`${d.cik}|${d.acc}`)),
+    pairs: pairs.filter((p) => !kp.has(pairKey(p.a, p.b)) && !reviewed.has(pairKey(p.a, p.b))),
+  };
 }

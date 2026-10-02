@@ -325,6 +325,17 @@ export default function Manager({ segment = 'portfolio' }) {
         </div>
       )}
 
+      {(mgr.data?.notes || [])
+        .filter((n) => n.kind === 'cover-total' && (!n.acc || n.acc === acc))
+        .map((n) => (
+          <div key={`${n.kind}-${n.acc}`} className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
+            <span className="small">
+              <Ico icon={TriangleAlert} size={14} />{' '}
+              {t('manager.coverTotal').replace('{declared}', fmtMoney(n.declared)).replace('{table}', fmtMoney(n.table))}
+            </span>
+          </div>
+        ))}
+
       <AnswerBox text={seo.answer} />
 
       {holdings.isLoading && (

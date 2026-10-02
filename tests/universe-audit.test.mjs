@@ -118,3 +118,48 @@ test('apply-audit: a SLIP rescales the stored filing once and marks it', async (
   const { repairLatest } = await import('../scripts/repair-units.mjs');
   assert.equal(repairLatest(L, U.rows).length, 0);
 });
+
+test('declaredCandidates: the chain, the original and each amendment\'s own total', async () => {
+  const { declaredCandidates } = await import('../api/_lib/universeAudit.js');
+  // Assenagon-like: a NEW HOLDINGS cover carrying the cumulative total
+  assert.deepEqual(declaredCandidates(80, [{ type: 'NEW HOLDINGS', total: 80 }]), [160, 80]);
+  assert.deepEqual(declaredCandidates(100, []), [100]);
+  assert.deepEqual(declaredCandidates(null, [{ type: 'RESTATEMENT', total: 90 }]), [90]);
+});
+
+test('totalDeviations: the 500 largest current funds, any reading and unit, misfiled left out', async () => {
+  const { totalDeviations, newFindings, pairKey } = await import('../api/_lib/universeAudit.js');
+  const q = '2026-06-30';
+  const rows = [
+    { cik: '0000000001', acc: 'a1', name: 'Fine', aum: 1000, declared: 1004, reportDate: q },
+    { cik: '0000000002', acc: 'a2', name: 'Cover in dollars', aum: 900e3, declared: 900, reportDate: q },
+    { cik: '0000000003', acc: 'a3', name: 'Cumulative cover', aum: 800, declared: 1600, declaredAlt: [800], reportDate: q },
+    { cik: '0000000004', acc: 'a4', name: 'Sanctuary-like', aum: 700, declared: 7000, reportDate: q },
+    { cik: '0000000005', acc: 'a5', name: 'Misfiled', aum: 5e6, declared: 1, reportDate: q, misfiled: { copyOf: 'x' } },
+    { cik: '0000000006', acc: 'a6', name: 'Stale', aum: 600, declared: 1, reportDate: '2026-03-31' },
+    { cik: '0000000007', acc: 'a7', name: 'No cover', aum: 500, reportDate: q },
+  ];
+  const d = totalDeviations(rows, { quarter: q });
+  assert.deepEqual(d.map((x) => x.cik), ['0000000004']);
+  assert.equal(totalDeviations(rows, { quarter: q, top: 3 }).length, 0);
+  // only what the previous night did not have
+  const pairs = [{ a: '0000000009', b: '0000000008', matched: 50, shareA: 1, shareB: 1 }, { a: '0000000010', b: '0000000011', matched: 40, shareA: 0.95, shareB: 0.99 }];
+  const fresh = newFindings({ deviations: d, pairs }, { deviations: ['0000000004|a4'], pairs: [pairKey('0000000008', '0000000009')] }, new Set([pairKey('0000000011', '0000000010')]));
+  assert.equal(fresh.deviations.length, 0);
+  assert.equal(fresh.pairs.length, 0);
+  // a new filing of the same filer is new
+  assert.equal(newFindings({ deviations: d, pairs: [] }, { deviations: ['0000000004|old'] }).deviations.length, 1);
+});
+
+test('check-universe-audit: a fresh deviation exits 3 and is written to the state', async () => {
+  const fs = await import('node:fs');
+  const src = fs.readFileSync(new URL('../scripts/check-universe-audit.mjs', import.meta.url), 'utf8');
+  assert.match(src, /process\.exit\(3\)/);
+  assert.doesNotMatch(src, /misfiled-books\.json['"]\s*,/); // never writes the reviewed list
+  const wf = fs.readFileSync(new URL('../.github/workflows/universe.yml', import.meta.url), 'utf8');
+  assert.match(wf, /check-universe-audit\.mjs/);
+  assert.match(wf, /notify\.mjs --title "13F denetimi/);
+  assert.match(wf, /issues: write/);
+  assert.match(wf, /api\/_data\/universe-audit\.json/);
+  assert.match(wf, /api\/_data\/copy-books\.json/);
+});

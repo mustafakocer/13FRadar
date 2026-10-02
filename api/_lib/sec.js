@@ -1,4 +1,4 @@
-import { filingScale } from './valueUnits.js';
+import { filingScale, columnSwap } from './valueUnits.js';
 import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -273,6 +273,21 @@ export function detectValueScale(rows, filingDate, { minRows = 8 } = {}) {
 // (valueUnits.js): the whole filing is rescaled by 1000 when its priced rows
 // say the unit is wrong. Without it only the physical-price rule above runs.
 export function aggregatePositions(rows, filingDate, { period = null, closeOf } = {}) {
+  // value and share columns swapped by the filer (valueUnits.js columnSwap):
+  // swap them back before anything else reads the table
+  let columnFix = null;
+  if (period) {
+    const m0 = valueMultiplier(filingDate);
+    const sample = rows
+      .map((r) => ({ cusip: String(r.cusip || '').toUpperCase().trim(), putCall: (r.putCall || '').trim(), shares: Number(r.shrsOrPrnAmt?.sshPrnamt) || 0, value: (Number(r.value) || 0) * m0 }))
+      .sort((a, b) => b.shares - a.shares)
+      .slice(0, 40);
+    const v = columnSwap(sample, period, closeOf ? { closeOf } : {});
+    if (v.swap) {
+      rows = rows.map((r) => ({ ...r, value: (Number(r.shrsOrPrnAmt?.sshPrnamt) || 0) / m0, shrsOrPrnAmt: { ...(r.shrsOrPrnAmt || {}), sshPrnamt: Number(r.value) || 0 } }));
+      columnFix = { swapped: true, by: 'market-price', median: v.median, priced: v.priced, agree: v.agree };
+    }
+  }
   const { mult, corrected } = detectValueScale(rows, filingDate);
   const map = new Map();
   for (const r of rows) {
@@ -308,7 +323,7 @@ export function aggregatePositions(rows, filingDate, { period = null, closeOf } 
   for (const p of positions) p.weight = aum ? (p.value / aum) * 100 : 0;
   // `unitFix` travels with the filing so a page can say the numbers were
   // corrected rather than quietly restating what the filer reported.
-  return { aum, positions, ...(unitFix ? { unitFix } : {}) };
+  return { aum, positions, ...(unitFix ? { unitFix } : {}), ...(columnFix ? { columnFix } : {}) };
 }
 
 // Full holdings for one filing — cached long-term since filings are immutable.

@@ -20,7 +20,7 @@ permissions:
   contents: read
 
 env:
-  DIAG_CIKS: '0001081019 0001777271 0001044929 0001032814 0001630939 0001388168 0001206792 0000319933 0001639943 0001846236 0001845003 0001894188 0001513193 0001536054'
+  DIAG_CIKS: '0001081019 0001777271'
 
 jobs:
   diag:
@@ -47,3 +47,16 @@ jobs:
       - if: steps.ask.outputs.run == 'true'
         name: What the live site serves
         run: node scripts/live-report.mjs
+      # The nightly build's new steps on a slice of the universe: declared
+      # totals, copy-book pairs and the check. Written to the runner only.
+      - if: steps.ask.outputs.run == 'true'
+        name: Dry run of the universe build and its check (300 filers)
+        run: |
+          mv client/public/universe.json "$RUNNER_TEMP/universe.prev.json"
+          node scripts/build-universe.mjs
+          node -e "const U=require('./client/public/universe.json');const d=U.rows.filter(r=>r.declared>0);console.log('rows',U.rows.length,'with declared',d.length,'with alternatives',U.rows.filter(r=>r.declaredAlt).length);for(const r of d.slice(0,8))console.log(r.name,r.aum,r.declared,r.declaredAlt||'')"
+          head -c 600 api/_data/copy-books.json; echo
+          node scripts/check-universe-audit.mjs || echo "check exit $?"
+        env:
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          UNIVERSE_LIMIT: 300

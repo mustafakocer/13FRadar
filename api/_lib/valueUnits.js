@@ -93,3 +93,34 @@ export function correctionEntry({ cik, name, period, acc, filed, verdict, source
     : 'median implied share price outside any traded price';
   return { cik, name: name || null, period: period || null, acc: acc || null, filed: filed || null, factor: verdict.factor, reason: `${evidence}: ${wrong}`, source };
 }
+
+// Value and share-count columns swapped by the filer: CalSTRS's 2026-Q2
+// table gives NVIDIA as 7,007,449,934 shares worth $35,021,490 — 35.0M
+// shares worth $7.0B the other way round — so the book read $0.78B against
+// the $108.6B its own cover page declares. Judged like the unit, on the
+// filing as a whole: value ÷ shares lands nowhere near the close, shares ÷
+// value lands on it for most priced rows. Rows only: never one line.
+export const SWAP_BAND = [0.75, 1.33];
+export function columnSwap(rows, period, { closeOf = defaultCloseOf } = {}) {
+  const asIs = [];
+  const swapped = [];
+  for (const r of rows) {
+    if (r.putCall || !(r.shares > 0) || !(r.value > 0)) continue;
+    const close = closeOf(r, period);
+    if (!close) continue;
+    asIs.push(r.value / r.shares / close);
+    swapped.push(r.shares / r.value / close);
+  }
+  const m = median(swapped);
+  const out = { swap: false, median: m, priced: swapped.length, agree: null };
+  if (swapped.length < MIN_PRICED * 2) return out;
+  const inBand = (x) => x >= SWAP_BAND[0] && x <= SWAP_BAND[1];
+  const asIsMedian = median(asIs);
+  // the stated reading must be off by more than a unit could explain
+  if (asIsMedian >= 1e-4 && asIsMedian <= 1e4) {
+    const unitBand = (x) => (x >= 0.5 && x <= 2) || (x >= WRONG_BAND[0] && x <= WRONG_BAND[1]) || (x >= 1 / WRONG_BAND[1] && x <= 1 / WRONG_BAND[0]);
+    if (unitBand(asIsMedian)) return out;
+  }
+  const agree = swapped.filter(inBand).length / swapped.length;
+  return inBand(m) && agree > 0.6 ? { swap: true, median: m, priced: swapped.length, agree } : out;
+}

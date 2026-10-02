@@ -1,0 +1,13 @@
+{
+  "_readme": "Short notes shown on a fund's page about its own filing error, checked by hand (api/_lib/filingNotes.js). `acc` limits a note to that filing. kind 'cover-total': the cover page's declared total is wrong and the information table is right (its prices match market closes); `declared` is the cover's figure and `table` the table's total, in dollars.",
+  "notes": [
+    {
+      "cik": "0001777271",
+      "acc": "0001777271-26-000007",
+      "kind": "cover-total",
+      "declared": 215850210050,
+      "table": 21585021050,
+      "reason": "2026-06-30: the cover page declares $215.85B; the 2,869-line table sums to $21.59B and its implied prices match the quarter-end closes (median ratio 1.000 over 15 priced lines): the cover carries an extra digit."
+    }
+  ]
+}

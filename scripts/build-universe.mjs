@@ -9,7 +9,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
-import { fetchInfoTableXml, parse13F, aggregatePositions, getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
+import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
+import { declaredCandidates, lineKey, overlapPairs } from '../api/_lib/universeAudit.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
@@ -118,6 +119,7 @@ async function main() {
   // portfolio page's free view never has to go back to EDGAR for them
   const snapshot = {};
   const stockAgg = new Map(); // cusip -> {issuer, value, funds}
+  const books = []; // { id: cik, keys } per filer
   let done = 0;
   let failed = 0;
   let amended = 0;
@@ -139,20 +141,38 @@ async function main() {
   //
   // The period also feeds the unit check (valueUnits.js): a single original
   // is dated from its filing date — a July filing reports June.
+  // The filer's own declared total (cover page "Form 13F Information Table
+  // Value Total"), amendments applied the way the table is: a restatement
+  // replaces it, new holdings add to it. scripts/check-universe-audit.mjs
+  // compares it with ours every night. Null when a cover cannot be read.
+  // → [declared, …other readings] (universeAudit.js declaredCandidates), or []
+  async function declaredTotal(cik, acc, amendments) {
+    try {
+      const base = await fetchCoverPage(cik, acc);
+      if (!amendments?.length) return base?.tableValueTotal > 0 ? [base.tableValueTotal] : [];
+      const covers = await Promise.all(amendments.map((a) => fetchCoverPage(cik, a.acc)));
+      return declaredCandidates(base?.tableValueTotal ?? null, amendments.map((a, k) => ({ type: covers[k]?.amendmentType || a.type, total: covers[k]?.tableValueTotal ?? null })));
+    } catch {
+      return [];
+    }
+  }
+
   async function latestSnapshot(e) {
     if (e.form !== '13F-HR/A' && (e.originals || 0) < 2) {
       const xml = await fetchInfoTableXml(e.cik, e.acc);
       const parsed = await parse13F(xml);
       const period = inferPeriod(e.filed);
       const { aum, positions, unitFix } = aggregatePositions(parsed, e.filed, { period });
-      return { acc: e.acc, filed: e.filed, reportDate: period, periodFrom: 'filing-date', aum, positions, amendments: null, unitFix };
+      const [declared = null, ...declaredAlt] = await declaredTotal(e.cik, e.acc, null);
+      return { acc: e.acc, filed: e.filed, reportDate: period, periodFrom: 'filing-date', aum, positions, amendments: null, unitFix, declared, declaredAlt };
     }
     const filings = list13F(await getSubmissions(e.cik));
     const f = filings[0];
     if (!f) throw new Error('no 13F in the submissions feed');
     const { aum, positions, amendments, unitFix } = await getEffectiveHoldings(e.cik, f);
     if (e.form === '13F-HR/A') amended++;
-    return { acc: f.acc, filed: f.filingDate, reportDate: f.reportDate, periodFrom: 'submissions', aum, positions, amendments: amendments || null, unitFix };
+    const [declared = null, ...declaredAlt] = await declaredTotal(e.cik, f.acc, f.amendments);
+    return { acc: f.acc, filed: f.filingDate, reportDate: f.reportDate, periodFrom: 'submissions', aum, positions, amendments: amendments || null, unitFix, declared, declaredAlt };
   }
 
   await Promise.all(
@@ -163,6 +183,8 @@ async function main() {
           const snap = await latestSnapshot(e);
           const { aum, positions } = snap;
           rows.push(universeRow(e, snap));
+          // every book's lines, for the near-identical-book check below
+          books.push({ id: e.cik.padStart(10, '0'), keys: positions.map(lineKey) });
           snapshot[e.cik.padStart(10, '0')] = snapshotEntry({
             acc: snap.acc,
             filed: snap.filed,
@@ -222,6 +244,14 @@ async function main() {
     JSON.stringify({ updatedAt: new Date().toISOString(), byCik: snapshot })
   );
   console.log(`Wrote ${Object.keys(snapshot).length} filers -> api/_data/latest-holdings.json`);
+
+  // Books filed by two filers: more than 90% of each side's lines match the
+  // other's by CUSIP, put/call and shares. Read every night by
+  // scripts/check-universe-audit.mjs, which raises the alarm on a new pair.
+  const pairs = overlapPairs(books);
+  fs.writeFileSync(path.join(snapDir, 'copy-books.json'), JSON.stringify({ updatedAt: new Date().toISOString(), pairs: pairs.map((p) => ({ ...p, shareA: Number(p.shareA.toFixed(4)), shareB: Number(p.shareB.toFixed(4)) })) }, null, 1));
+  console.log(`Wrote ${pairs.length} near-identical book pair(s) -> api/_data/copy-books.json`);
+  books.length = 0;
 
   // Rank all securities by total universe value
   const ranked = [...stockAgg.entries()]

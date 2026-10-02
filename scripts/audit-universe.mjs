@@ -12,7 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings } from '../api/_lib/sec.js';
 import { completeQuarter, inferPeriod } from '../api/_lib/universeSummary.js';
-import { compareTotal, lineKey, overlapPairs, TOTAL_TOLERANCE, effectiveDeclared, storedUnitSlip } from '../api/_lib/universeAudit.js';
+import { compareTotal, lineKey, overlapPairs, TOTAL_TOLERANCE, declaredCandidates, storedUnitSlip } from '../api/_lib/universeAudit.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const U = JSON.parse(fs.readFileSync(path.join(root, 'client', 'public', 'universe.json'), 'utf8'));
@@ -40,7 +40,11 @@ await Promise.all(
           const filing = { acc: r.acc, filingDate: r.filed, reportDate: period, amendments: amends.map((a) => ({ acc: a.acc, filingDate: a.filingDate })) };
           agg = await getEffectiveHoldings(r.cik, filing);
           const covers = await Promise.all(amends.map((a) => fetchCoverPage(r.cik, a.acc)));
-          declared = effectiveDeclared(declared, amends.map((a, k) => ({ type: covers[k]?.amendmentType || a.type, total: covers[k]?.tableValueTotal ?? null })));
+          // the reading closest to our total (a NEW HOLDINGS cover often
+          // carries the period's cumulative total, not the added lines')
+          const fresh0 = Math.round(agg.aum);
+          const cands = declaredCandidates(declared, amends.map((a, k) => ({ type: covers[k]?.amendmentType || a.type, total: covers[k]?.tableValueTotal ?? null })));
+          declared = cands.length ? cands.reduce((best, d) => (Math.abs(Math.log(fresh0 / d)) < Math.abs(Math.log(fresh0 / best)) ? d : best)) : null;
         } else {
           agg = aggregatePositions(await parse13F(await fetchInfoTableXml(r.cik, r.acc)), r.filed, { period });
         }

@@ -1,12 +1,12 @@
 {
  "dataset": "finnhub",
  "kind": "provider",
- "run_id": "37024867815",
- "last_run_at": "2026-10-02T15:09:52.278Z",
+ "run_id": "37026265849",
+ "last_run_at": "2026-10-02T15:21:26.392Z",
  "last_success_at": null,
  "last_error": "1 refusal(s): Finnhub quote: refused (HTTP 403)",
- "last_error_at": "2026-10-02T15:09:52.278Z",
- "calls_ok": 31,
+ "last_error_at": "2026-10-02T15:21:26.392Z",
+ "calls_ok": 19,
  "refusals": 1,
  "transient_errors": 0
 }

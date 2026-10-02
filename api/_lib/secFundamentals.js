@@ -312,7 +312,13 @@ export function mergeFacts(current, predecessor) {
         continue;
       }
       const units = { ...mine.units };
-      for (const [u, entries] of Object.entries(c.units || {})) units[u] = [...entries, ...(units[u] || [])];
+      for (const [u, entries] of Object.entries(c.units || {})) {
+        // the same line from both sources (a filing's document and
+        // companyfacts state one cover count) is one line, not two classes
+        const key = (e) => `${e.start || ''}|${e.end}|${e.val}|${e.accn}`;
+        const have = new Set((units[u] || []).map(key));
+        units[u] = [...entries.filter((e) => !have.has(key(e))), ...(units[u] || [])];
+      }
       out.facts[ns][name] = { ...mine, units };
     }
   }

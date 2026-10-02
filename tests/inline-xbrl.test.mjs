@@ -48,3 +48,11 @@ test('Berkshire from its cover: Class A at 1,500 B; EPS from net income over the
   assert.equal(Number(b.eps.value.toFixed(2)), Number((85.8e9 / bEq).toFixed(2)));
   assert.equal(b.eps.derivedFrom, 'net-income');
 });
+
+test('the same cover line from the document and from companyfacts counts once (Toyota)', async () => {
+  const { mergeFacts, sharesOutstanding } = await import('../api/_lib/secFundamentals.js');
+  const line = { end: '2026-03-31', val: 13033931974, accn: '0001193125-26-264811', filed: '2026-06-10', form: '20-F' };
+  const doc = { facts: { dei: { EntityCommonStockSharesOutstanding: { units: { shares: [line] } } } } };
+  const cf = { facts: { dei: { EntityCommonStockSharesOutstanding: { units: { shares: [{ ...line }] } } } } };
+  assert.equal(sharesOutstanding(mergeFacts(doc, cf).facts, null, { asOf: '2026-10-02' }).value, 13033931974);
+});

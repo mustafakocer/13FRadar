@@ -54,6 +54,11 @@ export const api = {
     const full = opts.full === '1';
     return get(`/api/holdings/${cik}/${acc}${qs ? `?${qs}` : ''}`, full ? { timeoutMs: 30000 } : undefined);
   },
+  // what a filing bought and sold vs the one before (FAQ + Changes tab)
+  changes: (cik, acc, opts = {}) => {
+    const qs = new URLSearchParams(opts).toString();
+    return get(`/api/changes/${cik}/${acc}${qs ? `?${qs}` : ''}`, opts.full === '1' ? { timeoutMs: 30000 } : undefined);
+  },
   aumHistory: (cik) => get(`/api/aum-history/${cik}`),
   returns: (symbols) => get(`/api/returns?symbols=${symbols.join(',')}`),
   stock: (ticker) => get(`/api/stock/${encodeURIComponent(ticker)}`),

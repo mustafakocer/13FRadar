@@ -42,7 +42,11 @@ export function resolveQuarters(g) {
 export function resolveTimeHeld(g) {
   const out = {};
   for (const [cusip, e] of Object.entries(g?.positions || {})) {
-    if (e.heldQuarters > 0) out[cusip] = { quarters: e.heldQuarters, ticker: tickerOfPosition(cusip, e), firstSeen: e.firstSeen };
+    if (e.heldQuarters > 0) {
+      out[cusip] = { quarters: e.heldQuarters, ticker: tickerOfPosition(cusip, e), firstSeen: e.firstSeen };
+      // held since the first quarter of the data: longer than the data shows
+      if (e.heldQuarters >= (g.quarters || []).length) out[cusip].dataFrom = g.quarters[0].reportDate;
+    }
   }
   return out;
 }

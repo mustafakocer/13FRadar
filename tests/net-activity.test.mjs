@@ -118,10 +118,14 @@ test('coverage explains tracked → filed → counted with reasons', () => {
   const wide = tracked.filter((g) => g.consensus === false).length;
   const wideFiled = tracked.slice(0, 82).filter((g) => g.consensus === false).length;
   assert.equal(c.included, 82 - wideFiled, 'counted = filed discretionary books');
-  assert.equal(c.excluded['wide-book'], wide, 'a wide book is excluded whether or not it filed');
-  assert.equal(c.excluded['not-filed'], 16 - (wide - wideFiled), 'not filed, among the discretionary books');
+  assert.ok(wide > wideFiled, 'some wide books have not filed');
+  // the reasons are disjoint, so the sentence adds up both ways:
+  // tracked = counted + not filed + wide books, filed = counted + wide books
+  assert.equal(c.excluded['wide-book'], wideFiled, 'a wide book that filed; one that did not is "not filed"');
+  assert.equal(c.excluded['not-filed'], 16, 'every fund that has not filed');
   assert.equal(c.included + c.excluded['not-filed'] + c.excluded['wide-book'], 98);
-  assert.deepEqual(coverage('2026-06-30', new Map()).excluded, { 'not-filed': 72, 'wide-book': 26 });
+  assert.equal(c.included + c.excluded['wide-book'], c.filed);
+  assert.deepEqual(coverage('2026-06-30', new Map()).excluded, { 'not-filed': 98, 'wide-book': 0 });
 });
 
 // The integration check: build the three datasets the pages read over the

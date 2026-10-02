@@ -1,0 +1,4 @@
+{
+  "_readme": "Filers whose 13F book is another filer's book: a parent and a subsidiary (or two entities of one manager) filing the same table. The home page total counts each such book once (api/_lib/universeSummary.js). Only pairs that are plainly the same manager go here; a pair that merely overlaps stays out. Found by scripts/audit-universe.mjs (more than 90% of lines equal by CUSIP, put/call and shares, both ways).",
+  "pairs": []
+}

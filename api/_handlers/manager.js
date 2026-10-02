@@ -4,6 +4,7 @@ import { guruHistory } from '../_lib/history.js';
 import { latestHoldingsTable } from '../_lib/latestHoldings.js';
 import { createRequire } from 'node:module';
 import { reportIndex } from './report.js';
+import { misfiledFor, misfiledMark } from '../_lib/misfiledBooks.js';
 
 const require = createRequire(import.meta.url);
 // the manager's quarter-over-quarter card from the daily consensus build
@@ -66,6 +67,7 @@ export default async function handler(req, res) {
   }
   res.setHeader('Cache-Control', source === 'edgar' ? 's-maxage=1800, stale-while-revalidate=86400' : 's-maxage=300, stale-while-revalidate=3600');
   const entry = slugForCik(cik);
+  const misfiled = misfiledFor(cik);
   res.status(200).json({
     cik: padCik(cik),
     name: sub.name || entry?.name || `CIK ${padCik(cik)}`,
@@ -78,6 +80,8 @@ export default async function handler(req, res) {
     city: sub.addresses?.business?.city || null,
     state: sub.addresses?.business?.stateOrCountry || null,
     source,
+    // a filing whose table is another filer's (config/misfiled-books.json)
+    misfiled: misfiled ? misfiledMark(misfiled) : null,
     filings,
   });
 }

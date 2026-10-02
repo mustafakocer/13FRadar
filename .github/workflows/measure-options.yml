@@ -1,0 +1,41 @@
+name: Measure option notional
+
+# One-off measurement for the home page's headline total (options excluded):
+# reads every current filing's info table and prints each fund's put/call
+# value (PCV lines) and the total to the log and the job summary. Commits
+# nothing; `node scripts/measure-options.mjs --apply <log>` writes the result
+# into universe.json. The universe build records the same figure itself from
+# its next run.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/measure-options.mjs'
+      - '.github/workflows/measure-options.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      # on a pull request only when the head commit's message carries [measure]
+      - id: ask
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[measure\]'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [measure] in the head commit: skipped"; fi
+      - if: steps.ask.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: steps.ask.outputs.run == 'true'
+        run: npm ci
+      - if: steps.ask.outputs.run == 'true'
+        name: Read every current filing's option lines
+        run: node scripts/measure-options.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'

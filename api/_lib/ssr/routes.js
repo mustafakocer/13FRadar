@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { invoke, withBudget } from './invoke.js';
 import managerHandler from '../../_handlers/manager.js';
 import holdingsHandler from '../../_handlers/holdings.js';
+import changesHandler from '../../_handlers/changes.js';
 import stockHandler from '../../_handlers/stock.js';
 import guruStocksHandler from '../../_handlers/guru-stocks.js';
 import slugHandler from '../../_handlers/slug.js';
@@ -99,6 +100,11 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
     // budget only binds when a filing newer than the snapshot has to be read.
     const hold = ok(await withBudget(invoke(holdingsHandler, { cik, acc }), 9000));
     if (hold) seeds.push([['holdings', cik, acc, false], hold]);
+    // what the filing bought and sold, so the FAQ answers in the HTML: a
+    // curated guru answers from its stored history in milliseconds; another
+    // filer reads EDGAR on a short leash (the client fills it in)
+    const ch = ok(await withBudget(invoke(changesHandler, { cik, acc }), 2500));
+    if (ch) seeds.push([['changes', cik, acc, false], ch]);
     // The previous quarter (for the change arrows) is always an EDGAR read
     // and used to cost the render up to six more seconds; the client fetches
     // it after hydration and the arrows fill in.
@@ -283,7 +289,8 @@ async function loadCompare() {
 // depends on the country, so the page is not CDN-cached.
 async function loadPricing({ _country } = {}) {
   const p = ok(await withBudget(invoke(plansHandler, {}, { 'x-vercel-ip-country': _country || '' }), 7000));
-  return p ? [[['plans'], p]] : [];
+  const s = staticSummary();
+  return [...(p ? [[['plans'], p]] : []), ...(s ? [[['universe-summary'], s]] : [])];
 }
 
 // Public routes rendered on the server. Anything else renders the shell

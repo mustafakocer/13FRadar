@@ -88,6 +88,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         ret1y: returns?.[p.ticker]?.ret1y ?? null,
         retYtd: returns?.[p.ticker]?.retYtd ?? null,
         held: timeHeld ? (timeHeld[p.cusip]?.quarters ?? 0) : null,
+        heldFrom: timeHeld?.[p.cusip]?.dataFrom || null,
       };
     });
     const f = filter.trim().toLowerCase();
@@ -225,10 +226,10 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     <td className="num">
                       {guruSlug && p.ticker && p.held > 0 ? (
                         <Link to={`/guru/${guruSlug}/${p.ticker}`} onClick={(e) => e.stopPropagation()}>
-                          {timeHeldLabel(p.held, lang)}
+                          {timeHeldLabel(p.held, lang, { dataFrom: p.heldFrom })}
                         </Link>
                       ) : (
-                        timeHeldLabel(p.held, lang) || '—'
+                        timeHeldLabel(p.held, lang, { dataFrom: p.heldFrom }) || '—'
                       )}
                     </td>
                   )}

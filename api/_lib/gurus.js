@@ -191,15 +191,19 @@ export function coverage(quarterEnd, filedByCik = new Map()) {
   const reasons = { 'not-filed': 0, 'wide-book': 0 };
   let filed = 0;
   let included = 0;
+  // The reasons are disjoint, so the line adds up: tracked = included +
+  // not-filed + wide-book, and filed = included + wide-book. A wide book
+  // that has not filed is "not filed" (it used to be counted as wide-book
+  // either way: "98 tracked · 82 filed · 71 counted · 1 not filed").
   for (const g of tracked) {
     const hasFiled = filedByCik.get(g.cik) === quarterEnd;
-    if (hasFiled) filed++;
-    if (hasFiled && g.consensus !== false) {
-      included++;
+    if (!hasFiled) {
+      reasons['not-filed']++;
       continue;
     }
-    const why = g.consensus === false ? 'wide-book' : 'not-filed';
-    reasons[why] = (reasons[why] || 0) + 1;
+    filed++;
+    if (g.consensus !== false) included++;
+    else reasons['wide-book']++;
   }
   return { quarter: quarterEnd, tracked: tracked.length, filed, included, excluded: reasons };
 }

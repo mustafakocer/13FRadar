@@ -85,9 +85,30 @@ export function joinUniverse(rows, universeRows = []) {
       // row (an amendment's own table, see build-filings.mjs), else nothing
       aum: u?.aum ?? r.aum ?? null,
       positions: u?.positions ?? r.positions ?? null,
-      reportDate: u?.reportDate ?? r.reportDate ?? null,
+      // a period the universe only inferred from the filing date yields to
+      // the one the filer's submissions feed states
+      reportDate: (u?.periodFrom === 'filing-date' ? r.reportDate ?? u.reportDate : u?.reportDate ?? r.reportDate) ?? null,
     };
   });
+}
+
+// Does a filer need its submissions feed read (report periods, address)?
+// Not when the row's accession is already dated. A filer read on an earlier
+// day is read again when the accession is still missing: one looked up on
+// the morning it filed, before EDGAR's feed listed the new documents, used
+// to keep "—" as its period forever (Innovative Advisory, 2026-09-23).
+export function needsLookup(row, metaEntry, today) {
+  if (!metaEntry) return true;
+  if (metaEntry.reportByAcc?.[row.acc]) return false;
+  return !(metaEntry.checkedAt && metaEntry.checkedAt >= today);
+}
+
+// Originals the feed has no figures for: the universe measures one filing
+// per filer, so a filer that sent several periods at once (Bullock Wealth:
+// seven on 2026-09-24) had "—" on every row but one. Newest first, capped.
+export function rowsToMeasure(rows, universeRows = [], budget = Infinity) {
+  const measured = new Set(universeRows.map((u) => u?.acc).filter(Boolean));
+  return rows.filter((r) => !r.amended && r.aum == null && r.positions == null && !measured.has(r.acc)).slice(0, budget);
 }
 
 // Quarter label for the report period a filing covers, e.g. "2026-06-30" →

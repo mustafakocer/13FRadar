@@ -77,6 +77,11 @@ jobs:
         env:
           SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      # Stored values in dollars, filing by filing (a filer that wrote the
+      # wrong unit is rescaled as a whole), the correction log rebuilt, and
+      # the headline numbers recomputed from the result.
+      - name: Check value units
+        run: node scripts/repair-units.mjs
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
@@ -95,7 +100,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
+          for f in api/_data/unit-corrections.json client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

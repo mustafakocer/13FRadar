@@ -1,3 +1,4 @@
+import { filingScale } from './valueUnits.js';
 import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -268,7 +269,10 @@ export function detectValueScale(rows, filingDate, { minRows = 8 } = {}) {
   return { mult: stated, corrected: false, median };
 }
 
-export function aggregatePositions(rows, filingDate) {
+// `period` (the report date) turns on the market-price check
+// (valueUnits.js): the whole filing is rescaled by 1000 when its priced rows
+// say the unit is wrong. Without it only the physical-price rule above runs.
+export function aggregatePositions(rows, filingDate, { period = null, closeOf } = {}) {
   const { mult, corrected } = detectValueScale(rows, filingDate);
   const map = new Map();
   for (const r of rows) {
@@ -291,11 +295,20 @@ export function aggregatePositions(rows, filingDate) {
     map.set(key, cur);
   }
   const positions = [...map.values()].sort((a, b) => b.value - a.value);
+  let unitFix = corrected ? { factor: mult / valueMultiplier(filingDate), by: 'implied-price' } : null;
+  if (period && !corrected) {
+    // the 25 largest priced lines decide; a price file is read per line
+    const verdict = filingScale(positions.filter((p) => !p.putCall).slice(0, 25), period, closeOf ? { closeOf } : {});
+    if (verdict.factor !== 1) {
+      for (const p of positions) p.value *= verdict.factor;
+      unitFix = { factor: verdict.factor, by: 'market-price', median: verdict.median, priced: verdict.priced, agree: verdict.agree };
+    }
+  }
   const aum = positions.reduce((s, p) => s + p.value, 0);
   for (const p of positions) p.weight = aum ? (p.value / aum) * 100 : 0;
   // `unitFix` travels with the filing so a page can say the numbers were
   // corrected rather than quietly restating what the filer reported.
-  return { aum, positions, ...(corrected ? { unitFix: true } : {}) };
+  return { aum, positions, ...(unitFix ? { unitFix } : {}) };
 }
 
 // Full holdings for one filing — cached long-term since filings are immutable.
@@ -304,8 +317,8 @@ export function aggregatePositions(rows, filingDate) {
 // otherwise the info table is fetched and parsed as before. The store is off
 // by default and returns null on any trouble, so this is a shortcut, never a
 // dependency.
-export function getHoldings(cik, acc, filingDate) {
-  return cached(`hold:${numCik(cik)}:${acc}`, TTL.DAY_7, async () => {
+export function getHoldings(cik, acc, filingDate, period = null) {
+  return cached(`hold:${numCik(cik)}:${acc}${period ? `:${period}` : ''}`, TTL.DAY_7, async () => {
     const stored = await storedHoldings(cik, acc);
     if (stored) return stored;
     const xml = await fetchInfoTableXml(cik, acc);
@@ -315,7 +328,7 @@ export function getHoldings(cik, acc, filingDate) {
       const sub = await getSubmissions(cik);
       fd = list13FAll(sub).find((f) => f.acc === acc)?.filingDate;
     }
-    return aggregatePositions(rows, fd);
+    return aggregatePositions(rows, fd, { period });
   });
 }
 
@@ -330,14 +343,14 @@ export function getHoldings(cik, acc, filingDate) {
 // quarter: the original alone is the better answer than no answer.
 export function getEffectiveHoldings(cik, filing) {
   const amendments = filing?.amendments || [];
-  if (!amendments.length) return getHoldings(cik, filing.acc, filing.filingDate);
+  if (!amendments.length) return getHoldings(cik, filing.acc, filing.filingDate, filing.reportDate || null);
   const stamp = amendments.map((a) => a.acc).join('+');
   return cached(`ehold:${numCik(cik)}:${filing.acc}:${stamp}`, TTL.DAY_7, async () => {
-    const base = await getHoldings(cik, filing.acc, filing.filingDate);
+    const base = await getHoldings(cik, filing.acc, filing.filingDate, filing.reportDate || null);
     const read = await Promise.all(
       amendments.map(async (a) => {
         const [holdings, cover] = await Promise.all([
-          getHoldings(cik, a.acc, a.filingDate).catch((e) => {
+          getHoldings(cik, a.acc, a.filingDate, filing.reportDate || null).catch((e) => {
             console.warn(`amendment ${a.acc} for ${filing.acc} could not be read: ${e.message}`);
             return null;
           }),

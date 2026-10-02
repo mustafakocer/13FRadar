@@ -18,7 +18,7 @@ export default function handler(req, res) {
     return res.status(503).json({ error: 'universe not built' });
   }
   const rows = universe.rows
-    .filter((r) => r.aum >= 100e6 && r.aum <= 1e9 && r.top10 >= 50)
+    .filter((r) => !r.misfiled && r.aum >= 100e6 && r.aum <= 1e9 && r.top10 >= 50)
     .map((r) => ({ cik: r.cik, name: r.name, filed: r.filed, aum: r.aum, positions: r.positions, top10: r.top10, smallCapShare: r.smallCapShare ?? null, path: filerPath(r.cik) }))
     .sort((a, b) => b.top10 - a.top10 || b.aum - a.aum);
   res.setHeader('Cache-Control', 's-maxage=86400, stale-while-revalidate=604800');

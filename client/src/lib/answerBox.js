@@ -38,21 +38,19 @@ export function biggestMove({ newBuys = [], adds = [], reduces = [], exits = [] 
   return cands[0] || null;
 }
 
-// Derive changes from the free-tier page data (top-10 vs. previous quarter).
-export function movesFromPositions(positions = [], prevPositions = null) {
-  if (!prevPositions) return { newBuys: [], adds: [], reduces: [], exits: [] };
-  const prev = new Map(prevPositions.map((p) => [p.cusip, p]));
-  const cur = new Map(positions.map((p) => [p.cusip, p]));
-  const out = { newBuys: [], adds: [], reduces: [], exits: [] };
-  for (const p of positions) {
-    const q = prev.get(p.cusip);
-    const px = p.shares > 0 ? p.value / p.shares : 0;
-    if (!q) out.newBuys.push({ ticker: p.ticker, issuer: p.issuer, value: p.value });
-    else if (p.shares > q.shares) out.adds.push({ ticker: p.ticker, issuer: p.issuer, value: (p.shares - q.shares) * px });
-    else if (p.shares < q.shares) out.reduces.push({ ticker: p.ticker, issuer: p.issuer, value: (q.shares - p.shares) * px });
-  }
-  for (const q of prevPositions) if (!cur.has(q.cusip)) out.exits.push({ ticker: q.ticker, issuer: q.issuer, value: q.value });
-  return out;
+// The page's moves from the filing's changes (portfolioChanges.js): the
+// money in each line — shares bought or sold at the period-end price, a new
+// line's value, an exit's last value.
+export function movesFromChanges(changes) {
+  if (!changes?.counts) return { newBuys: [], adds: [], reduces: [], exits: [] };
+  const px = (p) => (p.shares > 0 ? p.value / p.shares : p.prevShares > 0 ? p.prevValue / p.prevShares : 0);
+  const pick = (p, value) => ({ ticker: p.ticker, issuer: p.issuer, value });
+  return {
+    newBuys: changes.new.map((p) => pick(p, p.value)),
+    adds: changes.added.map((p) => pick(p, (p.shares - p.prevShares) * px(p))),
+    reduces: changes.reduced.map((p) => pick(p, (p.prevShares - p.shares) * px(p))),
+    exits: changes.exited.map((p) => pick(p, p.prevValue)),
+  };
 }
 
 // Guru ----------------------------------------------------------------------
@@ -77,12 +75,12 @@ export function guruAnswer(input, lang = 'en') {
 
 // Adapter for the guru page (manager + holdings + previous quarter, or the
 // precomputed consensus `updates` card when the manager is curated).
-export function guruAnswerFromPage({ manager, filing, holdings, prevPositions, update }, lang) {
+export function guruAnswerFromPage({ manager, filing, holdings, changes, update }, lang) {
   if (!manager || !filing || !holdings?.positions?.length) return null;
   const top = holdings.positions[0];
   const moves = update
     ? { newBuys: update.newBuys, adds: update.adds, reduces: update.reduces, exits: update.exits }
-    : movesFromPositions(holdings.positions.slice(0, 10), prevPositions);
+    : movesFromChanges(changes);
   return guruAnswer(
     {
       name: manager.displayName || manager.name,

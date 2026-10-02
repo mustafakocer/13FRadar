@@ -42,6 +42,7 @@ export default function handler(req, res) {
       prev = r ? shares : null;
       return row;
     });
+    const dataFrom = e.heldQuarters > 0 && e.heldQuarters >= g.quarters.length ? g.quarters[0].reportDate : null;
     return res.status(200).json({
       cik,
       name: g.name,
@@ -49,8 +50,10 @@ export default function handler(req, res) {
       ticker: tickerOfPosition(cusip, e),
       issuer: e.issuer,
       heldQuarters: e.heldQuarters,
-      timeHeld: timeHeldLabel(e.heldQuarters),
+      timeHeld: timeHeldLabel(e.heldQuarters, 'en', { dataFrom }),
       firstSeen: e.firstSeen,
+      // the streak reaches the first quarter of the data: held at least since
+      ...(dataFrom ? { dataFrom } : {}),
       splitAdjusted: Boolean(e.splitAdjusted),
       rows,
     });

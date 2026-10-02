@@ -1,0 +1,39 @@
+name: Audit the universe
+
+# Our totals against each filer's declared table value total, and books
+# filed twice under two CIKs (scripts/audit-universe.mjs). Commits nothing.
+# About an hour of EDGAR reads, so on a pull request it runs only when the
+# head commit's message carries [audit].
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/audit-universe.mjs'
+      - 'api/_lib/universeAudit.js'
+      - '.github/workflows/audit-universe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - id: ask
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[audit\]'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [audit] in the head commit: skipped"; fi
+      - if: steps.ask.outputs.run == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - if: steps.ask.outputs.run == 'true'
+        run: npm ci
+      - if: steps.ask.outputs.run == 'true'
+        name: Compare with EDGAR
+        run: node scripts/audit-universe.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'

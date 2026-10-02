@@ -50,16 +50,8 @@ export function topRankedCusips(positions, n) {
 
 export const guruHistory = (cik) => historyTable()?.gurus?.[String(cik).padStart(10, '0')] || null;
 
-// "Time held": consecutive quarters up to and including the latest, as text.
-// Capped at ">10 Years" (the precompute looks 40 quarters back).
-export function timeHeldLabel(quarters, lang = 'en') {
-  if (!quarters) return null;
-  if (quarters >= 40) return lang === 'tr' ? '>10 Yıl' : '>10 Years';
-  const years = quarters / 4;
-  if (years < 1) return lang === 'tr' ? `${quarters} Çeyrek` : `${quarters} Q`;
-  const y = Math.round(years * 10) / 10;
-  return lang === 'tr' ? `${y} Yıl` : `${y} Year${y === 1 ? '' : 's'}`;
-}
+// "Time held" labels: one implementation shared with the client bundle.
+export { timeHeldLabel, reachesDataStart } from '../../client/src/lib/timeHeld.js';
 
 // Apply split adjustments to a historical share count so it is comparable
 // with today's share count. splits: [{ date: 'YYYY-MM-DD', ratio: 4 }] (4 = 4-for-1).

@@ -3,6 +3,7 @@ import { readFixture } from '../_lib/fixtures.js';
 import { hasTd, hasFinnhub, tdStock, finnhubStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
 import { fundamentalsFor } from '../_lib/fundamentals.js';
+import { readSeries } from '../_lib/priceStore.js';
 import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
 // GET /api/stock/:ticker — the quote board of a stock page.
@@ -165,7 +166,9 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
 // The SEC fundamentals (api/_lib/fundamentals.js), priced at the answer's
 // own price: P/E, market cap and yield move with it, the rest is the filing.
 function withFundamentals(data, ticker) {
-  const price = data?.price?.price ?? data?.price ?? null;
+  let price = data?.price?.price ?? data?.price ?? null;
+  // no quote on this answer: the last stored close prices the ratios
+  if (typeof price !== 'number') price = readSeries(ticker)?.prices?.at(-1)?.close ?? null;
   const sec = fundamentalsFor(ticker, typeof price === 'number' ? price : null);
   if (!sec) return data;
   const out = { ...data, sec };

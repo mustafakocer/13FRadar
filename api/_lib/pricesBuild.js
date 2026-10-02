@@ -14,7 +14,10 @@
 //   finnhub     /quote — the last close, 60 calls a minute and no daily cap
 //               on the free plan: appended to a series that has its history
 //               already, so the closes stay current without a history call.
-//               (Its /stock/candle history is off the free plan.)
+//               (Its /stock/candle history is off the free plan.) A 403 on
+//               /quote is about that one symbol (the free plan does not cover
+//               every listing), not the key: the symbol is skipped, and only
+//               a run of refusals in a row means the account is refused.
 import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -71,13 +74,17 @@ export function recentInsiderTickers(db, { days = 90 } = {}) {
 // last close is older than `maxAgeDays` (oldest first). A series fresh
 // enough is left alone. `capacity` is the calls the night can spend; the
 // plan says how many nights the whole universe needs at that rate.
+// A series of a few closes (quotes appended to a symbol no history call has
+// reached yet) still needs its history: it counts as missing.
+export const MIN_HISTORY_ROWS = 20;
+
 export function planFetch(symbols, index, { now = Date.now(), maxAgeDays = 1, capacity = Infinity } = {}) {
   const missing = [];
   const stale = [];
   let fresh = 0;
   for (const sym of symbols) {
     const have = index.get(seriesKey(sym));
-    if (!have?.asOf) missing.push({ symbol: sym, from: null, reason: 'missing' });
+    if (!have?.asOf || (have.rows != null && have.rows < MIN_HISTORY_ROWS)) missing.push({ symbol: sym, from: null, reason: 'missing' });
     else if (seriesAgeDays(have.asOf, now) > maxAgeDays) stale.push({ symbol: sym, from: have.asOf, reason: 'stale', asOf: have.asOf });
     else fresh++;
   }
@@ -111,14 +118,32 @@ export async function twelveDataSeries(symbol, from, { now = Date.now() } = {}) 
 
 // The last close from Finnhub's quote: [{ date, close }] — one row, merged
 // into the stored series by the build. null for a symbol it does not price
-// (a zero quote); throws on the quota.
-export async function finnhubQuote(symbol) {
+// (a zero quote, or a 403 for a listing the plan does not cover); throws on
+// the quota, on a bad key (401), and after FINNHUB_REFUSALS_IN_A_ROW 403s
+// with no answer between them (the account, not the symbols).
+export const FINNHUB_REFUSALS_IN_A_ROW = 10;
+let refusedInARow = 0;
+let refusedTotal = 0;
+export const finnhubRefusals = () => refusedTotal;
+export const resetFinnhubRefusals = () => {
+  refusedInARow = 0;
+  refusedTotal = 0;
+};
+
+export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.get(url, opts) } = {}) {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new Error('FINNHUB_API_KEY not set');
-  const r = await http.get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
-  if (r.status === 403) throw deadError('Finnhub quote: refused (HTTP 403)');
+  const r = await get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  if (r.status === 401) throw deadError('Finnhub quote: key refused (HTTP 401)');
+  if (r.status === 403) {
+    refusedInARow++;
+    refusedTotal++;
+    if (refusedInARow >= FINNHUB_REFUSALS_IN_A_ROW) throw deadError(`Finnhub quote: refused (HTTP 403) ${refusedInARow} times in a row`);
+    return null;
+  }
   if (r.status === 429) throw quotaError('Finnhub HTTP 429');
   if (r.status !== 200) throw new Error(`Finnhub HTTP ${r.status}`);
+  refusedInARow = 0;
   const c = Number(r.data?.c);
   const t = Number(r.data?.t);
   if (!(c > 0) || !(t > 0)) return null;
@@ -131,7 +156,8 @@ export function providerPlan(env = process.env) {
   const n = (k, dflt) => (env[k] === undefined || env[k] === '' ? dflt : Number(env[k]));
   return [
     { name: 'twelvedata', enabled: hasTd(), budget: n('PRICES_TD_BUDGET', 400), pauseMs: 7600, concurrency: 1, fetch: twelveDataSeries },
-    { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 2400), pauseMs: 1050, concurrency: 1, fetch: finnhubQuote },
+    // a quote only extends a series: symbols with no history wait for TwelveData
+    { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 2400), pauseMs: 1050, concurrency: 1, fetch: finnhubQuote, appendOnly: true },
   ].filter((p) => p.enabled && p.budget > 0);
 }
 
@@ -160,12 +186,18 @@ export async function buildPrices({
 
   const symbols = universeSymbols({ guruStocks, insiderTickers: recentInsiderTickers(read('api/_data/insiders.json')) });
   const index = seriesIndex();
-  const capacity = providers.reduce((s, p) => s + p.budget, 0);
-  const plan = planFetch(symbols, index, { now, maxAgeDays, capacity });
+  // every job is offered to the providers in turn, each within its own
+  // budget: history (TwelveData) for the symbols without one, then the last
+  // close (Finnhub) for the series already on file
+  const plan = planFetch(symbols, index, { now, maxAgeDays });
+  const historyBudget = providers.filter((p) => !p.appendOnly).reduce((s, p) => s + p.budget, 0);
+  const quoteBudget = providers.filter((p) => p.appendOnly).reduce((s, p) => s + p.budget, 0);
+  plan.nights = plan.missing === 0 ? 0 : historyBudget > 0 ? Math.max(1, Math.ceil(plan.missing / historyBudget)) : Infinity;
   log(
-    `price cache: ${symbols.length} symbols in the universe, ${index.size} on file — ${plan.missing} missing, ${plan.stale} stale (> ${maxAgeDays}d), ${plan.fresh} fresh; ` +
-      `tonight: ${plan.jobs.length} of ${plan.total} jobs through ${providers.map((p) => `${p.name}${Number.isFinite(p.budget) ? ` (${p.budget})` : ''}`).join(' → ') || 'no provider'}; ` +
-      `full fill at this rate: ${plan.nights} night${plan.nights === 1 ? '' : 's'}`
+    `price cache: ${symbols.length} symbols in the universe, ${index.size} on file — ${plan.missing} without a history, ${plan.stale} stale (> ${maxAgeDays}d), ${plan.fresh} fresh; ` +
+      `tonight through ${providers.map((p) => `${p.name} (${p.budget}${p.appendOnly ? ', last close only' : ''})`).join(' → ') || 'no provider'}; ` +
+      `histories for every symbol in ${Number.isFinite(plan.nights) ? `${plan.nights} night${plan.nights === 1 ? '' : 's'}` : 'never (no history provider)'}` +
+      (quoteBudget ? `; ${Math.min(plan.stale, quoteBudget)} of ${plan.stale} stale series get tonight's close` : '')
   );
   if (!providers.length) log('  no price provider is enabled (no TWELVEDATA/FINNHUB key) — nothing fetched');
   if (dryRun) return { plan, written: 0, unknown: 0, failed: 0, bySource: {}, dryRun: true };
@@ -174,8 +206,13 @@ export async function buildPrices({
   let pending = plan.jobs;
   for (const p of providers) {
     if (!pending.length) break;
-    const mine = pending.slice(0, Number.isFinite(p.budget) ? p.budget : pending.length);
     const leftover = [];
+    let queue = pending;
+    if (p.appendOnly) {
+      queue = pending.filter((j) => j.from);
+      leftover.push(...pending.filter((j) => !j.from));
+    }
+    const mine = queue.slice(0, Number.isFinite(p.budget) ? p.budget : queue.length);
     let spent = 0;
     let out = false;
     let ok = 0;
@@ -217,7 +254,7 @@ export async function buildPrices({
     tally.bySource[p.name] = ok;
     log(`  ${p.name}: ${ok} series written, ${unknownHere} unknown to it, ${spent} calls`);
     const seen = new Set();
-    pending = [...leftover, ...pending.slice(mine.length)].filter((j) => !seen.has(j.symbol) && seen.add(j.symbol));
+    pending = [...leftover, ...queue.slice(mine.length)].filter((j) => !seen.has(j.symbol) && seen.add(j.symbol));
   }
   tally.unknown = pending.length;
   log(`price cache: ${tally.written} series written tonight, ${pending.length} left for another night, ${tally.failed} transient failures`);

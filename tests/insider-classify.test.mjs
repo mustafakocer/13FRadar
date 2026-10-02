@@ -194,6 +194,29 @@ test('home page and /insiders headline numbers still come from one function and 
   }
 });
 
+test('/insiders reads the home page\'s stored day summary: one result, not two conversions', async () => {
+  const teaser = buildTeaser(mixed, {}, {}, Date.parse('2026-09-19'));
+  // the night's conversion counted one more buy than a request-time one would
+  const stored = { ...teaser.pulse, buyCount: teaser.pulse.buyCount + 1, buyValue: teaser.pulse.buyValue + 1234, fxExcluded: 3 };
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'teaser-')), 'insiders-teaser.json');
+  fs.writeFileSync(file, JSON.stringify({ pulse: stored }));
+  process.env.INSIDER_TEASER_FILE = file;
+  const { resetPulseCache } = await import('../api/_handlers/insider-feed.js');
+  resetPulseCache();
+  try {
+    const feed = await feedOver(mixed, { tab: 'latest' });
+    for (const k of ['day', 'buyCount', 'buyValue', 'sellCount', 'sellValue', 'sellShare', 'fxExcluded']) assert.equal(feed.stats[k], stored[k], k);
+    // another day in the file: the live numbers
+    fs.writeFileSync(file, JSON.stringify({ pulse: { ...stored, day: '2026-01-02' } }));
+    resetPulseCache();
+    const other = await feedOver(mixed, { tab: 'latest' });
+    assert.equal(other.stats.buyCount, teaser.pulse.buyCount);
+  } finally {
+    delete process.env.INSIDER_TEASER_FILE;
+    resetPulseCache();
+  }
+});
+
 test('level labels describe the trade, promise nothing, and "none" shows no label', () => {
   const i18n = fs.readFileSync(path.join(root, 'client', 'src', 'i18n.jsx'), 'utf8');
   const val = (key) => [...i18n.matchAll(new RegExp(`'${key.replace('.', '\\.')}': '([^']*)'`, 'g'))].map((m) => m[1]);

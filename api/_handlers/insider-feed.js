@@ -17,6 +17,7 @@ import { seriesWithFpi, toUsdWith, isForeignWith } from '../_lib/fpiContext.js';
 import { buildClusters } from '../_lib/insiderCluster.js';
 import { fxBrief, clusterBrief, CLUSTER_ROWS } from '../_lib/insiderTeaser.js';
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
 //
@@ -187,11 +188,36 @@ function fxShape(r) {
   return { currency: b.cu, adrRatio: b.ar, localPrice: b.lp, ratioSource: r.fx.as, fxRate: r.fx.rate };
 }
 
+// The day's headline numbers as the home page states them: computed once, by
+// the insider build, into insiders-teaser.json (`pulse`). The rows a request
+// sees are converted again at read time (fpiNormalize.js), with the prices on
+// the deployment rather than the night's closes, and a foreign line could
+// pass the currency check in one and not the other — the home page said 85
+// buys / $32.7M while /insiders said 87 / $33.2M for the same day. So the
+// unfiltered summary is read from that one stored result.
+let storedPulse;
+function loadPulse() {
+  if (storedPulse !== undefined) return storedPulse;
+  try {
+    storedPulse = (process.env.INSIDER_TEASER_FILE ? JSON.parse(fs.readFileSync(process.env.INSIDER_TEASER_FILE, 'utf8')) : require('../../client/public/insiders-teaser.json'))?.pulse || null;
+  } catch {
+    storedPulse = null;
+  }
+  return storedPulse;
+}
+export const resetPulseCache = () => {
+  storedPulse = undefined;
+};
+const PULSE_KEYS = ['buyCount', 'sellCount', 'buyValue', 'sellValue', 'sellShare', 'fxExcluded', 'offMarket'];
+
 // Market activity + signal cards for the header, computed over the newest day
 // that actually has filings.
 function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
-  // the headline numbers: one definition shared with the home page (daySummary)
-  const summary = daySummary(all, scope);
+  // the headline numbers: one definition shared with the home page (daySummary),
+  // and for the whole market the home page's own stored result for that day
+  const live = daySummary(all, scope);
+  const pulse = scope ? null : loadPulse();
+  const summary = pulse && pulse.day === live.day ? { ...live, ...Object.fromEntries(PULSE_KEYS.map((k) => [k, pulse[k] ?? 0])), sellShare: pulse.sellShare ?? null } : live;
   const rows = scope ? all.filter(scope) : all;
   const latestDay = summary.day || '';
   const buys = summary.buys;

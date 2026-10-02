@@ -2,6 +2,7 @@ import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { readFixture } from '../_lib/fixtures.js';
 import { hasTd, hasFinnhub, tdStock, finnhubStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
+import { fundamentalsFor } from '../_lib/fundamentals.js';
 import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
 // GET /api/stock/:ticker — the quote board of a stock page.
@@ -161,7 +162,23 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
 // Live within the budget, else the freshest fallback: last live answer on
 // this instance → nightly price file → all-null price block. Exported so the
 // SSR loader and tests exercise the same decision the HTTP handler makes.
-export async function stockPayload(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {
+// The SEC fundamentals (api/_lib/fundamentals.js), priced at the answer's
+// own price: P/E, market cap and yield move with it, the rest is the filing.
+function withFundamentals(data, ticker) {
+  const price = data?.price?.price ?? data?.price ?? null;
+  const sec = fundamentalsFor(ticker, typeof price === 'number' ? price : null);
+  if (!sec) return data;
+  const out = { ...data, sec };
+  if (out.price && typeof out.price === 'object' && out.price.marketCap == null && sec.marketCap != null) out.price = { ...out.price, marketCap: sec.marketCap };
+  return out;
+}
+
+export async function stockPayload(ticker, opts = {}) {
+  const r = await stockPayloadRaw(ticker, opts);
+  return { ...r, data: withFundamentals(r.data, ticker) };
+}
+
+async function stockPayloadRaw(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {
   const key = `stock:${ticker}`;
   const started = Date.now();
   const snap = priceSnapshot(ticker);
@@ -206,7 +223,7 @@ export default async function handler(req, res) {
   const fx = readFixture(`stock/${ticker}.json`);
   if (fx) {
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json(fx);
+    return res.status(200).json(withFundamentals(fx, ticker));
   }
 
   const log = (msg) => console.log(`stock ${ticker}: ${msg}`);

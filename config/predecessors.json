@@ -1,0 +1,9 @@
+{
+  "_readme": "A filer that re-registered under a new CIK keeps its earlier XBRL periods under the old one; scripts/build-fundamentals.mjs merges the old companyfacts under the new (api/_lib/secFundamentals.js mergeFacts) so the trailing four quarters can span the change. Keyed by ticker; cite the source.",
+  "byTicker": {
+    "XOM": {
+      "cik": "0000034088",
+      "source": "SEC: the 2026-Q2 10-Q is filed by ExxonMobil Holdings Corp (CIK 2115436); the periods through 2026-Q1 are Exxon Mobil Corp's (CIK 34088)."
+    }
+  }
+}

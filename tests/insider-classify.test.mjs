@@ -168,7 +168,8 @@ test('returns and signal levels only where they mean something', async () => {
   }
   const tfc = all.rows.find((r) => r.ticker === 'TFC');
   assert.equal(tfc.signal.level, 'strong');
-  assert.equal('pe' in tfc, false, 'the empty F/K column is gone');
+  // F/K is back, from the SEC filings (B package): null without a record, never invented
+  assert.ok('pe' in tfc && (tfc.pe === null || tfc.pe === 'loss' || typeof tfc.pe === 'number'), 'F/K from SEC data');
   const tpl = all.rows.find((r) => r.ticker === 'TPL');
   assert.deepEqual([tpl.signal.level, tpl.largeHolder, tpl.hitRate], ['none', true, null], 'a fund: large holder, no İsabet');
 });

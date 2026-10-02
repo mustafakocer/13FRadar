@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { trailing, periods, trailingOf, EPS_CONCEPTS, sharesOutstanding, fundamentalsOf, valuationFor, weeklyBeta, filingUrl } from '../api/_lib/secFundamentals.js';
+import { trailing, periods, trailingOf, EPS_CONCEPTS, sharesOutstanding, fundamentalsOf, valuationFor, weeklyBeta, filingUrl, mergeFacts } from '../api/_lib/secFundamentals.js';
 
 // B — fundamentals from SEC XBRL (companyfacts)
 
@@ -110,4 +110,45 @@ test('beta: weekly returns over two years against SPY', () => {
   const beta = weeklyBeta(twice, spy);
   assert.ok(beta > 1.8 && beta < 2.3, `beta ${beta}`);
   assert.equal(weeklyBeta(twice.slice(-60), spy), null, 'under a year of weeks: no beta');
+});
+
+test('no cover count (a multi-class filer) or a stale / off-scale one: the diluted share count', () => {
+  const wavg = { WeightedAverageNumberOfDilutedSharesOutstanding: { units: { shares: [e('2026-04-01', '2026-06-30', 12_100_000_000)] } } };
+  // Alphabet: classes tagged per class, no plain cover count in companyfacts
+  const g = sharesOutstanding({ 'us-gaap': wavg }, null, { asOf: '2026-10-02' });
+  assert.deepEqual([g.value, g.basis, g.asOf], [12_100_000_000, 'weighted-average', '2026-06-30']);
+  // a cover count ten times off the income statement's (Alibaba): not used
+  const off = { 'us-gaap': wavg, dei: { EntityCommonStockSharesOutstanding: { units: { shares: [{ end: '2026-03-31', val: 1_210_000_000, accn: 'c', filed: '2026-05-20', form: '20-F' }] } } } };
+  assert.equal(sharesOutstanding(off, null, { asOf: '2026-10-02' }).basis, 'weighted-average');
+  // a stale cover count (Sony's from 2019): not used
+  const old = { 'us-gaap': wavg, dei: { EntityCommonStockSharesOutstanding: { units: { shares: [{ end: '2019-03-31', val: 12_000_000_000, accn: 'o', filed: '2019-06-18', form: '20-F' }] } } } };
+  assert.equal(sharesOutstanding(old, null, { asOf: '2026-10-02' }).basis, 'weighted-average');
+  // a recent cover count that agrees wins
+  const good = { 'us-gaap': wavg, dei: { EntityCommonStockSharesOutstanding: { units: { shares: [{ end: '2026-07-20', val: 12_050_000_000, accn: 'g', filed: '2026-07-25', form: '10-Q' }] } } } };
+  assert.equal(sharesOutstanding(good, null, { asOf: '2026-10-02' }).value, 12_050_000_000);
+});
+
+test('no EPS concept (Berkshire): net income over the diluted shares, then the class rule', () => {
+  const q = (s0, e0, v) => e(s0, e0, v);
+  const facts = {
+    'us-gaap': {
+      NetIncomeLoss: { units: { USD: [q('2025-07-01', '2025-09-30', 10e9), q('2025-01-01', '2025-12-31', 40e9, '10-K', '2026-02-28'), q('2025-01-01', '2025-03-31', 8e9), q('2025-04-01', '2025-06-30', 12e9), q('2026-01-01', '2026-03-31', 9e9), q('2026-04-01', '2026-06-30', 11e9)] } },
+      WeightedAverageNumberOfSharesOutstandingBasic: { units: { shares: [q('2026-04-01', '2026-06-30', 1_440_000)] } },
+    },
+  };
+  const a = fundamentalsOf({ facts }, { cik: '1067983', classRule: { classes: [{ below: 5e6, ratio: 1500 }], divideAll: 1500 }, asOf: '2026-10-02' });
+  // TTM net income 10 + (40−30) + 9 + 11 = 40 B; per Class A share 40e9 / 1.44 M
+  assert.equal(Math.round(a.eps.value), Math.round(40e9 / 1_440_000));
+  assert.equal(a.eps.derivedFrom, 'net-income');
+  const b = fundamentalsOf({ facts }, { cik: '1067983', classRule: { classes: [{ below: 5e6, ratio: 1500 }], epsDivisor: 1500 }, asOf: '2026-10-02' });
+  assert.equal(Number(b.eps.value.toFixed(2)), Number((40e9 / 1_440_000 / 1500).toFixed(2)));
+  assert.equal(b.shares.value, 1_440_000 * 1500, 'Class A equivalents counted as Class B');
+});
+
+test('a re-registered filer: the old CIK\'s periods carry the trailing four quarters', () => {
+  const now = { facts: { 'us-gaap': { EarningsPerShareDiluted: { units: { 'USD/shares': [e('2026-04-01', '2026-06-30', 3.48)] } } } } };
+  const old = { facts: { 'us-gaap': { EarningsPerShareDiluted: { units: { 'USD/shares': [e('2025-01-01', '2025-03-31', 1.7), e('2025-04-01', '2025-06-30', 1.64), e('2025-07-01', '2025-09-30', 1.8), e('2025-01-01', '2025-12-31', 6.8, '10-K', '2026-02-20'), e('2026-01-01', '2026-03-31', 1.9)] } } } } };
+  const t = trailingOf(mergeFacts(now, old).facts, EPS_CONCEPTS, { asOf: '2026-10-02' });
+  assert.equal(t.basis, 'ttm');
+  assert.equal(Number(t.value.toFixed(2)), Number((1.8 + (6.8 - 1.7 - 1.64 - 1.8) + 1.9 + 3.48).toFixed(2)));
 });

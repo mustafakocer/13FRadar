@@ -25,7 +25,7 @@ export const LEGAL_CONTENT = {
           'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı) ve GitHub (günlük veri üretimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
         ] },
         { h2: 'Sitedeki veriler nereden geliyor?', p: [
-          'Portföy ve insider verileri SEC EDGAR’daki kamuya açık bildirimlerden (13F, Form 4, 13D/G) otomatik derlenir. Fiyat verileri lisanslı sağlayıcılardan (Financial Modeling Prep, Twelve Data, Finnhub) ve gece üretimlerinde Yahoo Finance’ten; menkul kıymet kimlikleri OpenFIGI’den alınır. Bu veriler kişisel veri değildir; şirket içi işlemlerdeki kişi adları SEC’in yayımladığı kamu kayıtlarıdır.',
+          'Portföy ve insider verileri SEC EDGAR’daki kamuya açık bildirimlerden (13F, Form 4, 13D/G) otomatik derlenir. Şirket temel verileri (hisse başı kâr, dolaşımdaki hisse, temettü) SEC’in XBRL verilerinden; fiyat verileri Twelve Data ve Finnhub’dan; menkul kıymet kimlikleri OpenFIGI’den; döviz kurları Federal Reserve H.10 ve ECB’den alınır. Bu veriler kişisel veri değildir; şirket içi işlemlerdeki kişi adları SEC’in yayımladığı kamu kayıtlarıdır.',
         ] },
         { h2: 'Ne kadar süre saklıyoruz?', p: [
           'Hesap verileri hesabınız açık kaldığı sürece. Hesabınızı silmek isterseniz yazın; hesap, izleme listesi ve kayıtlı uyarılar silinir, Stripe’taki fatura kayıtları yasal süre boyunca Stripe’ta kalır. Sunucu günlükleri sağlayıcının standart süresi (en fazla 30 gün) sonunda silinir.',
@@ -53,7 +53,7 @@ export const LEGAL_CONTENT = {
           'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery) and GitHub (the nightly data builds). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
         ] },
         { h2: 'Where the site’s data comes from', p: [
-          'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Prices come from licensed providers (Financial Modeling Prep, Twelve Data, Finnhub) and, in the nightly builds, Yahoo Finance; security identifiers from OpenFIGI. This is not personal data; the names in insider transactions are public records published by the SEC.',
+          'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Company fundamentals (earnings per share, shares outstanding, dividends) come from SEC XBRL data; prices from Twelve Data and Finnhub; security identifiers from OpenFIGI; exchange rates from the Federal Reserve H.10 and the ECB. This is not personal data; the names in insider transactions are public records published by the SEC.',
         ] },
         { h2: 'How long we keep it', p: [
           'Account data for as long as your account exists. Write to us to delete your account: the account, watchlist and saved alerts are removed; invoice records stay with Stripe for the statutory period. Server logs are deleted after the provider’s standard retention (30 days at most).',

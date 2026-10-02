@@ -149,6 +149,20 @@ jobs:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           PRICES_TD_BUDGET: '400'
+      # Company fundamentals for the stock pages (EPS, shares outstanding,
+      # dividends; beta from the closes above) from SEC's XBRL: one bulk file
+      # (companyfacts.zip), read for the site's tickers only
+      # (scripts/build-fundamentals.mjs). A failed download keeps yesterday's
+      # api/_data/fundamentals.json.
+      - name: Build fundamentals.json (SEC XBRL)
+        continue-on-error: true
+        run: |
+          curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
+          node scripts/build-fundamentals.mjs
+          rm -f "$RUNNER_TEMP/companyfacts.zip"
+        env:
+          SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
+          COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
       # Sector comes from SEC (SIC code), market cap from SEC's share count
       # times the stored close, returns from the same closes (the price cache
       # the step below keeps current). No FMP, no Yahoo.
@@ -209,7 +223,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public api/_data/unit-corrections.json api/_data/latest-holdings.json api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/freshness; do
+          for f in client/public api/_data/unit-corrections.json api/_data/latest-holdings.json api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/fundamentals.json api/_data/freshness; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

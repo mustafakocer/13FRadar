@@ -18,6 +18,7 @@ import { buildClusters } from '../_lib/insiderCluster.js';
 import { fxBrief, clusterBrief, CLUSTER_ROWS } from '../_lib/insiderTeaser.js';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
+import { fundamentalsFor } from '../_lib/fundamentals.js';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
 //
@@ -176,6 +177,9 @@ function shape(r, meta, companies, d) {
     offLow: m.px != null && m.lo > 0 ? Number((((m.px - m.lo) / m.lo) * 100).toFixed(1)) : null,
     sector: m.sector || null,
     size: sizeBucket(m.mcap),
+    // P/E from the SEC filings at the current price (api/_lib/fundamentals.js):
+    // a number, 'loss' when the trailing EPS is not positive, or null
+    pe: r.t ? (fundamentalsFor(r.t, m.px ?? null)?.pe ?? null) : null,
     url: r.ci && r.a ? `https://www.sec.gov/Archives/edgar/data/${Number(r.ci)}/${String(r.a).replace(/-/g, '')}/` : null,
   };
 }

@@ -19,7 +19,7 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { secGet, padCik } from '../api/_lib/sec.js';
 import { fetchSecTickers } from '../api/_lib/marketData.js';
-import { fundamentalsOf, weeklyBeta, valuationFor } from '../api/_lib/secFundamentals.js';
+import { fundamentalsOf, weeklyBeta, valuationFor, mergeFacts } from '../api/_lib/secFundamentals.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { toUsdWith } from '../api/_lib/fpiContext.js';
 
@@ -53,6 +53,7 @@ const cikOf = (t) => secIndex.get(t)?.cik || secIndex.get(t.replace('.', '-'))?.
 const fpi = read('api/_data/fpi.json', {});
 const overrides = read('config/adr-overrides.json', {})?.byTicker || {};
 const classRules = read('config/share-classes.json', {})?.byTicker || {};
+const predecessors = read('config/predecessors.json', {})?.byTicker || {};
 const sectorOf = read('api/_data/sector-map.json', {})?.bySymbol || {};
 const adrRatioOf = (t, cik) => {
   const o = overrides[t];
@@ -85,27 +86,60 @@ const fromApi = async (cik) => {
 };
 
 const spy = readSeries('SPY')?.prices || [];
-const byCik = new Map();
 const byTicker = {};
+const rawLines = [];
 let noCik = 0;
 let noFacts = 0;
+// one filer at a time — a companyfacts file is up to a few hundred MB parsed,
+// and keeping them would not fit in memory — with every ticker that maps to it
+const byCik = new Map();
 for (const t of tickers) {
   const cik = cikOf(t);
   if (!cik) {
     noCik++;
     continue;
   }
-  if (!byCik.has(cik)) byCik.set(cik, ZIP ? fromZip(cik) : await fromApi(cik));
-  const cf = byCik.get(cik);
+  if (!byCik.has(cik)) byCik.set(cik, []);
+  byCik.get(cik).push(t);
+}
+const load = async (cik) => (ZIP ? fromZip(cik) : await fromApi(cik));
+for (const [cik, list] of byCik) {
+  let cf = await load(cik);
+  const pred = list.map((t) => predecessors[t]?.cik).find(Boolean);
+  if (pred) cf = mergeFacts(cf || { facts: {} }, await load(pred));
   if (!cf) {
-    noFacts++;
+    noFacts += list.length;
     continue;
   }
-  const rec = fundamentalsOf(cf, { cik, classRule: classRules[t] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
-  const closes = readSeries(t)?.prices || null;
-  const beta = closes ? weeklyBeta(closes, spy) : null;
-  if (!rec.eps && !rec.shares && !rec.div && beta == null) continue;
-  byTicker[t] = { ...rec, ...(beta != null ? { beta: { value: beta, basis: '2y-weekly-spy' } } : {}) };
+  for (const t of list) {
+    const rec = fundamentalsOf(cf, { cik, classRule: classRules[t] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
+    const closes = readSeries(t)?.prices || null;
+    const beta = closes ? weeklyBeta(closes, spy) : null;
+    if (only?.includes(t)) rawLines.push(...rawOf(t, cf));
+    if (!rec.eps && !rec.shares && !rec.div && beta == null) continue;
+    byTicker[t] = { ...rec, ...(beta != null ? { beta: { value: beta, basis: '2y-weekly-spy' } } : {}) };
+  }
+}
+
+// the raw lines behind a test ticker, for a reviewer checking by hand: the
+// cover share count, and every concept with a period ending in the last
+// fifteen months whose name speaks of earnings, profit or shares
+function rawOf(t, cf) {
+  const out = [];
+  const sh = cf.facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares || [];
+  const newest = sh.reduce((m, e) => (!m || String(e.filed) > String(m.filed) ? e : m), null);
+  out.push(`RAW ${t} ${cf.entityName} cover shares (${newest?.accn || '—'}): ${JSON.stringify(sh.filter((e) => e.accn === newest?.accn).map((e) => [e.end, e.val]))}`);
+  const since = new Date(Date.now() - 460 * 86400000).toISOString().slice(0, 10);
+  for (const [ns, concepts] of Object.entries(cf.facts || {})) {
+    for (const [name, c] of Object.entries(concepts)) {
+      if (!/PerShare|Profit|NetIncome|WeightedAverage|SharesOutstanding|Dividend/i.test(name)) continue;
+      for (const [u, entries] of Object.entries(c.units || {})) {
+        const recent = entries.filter((e) => e.end >= since).slice(-4);
+        if (recent.length) out.push(`RAW ${t} ${ns}:${name} [${u}] ${recent.map((e) => `${e.start || ''}..${e.end}=${e.val} ${e.form}`).join(' | ')}`);
+      }
+    }
+  }
+  return out;
 }
 
 // ---- coverage over the top 500 stocks by 13F value (ETFs set apart) ----
@@ -125,20 +159,7 @@ for (const t of [...new Set([...(only || []), ...top500.slice(0, showN)])]) {
   const v = valuationFor(r, px(t));
   console.log(`FUND ${t} ${JSON.stringify({ px: px(t), ...v, eps: r?.eps, shares: r?.shares, div: r?.div, beta: r?.beta })}`);
 }
-// the raw lines behind the test tickers, for a reviewer checking by hand
-for (const t of only || []) {
-  const cf = cikOf(t) ? byCik.get(cikOf(t)) : null;
-  if (!cf) continue;
-  const sh = cf.facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares || [];
-  const newest = sh.reduce((m, e) => (!m || String(e.filed) > String(m.filed) ? e : m), null);
-  const epsUnits = {};
-  for (const ns of ['us-gaap', 'ifrs-full']) for (const n of ['EarningsPerShareDiluted', 'EarningsPerShareBasic', 'DilutedEarningsLossPerShare', 'BasicEarningsLossPerShare']) {
-    const u = cf.facts?.[ns]?.[n]?.units;
-    if (u) epsUnits[`${ns}:${n}`] = Object.fromEntries(Object.entries(u).map(([k, v]) => [k, v.slice(-6).map((e) => `${e.start || ''}..${e.end} ${e.val} ${e.form} ${e.fp || ''}`)]));
-  }
-  console.log(`RAW ${t} ${cf.entityName} shares(newest ${newest?.accn}): ${JSON.stringify(sh.filter((e) => e.accn === newest?.accn).map((e) => [e.end, e.val]))}`);
-  console.log(`RAW ${t} eps: ${JSON.stringify(epsUnits)}`);
-}
+for (const l of rawLines) console.log(l);
 if (process.env.FUNDAMENTALS_SEED) {
   // one JSON line per record, for building a seed file from a job's log
   // (FUNDAMENTALS_SEED=top500: the top 500 by 13F value only)

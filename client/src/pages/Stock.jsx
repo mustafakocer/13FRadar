@@ -30,15 +30,35 @@ import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
 import { TriangleAlert, UserRound, Waves } from 'lucide-react';
 
-function KV({ k, v, cls = '', tip }) {
+function KV({ k, v, cls = '', tip, src = null, title = null }) {
   return (
     <div className="kv">
       <span className="k">
         {k}
         {tip && <InfoTip tip={tip} />}
       </span>
-      <span className={`v ${cls}`}>{v}</span>
+      <span className={`v ${cls}`} title={title || undefined}>{v}</span>
+      {src}
     </div>
+  );
+}
+
+// "SEC 10-Q, 30.06.2026" under a fundamentals figure, linking to the filing
+// it was read from (api/_lib/secFundamentals.js); a foreign filer's figure
+// says what it was converted from.
+function SecSource({ s, t, lang }) {
+  if (!s?.form) return null;
+  const d = s.end ? new Date(`${s.end}T00:00:00Z`).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }) : '';
+  const extra = [s.basis === 'annual' ? t('sec.annual') : null, s.currency ? t('sec.converted').replace('{cur}', s.currency) : null, s.perAds ? t('sec.perAds').replace('{n}', s.perAds) : null].filter(Boolean).join(' · ');
+  const label = `SEC ${s.form}, ${d}${extra ? ` · ${extra}` : ''}`;
+  return (
+    <span className="sec-src small muted" data-sec-source>
+      {s.url ? (
+        <a href={s.url} target="_blank" rel="noopener noreferrer">{label}</a>
+      ) : (
+        label
+      )}
+    </span>
   );
 }
 
@@ -137,10 +157,8 @@ export default function Stock() {
   // Every field below is read defensively: a fallback payload carries nulls,
   // and a failed request carries nothing at all.
   const p = data?.price || {};
-  const v = data?.valuation || {};
-  const f = data?.fundamentals || {};
   const tr = data?.trading || {};
-  const an = data?.analyst || {};
+  const sec = data?.sec || {};
   const pr = data?.profile || {};
   const chg = p.changePercent;
   const sym = p.symbol || String(ticker || '').toUpperCase();
@@ -212,23 +230,15 @@ export default function Stock() {
           />
           <KV k={t('stock.volume')} v={fmtNum(p.volume)} />
           <KV k={t('stock.avgVolume')} v={fmtNum(tr.avgVolume)} />
-          <KV k={t('stock.mktCap')} v={fmtMoney(p.marketCap)} />
-          <KV k={t('stock.beta')} tip="tips.beta" v={fmtRatio(tr.beta)} />
-          <KV k={t('stock.trailingPE')} tip="tips.pe" v={fmtRatio(v.trailingPE)} />
-          <KV k={t('stock.eps')} tip="tips.eps" v={fmtRatio(f.eps)} />
-          <KV k={t('stock.targetMean')} v={fmtNum(an.targetMean, 2)} />
-          <KV k={t('stock.divYield')} tip="tips.divYield" v={fmtFracPct(f.dividendYield, { digits: 2 })} />
+          {/* fundamentals: SEC filings (api/_lib/secFundamentals.js), priced
+              at this page's price; a figure that is not there stays "—" */}
+          <KV k={t('stock.mktCap')} v={fmtMoney(sec.marketCap ?? p.marketCap)} src={<SecSource s={sec.src?.shares} t={t} lang={lang} />} />
+          <KV k={t('stock.beta')} tip="tips.beta" v={fmtRatio(sec.beta ?? null)} src={sec.beta != null ? <span className="sec-src small muted">{t('sec.betaBasis')}</span> : null} />
+          <KV k={t('stock.trailingPE')} tip="tips.pe" v={sec.pe === 'loss' ? t('stock.loss') : fmtRatio(sec.pe ?? null)} cls={sec.pe === 'loss' ? 'delta-neg' : ''} src={<SecSource s={sec.src?.eps} t={t} lang={lang} />} />
+          <KV k={t('stock.eps')} tip="tips.eps" v={sec.eps != null ? fmtNum(sec.eps, 2) : '—'} title={sec.epsReason} src={<SecSource s={sec.src?.eps} t={t} lang={lang} />} />
+          <KV k={t('stock.divYield')} tip="tips.divYield" v={sec.dividendYield != null ? fmtFracPct(sec.dividendYield, { digits: 2 }) : '—'} src={<SecSource s={sec.src?.div} t={t} lang={lang} />} />
         </div>
       </div>
-
-      {!quoteMissing && !quoteStale && data.source !== 'quoteSummary' && (
-        <div
-          className="card"
-          style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}
-        >
-          <span className="small"><Ico icon={TriangleAlert} size={14} /> {t('stock.limitedData')}</span>
-        </div>
-      )}
 
       <YearTable
         title={t('stock.income')}

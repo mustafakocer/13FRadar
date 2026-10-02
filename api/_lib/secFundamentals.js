@@ -34,6 +34,23 @@ export const EPS_CONCEPTS = [
   ['ifrs-full', 'BasicAndDilutedEarningsLossPerShare'],
   ['ifrs-full', 'BasicEarningsLossPerShare'],
 ];
+// Fallback when no EPS concept is there (companyfacts leaves out the facts a
+// filer tagged per share class — Berkshire states EPS per Class A and per
+// Class B share — and some 20-F filers): net income over the diluted share
+// count of the same period, labelled as such.
+export const NET_INCOME_CONCEPTS = [
+  ['us-gaap', 'NetIncomeLoss'],
+  ['us-gaap', 'NetIncomeLossAvailableToCommonStockholdersBasic'],
+  ['ifrs-full', 'ProfitLossAttributableToOwnersOfParent'],
+  ['ifrs-full', 'ProfitLoss'],
+];
+// The share count of a period: diluted first.
+export const WAVG_SHARE_CONCEPTS = [
+  ['us-gaap', 'WeightedAverageNumberOfDilutedSharesOutstanding'],
+  ['us-gaap', 'WeightedAverageNumberOfSharesOutstandingBasic'],
+  ['ifrs-full', 'AdjustedWeightedAverageShares'],
+  ['ifrs-full', 'WeightedAverageShares'],
+];
 export const DIV_CONCEPTS = [
   ['us-gaap', 'CommonStockDividendsPerShareDeclared'],
   ['us-gaap', 'CommonStockDividendsPerShareCashPaid'],
@@ -112,12 +129,13 @@ export function trailing(ps, { asOf = new Date().toISOString().slice(0, 10) } = 
 }
 
 // The first concept that yields a recent trailing value, with its currency.
-export function trailingOf(facts, concepts, opts) {
+export function trailingOf(facts, concepts, opts = {}) {
+  const currencyOf = opts.unit || perShareCurrency;
   for (const [ns, name] of concepts) {
     const units = facts?.[ns]?.[name]?.units;
     if (!units) continue;
     for (const [unit, entries] of Object.entries(units)) {
-      const cur = perShareCurrency(unit);
+      const cur = currencyOf(unit);
       if (!cur) continue;
       const t = trailing(periods(entries), opts);
       if (t) return { ...t, currency: cur, concept: `${ns}:${name}` };
@@ -131,17 +149,48 @@ export function trailingOf(facts, concepts, opts) {
 // share: [{ below, ratio }] multiplies a line under `below` by `ratio`
 // (Berkshire Class A → 1,500 Class B), divideAll divides every line (Class B
 // → Class A units for the BRK-A page).
-export function sharesOutstanding(facts, classRule = null) {
+// The diluted share count of the newest reported period (a quarter, else a
+// year): what the income statement divides by. { value, end, form, filed, accn }
+export function weightedShares(facts) {
+  for (const [ns, name] of WAVG_SHARE_CONCEPTS) {
+    const entries = facts?.[ns]?.[name]?.units?.shares;
+    if (!entries?.length) continue;
+    const ps = periods(entries).filter((p) => p.val > 0 && (isQuarter(p) || isYear(p)));
+    if (!ps.length) continue;
+    const newest = ps.sort((a, b) => a.end.localeCompare(b.end) || a.len - b.len).at(-1);
+    return { value: newest.val, end: newest.end, form: newest.form, filed: newest.filed, accn: newest.accn, concept: `${ns}:${name}` };
+  }
+  return null;
+}
+
+// Shares outstanding: the cover-page count (dei) when it is recent and agrees
+// with the income statement's share count within a factor of two; else the
+// income statement's diluted count of the newest period. companyfacts drops
+// facts tagged per share class, so a multi-class filer (Alphabet, Meta) has
+// no cover count at all, and a stale or oddly scaled one (Sony's from 2019,
+// Alibaba's a tenth of its ordinary shares) is not used.
+export function sharesOutstanding(facts, classRule = null, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
+  const cover = coverShares(facts, classRule);
+  const w = weightedShares(facts);
+  const wv = w ? unitShares(w.value, classRule) : null;
+  const recent = (end) => days(end, asOf) <= 550;
+  if (cover && recent(cover.asOf) && (!wv || (cover.value / wv > 0.5 && cover.value / wv < 2))) return cover;
+  if (w && recent(w.end)) return { value: Math.round(wv), classes: 1, asOf: w.end, form: w.form, filed: w.filed, accn: w.accn, basis: 'weighted-average' };
+  return cover && recent(cover.asOf) ? cover : null;
+}
+
+const unitShares = (v, classRule) => {
+  let x = v;
+  for (const r of classRule?.classes || []) if (v < r.below) x = v * r.ratio;
+  return classRule?.divideAll ? x / classRule.divideAll : x;
+};
+
+function coverShares(facts, classRule = null) {
   const lines = facts?.dei?.EntityCommonStockSharesOutstanding?.units?.shares || [];
   if (!lines.length) return null;
   const newest = lines.reduce((m, e) => (String(e.filed) > String(m.filed) || (e.filed === m.filed && e.end > m.end) ? e : m), lines[0]);
   const same = lines.filter((e) => e.accn === newest.accn && e.end === newest.end && Number.isFinite(e.val) && e.val > 0);
-  const unit = (v) => {
-    let x = v;
-    for (const r of classRule?.classes || []) if (v < r.below) x = v * r.ratio;
-    return classRule?.divideAll ? x / classRule.divideAll : x;
-  };
-  const value = same.reduce((s, e) => s + unit(e.val), 0);
+  const value = same.reduce((s, e) => s + unitShares(e.val, classRule), 0);
   if (!(value > 0)) return null;
   return { value: Math.round(value), classes: same.length, asOf: newest.end, form: newest.form, filed: newest.filed, accn: newest.accn };
 }
@@ -165,13 +214,26 @@ export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio 
     if (classRule?.epsDivisor && kind === 'eps') v /= classRule.epsDivisor;
     return { value: Number(v.toFixed(4)), basis: t.basis, currency: t.currency, ...(t.currency !== 'USD' ? { local: t.value } : {}), ...(per !== 1 ? { perAds: per } : {}), ...(t.parts ? { parts: t.parts } : {}), ...src(t, out.cik) };
   };
-  const eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
+  let eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
+  // no EPS concept: net income over the diluted shares (Berkshire, some 20-F)
+  if (!eps) {
+    const ni = trailingOf(facts, NET_INCOME_CONCEPTS, { asOf, unit: (u) => (/^[A-Z]{3}$/.test(u) ? u : null) });
+    const w = weightedShares(facts);
+    if (ni && w?.value > 0 && Math.abs(days(w.end, ni.end)) <= 45) {
+      eps = { ...ni, value: ni.value / w.value, concept: `${ni.concept} ÷ ${w.concept}`, derivedFrom: 'net-income' };
+      // the class rule's EPS divisor applies to a per-share figure, which
+      // this now is (per the filer's own share units)
+    }
+  }
   out.eps = money(eps, 'eps');
-  if (out.eps && eps) out.eps.concept = eps.concept;
+  if (out.eps && eps) {
+    out.eps.concept = eps.concept;
+    if (eps.derivedFrom) out.eps.derivedFrom = eps.derivedFrom;
+  }
   const div = trailingOf(facts, DIV_CONCEPTS, { asOf });
   out.div = money(div, 'div');
-  const sh = sharesOutstanding(facts, classRule);
-  out.shares = sh ? { value: Math.round(sh.value / per), classes: sh.classes, ...(per !== 1 ? { perAds: per } : {}), asOf: sh.asOf, ...src(sh, out.cik) } : null;
+  const sh = sharesOutstanding(facts, classRule, { asOf });
+  out.shares = sh ? { value: Math.round(sh.value / per), classes: sh.classes, ...(sh.basis ? { basis: sh.basis } : {}), ...(per !== 1 ? { perAds: per } : {}), asOf: sh.asOf, ...src(sh, out.cik) } : null;
   return out;
 }
 
@@ -228,4 +290,27 @@ export function weeklyBeta(closes, spy, { weeks = 104, asOf = null } = {}) {
     varb += (rb[i] - mb) ** 2;
   }
   return varb > 0 ? Number((cov / varb).toFixed(2)) : null;
+}
+
+// A filer that re-registered (a new holding company with a new CIK, e.g.
+// ExxonMobil Holdings in 2026) keeps its earlier periods under the old CIK:
+// the two companyfacts are merged concept by concept, the new one winning a
+// period both state (config/predecessors.json).
+export function mergeFacts(current, predecessor) {
+  if (!predecessor?.facts) return current;
+  const out = { ...current, facts: { ...(current?.facts || {}) } };
+  for (const [ns, concepts] of Object.entries(predecessor.facts)) {
+    out.facts[ns] = { ...(out.facts[ns] || {}) };
+    for (const [name, c] of Object.entries(concepts)) {
+      const mine = out.facts[ns][name];
+      if (!mine) {
+        if (ns !== 'dei') out.facts[ns][name] = c;
+        continue;
+      }
+      const units = { ...mine.units };
+      for (const [u, entries] of Object.entries(c.units || {})) units[u] = [...entries, ...(units[u] || [])];
+      out.facts[ns][name] = { ...mine, units };
+    }
+  }
+  return out;
 }

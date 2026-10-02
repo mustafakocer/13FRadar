@@ -50,7 +50,7 @@ await Promise.all(
         const stored = compareTotal({ ours: r.aum, declared, factor });
         const asStated = compareTotal({ ours: fresh, declared, factor: 1 });
         const slip = storedUnitSlip(r.aum, fresh);
-        const res = { cik: r.cik, name: r.name, acc: r.acc, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, slip, storedOk: stored.ok, asStatedOk: asStated.ok, ...cmp };
+        const res = { cik: r.cik, name: r.name, acc: r.acc, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, ...cmp };
         results.push(res);
         if (slip) console.log(`SLIP ${r.cik} ${r.acc} ${r.aum} ${fresh} ${slip}`);
         if (!cmp.ok || !stored.ok) console.log(`CMP ${r.cik} ${r.aum} ${fresh} ${declared ?? 'NA'} ${factor} ${cmp.diffPct == null ? 'NA' : cmp.diffPct.toFixed(5)} ${asStated.diffPct == null ? 'NA' : asStated.diffPct.toFixed(5)} ${amends.length}`);
@@ -85,7 +85,8 @@ const lines = [
 lines.push('### Largest 20 differences (fresh vs declared × factor)', '', '| Fund | Ours | SEC × factor | SEC as stated | Diff | Amended |', '|---|---|---|---|---|---|');
 for (const r of [...judged].filter((r) => !r.ok).sort((a, b) => Math.abs(b.ours - b.declaredAdj) - Math.abs(a.ours - a.declaredAdj)).slice(0, 20)) lines.push(`| ${r.name} | ${money(r.ours)} | ${money(r.declaredAdj)}${r.factor !== 1 ? ` (×${r.factor})` : ''} | ${money(r.declared)} | ${pct(r.diffPct)} | ${r.amended ? 'yes' : ''} |`);
 lines.push('', '### Largest 20 funds', '', '| Fund | Ours | SEC × factor | Diff | Stored |', '|---|---|---|---|---|');
-for (const r of [...results].sort((a, b) => b.ours - a.ours).slice(0, 20)) lines.push(`| ${r.name} | ${money(r.ours)} | ${money(r.declaredAdj ?? r.declared)} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${money(r.stored)} |`);
+// the largest funds as ranked: a filing carrying another filer's table is not one
+for (const r of [...results].filter((r) => !r.misfiled).sort((a, b) => b.ours - a.ours).slice(0, 20)) lines.push(`| ${r.name} | ${money(r.ours)} | ${money(r.declaredAdj ?? r.declared)} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${money(r.stored)} |`);
 
 const pairs = overlapPairs(books).map((p) => ({ ...p, A: byCik.get(p.a), B: byCik.get(p.b) }));
 pairs.sort((x, y) => Math.max(y.A.aum, y.B.aum) - Math.max(x.A.aum, x.B.aum));

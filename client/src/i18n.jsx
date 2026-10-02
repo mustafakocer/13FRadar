@@ -348,6 +348,8 @@ const dict = {
     'manager.exitBadge': 'ÇIKIŞ',
     'manager.noPrev': 'Önceki çeyrek verisi yok',
     'manager.quarterEnd': 'Dönem sonu',
+    'manager.misfiled':
+      'SEC\'deki bu bildirimin pozisyon tablosu başka bir fona ait: {other} tablosunun birebir aynısı (dosyalama hatası). Fonun kendi beyan ettiği toplam {declared}. Bu yüzden fon sıralamalarında, hisse toplamlarında ve ana sayfa toplamında yer almıyor; aşağıdaki tablo EDGAR\'da olduğu gibi gösteriliyor.',
     'manager.dormant':
       'EDGAR\'da bu CIK adına en son {q} bildirimi var ({d}). O tarihten sonra 13F bildirimi yok — fon bildirmeyi bıraktı ya da başka bir tüzel kişilik adına bildiriyor. Aşağıdaki pozisyonlar o tarihin fotoğrafı, güncel portföy değil.',
     'manager.filedOn': 'Dosyalama tarihi',
@@ -1434,6 +1436,8 @@ const dict = {
     'manager.exitBadge': 'EXIT',
     'manager.noPrev': 'No prior quarter data',
     'manager.quarterEnd': 'Quarter end',
+    'manager.misfiled':
+      'The holdings table filed under this name at the SEC belongs to another filer: it is identical to {other}\'s table (a filing error). The fund\'s own declared total is {declared}. It is left out of fund rankings, stock totals and the headline total; the table below is shown as EDGAR has it.',
     'manager.dormant':
       'The most recent 13F EDGAR holds under this CIK is {q}, filed {d}. Nothing has been filed since — the fund stopped filing, or it files under a different entity now. The positions below are a snapshot of that date, not a current portfolio.',
     'manager.filedOn': 'Filed on',

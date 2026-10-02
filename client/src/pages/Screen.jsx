@@ -101,6 +101,8 @@ export default function Screen() {
     const all = universe.data?.rows || [];
     const ql = q.trim().toLowerCase();
     let out = all.filter((r) => {
+      // a filing that carries another filer's table is not ranked by its size
+      if (r.misfiled) return false;
       if (ql && !r.name.toLowerCase().includes(ql)) return false;
       if (size && !SIZE[size](r.aum)) return false;
       if (pos && !POS[pos](r.positions)) return false;

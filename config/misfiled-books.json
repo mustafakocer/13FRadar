@@ -1,0 +1,13 @@
+{
+  "_readme": "Filings whose information table is another filer's book (a filing agent's slip), checked against EDGAR by hand. The row keeps its EDGAR numbers but is marked `misfiled` in universe.json (api/_lib/misfiledBooks.js): left out of every size ranking and listing, of the stock totals and of the headline total, and its page says whose table it is. `acc` limits the entry to that one filing: a later, correct filing clears it. `declared` is the filer's own cover-page total (Form 13F Information Table Value Total), in dollars.",
+  "filers": [
+    {
+      "cik": "0001812095",
+      "acc": "0001752724-26-000051",
+      "copyOf": "0000884546",
+      "copyOfName": "Charles Schwab Investment Management, Inc.",
+      "declared": 579182557,
+      "reason": "The 2026-06-30 information table is Charles Schwab Investment Management's (3,439 identical lines, $751.32B); Sixth Street's own cover page declares $579.2M."
+    }
+  ]
+}

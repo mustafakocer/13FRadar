@@ -22,6 +22,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { filingScale, correctionEntry } from '../api/_lib/valueUnits.js';
 import { periodOf, summarizeUniverse, loadSameBooks } from '../api/_lib/universeSummary.js';
+import { markMisfiled } from '../api/_lib/misfiledBooks.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const CHECK = process.argv.includes('--check');
@@ -112,6 +113,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   const h = repairHistory(H);
   const l = repairLatest(L, U.rows, reportByCik);
   datePeriods(U.rows, reportByCik);
+  markMisfiled(U.rows);
   U.rows.sort((a, b) => b.aum - a.aum);
   fixes.push(...h, ...l);
   console.log(`guru-history: ${h.length} filings rescaled${h.length ? ` (${[...new Set(h.map((x) => x.name))].join(', ')})` : ''}`);

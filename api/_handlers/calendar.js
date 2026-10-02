@@ -54,7 +54,7 @@ export default function handler(req, res) {
   const cutoff = (days) => new Date(new Date(`${asOf}T00:00:00Z`).getTime() - days * 86400000).toISOString().slice(0, 10);
   const recent = (days) =>
     universe.rows
-      .filter((r) => r.filed && r.filed >= cutoff(days))
+      .filter((r) => r.filed && r.filed >= cutoff(days) && !r.misfiled)
       .sort((a, b) => b.filed.localeCompare(a.filed) || b.aum - a.aum)
       .slice(0, 100)
       .map((r) => ({ cik: r.cik, name: r.name, filed: r.filed, aum: r.aum, positions: r.positions, path: filerPath(r.cik) }));

@@ -14,6 +14,7 @@ import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
 import { inferPeriod, summarizeUniverse, universeRow, loadSameBooks } from '../api/_lib/universeSummary.js';
+import { misfiledFor, markMisfiled } from '../api/_lib/misfiledBooks.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -148,8 +149,9 @@ async function main() {
             amendments: snap.amendments,
             unitFix: snap.unitFix,
           });
-          // whale-heatmap aggregate across ALL filers (equity positions only)
-          for (const p of positions) {
+          // whale-heatmap aggregate across ALL filers (equity positions only);
+          // a filing carrying another filer's table is not counted twice
+          if (!misfiledFor(e.cik, snap.acc)) for (const p of positions) {
             if (p.putCall) continue;
             const a = stockAgg.get(p.cusip) || { issuer: p.issuer, value: 0, funds: 0 };
             a.value += p.value;
@@ -167,6 +169,8 @@ async function main() {
   );
 
   rows.sort((a, b) => b.aum - a.aum);
+  const misfiled = markMisfiled(rows);
+  if (misfiled) console.log(`${misfiled} filing(s) carrying another filer's table marked (config/misfiled-books.json)`);
   const pub = path.join(process.cwd(), 'client', 'public');
   fs.mkdirSync(pub, { recursive: true });
 

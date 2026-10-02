@@ -62,7 +62,8 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameB
       continue;
     }
     const book = r.aum > 0 ? `${r.aum}|${r.positions}` : null;
-    if ((book && seen.has(book)) || dropped.has(r.cik)) {
+    // …and a filing that carries another filer's table (misfiledBooks.js)
+    if ((book && seen.has(book)) || dropped.has(r.cik) || r.misfiled) {
       duplicates++;
       continue;
     }

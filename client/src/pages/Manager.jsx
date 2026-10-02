@@ -314,6 +314,17 @@ export default function Manager({ segment = 'portfolio' }) {
         </div>
       )}
 
+      {mgr.data?.misfiled && (!mgr.data.misfiled.acc || mgr.data.misfiled.acc === acc) && (
+        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
+          <span className="small">
+            <Ico icon={TriangleAlert} size={14} />{' '}
+            {t('manager.misfiled')
+              .replace('{other}', mgr.data.misfiled.copyOfName || mgr.data.misfiled.copyOf)
+              .replace('{declared}', mgr.data.misfiled.declared != null ? fmtMoney(mgr.data.misfiled.declared) : '—')}
+          </span>
+        </div>
+      )}
+
       <AnswerBox text={seo.answer} />
 
       {holdings.isLoading && (

@@ -1,11 +1,11 @@
 {
  "dataset": "fmp",
  "kind": "provider",
- "run_id": "36988483730",
- "last_run_at": "2026-10-02T09:17:59.649Z",
+ "run_id": "36995726476",
+ "last_run_at": "2026-10-02T10:33:32.946Z",
  "last_success_at": null,
  "last_error": "3 refusal(s): HTTP 429 {\"Error Message\":\"Limit Reach . Please upgrade your plan or visit our documentation for more details at https://site.fin",
- "last_error_at": "2026-10-02T09:17:59.649Z",
+ "last_error_at": "2026-10-02T10:33:32.946Z",
  "calls_ok": 0,
  "refusals": 3,
  "transient_errors": 1

@@ -35,7 +35,7 @@ import path from 'node:path';
 import { getSubmissions, list13F, getEffectiveHoldings, edgarStats } from '../api/_lib/sec.js';
 import { cacheHas, cacheEnabled } from '../api/_lib/edgarCache.js';
 import { planRebuild, estimateRequests, estimateSeconds } from '../api/_lib/historyPlan.js';
-import { mapLimit } from '../api/_lib/yahooClient.js';
+import { mapLimit } from '../api/_lib/mapLimit.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats, tickerFor } from '../api/_lib/securityMaster.js';
 import { historyPanel } from '../api/_lib/gurus.js';

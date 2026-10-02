@@ -25,7 +25,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
-export const PROVIDERS = ['fmp', 'twelvedata', 'finnhub', 'yahoo', 'openfigi'];
+// FMP and Yahoo are no longer asked anywhere (their terms do not cover a paid
+// site); their labels stay so an old record still reads by name.
+export const PROVIDERS = ['twelvedata', 'finnhub', 'openfigi'];
 const LABEL = { fmp: 'FMP', twelvedata: 'TwelveData', finnhub: 'Finnhub', yahoo: 'Yahoo', openfigi: 'OpenFIGI' };
 export const issueTitle = (name) => `Veri sağlayıcı reddediyor: ${LABEL[name] || name} (bilinen sorun)`;
 export const KNOWN_ISSUE_LABELS = ['data-alarm', 'known-issue'];

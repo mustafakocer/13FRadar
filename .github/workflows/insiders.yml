@@ -132,6 +132,10 @@ jobs:
           INSIDER_RESCAN_DAYS: '3'
           SEC_RETRY_BACKOFF: '2,4,8,16'
           INSIDER_SIMULATE_FAILURE: ${{ inputs.simulate_failure == true && '1' || '0' }}
+          # the tickers traded today that the nightly price build has not
+          # reached get their last close from Finnhub's quote (no Yahoo)
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          INSIDER_QUOTE_BUDGET: '1200'
 
       - name: Report dataset freshness
         if: always()
@@ -160,7 +164,7 @@ jobs:
           git config user.email 'actions@github.com'
           # Stage only what this run actually produced. `git add` fails on a
           # pathspec that matches nothing, and some outputs are optional.
-          for f in api/_data/insiders.json api/_data/insiders-raw.json api/_data/insider-ingest-errors.json api/_data/freshness api/_data/ticker-meta.json client/public/insiders-teaser.json client/public/data-audit.json; do
+          for f in api/_data/insiders.json api/_data/insiders-raw.json api/_data/insider-ingest-errors.json api/_data/freshness api/_data/ticker-meta.json api/_data/prices client/public/insiders-teaser.json client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

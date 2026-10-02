@@ -163,6 +163,20 @@ else {
   }
 }
 
+// B: the stock page's fundamentals come from SEC filings (fundamentals.json),
+// with the filing they were read from; no average target price, no
+// "veri sağlayıcıdan alınamıyor" banner
+{
+  const r = await get('/api/stock/AAPL');
+  if (r.status !== 200) check(false, `/api/stock/AAPL → HTTP ${r.status}`);
+  else {
+    const sec = JSON.parse(r.text).sec || {};
+    check(sec.eps != null && (typeof sec.pe === 'number' || sec.pe === 'loss') && sec.marketCap > 0 && /sec\.gov/.test(sec.src?.eps?.url || ''), `AAPL fundamentals: EPS ${sec.eps} · P/E ${sec.pe} · cap $${sec.marketCap} · ${sec.src?.eps?.form} ${sec.src?.eps?.end}`);
+  }
+  const page = await get('/tr/stock/AAPL');
+  check(page.status === 200 && !/veri sağlayıcıdan alınamıyor|Ort\. Hedef Fiyat/.test(page.text), 'stock page: no provider banner, no average target price');
+}
+
 // Old fund addresses (config/slug-aliases.json) answer a permanent redirect
 // to the current page — /guru/berkshire-hathaway broke once when a data run
 // shrank the redirect table.

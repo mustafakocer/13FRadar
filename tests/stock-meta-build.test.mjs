@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { returnsTickers, mergeReturns, capsToRefresh } from '../api/_lib/stockMetaBuild.js';
+import { returnsTickers, mergeReturns } from '../api/_lib/stockMetaBuild.js';
 import { figiIdType } from '../api/_lib/figi.js';
 import { plausibleDates } from '../api/_lib/insiderModel.js';
 
@@ -38,15 +38,6 @@ test('an old row past its shelf life drops out instead of posing as today', () =
   const previous = { updatedAt: '2026-09-01T10:00:00Z', returns: { KO: { ret1y: 2, retYtd: 1, ret1d: 0 } } };
   const { returns } = mergeReturns(previous, new Map(), { now: Date.parse('2026-09-19T00:00:00Z') });
   assert.deepEqual(returns, {});
-});
-
-test('cap refresh asks best-ranked first for what is missing or stale, within budget', () => {
-  const stocks = [{ ticker: 'AAPL' }, { ticker: null }, { ticker: 'KO' }, { ticker: 'BAC' }, { ticker: 'XOM' }];
-  const caps = { AAPL: { v: 1, asOf: '2026-09-18' }, KO: { v: 1, asOf: '2026-08-01' } };
-  const now = Date.parse('2026-09-19T00:00:00Z');
-  assert.deepEqual(capsToRefresh(stocks, caps, { now, budget: 10 }), ['KO', 'BAC', 'XOM']);
-  assert.deepEqual(capsToRefresh(stocks, caps, { now, budget: 1 }), ['KO']);
-  assert.deepEqual(capsToRefresh(stocks, caps, { now, budget: 0 }), []);
 });
 
 test('a CINS is asked about as a CINS', () => {

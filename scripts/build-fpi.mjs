@@ -3,7 +3,7 @@
 // one's ADR ratio, and the Form 4 fields of their older lines.
 // Writes api/_data/fpi.json; api/_lib/fpiNormalize.js reads it.
 //
-//   node scripts/build-fpi.mjs                 update (needs network: FRED, SEC, Yahoo)
+//   node scripts/build-fpi.mjs                 update (needs network: FRED, SEC)
 //   node scripts/build-fpi.mjs --report out.md also write the diagnosis/ratio tables
 //   node scripts/build-fpi.mjs --refresh       re-check every issuer, not only stale ones
 //
@@ -16,9 +16,9 @@
 //            country and currency from the business address; ADR ratio
 //            from the newest F-6 that states one, else the newest 20-F
 //            cover page (api/_lib/adrRatio.js). Quote and URL are kept.
-//   derived  for ADS issuers, the ratio implied by the Yahoo close on each
+//   derived  for ADS issuers, the ratio implied by the stored US close on each
 //            trade day (±10% of a common ratio), and whether it agrees.
-//   closes   the Yahoo close on or after each FPI trade day, for tickers
+//   closes   the stored US close on or after each FPI trade day, for tickers
 //            the price cache does not hold — so the page can check a
 //            conversion against the market.
 //   raw      security title and footnotes of FPI lines filed before the raw
@@ -32,7 +32,7 @@ import { statedRatio, deriveRatio } from '../api/_lib/adrRatio.js';
 import { annualStatus } from '../api/_lib/annualForm.js';
 import { loadDataset, currentRows, loadRaw, readJson, rowId } from '../api/_lib/insiderStore.js';
 import { parseForm4Submission } from '../api/_lib/insiderForm4.js';
-import { fetchCharts } from '../api/_lib/marketData.js';
+import { priceSnapshots } from '../api/_lib/marketData.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { closeOnOrAfter } from '../api/_lib/insiderOutcome.js';
 
@@ -329,7 +329,8 @@ console.log(`raw fields: ${rawFetched} of ${missing.size} FPI filing(s) re-read,
 
 // ------------------------------------------------------------------ closes + derived ratio
 const needCloses = [...new Set(fpiRows.map((r) => r.t).filter(Boolean))];
-const { snapshots } = needCloses.length ? await fetchCharts(needCloses) : { snapshots: new Map() };
+// the US closes from the price store (Yahoo's chart used to answer this)
+const { snapshots } = priceSnapshots(needCloses);
 const closes = {};
 for (const cik of fpiCiks) {
   const iss = issuers[cik];

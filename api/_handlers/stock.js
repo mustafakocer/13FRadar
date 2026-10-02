@@ -1,7 +1,9 @@
 import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { readFixture } from '../_lib/fixtures.js';
-import { hasFmp, hasTd, hasFinnhub, fmpStock, tdStock, finnhubStock } from '../_lib/providers.js';
+import { hasTd, hasFinnhub, tdStock, finnhubStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
+import { fundamentalsFor } from '../_lib/fundamentals.js';
+import { readSeries } from '../_lib/priceStore.js';
 import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
 // GET /api/stock/:ticker — the quote board of a stock page.
@@ -20,12 +22,14 @@ import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedH
 // Stooq are out for good: from Vercel's IP range Yahoo answers 429 on every
 // endpoint and Stooq serves a JavaScript-challenge HTML page instead of
 // CSV — a day of X-Stock-Chain said exactly that, on every request — so
-// they cost budget and never a price. The nightly builds still read Yahoo's
-// chart endpoint from GitHub runners, where it answers.
+// they cost budget and never a price. The nightly builds do not read Yahoo
+// either (its terms do not cover a paid site): the closes come from
+// TwelveData and Finnhub (api/_lib/pricesBuild.js).
 //
-//   FMP         quote + profile + TTM ratios (the complete board; 250/day free)
 //   TwelveData  quote (800/day free)
 //   Finnhub     quote (60/min free, no daily cap)
+// FMP is out: its free plan spent its 250 calls a day on the first visitors
+// and answered 402 on everything but the quote.
 //
 // Quotas are tracked per instance (providerHealth.js): a provider that
 // answered 429 today is exhausted until UTC midnight, and one that is near
@@ -41,7 +45,6 @@ const SNAPSHOT_BUDGET_MS = Math.max(500, Number(process.env.STOCK_SNAPSHOT_MS) |
 // The providers, most complete answer first. Each is a thunk so a test can
 // hand in its own list; `needs` says which key must be present.
 const PROVIDERS = [
-  { name: 'fmp', needs: hasFmp, run: (t) => fmpStock(t) },
   { name: 'twelvedata', needs: hasTd, run: (t) => tdStock(t) },
   { name: 'finnhub', needs: hasFinnhub, run: (t) => finnhubStock(t) },
 ];
@@ -160,7 +163,25 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
 // Live within the budget, else the freshest fallback: last live answer on
 // this instance → nightly price file → all-null price block. Exported so the
 // SSR loader and tests exercise the same decision the HTTP handler makes.
-export async function stockPayload(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {
+// The SEC fundamentals (api/_lib/fundamentals.js), priced at the answer's
+// own price: P/E, market cap and yield move with it, the rest is the filing.
+function withFundamentals(data, ticker) {
+  let price = data?.price?.price ?? data?.price ?? null;
+  // no quote on this answer: the last stored close prices the ratios
+  if (typeof price !== 'number') price = readSeries(ticker)?.prices?.at(-1)?.close ?? null;
+  const sec = fundamentalsFor(ticker, typeof price === 'number' ? price : null);
+  if (!sec) return data;
+  const out = { ...data, sec };
+  if (out.price && typeof out.price === 'object' && out.price.marketCap == null && sec.marketCap != null) out.price = { ...out.price, marketCap: sec.marketCap };
+  return out;
+}
+
+export async function stockPayload(ticker, opts = {}) {
+  const r = await stockPayloadRaw(ticker, opts);
+  return { ...r, data: withFundamentals(r.data, ticker) };
+}
+
+async function stockPayloadRaw(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {
   const key = `stock:${ticker}`;
   const started = Date.now();
   const snap = priceSnapshot(ticker);
@@ -205,7 +226,7 @@ export default async function handler(req, res) {
   const fx = readFixture(`stock/${ticker}.json`);
   if (fx) {
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json(fx);
+    return res.status(200).json(withFundamentals(fx, ticker));
   }
 
   const log = (msg) => console.log(`stock ${ticker}: ${msg}`);

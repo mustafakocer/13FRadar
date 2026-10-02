@@ -135,34 +135,44 @@ jobs:
           key: edgar-docs-v1-${{ github.run_id }}
           restore-keys: |
             edgar-docs-v1-
-      # Sector comes from SEC (SIC code), market cap from SEC's share count
-      # times Yahoo's chart price, returns from the same chart. FMP is only
-      # asked, one symbol at a time within its free quota, for the caps SEC
-      # cannot price (dual-class names, funds).
-      - name: Build consensus.json, guru-stocks.json & returns.json
-        run: node scripts/build-consensus.mjs
-        env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
-          SEC_RPS: '6'
-          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
-          FMP_BUDGET: '100'
-          SECTOR_BUDGET: ${{ inputs.sector_budget || '2500' }}
+      # First, so the consensus step below reads today's closes.
       # Ten years of daily closes per symbol into api/_data/prices/ — what
       # the backtest, the price chart and the return columns read before any
-      # live provider. Yahoo's chart answers from a runner (not from Vercel)
-      # and fills most of it in one night; TwelveData and FMP fill the rest
-      # within their free quotas. The log opens with the plan and how many
+      # live provider. TwelveData fills the history within its free quota,
+      # Finnhub's quote appends each day's close (Yahoo and FMP are out: their
+      # terms do not cover a paid site). The log opens with the plan and how many
       # nights a full fill takes. Best-effort: a provider outage leaves
       # yesterday's files in place.
       - name: Build the price cache (api/_data/prices)
         run: node scripts/build-prices.mjs
         env:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
-          FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           PRICES_TD_BUDGET: '400'
-          PRICES_FMP_BUDGET: '60'
+      # Company fundamentals for the stock pages (EPS, shares outstanding,
+      # dividends; beta from the closes above) from SEC's XBRL: one bulk file
+      # (companyfacts.zip), read for the site's tickers only
+      # (scripts/build-fundamentals.mjs). A failed download keeps yesterday's
+      # api/_data/fundamentals.json.
+      - name: Build fundamentals.json (SEC XBRL)
+        continue-on-error: true
+        run: |
+          curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
+          node scripts/build-fundamentals.mjs
+          rm -f "$RUNNER_TEMP/companyfacts.zip"
+        env:
+          SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
+          COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
+      # Sector comes from SEC (SIC code), market cap from SEC's share count
+      # times the stored close, returns from the same closes (the price cache
+      # the step below keeps current). No FMP, no Yahoo.
+      - name: Build consensus.json, guru-stocks.json & returns.json
+        run: node scripts/build-consensus.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_RPS: '6'
+          OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+          SECTOR_BUDGET: ${{ inputs.sector_budget || '2500' }}
       # A dry run first: what the walk will fetch, how much of it the cache
       # already holds, and the minutes it should take — in the log before
       # the first request, so a two-hour run is never a surprise again.
@@ -213,7 +223,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public api/_data/unit-corrections.json api/_data/latest-holdings.json api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/freshness; do
+          for f in client/public api/_data/unit-corrections.json api/_data/latest-holdings.json api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/fundamentals.json api/_data/freshness; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

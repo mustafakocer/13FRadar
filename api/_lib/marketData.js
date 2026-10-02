@@ -1,25 +1,23 @@
 // Sector, market cap, price and returns for the batch builds, from sources
 // that need no key and answer from a GitHub runner.
 //
-// The builds used to lean on three paid or gated providers for this, and each
-// went dark in its own way without failing the workflow: Yahoo's quote and
-// quoteSummary endpoints answer 429 from datacenter IPs, FMP's free plan
-// stopped taking more than one symbol per call (an empty list or a 402 in
-// place of profiles), and Stooq now sits behind a JavaScript challenge. The
+// The builds used to lean on Yahoo, FMP and Stooq for this; none is a source
+// any more — Yahoo's and FMP's terms do not cover a paid site, and Stooq sits
+// behind a JavaScript challenge. The
 // result was a screener whose sector and size filters were empty for months.
 //
-// What still answers, and what each is used for:
-//   · Yahoo's chart endpoint (no cookie, no crumb): price, 52-week range,
-//     volume, instrument type and a year of closes for the return columns.
+// What each is used for now:
+//   · the committed daily closes (priceStore.js, filled nightly by
+//     pricesBuild.js from TwelveData and Finnhub): price, 52-week range and
+//     the return columns (seriesSnapshot).
 //   · SEC submissions: the SIC code every operating company carries, which
 //     folds into the eleven sectors the site filters by.
 //   · SEC XBRL frames: shares outstanding for every filer in one request,
 //     which times the chart price into a market cap.
 // Everything here that does not touch the network is pure and tested.
-import axios from 'axios';
 import { secGet, padCik } from './sec.js';
+import { readSeries } from './priceStore.js';
 
-const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ---------------------------------------------------------------- sectors
 // The sector names the screener and the report already speak.
@@ -170,39 +168,20 @@ export function latestShares(frames) {
 export const marketCap = (shares, price) =>
   Number.isFinite(shares) && shares > 0 && Number.isFinite(price) && price > 0 ? Math.round(shares * price) : null;
 
-// ---------------------------------------------------------------- chart
-const iso = (secs) => new Date(secs * 1000).toISOString().slice(0, 10);
-
-// Everything the builds want from one Yahoo chart result (a year of daily
-// bars): price and the three return columns, the 52-week range, average
-// volume, and whether the symbol is a fund rather than a company. Pure over
-// the parsed response so the arithmetic is testable without the network.
-export function chartSnapshot(result, now = Date.now()) {
-  const meta = result?.meta || {};
-  const ts = result?.timestamp || [];
-  const quote = result?.indicators?.quote?.[0] || {};
-  const closes = quote.close || [];
-  const volumes = quote.volume || [];
-  const bars = [];
-  for (let i = 0; i < ts.length; i++) {
-    const close = closes[i];
-    if (close == null || !Number.isFinite(close)) continue;
-    bars.push({ date: iso(ts[i]), close, volume: Number.isFinite(volumes[i]) ? volumes[i] : null });
-  }
+// ------------------------------------------------------- price snapshots
+// Everything the builds want about a symbol's price — the last close and the
+// three return columns, the 52-week range, the closes themselves — computed
+// from the committed daily closes (api/_data/prices, priceStore.js), which
+// the nightly price build keeps current from the licensed-key providers
+// (pricesBuild.js). No request leaves the runner here. Yahoo's chart used to
+// answer this; it is out of every chain (its terms do not cover a paid site).
+// Volume is not in the store: it stays null rather than borrowed.
+export function seriesSnapshot(prices, now = Date.now()) {
+  const bars = (prices || []).filter((b) => b?.date && Number.isFinite(b.close) && b.close > 0);
   if (!bars.length) return null;
   const last = bars[bars.length - 1];
-  const price = Number.isFinite(meta.regularMarketPrice) ? meta.regularMarketPrice : last.close;
-  // The last bar is the live session while the market is open and yesterday
-  // once it has closed; the previous close is the last bar dated before the
-  // session the price belongs to, whichever of the two that is.
-  const marketDate = Number.isFinite(meta.regularMarketTime) ? iso(meta.regularMarketTime) : last.date;
-  let prev = null;
-  for (let i = bars.length - 1; i >= 0; i--) {
-    if (bars[i].date < marketDate) {
-      prev = bars[i];
-      break;
-    }
-  }
+  const price = last.close;
+  const prev = bars.length > 1 ? bars[bars.length - 2] : null;
   const yearAgo = new Date(now - 365 * 86400 * 1000).toISOString().slice(0, 10);
   const base1y = bars.find((b) => b.date >= yearAgo) || null;
   const jan1 = `${new Date(now).getUTCFullYear()}-01-01`;
@@ -214,77 +193,36 @@ export function chartSnapshot(result, now = Date.now()) {
     }
   }
   const pct = (base) => (base && base.close > 0 ? ((price - base.close) / base.close) * 100 : null);
-  const recent = bars.slice(-20).map((b) => b.volume).filter((v) => v != null && v > 0);
-  const vol = recent.length ? Math.round(recent.reduce((a, b) => a + b, 0) / recent.length) : null;
-  const closesOnly = bars.map((b) => b.close);
-  const type = String(meta.instrumentType || '').toUpperCase();
+  const year = bars.filter((b) => b.date >= yearAgo).map((b) => b.close);
   return {
     price,
-    asOf: marketDate,
-    ret1y: pct(base1y),
+    asOf: last.date,
+    // a year of history, or no 1Y figure (a June listing has none)
+    ret1y: base1y && bars[0].date <= new Date(now - 358 * 86400 * 1000).toISOString().slice(0, 10) ? pct(base1y) : null,
     retYtd: pct(baseYtd),
     ret1d: pct(prev),
-    lo: Number.isFinite(meta.fiftyTwoWeekLow) ? meta.fiftyTwoWeekLow : Math.min(...closesOnly),
-    hi: Number.isFinite(meta.fiftyTwoWeekHigh) ? meta.fiftyTwoWeekHigh : Math.max(...closesOnly),
-    vol,
-    etf: type === 'ETF' || type === 'MUTUALFUND',
-    currency: meta.currency || null,
+    lo: year.length ? Math.min(...year) : null,
+    hi: year.length ? Math.max(...year) : null,
+    vol: null,
+    etf: false,
+    currency: 'USD',
     // the daily closes themselves, for forward returns after insider buys
     // (insiderOutcome.js); callers that store snapshots pick their fields
-    closes: bars.map((b) => ({ date: b.date, close: b.close })),
+    closes: bars.slice(-400).map((b) => ({ date: b.date, close: b.close })),
   };
 }
 
-// ---------------------------------------------------------------- fetchers
-const yahoo = axios.create({
-  timeout: 15000,
-  headers: { 'User-Agent': 'Mozilla/5.0', Accept: 'application/json' },
-  validateStatus: () => true,
-});
-
-// A year and a little of daily bars, so the 1Y base is a real bar and not
-// the first one in range. A symbol Yahoo does not know answers 404 and is
-// returned as null; a throttle is retried once after a pause.
-export async function fetchChart(symbol, { now = Date.now() } = {}) {
-  const period2 = Math.floor(now / 1000);
-  const period1 = period2 - 400 * 86400;
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const r = await yahoo.get(`https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`, {
-      params: { period1, period2, interval: '1d', events: 'div' },
-    });
-    if (r.status === 200) return chartSnapshot(r.data?.chart?.result?.[0], now);
-    if (r.status === 404 || r.status === 400) return null;
-    if (attempt === 0) await sleep(r.status === 429 ? 3000 : 800);
-  }
-  throw new Error(`Yahoo chart ${symbol}: throttled`);
-}
-
-// Charts for many symbols with a few in flight. Returns Map symbol → snapshot,
-// null for a symbol the provider does not know; a symbol that failed for any
-// other reason is absent, so the caller can keep what it had for it. Stops
-// early when the first requests all fail: the provider is blocked, and four
-// thousand more attempts would only make the log longer.
-export async function fetchCharts(symbols, { concurrency = 4, onProgress = null, now = Date.now() } = {}) {
+// Snapshots for many symbols from the price store: Map symbol → snapshot,
+// null for a symbol with no series on file. Same shape the chart
+// fetcher returned, so the builds read it unchanged; `failed` and `blocked`
+// stay for them and are always 0 / false.
+export function priceSnapshots(symbols, { now = Date.now(), read = readSeries } = {}) {
   const out = new Map();
-  let i = 0;
-  let failed = 0;
-  let done = 0;
-  let blocked = false;
-  const workers = Array.from({ length: Math.min(concurrency, symbols.length) }, async () => {
-    while (i < symbols.length && !blocked) {
-      const sym = symbols[i++];
-      try {
-        out.set(sym, await fetchChart(sym, { now }));
-      } catch {
-        failed++;
-        if (failed >= 12 && out.size === 0) blocked = true;
-      }
-      done++;
-      if (onProgress && done % 250 === 0) onProgress(done, symbols.length);
-    }
-  });
-  await Promise.all(workers);
-  return { snapshots: out, failed, blocked };
+  for (const sym of symbols) {
+    const s = read(sym);
+    out.set(sym, s?.prices?.length ? seriesSnapshot(s.prices, now) : null);
+  }
+  return { snapshots: out, failed: 0, blocked: false };
 }
 
 // SEC's ticker index: symbol → { cik, name, exchange }. One request.

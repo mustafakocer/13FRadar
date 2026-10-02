@@ -11,7 +11,7 @@
 //   node scripts/calibrate-insider-signals.mjs --no-fpi   foreign issuers' lines as
 //        filed, not converted to US dollars (for a before/after comparison)
 //   node scripts/calibrate-insider-signals.mjs --fetch    also download daily
-//        closes (Yahoo chart, ~400 days) for tickers the price cache lacks —
+//        closes (a Finnhub quote starts a series) for tickers the price cache lacks —
 //        what the nightly build does; needs the network of a GitHub runner
 //
 // One observation per FILING (a buy split into price lots is one decision),
@@ -30,7 +30,7 @@ import { filingTotals, signalLevel, LEVELS } from '../api/_lib/insiderSignal.js'
 import { forwardExcess, priceMismatch } from '../api/_lib/insiderOutcome.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { SIGNAL } from '../api/_lib/insiderSignalConfig.js';
-import { fetchCharts } from '../api/_lib/marketData.js';
+import { topUpCloses } from '../api/_lib/pricesBuild.js';
 import { clusteredLines } from '../api/_lib/insiderCluster.js';
 import { readRawServed } from '../api/_lib/insiderStore.js';
 import { toUsdWith } from '../api/_lib/fpiContext.js';
@@ -65,10 +65,10 @@ for (const r of rows) {
 const seriesMemo = new Map();
 if (FETCH) {
   const need = [...new Set([...firstLine.values()].map((r) => r.t).filter((t) => t && !readSeries(t)))];
-  console.error(`fetching daily closes for ${need.length} ticker(s) without a cached series…`);
-  const { snapshots, failed } = await fetchCharts(need, { onProgress: (d, n) => console.error(`  ${d}/${n}`) });
-  for (const [t, snap] of snapshots) if (snap?.closes?.length) seriesMemo.set(t, snap.closes);
-  console.error(`  ${[...snapshots.values()].filter((s) => s?.closes?.length).length} fetched, ${failed} failed`);
+  // tickers with no cached series start one from Finnhub's quote (Yahoo's
+  // chart used to supply a year of closes here; it is out of every chain)
+  console.error(`starting a series for ${need.length} ticker(s) without one…`);
+  await topUpCloses(need, { budget: Number(process.env.CALIBRATE_QUOTE_BUDGET || 300), log: console.error });
 }
 const series = (t) => {
   if (!seriesMemo.has(t)) seriesMemo.set(t, readSeries(t)?.prices || null);
@@ -189,7 +189,7 @@ function markdown() {
     }
   }
   out.push('');
-  out.push('Bu bir yatırım tavsiyesi değil; etiketlerin tutarlılık kontrolüdür. Maliyet ve zamanlama yok; fiyat verisi Yahoo günlük kapanışları ve fiyat önbelleği.');
+  out.push('Bu bir yatırım tavsiyesi değil; etiketlerin tutarlılık kontrolüdür. Maliyet ve zamanlama yok; fiyat verisi fiyat önbelleğindeki günlük kapanışlar (Twelve Data, Finnhub).');
   return out.join('\n');
 }
 

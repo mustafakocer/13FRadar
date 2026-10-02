@@ -66,7 +66,7 @@ const dict = {
     'landing.how3': 'Siz de kurumsal yatırımcıların ne alıp sattığını herkesle aynı anda, ücretsiz görürsünüz.',
     'footer.disclaimer':
       'Bu sitedeki hiçbir içerik yatırım tavsiyesi değildir. Veriler SEC EDGAR ve halka açık kaynaklardan otomatik derlenir; doğruluğu garanti edilmez. 13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır ve geçmişe dönüktür.',
-    'footer.sources': 'Veri kaynakları: SEC EDGAR · OpenFIGI · Financial Modeling Prep · Twelve Data · Finnhub · Yahoo Finance (gece üretimi)',
+    'footer.sources': 'Veri kaynakları: SEC EDGAR (13F, Form 4, XBRL şirket verileri) · Twelve Data ve Finnhub (fiyatlar) · OpenFIGI (menkul kıymet kimlikleri) · Federal Reserve H.10 ve ECB (döviz kurları)',
     'footer.contact': 'İletişim',
     'legal.updated': 'Son güncelleme: {d}',
     'legal.contactTitle': 'İletişim',
@@ -407,6 +407,11 @@ const dict = {
     'stock.divYield': 'Temettü Verimi',
     'stock.beta': 'Beta',
     'stock.eps': 'EPS (TTM)',
+    'stock.loss': 'Zarar',
+    'sec.annual': 'yıllık',
+    'sec.converted': '{cur} → USD',
+    'sec.perAds': 'ADS başına ({n} hisse)',
+    'sec.betaBasis': '2 yıl, haftalık, SPY’a göre',
     'stock.income': 'Gelir Tablosu (Yıllık)',
     'stock.balance': 'Bilanço (Yıllık)',
     'stock.cashflow': 'Nakit Akışı (Yıllık)',
@@ -432,7 +437,6 @@ const dict = {
     'stock.epsAct': 'EPS Gerçek',
     'stock.surprise': 'Sürpriz',
     'stock.avgVolume': 'Ort. Hacim (3A)',
-    'stock.targetMean': 'Ort. Hedef Fiyat',
     'reco.strong_buy': 'Güçlü Al',
 
     'compare.title': 'Portföy Karşılaştırma',
@@ -871,6 +875,7 @@ const dict = {
     'ins.purchases': 'Alımlar',
     'ins.sells': 'Satışlar',
     'ins.sellShare': 'satış payı',
+    'ins.pe': 'F/K',
     'ins.dayOf': 'Son bildirim günü:',
     'ins.highConviction': 'Son Günün Yönetici ve Küme Alımları',
     'penny.signalsTitle': 'Kuruş Hisselerde Yönetici ve Küme Alımları',
@@ -1100,8 +1105,6 @@ const dict = {
     'common.close': 'Kapat',
     'palette.placeholder': 'Yönetici veya ticker ara…',
     'palette.goStock': 'Hisseye git:',
-    'stock.limitedData':
-      'Şirket verilerinin bir kısmı şu an veri sağlayıcıdan alınamıyor; temel fiyat verisi yedek kaynaktan gösteriliyor. Birkaç dakika sonra sayfayı yenileyin.',
   },
   en: {
     'nav.search': 'Search',
@@ -1167,7 +1170,7 @@ const dict = {
     'landing.how3': 'You see what institutional investors bought and sold — at the same moment as everyone else, for free.',
     'footer.disclaimer':
       'Nothing on this site is investment advice. Data is compiled automatically from SEC EDGAR and public sources; accuracy is not guaranteed. 13F filings are disclosed up to 45 days after quarter end and are backward-looking.',
-    'footer.sources': 'Data sources: SEC EDGAR · OpenFIGI · Financial Modeling Prep · Twelve Data · Finnhub · Yahoo Finance (nightly builds)',
+    'footer.sources': 'Data sources: SEC EDGAR (13F, Form 4, XBRL company facts) · Twelve Data and Finnhub (prices) · OpenFIGI (security identifiers) · Federal Reserve H.10 and ECB (exchange rates)',
     'footer.contact': 'Contact',
     'legal.updated': 'Last updated: {d}',
     'legal.contactTitle': 'Contact',
@@ -1508,6 +1511,11 @@ const dict = {
     'stock.divYield': 'Dividend Yield',
     'stock.beta': 'Beta',
     'stock.eps': 'EPS (TTM)',
+    'stock.loss': 'Loss',
+    'sec.annual': 'fiscal year',
+    'sec.converted': '{cur} → USD',
+    'sec.perAds': 'per ADS ({n} shares)',
+    'sec.betaBasis': '2 years, weekly, vs SPY',
     'stock.income': 'Income Statement (Annual)',
     'stock.balance': 'Balance Sheet (Annual)',
     'stock.cashflow': 'Cash Flow (Annual)',
@@ -1533,7 +1541,6 @@ const dict = {
     'stock.epsAct': 'EPS Actual',
     'stock.surprise': 'Surprise',
     'stock.avgVolume': 'Avg Volume (3M)',
-    'stock.targetMean': 'Avg Price Target',
     'reco.strong_buy': 'Strong Buy',
 
     'compare.title': 'Portfolio Comparison',
@@ -1968,6 +1975,7 @@ const dict = {
     'ins.purchases': 'Purchases',
     'ins.sells': 'Sells',
     'ins.sellShare': 'sells',
+    'ins.pe': 'P/E',
     'ins.dayOf': 'Latest filing day:',
     'ins.highConviction': 'Latest Executive & Cluster Buys',
     'penny.signalsTitle': 'Executive & Cluster Buys under $5',
@@ -2197,8 +2205,6 @@ const dict = {
     'common.close': 'Close',
     'palette.placeholder': 'Search manager or ticker…',
     'palette.goStock': 'Go to stock:',
-    'stock.limitedData':
-      'Some company data is temporarily unavailable from the data provider; basic price data is shown from a fallback source. Refresh in a few minutes.',
   },
 };
 

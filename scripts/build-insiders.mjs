@@ -72,7 +72,8 @@ import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 import { annotateOutcomes, checkPriceUnits } from '../api/_lib/insiderOutcome.js';
 import { PLAN_NOTE_RE } from '../api/_lib/insiderClassify.js';
 import { readSeries } from '../api/_lib/priceStore.js';
-import { fetchCharts, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
+import { priceSnapshots, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
+import { topUpCloses } from '../api/_lib/pricesBuild.js';
 import { isSecBusinessDay, addDays, calendarCoverage } from '../client/src/lib/secCalendar.js';
 
 // ---------------------------------------------------------------- arguments
@@ -296,23 +297,24 @@ async function fromQuarterlyDatasets() {
 }
 
 // --------------------------------------------------------------- enrichment
-// Daily closes from the charts the enrichment already downloads (about 400
-// days per ticker) — kept for the forward returns after insider buys.
+// Daily closes the enrichment reads (about 400 days per ticker) — kept for
+// the forward returns after insider buys.
 const chartCloses = new Map();
-// Price, 52-week range and volume from one Yahoo chart per ticker; sector
-// from the SIC code on the issuer's SEC submissions feed (cached for good —
-// only tickers never seen are looked up); market cap from SEC's share count
-// times that price. No key, no plan, no batch endpoint to lose. FMP used to
-// do all three and its free plan stopped answering more than one symbol a
-// call, which left every one of these columns empty behind a green run.
+// Price and 52-week range from the committed daily closes (the nightly price
+// build keeps them current from TwelveData and Finnhub; the tickers it has
+// not reached are topped up here from Finnhub's quote, within
+// INSIDER_QUOTE_BUDGET calls); sector from the SIC code on the issuer's SEC
+// submissions feed (cached for good — only tickers never seen are looked
+// up); market cap from SEC's share count times that price. Yahoo's chart
+// used to answer the price and FMP before it; neither is a source any more.
+// Volume is not in the closes: it stays empty rather than borrowed.
 async function enrich(tickers, cikOf) {
   const meta = readJson(META, {});
   const before = Object.keys(meta).length;
 
   console.log(`Enriching: ${tickers.length} tickers…`);
-  const { snapshots, failed, blocked } = await fetchCharts(tickers, {
-    onProgress: (d, n) => console.log(`  ${d}/${n} charts`),
-  });
+  await topUpCloses(tickers, { budget: Number(process.env.INSIDER_QUOTE_BUDGET || 1200) });
+  const { snapshots } = priceSnapshots(tickers);
   let priced = 0;
   for (const [sym, snap] of snapshots) {
     if (!snap) continue;
@@ -324,7 +326,7 @@ async function enrich(tickers, cikOf) {
     if (snap.etf) meta[sym].etf = 1;
     priced++;
   }
-  console.log(`  charts: ${priced} priced, ${failed} failed${blocked ? ' — provider blocked, stopped early' : ''}`);
+  console.log(`  prices: ${priced} of ${tickers.length} tickers from the price store`);
 
   // sector: only what has never been asked; null (a fund, no SIC) is an answer
   const unknown = tickers.filter((t) => meta[t]?.sector === undefined && cikOf.get(t));

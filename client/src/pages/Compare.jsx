@@ -30,8 +30,10 @@ const SIX_HOURS = 6 * 60 * 60 * 1000;
 
 const STOCK_ROWS = [
   ['price', 'stock.prevClose', ({ stock: s }) => fmtNum(s?.price?.price, 2)],
-  ['mktCap', 'stock.mktCap', ({ stock: s }) => fmtMoney(s?.price?.marketCap)],
-  ['pe', 'stock.trailingPE', ({ stock: s }) => fmtRatio(s?.valuation?.trailingPE)],
+  // market cap, P/E, yield and beta: SEC filings at this price (api/_lib/fundamentals.js)
+  ['mktCap', 'stock.mktCap', ({ stock: s }) => fmtMoney(s?.sec?.marketCap ?? s?.price?.marketCap)],
+  ['pe', 'stock.trailingPE', ({ stock: s, t }) => (s?.sec?.pe === 'loss' ? t('stock.loss') : fmtRatio(s?.sec?.pe ?? null))],
+  ['eps', 'stock.eps', ({ stock: s }) => (s?.sec?.eps != null ? fmtNum(s.sec.eps, 2) : '—')],
   ['fpe', 'stock.forwardPE', ({ stock: s }) => fmtRatio(s?.valuation?.forwardPE)],
   ['peg', 'stock.peg', ({ stock: s }) => fmtRatio(s?.valuation?.peg)],
   ['ps', 'stock.ps', ({ stock: s }) => fmtRatio(s?.valuation?.priceToSales)],
@@ -43,8 +45,8 @@ const STOCK_ROWS = [
   ['pm', 'stock.profitMargin', ({ stock: s }) => fmtFracPct(s?.fundamentals?.profitMargin)],
   ['roe', 'stock.roe', ({ stock: s }) => fmtFracPct(s?.fundamentals?.roe)],
   ['de', 'stock.debtEquity', ({ stock: s }) => fmtRatio(s?.fundamentals?.debtToEquity)],
-  ['divY', 'stock.divYield', ({ stock: s }) => fmtFracPct(s?.fundamentals?.dividendYield, { digits: 2 })],
-  ['beta', 'stock.beta', ({ stock: s }) => fmtRatio(s?.trading?.beta)],
+  ['divY', 'stock.divYield', ({ stock: s }) => (s?.sec?.dividendYield != null ? fmtFracPct(s.sec.dividendYield, { digits: 2 }) : '—')],
+  ['beta', 'stock.beta', ({ stock: s }) => fmtRatio(s?.sec?.beta ?? null)],
 ];
 // What the curated funds make of the name, and how the price did — the rows
 // a 13F site can add that a quote page cannot.
@@ -74,7 +76,7 @@ function StockCompare({ t, isPro }) {
   const gurus = useQueries({
     queries: tickers.map((tk) => ({ queryKey: ['guru-stock', tk], queryFn: () => api.guruStock({ ticker: tk }), retry: 1, staleTime: SIX_HOURS })),
   });
-  const cell = (i) => ({ stock: stocks[i].data, guru: gurus[i].data, ret: returns.data?.[tickers[i]] });
+  const cell = (i) => ({ stock: stocks[i].data, guru: gurus[i].data, ret: returns.data?.[tickers[i]], t });
 
   return (
     <>

@@ -528,6 +528,7 @@ export default function Insiders() {
                   <th onClick={() => onSort('shares')}>{t('ins.sharesOwn')}{arrow('shares')}</th>
                   <th onClick={() => onSort('return')}>{t('ins.returnCurr')}<InfoTip tip="tips.insReturn" />{arrow('return')}</th>
                   <th>{t('ins.winRate')}<InfoTip tip="ins.winRateTip" /></th>
+                  <th>{t('ins.pe')}<InfoTip tip="tips.pe" /></th>
                 </tr>
               </thead>
               <tbody>
@@ -637,6 +638,10 @@ export default function Insiders() {
                       ) : (
                         '—'
                       )}
+                    </td>
+                    {/* P/E from SEC filings at today's price (api/_lib/fundamentals.js) */}
+                    <td className="num" data-pe={r.pe ?? ''}>
+                      {r.pe === 'loss' ? <span className="delta-neg">{t('stock.loss')}</span> : r.pe != null ? fmtNum(r.pe, 1) : '—'}
                     </td>
                   </tr>
                 ))}

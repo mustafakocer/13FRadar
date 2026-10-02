@@ -57,6 +57,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # a stale-code retry starts the workflow again (scripts/rerun-workflow.mjs)
   issues: write # the alarm issue (scripts/notify.mjs)
 
 concurrency:
@@ -152,6 +153,7 @@ jobs:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 
       - name: Commit if changed
+        id: commit
         if: steps.audit.outcome == 'success'
         run: |
           git config user.name 'insider-bot'
@@ -186,8 +188,18 @@ jobs:
           echo "::error::the insider build reported problems — see the 'Build insiders.json' step"
           exit 1
 
+      # The code changed on the branch while this run built the data
+      # (scripts/stale-code-guard.mjs): nothing was pushed. Start once more on
+      # the current code, so the night's data is not lost; a retry that hits
+      # a change again raises the alarm below and stops.
+      - name: Start again on the current code (once)
+        if: ${{ failure() && steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry' }}
+        run: node scripts/rerun-workflow.mjs insiders.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Alert
-        if: failure()
+        if: ${{ failure() && !(steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry') }}
         run: node scripts/notify.mjs --title "Insider ingest failed" --log insiders-build.log
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -43,6 +43,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # a stale-code retry starts the workflow again (scripts/rerun-workflow.mjs)
 
 concurrency:
   group: fpi-data-${{ github.head_ref || github.ref_name }}
@@ -110,6 +111,7 @@ jobs:
       # a commit by the bot becomes the PR head that no check runs on
       # (workflows triggered by GITHUB_TOKEN pushes need approval).
       - name: Commit
+        id: commit
         if: github.event_name != 'pull_request'
         run: |
           git config user.name 'fpi-bot'
@@ -123,6 +125,16 @@ jobs:
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
+
+      # The code changed on the branch while this run built the data
+      # (scripts/stale-code-guard.mjs): nothing was pushed. Start once more on
+      # the current code, so the night's data is not lost; a retry that hits
+      # a change again raises the alarm below and stops.
+      - name: Start again on the current code (once)
+        if: ${{ failure() && steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry' }}
+        run: node scripts/rerun-workflow.mjs fpi.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Conversion gate
         run: node scripts/fpi-report.mjs --gate > /dev/null

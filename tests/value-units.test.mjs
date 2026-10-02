@@ -105,7 +105,7 @@ test('summarizeUniverse: the latest quarter, one row per fund, stale funds and a
     { cik: '5', aum: 50, positions: 5, reportDate: '2026-06-30', filed: '2026-08-12' }, // cik 2's book again
   ];
   const s = summarizeUniverse(rows, { asOf: '2026-09-29' });
-  assert.deepEqual(s, { count: 5, quarter: '2026-06-30', inTotal: 2, stale: 2, duplicates: 1, optionsExcluded: 0, totalAum: 150, totalPositions: 15 });
+  assert.deepEqual(s, { count: 5, quarter: '2026-06-30', inTotal: 2, stale: 2, duplicates: 1, fromReference: 0, optionsExcluded: 0, totalAum: 150, totalPositions: 15 });
   // option notional is left out of the total
   const withOpts = summarizeUniverse([{ ...rows[0], putCallValue: 30 }, rows[1]], { asOf: '2026-09-29' });
   assert.equal(withOpts.totalAum, 120);

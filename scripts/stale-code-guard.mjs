@@ -8,10 +8,12 @@
 // -X theirs and pushed: universe.json and universe-summary.json went back to
 // the old definition ($79.6T, options and stale funds counted).
 //
-// Exit 1 (nothing is pushed; the workflow's alarm opens) when any file under
+// Exit 1 (nothing is pushed; the workflow starts once more on the current
+// code, and opens its alarm if that retry hits a change too) when any file under
 // the paths below differs between the commit the run checked out
 // (GITHUB_SHA) and HEAD after the rebase. The data commit itself touches none
 // of them.
+import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
 
 export const CODE_PATHS = ['scripts', 'api/_lib', 'config', '.github/workflows', 'package.json', 'package-lock.json'];
@@ -37,5 +39,7 @@ if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).
   }
   console.log(`::error::The code changed on the branch during this run (${from.slice(0, 8)} → HEAD): the data was built with the old code and is not pushed. The next run rebuilds it.`);
   for (const f of changed.slice(0, 40)) console.log(`  ${f}`);
+  // the workflow starts once more on the current code (rerun-workflow.mjs)
+  if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, 'stale=true\n');
   process.exit(1);
 }

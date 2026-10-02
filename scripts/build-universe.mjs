@@ -14,7 +14,7 @@ import { declaredCandidates, lineKey, overlapPairs } from '../api/_lib/universeA
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
-import { inferPeriod, universeRow, writeUniverseSummaryFile } from '../api/_lib/universeSummary.js';
+import { inferPeriod, completeQuarter, universeRow, writeUniverseSummaryFile } from '../api/_lib/universeSummary.js';
 import { misfiledFor, markMisfiled } from '../api/_lib/misfiledBooks.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
@@ -123,6 +123,7 @@ async function main() {
   let done = 0;
   let failed = 0;
   let amended = 0;
+  let referenced = 0;
   const CONCURRENCY = 3;
   let i = 0;
 
@@ -157,6 +158,23 @@ async function main() {
     }
   }
 
+  // The quarter the headline total is of (universeSummary.js): a filer whose
+  // newest filing is a later period also has its filing for this one read,
+  // so it stays in that total with that quarter's figures.
+  const REF = completeQuarter(new Date().toISOString());
+  async function withReference(e, snap) {
+    if (!snap.reportDate || snap.reportDate <= REF) return snap;
+    try {
+      const f = list13F(await getSubmissions(e.cik)).find((x) => x.reportDate === REF);
+      if (!f) return snap;
+      const { aum, positions } = await getEffectiveHoldings(e.cik, f);
+      referenced++;
+      return { ...snap, ref: { reportDate: REF, acc: f.acc, filed: f.filingDate, aum, positions } };
+    } catch {
+      return snap;
+    }
+  }
+
   async function latestSnapshot(e) {
     if (e.form !== '13F-HR/A' && (e.originals || 0) < 2) {
       const xml = await fetchInfoTableXml(e.cik, e.acc);
@@ -180,7 +198,7 @@ async function main() {
       while (i < entries.length) {
         const e = entries[i++];
         try {
-          const snap = await latestSnapshot(e);
+          const snap = await withReference(e, await latestSnapshot(e));
           const { aum, positions } = snap;
           rows.push(universeRow(e, snap));
           // every book's lines, for the near-identical-book check below
@@ -236,7 +254,7 @@ async function main() {
     path.join(pub, 'universe.json'),
     JSON.stringify({ updatedAt: new Date().toISOString(), count: rows.length, rows })
   );
-  console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed}, ${amended} whose latest document is an amendment, folded into their period)`);
+  console.log(`Wrote ${rows.length} managers -> universe.json (failed: ${failed}, ${amended} whose latest document is an amendment, folded into their period; ${referenced} with a later filing, kept in the ${REF} total from their ${REF} filing)`);
   const snapDir = path.join(process.cwd(), 'api', '_data');
   fs.mkdirSync(snapDir, { recursive: true });
   fs.writeFileSync(

@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # a stale-code retry starts the workflow again (scripts/rerun-workflow.mjs)
   issues: write # the 13F check's alarm issue (scripts/notify.mjs)
 
 # the cron and its GitHub fallback queue instead of racing; the second one's
@@ -103,6 +104,7 @@ jobs:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 
       - name: Commit if changed
+        id: commit
         run: |
           git config user.name 'universe-bot'
           git config user.email 'actions@github.com'
@@ -136,6 +138,16 @@ jobs:
 
       # A new deviation or a new near-identical pair: the alarm issue, after
       # the data is committed. Raised again only for the next new finding.
+      # The code changed on the branch while this run built the data
+      # (scripts/stale-code-guard.mjs): nothing was pushed. Start once more on
+      # the current code, so the night's data is not lost; a retry that hits
+      # a change again raises the alarm below and stops.
+      - name: Start again on the current code (once)
+        if: ${{ failure() && steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry' }}
+        run: node scripts/rerun-workflow.mjs universe.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Alert (13F check)
         if: ${{ !cancelled() && steps.audit13f.outcome == 'failure' }}
         run: >-
@@ -150,7 +162,7 @@ jobs:
       # A failed build (EDGAR down, a gate, or the stale-code guard: the code
       # changed on main while this run was building) opens the alarm issue.
       - name: Alert
-        if: failure()
+        if: ${{ failure() && !(steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry') }}
         run: node scripts/notify.mjs --title "13F universe build failed"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

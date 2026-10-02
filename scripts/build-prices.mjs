@@ -17,6 +17,12 @@
 import { buildPrices } from '../api/_lib/pricesBuild.js';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 
+// Without Finnhub only TwelveData's ~400 symbols a night are refreshed: say
+// so where the run summary shows it rather than letting closes go stale.
+for (const key of ['TWELVEDATA_API_KEY', 'FINNHUB_API_KEY']) {
+  if (!process.env[key]) console.log(`::warning::price cache: ${key} is not set — that provider is skipped tonight`);
+}
+
 const r = await buildPrices();
 if (r.dryRun) console.log('dry run — nothing written');
 

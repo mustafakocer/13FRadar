@@ -117,7 +117,7 @@
       "path": "api/_data/prices/_index.json",
       "metrics": {
         "series": 1922,
-        "coveragePct": 99
+        "coveragePct": 45
       },
       "findings": []
     },

@@ -1,0 +1,27 @@
+name: Finnhub (diagnose)
+
+# Why Finnhub answers 403 from GitHub's runners (issue #65): the same request
+# without a key, with the key as a parameter and as a header, and on a second
+# free endpoint. Prints statuses and body heads, never the key. Commits nothing.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/probe-finnhub.mjs'
+      - '.github/workflows/finnhub-diag.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/probe-finnhub.mjs
+        env:
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}

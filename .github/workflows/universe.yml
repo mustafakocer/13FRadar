@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  issues: write # the 13F check's alarm issue (scripts/notify.mjs)
 
 # the cron and its GitHub fallback queue instead of racing; the second one's
 # guard then finds the day built and skips
@@ -82,6 +83,17 @@ jobs:
       # the headline numbers recomputed from the result.
       - name: Check value units
         run: node scripts/repair-units.mjs
+      # Our totals against the filers' declared ones (500 largest, ±5%) and
+      # near-identical books. A finding the previous night did not have is
+      # raised as an alarm after the data is committed; it never stops the
+      # data, and nothing is added to config/misfiled-books.json.
+      - name: Check totals against the filers' own and books filed twice
+        id: audit13f
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/check-universe-audit.mjs 2>&1 | tee "$RUNNER_TEMP/universe-audit.log"
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
@@ -100,7 +112,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in api/_data/unit-corrections.json client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
+          for f in api/_data/unit-corrections.json client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/universe-audit.json api/_data/copy-books.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
@@ -121,3 +133,16 @@ jobs:
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
+
+      # A new deviation or a new near-identical pair: the alarm issue, after
+      # the data is committed. Raised again only for the next new finding.
+      - name: Alert (13F check)
+        if: ${{ !cancelled() && steps.audit13f.outcome == 'failure' }}
+        run: >-
+          node scripts/notify.mjs --title "13F denetimi: yeni toplam sapması ya da kopya portföy" --log "$RUNNER_TEMP/universe-audit.log"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}

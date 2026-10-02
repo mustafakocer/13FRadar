@@ -5,6 +5,7 @@ import { latestHoldingsTable } from '../_lib/latestHoldings.js';
 import { createRequire } from 'node:module';
 import { reportIndex } from './report.js';
 import { misfiledFor, misfiledMark } from '../_lib/misfiledBooks.js';
+import { notesFor } from '../_lib/filingNotes.js';
 
 const require = createRequire(import.meta.url);
 // the manager's quarter-over-quarter card from the daily consensus build
@@ -82,6 +83,8 @@ export default async function handler(req, res) {
     source,
     // a filing whose table is another filer's (config/misfiled-books.json)
     misfiled: misfiled ? misfiledMark(misfiled) : null,
+    // the filer's own errors, reviewed (config/filing-notes.json)
+    notes: notesFor(cik),
     filings,
   });
 }

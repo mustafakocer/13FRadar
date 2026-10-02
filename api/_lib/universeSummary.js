@@ -103,6 +103,9 @@ export function universeRow({ cik, name }, snap) {
     ...(snap.reportDate ? { reportDate: snap.reportDate, periodFrom: snap.periodFrom } : {}),
     aum: Math.round(snap.aum),
     putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value : 0), 0)),
+    // the filer's own declared total (cover page), for the nightly check
+    ...(Number.isFinite(snap.declared) ? { declared: Math.round(snap.declared) } : {}),
+    ...(snap.declaredAlt?.length ? { declaredAlt: snap.declaredAlt.map(Math.round) } : {}),
     positions: positions.length,
     top10: Number(top10.toFixed(1)),
   };

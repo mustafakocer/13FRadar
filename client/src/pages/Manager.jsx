@@ -425,6 +425,7 @@ export default function Manager({ segment = 'portfolio' }) {
               exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
               timeHeld={hasHist ? hist.data.timeHeld : null}
               guruSlug={guruSlug}
+              reportDate={filing?.reportDate || null}
             />
           )}
 

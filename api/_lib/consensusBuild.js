@@ -23,7 +23,9 @@ const PUBLIC_ACTIVITY = 5;
 //   stocksTickers: how many CUSIPs from the per-stock table may be resolved
 //   live against OpenFIGI. Request-time callers leave it at 0 and take what
 //   the static map knows; the daily build raises it (it has a key and time).
-export async function build({ stocksTickers = 0 } = {}) {
+//   listedOn: id → first trading day (api/_lib/newListings.js); a stake in a
+//   security that listed inside the quarter is a pre-IPO holding, not a buy.
+export async function build({ stocksTickers = 0, listedOn = null } = {}) {
   // CONSENSUS_CIKS narrows the panel — the offline tests run the whole
   // aggregation over the three filers that have fixtures. Naming a closed
   // fund there still includes it; the registry alone never does.
@@ -49,7 +51,7 @@ export async function build({ stocksTickers = 0 } = {}) {
   const managers = per.filter(Boolean);
 
   // the one roll-up
-  const rows = netActivity(managers);
+  const rows = netActivity(managers, { listedOn });
   const stories = storiesByManager(rows);
 
   // PUT/CALL lines are aggregated separately: a put is a bet against the name,
@@ -110,6 +112,7 @@ export async function build({ stocksTickers = 0 } = {}) {
     adders: a.adders,
     reducers: a.reducers,
     exiters: a.exiters,
+    ...(a.listedOn ? { listedOn: a.listedOn, preListing: a.preListing, preListingValue: Math.round(a.preListingValue) } : {}),
   });
   const holdersOf = (a, n) =>
     a.holders.slice(0, n).map((h) => ({

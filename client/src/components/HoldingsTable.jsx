@@ -14,6 +14,8 @@ import ProGate from './ProGate.jsx';
 import Ico from './Ico.jsx';
 import { Download } from 'lucide-react';
 import { timeHeldLabel } from '../lib/timeHeld.js';
+import { heldBeforeListing } from '../lib/newListings.js';
+import { useListedOn } from '../hooks/useListedOn.js';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -62,8 +64,10 @@ function HistoryPanel({ cik, cusip, t }) {
 // has one — it adds a column, and the top-ten table this replaced used to be
 // the only place it showed. guruSlug turns the label into a link to the
 // guru × ticker page.
-export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked, timeHeld = null, guruSlug = null }) {
+export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked, timeHeld = null, guruSlug = null, reportDate = null }) {
   const { t, lang } = useI18n();
+  // a first line in a security that listed inside this quarter: held before the IPO
+  const listedOn = useListedOn();
   const { isPro } = useAuth();
   const [filter, setFilter] = useState('');
   const [sort, setSort] = useState({ key: 'value', dir: -1 });
@@ -85,6 +89,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         rank: i + 1,
         delta: hasPrev ? p.weight - (prev?.weight || 0) : null,
         isNew: hasPrev && !prev,
+        preIpo: hasPrev && !prev && !p.putCall && heldBeforeListing(p, reportDate, listedOn),
         ret1y: returns?.[p.ticker]?.ret1y ?? null,
         retYtd: returns?.[p.ticker]?.retYtd ?? null,
         held: timeHeld ? (timeHeld[p.cusip]?.quarters ?? 0) : null,
@@ -109,7 +114,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
       if (typeof av === 'string') return av.localeCompare(bv) * dir;
       return (av - bv) * dir;
     });
-  }, [positions, prevPositions, hasPrev, returns, filter, sort, timeHeld]);
+  }, [positions, prevPositions, hasPrev, returns, filter, sort, timeHeld, reportDate, listedOn]);
 
   // free tier sees the top 10 positions only
   const visible = !isPro ? rows.slice(0, 10) : showAll ? rows : rows.slice(0, 100);
@@ -215,7 +220,9 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                   </td>
                   {hasPrev && (
                     <td className={`num ${deltaClass(p.delta)}`} data-col="delta">
-                      {p.isNew ? (
+                      {p.preIpo ? (
+                        <span className="badge plain" title={t('manager.preIpoTip')}>{t('manager.preIpoBadge')}</span>
+                      ) : p.isNew ? (
                         <span className="badge type">{t('manager.newBadge')}</span>
                       ) : (
                         fmtPct(p.delta, { digits: 2 })

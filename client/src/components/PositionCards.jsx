@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { heldBeforeListing } from '../lib/newListings.js';
+import { useListedOn } from '../hooks/useListedOn.js';
 import { securityLabel } from '../lib/label.js';
 import Ico from './Ico.jsx';
 import { Trophy, TrendingUp, TrendingDown } from 'lucide-react';
@@ -39,9 +41,10 @@ function Row({ p, badge, delta }) {
 // answer the FAQ gives): by share count, the change shown in shares.
 export default function PositionCards({ positions, changes }) {
   const { t } = useI18n();
+  const listedOn = useListedOn();
   const hasPrev = Boolean(changes?.counts);
   const top = positions.slice(0, 8);
-  const increased = hasPrev ? [...changes.new.map((p) => ({ ...p, isNew: true })), ...changes.added].slice(0, 8) : [];
+  const increased = hasPrev ? [...changes.new.map((p) => ({ ...p, isNew: true, preIpo: !p.putCall && heldBeforeListing(p, changes.reportDate, listedOn) })), ...changes.added].slice(0, 8) : [];
   const decreased = hasPrev ? [...changes.reduced, ...changes.exited.map((p) => ({ ...p, isExit: true, weight: p.prevWeight }))].slice(0, 8) : [];
 
   return (
@@ -59,7 +62,7 @@ export default function PositionCards({ positions, changes }) {
           <Row
             key={`${p.cusip}|${p.putCall}`}
             p={p}
-            badge={p.isNew ? t('manager.newBadge') : null}
+            badge={p.preIpo ? t('manager.preIpoBadge') : p.isNew ? t('manager.newBadge') : null}
             delta={p.isNew ? null : p.pct}
           />
         ))}

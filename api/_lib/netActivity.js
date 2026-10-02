@@ -29,10 +29,21 @@
 // `idOf(position)` picks the security identity — the CUSIP by default, a
 // ticker from the security master when the caller has one, so a CUSIP
 // change under a position is not read as a sale plus a purchase.
+//
+// `listedOn(id)` (client/src/lib/newListings.js) gives a security's first
+// trading day. A fund's first line in a security that listed inside the
+// quarter it reports — an IPO or a spin-off — is not a purchase: the fund
+// held the shares before the listing. It is kept as a holding with activity
+// 'preListing' and stays out of buyValue, netValue and the buyer counts, so
+// SpaceX's $15B of pre-IPO stakes is not "the most bought stock". If any fund
+// in the set already held the security the quarter before, the rule does not
+// apply (it was not new to these filers).
+
+import { listedInQuarter } from '../../client/src/lib/newListings.js';
 
 const equity = (snap) => (snap?.positions || []).filter((p) => !p.putCall);
 
-export function netActivity(managers, { idOf = (p) => String(p.cusip || '').toUpperCase() } = {}) {
+export function netActivity(managers, { idOf = (p) => String(p.cusip || '').toUpperCase(), listedOn = null } = {}) {
   const rows = new Map();
   const row = (id, p) => {
     let r = rows.get(id);
@@ -57,6 +68,8 @@ export function netActivity(managers, { idOf = (p) => String(p.cusip || '').toUp
         adders: 0,
         reducers: 0,
         exiters: 0,
+        preListing: 0,
+        preListingValue: 0,
         price: null,
         // per-fund deltas, priced in the second pass
         deltas: [],
@@ -98,8 +111,11 @@ export function netActivity(managers, { idOf = (p) => String(p.cusip || '').toUp
       if (!m.prev) continue;
       const q = prev.get(id);
       const d = c.shares - (q?.shares || 0);
-      if (!q) holder.activity = 'new';
-      else {
+      if (!q) {
+        const listed = listedOn && (listedOn(id) || listedOn(c.p.cusip) || listedOn(c.p.ticker));
+        holder.activity = listed && listedInQuarter(listed, m.reportDate) ? 'preListing' : 'new';
+        if (holder.activity === 'preListing') r.listedOn = listed;
+      } else {
         holder.change = q.shares > 0 ? (d / q.shares) * 100 : null;
         holder.activity = d > 0 ? 'add' : d < 0 ? 'reduce' : 'hold';
       }
@@ -122,10 +138,19 @@ export function netActivity(managers, { idOf = (p) => String(p.cusip || '').toUp
 
   // pass 2: one period-end price per security, then dollars
   for (const r of rows.values()) {
+    // a fund held it the quarter before: not new to the set, the stakes are buys
+    if (r.prevShares > 0 && r.listedOn) {
+      for (const t of r.deltas) if (t.kind === 'preListing') t.kind = 'new';
+      for (const h of r.holders) if (h.activity === 'preListing') h.activity = 'new';
+      delete r.listedOn;
+    }
     r.price = r.totalShares > 0 ? r.totalValue / r.totalShares : r.prevShares > 0 ? r.prevValue / r.prevShares : 0;
     for (const t of r.deltas) {
       t.value = Math.abs(t.delta) * r.price;
-      if (t.delta > 0) {
+      if (t.kind === 'preListing') {
+        r.preListing++;
+        r.preListingValue += t.value;
+      } else if (t.delta > 0) {
         r.buyShares += t.delta;
         r.buyValue += t.value;
         r.buyers++;
@@ -157,8 +182,8 @@ export function storiesByManager(rows) {
   for (const r of rows.values()) {
     for (const t of r.deltas) {
       let s = out.get(t.cik);
-      if (!s) out.set(t.cik, (s = { newBuys: [], adds: [], reduces: [], exits: [] }));
-      const list = t.kind === 'new' ? s.newBuys : t.kind === 'add' ? s.adds : t.kind === 'reduce' ? s.reduces : s.exits;
+      if (!s) out.set(t.cik, (s = { newBuys: [], adds: [], reduces: [], exits: [], preListing: [] }));
+      const list = t.kind === 'preListing' ? s.preListing : t.kind === 'new' ? s.newBuys : t.kind === 'add' ? s.adds : t.kind === 'reduce' ? s.reduces : s.exits;
       list.push({ id: r.id, cusip: r.cusip, issuer: r.issuer, weight: t.weight, value: t.value, ...(t.kind === 'add' || t.kind === 'reduce' ? { change: t.change } : {}) });
     }
   }

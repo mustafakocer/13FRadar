@@ -3,6 +3,8 @@ import { fmtPct } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import Ico from './Ico.jsx';
 import { Plus, Minus, BookOpen } from 'lucide-react';
+import { heldBeforeListing } from '../lib/newListings.js';
+import { useListedOn } from '../hooks/useListedOn.js';
 
 const Tick = ({ p }) =>
   p.ticker ? (
@@ -18,6 +20,7 @@ const Tick = ({ p }) =>
 // count against the complete previous book.
 export default function ChangeStory({ changes }) {
   const { t } = useI18n();
+  const listedOn = useListedOn();
   if (!changes?.counts) return null;
   const c = changes.counts;
   const fresh = changes.new;
@@ -34,7 +37,7 @@ export default function ChangeStory({ changes }) {
         {fresh.slice(0, 3).map((p, i) => (
           <span key={`${p.cusip}|${p.putCall || ''}`}>
             {i > 0 && ', '}
-            <Tick p={p} /> <span className="muted">({fmtPct(p.weight, { sign: false })})</span>
+            <Tick p={p} /> <span className="muted">({fmtPct(p.weight, { sign: false })}{!p.putCall && heldBeforeListing(p, changes.reportDate, listedOn) ? ` · ${t('manager.preIpoBadge')}` : ''})</span>
           </span>
         ))}
         {c.new > 3 && <span className="muted"> +{c.new - 3}</span>}

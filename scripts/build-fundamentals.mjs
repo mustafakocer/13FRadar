@@ -19,7 +19,9 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { secGet, padCik } from '../api/_lib/sec.js';
 import { fetchSecTickers } from '../api/_lib/marketData.js';
-import { fundamentalsOf, weeklyBeta, valuationFor, mergeFacts } from '../api/_lib/secFundamentals.js';
+import { fundamentalsOf, weeklyBeta, valuationFor, mergeFacts, EPS_CONCEPTS, NET_INCOME_CONCEPTS, WAVG_SHARE_CONCEPTS } from '../api/_lib/secFundamentals.js';
+import { inlineFacts } from '../api/_lib/inlineXbrl.js';
+import { getSubmissions } from '../api/_lib/sec.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { toUsdWith } from '../api/_lib/fpiContext.js';
 
@@ -103,6 +105,36 @@ for (const t of tickers) {
   byCik.get(cik).push(t);
 }
 const load = async (cik) => (ZIP ? fromZip(cik) : await fromApi(cik));
+
+// When companyfacts lacks a filer's newest EPS or share count (Berkshire's
+// per-class counts, some 20-F filers' whole 2025–2026 years), the numbers are
+// read out of the newest periodic report's own document (inline XBRL),
+// within FUNDAMENTALS_IXBRL_BUDGET documents, for the tickers that matter:
+// the top 500 by 13F value, the curated funds' holdings, the ones asked for.
+const IX_FORMS = new Set(['10-K', '10-Q', '20-F', '40-F', '10-K/A', '20-F/A']);
+const IX_CONCEPTS = [...EPS_CONCEPTS, ...NET_INCOME_CONCEPTS, ...WAVG_SHARE_CONCEPTS].map(([ns, n]) => `${ns}:${n}`).concat('dei:EntityCommonStockSharesOutstanding');
+let ixBudget = Number(process.env.FUNDAMENTALS_IXBRL_BUDGET || 150);
+const ixUsed = [];
+const important = new Set([...top500, ...(read('api/_data/guru-stocks.json')?.stocks || []).map((s) => s.ticker).filter(Boolean), ...(only || [])]);
+async function fromDocument(cik) {
+  if (ixBudget <= 0) return null;
+  ixBudget--;
+  try {
+    const r = (await getSubmissions(cik))?.filings?.recent;
+    if (!r) return null;
+    const i = r.form.findIndex((f, k) => IX_FORMS.has(f) && r.primaryDocument?.[k]);
+    if (i < 0) return null;
+    const accn = r.accessionNumber[i];
+    const url = `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accn.replace(/-/g, '')}/${r.primaryDocument[i]}`;
+    const { data } = await secGet(url, { responseType: 'text' });
+    const f = inlineFacts(String(data), IX_CONCEPTS, { form: r.form[i], filed: r.filingDate[i], accn });
+    ixUsed.push(`${cik} ${r.form[i]} ${r.filingDate[i]} ${Object.values(f.facts).reduce((n, c) => n + Object.keys(c).length, 0)} concepts`);
+    return f;
+  } catch (e) {
+    ixUsed.push(`${cik} failed: ${e.message}`);
+    return null;
+  }
+}
 for (const [cik, list] of byCik) {
   let cf = await load(cik);
   const pred = list.map((t) => predecessors[t]?.cik).find(Boolean);
@@ -111,8 +143,14 @@ for (const [cik, list] of byCik) {
     noFacts += list.length;
     continue;
   }
+  const recOf = (t) => fundamentalsOf(cf, { cik, classRule: classRules[t] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
+  // the filing's own document fills what companyfacts leaves out
+  if (list.some((t) => important.has(t) && (recOf(t).eps?.value == null || !recOf(t).shares))) {
+    const doc = await fromDocument(cik);
+    if (doc) cf = mergeFacts(doc, cf);
+  }
   for (const t of list) {
-    const rec = fundamentalsOf(cf, { cik, classRule: classRules[t] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
+    const rec = recOf(t);
     const closes = readSeries(t)?.prices || null;
     const beta = closes ? weeklyBeta(closes, spy) : null;
     if (only?.includes(t)) rawLines.push(...rawOf(t, cf));
@@ -143,7 +181,11 @@ function rawOf(t, cf) {
 }
 
 // ---- coverage over the top 500 stocks by 13F value (ETFs set apart) ----
-const isFund = (t) => sectorOf[t] === 'ETF';
+// a fund (ETF) has no earnings per share: set apart by the sector map or by
+// the issuer name the 13F states ("ISHARES TR", "VANGUARD INDEX FDS", …)
+const issuerOf = Object.fromEntries((read('client/public/stocks.json')?.rows || []).map((r) => [r.ticker, r.issuer || '']));
+const FUND_NAME = /\b(ETF|ETFS|ISHARES|VANGUARD|SPDR|SELECT SECTOR|SCHWAB STRATEGIC|EXCHANGE TRADED|INDEX FDS|INVESCO QQQ|DIMENSIONAL|FIRST TR|J P MORGAN EXCHANGE)\b/i;
+const isFund = (t) => sectorOf[t] === 'ETF' || FUND_NAME.test(issuerOf[t] || '');
 const stocks500 = top500.filter((t) => !isFund(t));
 const missEps = stocks500.filter((t) => byTicker[t]?.eps?.value == null);
 const missShares = stocks500.filter((t) => byTicker[t]?.shares?.value == null);
@@ -161,6 +203,7 @@ for (const t of [...new Set([...(only || []), ...top500.slice(0, showN)])]) {
   console.log(`FUND ${t} ${JSON.stringify({ px: px(t), ...v, eps: r?.eps, shares: r?.shares, div: r?.div, beta: r?.beta })}`);
 }
 for (const l of rawLines) console.log(l);
+console.log(`filing documents read (inline XBRL): ${ixUsed.length}${ixUsed.length ? ` — ${ixUsed.slice(0, 40).join(' · ')}` : ''}`);
 if (process.env.FUNDAMENTALS_SEED) {
   // one JSON line per record, for building a seed file from a job's log
   // (FUNDAMENTALS_SEED=top500: the top 500 by 13F value only)

@@ -211,7 +211,7 @@ export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio 
       v = usd;
     }
     v *= per;
-    if (classRule?.epsDivisor && kind === 'eps') v /= classRule.epsDivisor;
+    if (classRule?.epsDivisor && kind === 'eps' && !t.listedUnits) v /= classRule.epsDivisor;
     return { value: Number(v.toFixed(4)), basis: t.basis, currency: t.currency, ...(t.currency !== 'USD' ? { local: t.value } : {}), ...(per !== 1 ? { perAds: per } : {}), ...(t.parts ? { parts: t.parts } : {}), ...src(t, out.cik) };
   };
   let eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
@@ -220,9 +220,13 @@ export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio 
     const ni = trailingOf(facts, NET_INCOME_CONCEPTS, { asOf, unit: (u) => (/^[A-Z]{3}$/.test(u) ? u : null) });
     const w = weightedShares(facts);
     if (ni && w?.value > 0 && Math.abs(days(w.end, ni.end)) <= 45) {
+      // per the filer's own share units; the class rule's divisor follows
       eps = { ...ni, value: ni.value / w.value, concept: `${ni.concept} ÷ ${w.concept}`, derivedFrom: 'net-income' };
-      // the class rule's EPS divisor applies to a per-share figure, which
-      // this now is (per the filer's own share units)
+    } else if (ni) {
+      // no diluted count either (Berkshire): the cover count, already in the
+      // listed share's units, so no class divisor after it
+      const cover = sharesOutstanding(facts, classRule, { asOf });
+      if (cover?.value > 0 && Math.abs(days(cover.asOf, ni.end)) <= 120) eps = { ...ni, value: ni.value / cover.value, concept: `${ni.concept} ÷ dei:EntityCommonStockSharesOutstanding`, derivedFrom: 'net-income', listedUnits: true };
     }
   }
   out.eps = money(eps, 'eps');

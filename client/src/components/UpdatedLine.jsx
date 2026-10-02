@@ -28,7 +28,7 @@ export default function UpdatedLine({ updatedAt, dataDay = null, quarter = null,
   if (dataDay) parts.push(`${t('data.lastFiling')}: ${day(dataDay, locale)}`);
   if (quarter) parts.push(`${t('data.quarter')}: ${quarterText || quarter}`);
   return (
-    <span className={`live-pill${stale ? ' stale' : ''}`} data-updated-at={updatedAt || ''}>
+    <span className={`live-pill updated-line${stale ? ' stale' : ''}`} data-updated-at={updatedAt || ''}>
       {parts.join(' · ')}
     </span>
   );

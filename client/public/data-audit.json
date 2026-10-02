@@ -55,7 +55,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 590
+        "names": 588
       },
       "findings": []
     },
@@ -159,7 +159,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 140
+        "rows": 177
       },
       "findings": []
     },
@@ -167,7 +167,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 49
+        "filers": 69
       },
       "findings": []
     },

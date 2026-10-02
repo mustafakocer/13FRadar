@@ -415,6 +415,45 @@ export function domesticRow(r, { series = null, meta = null, splits, rules = FPI
   return { fail: MARKET_CODES.has(r.k) ? (ref.close ? 'mismatch' : 'unverifiable') : 'non_market', cu: 'USD', lp: r.p, lv };
 }
 
+// A per-share price field that holds the aggregate price the footnote states:
+// SLBT 2026-09-29, 4,545,306 shares "for an aggregate purchase price of
+// US$2,272,653" with 2,272,653 in the price field ($10.33T read as written).
+// The line is read at the aggregate ÷ shares ($0.50) and its amount is the
+// aggregate. Only when the footnote's aggregate equals the price field.
+const AGGREGATE_RE = /\baggregate\s+(?:purchase\s+|sale\s+|sales\s+)?(?:price|consideration)\s+of\s+(?:approximately\s+)?(?:US\$|USD\s?|\$)\s?([\d,]+(?:\.\d+)?)/i;
+export function aggregatePriceFix(r, raw) {
+  if (!(r?.p > 0) || !(r?.s > 1) || r.fx) return null;
+  const notes = raw?.fn ? Object.values(raw.fn).join(' ') : '';
+  const m = notes.match(AGGREGATE_RE);
+  if (!m) return null;
+  const total = Number(m[1].replace(/,/g, ''));
+  if (!(total > 0) || Math.abs(r.p / total - 1) > 0.01) return null;
+  const p = Number((total / r.s).toFixed(6));
+  return { ...r, p, v: Math.round(total), fx: { cu: 'USD', as: 'aggregate', lp: r.p, ls: r.s, lv: Math.round(r.p * r.s), ok: 1 } };
+}
+
+// The last check on every line's dollar amount, foreign issuer or not
+// (config/fpi-rules.js): a market trade (P, S, F) priced more than 5× away
+// from the trade day's close, or one line worth more than the company's market cap ($5B when the
+// cap is unknown), has no verified amount — out of rankings and totals,
+// shown in its own units like a line whose currency could not be verified.
+// → null | { fail: 'price_ratio' | 'amount_cap' }
+export function amountGuard(r, { series = null, meta = null, splits, rules = FPI_RULES } = {}) {
+  if (!r || r.fx?.fail || !(r.p > 0) || !(r.v > 0)) return null;
+  const ref = marketRef(r, series, null);
+  // an option exercise, an award or a gift is priced at a strike or a grant
+  // value, never at the market: the price test is for market trades
+  if (ref?.close && MARKET_CODES.has(r.k)) {
+    const ratio = r.p / splitFactor(r.t, r.d, splits) / ref.close;
+    if (ratio > rules.amountMaxPriceRatio || ratio < 1 / rules.amountMaxPriceRatio) return { fail: 'price_ratio', ratio: Number(ratio.toFixed(3)) };
+  }
+  // a market cap below $10M is a share count the SEC feed got wrong (QVC
+  // Group at "$14"), not a company size
+  const cap = meta?.mcap >= rules.amountMinCap ? meta.mcap : null;
+  if (r.v > (cap ?? rules.amountMaxNoCap)) return { fail: 'amount_cap', cap };
+  return null;
+}
+
 // The served copy of every row: normalised lines replaced by a copy with US
 // dollar fields, lines that could not be normalised by a copy with no dollar
 // amount. `ctx`:
@@ -454,7 +493,7 @@ export function normalizeRows(rows, ctx = {}) {
   // states in another currency (Canopy Growth's TSX sales "in Canadian
   // dollars, C$1.47") is converted.
   const tenK = ctx.fpi?.tenK || {};
-  const out = rows.map((r) => {
+  const one = (r) => {
     const us = Boolean(r.ci && tenK[r.ci]);
     const raw = ctx.rawOf ? ctx.rawOf(r) : null;
     const issuer = us ? null : issuers[r.ci] || null;
@@ -493,6 +532,19 @@ export function normalizeRows(rows, ctx = {}) {
     // ownership after the trade is in home-market shares too
     if (copy.o != null && n.ar !== 1) copy.o = Math.round(copy.o / n.ar);
     return copy;
+  };
+  const rules = ctx.rules || FPI_RULES;
+  const out = rows.map((r0) => {
+    // the aggregate price written in the per-share field, read back per share
+    const raw = ctx.rawOf ? ctx.rawOf(r0) : null;
+    const r = aggregatePriceFix(r0, raw) || r0;
+    if (r !== r0) stats.aggregate = (stats.aggregate || 0) + 1;
+    const n = one(r);
+    // and every line's amount checked against the market (amountGuard)
+    const g = amountGuard(n, { series: series(n.t), meta: n.t ? ctx.meta?.[n.t] : null, splits: ctx.splits, rules });
+    if (!g) return n;
+    stats.amountGuard = (stats.amountGuard || 0) + 1;
+    return { ...n, v: null, pu: 1, fx: { ...(n.fx?.ok ? { cu: n.fx.cu } : { cu: n.fx?.cu || 'USD' }), lp: n.fx?.lp ?? n.p, ls: n.fx?.ls ?? n.s, lv: n.fx?.lv ?? Math.round((n.s || 0) * (n.p || 0)), fail: g.fail } };
   });
   normalizeRows.lastStats = stats;
   return out;

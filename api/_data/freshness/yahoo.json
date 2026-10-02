@@ -1,9 +1,9 @@
 {
  "dataset": "yahoo",
  "kind": "provider",
- "run_id": "36800931409",
- "last_run_at": "2026-10-01T01:31:07.766Z",
- "last_success_at": "2026-10-01T01:31:07.766Z",
+ "run_id": "36950769827",
+ "last_run_at": "2026-10-02T01:30:32.727Z",
+ "last_success_at": "2026-10-02T01:30:32.727Z",
  "last_error": null,
  "last_error_at": null,
  "calls_ok": 1942,

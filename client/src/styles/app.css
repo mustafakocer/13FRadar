@@ -375,6 +375,7 @@ table.data .num { font-weight: 600; }
 .feature-card h3 { margin-bottom: 6px; }
 
 .how-card { text-align: center; }
+.why-card h3 { margin-bottom: 6px; }
 .how-num {
   width: 36px; height: 36px; margin: 0 auto 12px; border-radius: 50%;
   border: 1px solid var(--border-strong); color: var(--accent);

@@ -144,8 +144,10 @@ function Hero({ summary }) {
   const [params] = useSearchParams();
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
 
+  // the lead and the first stat box state the same count (lib/fundCount.js)
+  const funds = fundCountLabel(summary?.count, { locale });
   const stats = [
-    [Landmark, fundCountLabel(summary?.count, { locale }) || '—', t('landing.stat.funds2')],
+    [Landmark, funds || '—', t('landing.stat.funds2')],
     // the latest complete quarter, one filing per fund (universeSummary.js);
     // the tooltip says so, since a reader will compare it with other sites
     [Coins, summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '—', t('landing.stat.aum'), summary?.quarter ? t('landing.stat.aumTip').replace('{q}', quarterLabel(summary.quarter)) : null],
@@ -164,7 +166,7 @@ function Hero({ summary }) {
         <em>{t('landing.h1.accent')}</em>
         {t('landing.h1.post')}
       </h1>
-      <p className="lead">{t('landing.sub')}</p>
+      <p className="lead">{funds ? t('landing.sub').replace('{n}', funds) : t('landing.sub.noCount')}</p>
       <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} />
       <div className="hero-ctas">
         <Link to={configured ? '/account?next=/pricing' : '/pricing'} className="btn">
@@ -423,7 +425,7 @@ function ConvictionCard({ icon, title, rows, value, sub }) {
   );
 }
 
-function GuruConviction({ mostHeld }) {
+function GuruConviction({ mostHeld, coverage }) {
   const { t } = useI18n();
   const lists = useMemo(() => {
     const rows = (mostHeld || []).map((r) => ({
@@ -447,7 +449,8 @@ function GuruConviction({ mostHeld }) {
     <section className="home-section">
       <div className="home-section-head center">
         <h2>{t('landing.guru.title')}</h2>
-        <p>{t('landing.guru.sub')}</p>
+        {/* the gurus tracked: the number the coverage line below states */}
+        <p>{Number.isFinite(coverage?.tracked) ? t('landing.guru.sub').replace('{n}', coverage.tracked) : t('landing.guru.sub.noCount')}</p>
       </div>
       <div className="grid grid-3">
         <ConvictionCard
@@ -700,7 +703,7 @@ export default function Home() {
       <GuruBrowser limit={24} onPrefetch={prefetch} />
 
       <InsiderSignals teaser={teaser.data} />
-      <GuruConviction mostHeld={consensus.data?.mostHeld} />
+      <GuruConviction mostHeld={consensus.data?.mostHeld} coverage={consensus.data?.coverage} />
       <PortfolioUpdates updates={consensus.data?.updates} />
       <MarketActivity activity={consensus.data?.activity} mostHeld={consensus.data?.mostHeld} managers={consensus.data?.managers} coverage={consensus.data?.coverage} returns={returns.data} updatedAt={consensus.data?.updatedAt} />
 
@@ -712,6 +715,16 @@ export default function Home() {
             <h3>{t(`landing.${key}.t`)}</h3>
             <p className="muted small">{t(`landing.${key}.d`)}</p>
           </Link>
+        ))}
+      </div>
+
+      <div className="section-title">{t('landing.why')}</div>
+      <div className="grid grid-3 mt16">
+        {[1, 2, 3].map((n) => (
+          <div key={n} className="card why-card">
+            <h3>{t(`landing.why${n}.t`)}</h3>
+            <p className="muted small">{t(`landing.why${n}.d`)}</p>
+          </div>
         ))}
       </div>
 

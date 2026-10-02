@@ -20,6 +20,7 @@ export const VIEWPORTS = [
 ];
 export const PAGES = (process.env.MOBILE_PAGES ? process.env.MOBILE_PAGES.split(',') : [
   '/tr',
+  '/en',
   '/tr/guru/berkshire-hathaway-warren-buffett',
   '/tr/guru/berkshire-hathaway-warren-buffett/changes',
   '/tr/guru/berkshire-hathaway-warren-buffett/mix',

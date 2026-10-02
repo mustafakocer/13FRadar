@@ -77,7 +77,7 @@ function Dropdown({ label, icon, items, active }) {
 
 export default function TopBar({ theme, onToggleTheme }) {
   const { t, lang, toggle } = useI18n();
-  const fundCount = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || (lang === 'tr' ? '9.000+' : '9,000+');
+  const fundCount = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || '—';
   const { configured, user, plan } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);

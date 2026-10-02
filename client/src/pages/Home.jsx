@@ -144,7 +144,7 @@ function Hero({ summary }) {
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
 
   const stats = [
-    [Landmark, fundCountLabel(summary?.count, { locale }) || '9.000+', t('landing.stat.funds2')],
+    [Landmark, fundCountLabel(summary?.count, { locale }) || '—', t('landing.stat.funds2')],
     // the latest complete quarter, one filing per fund (universeSummary.js);
     // the tooltip says so, since a reader will compare it with other sites
     [Coins, summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '—', t('landing.stat.aum'), summary?.quarter ? t('landing.stat.aumTip').replace('{q}', quarterLabel(summary.quarter)) : null],

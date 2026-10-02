@@ -23,6 +23,7 @@ on:
 
 permissions:
   contents: write
+  actions: write # a stale-code retry starts the workflow again (scripts/rerun-workflow.mjs)
   issues: write # the 13F check's alarm issue (scripts/notify.mjs)
 
 # the cron and its GitHub fallback queue instead of racing; the second one's
@@ -103,6 +104,7 @@ jobs:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 
       - name: Commit if changed
+        id: commit
         run: |
           git config user.name 'universe-bot'
           git config user.email 'actions@github.com'
@@ -129,13 +131,23 @@ jobs:
           fi
           # the branch may have moved during the multi-hour run — rebase and retry
           for i in 1 2 3 4; do
-            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && git push && exit 0
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1
 
       # A new deviation or a new near-identical pair: the alarm issue, after
       # the data is committed. Raised again only for the next new finding.
+      # The code changed on the branch while this run built the data
+      # (scripts/stale-code-guard.mjs): nothing was pushed. Start once more on
+      # the current code, so the night's data is not lost; a retry that hits
+      # a change again raises the alarm below and stops.
+      - name: Start again on the current code (once)
+        if: ${{ failure() && steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry' }}
+        run: node scripts/rerun-workflow.mjs universe.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Alert (13F check)
         if: ${{ !cancelled() && steps.audit13f.outcome == 'failure' }}
         run: >-
@@ -146,3 +158,22 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           ALERT_FROM: ${{ secrets.ALERT_FROM }}
           OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      # A failed build (EDGAR down, a gate, or the stale-code guard: the code
+      # changed on main while this run was building) opens the alarm issue.
+      - name: Alert
+        if: ${{ failure() && !(steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry') }}
+        run: node scripts/notify.mjs --title "13F universe build failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "13F universe build failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

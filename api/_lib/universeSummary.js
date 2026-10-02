@@ -41,7 +41,19 @@ export function periodOf(row, reportByAcc = null) {
   return row.reportDate || reportByAcc?.[row.acc] || inferPeriod(row.filed);
 }
 
-// rows: universe.json rows ({ aum, positions, reportDate?, filed }).
+// The filing a row is counted from in the `quarter` total: its own, or — a
+// fund that has already filed a newer period (Q3 filings start on 1 October,
+// while Q2 stays the reference until 14 November) — the reference period's
+// filing the build keeps on the row as `ref`. The newer filing still drives
+// the fund's page and the rankings; it never moves the fund out of, or
+// changes its amount in, the quarter's total.
+export function countedFiling(r, quarter) {
+  const p = r.reportDate || inferPeriod(r.filed);
+  if (p && p > quarter && r.ref?.reportDate === quarter) return { ...r, ...r.ref, misfiled: r.ref.misfiled, cik: r.cik, viaRef: true };
+  return r;
+}
+
+// rows: universe.json rows ({ aum, positions, reportDate?, filed, ref? }).
 export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameBooks = [] } = {}) {
   const quarter = completeQuarter(asOf);
   let totalAum = 0;
@@ -55,7 +67,9 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameB
   const seen = new Set();
   // and a subsidiary's book its parent also files (config/duplicate-books.json)
   const dropped = new Set(sameBooks.map((p) => String(p.drop).padStart(10, '0')));
-  for (const r of rows) {
+  let fromReference = 0;
+  for (const row of rows) {
+    const r = countedFiling(row, quarter);
     const p = r.reportDate || inferPeriod(r.filed);
     if (!p || p < quarter) {
       stale++;
@@ -69,12 +83,29 @@ export function summarizeUniverse(rows, { asOf = new Date().toISOString(), sameB
     }
     if (book) seen.add(book);
     inTotal++;
+    if (r.viaRef) fromReference++;
     const opts = Number.isFinite(r.putCallValue) ? Math.min(r.putCallValue, r.aum || 0) : 0;
     optionsExcluded += opts;
     totalAum += (Number.isFinite(r.aum) ? r.aum : 0) - opts;
     totalPositions += Number.isFinite(r.positions) ? r.positions : 0;
   }
-  return { count: rows.length, quarter, inTotal, stale, duplicates, optionsExcluded: Math.round(optionsExcluded), totalAum: Math.round(totalAum), totalPositions };
+  return { count: rows.length, quarter, inTotal, stale, duplicates, fromReference, optionsExcluded: Math.round(optionsExcluded), totalAum: Math.round(totalAum), totalPositions };
+}
+
+// THE contents of client/public/universe-summary.json, from universe.json's
+// rows: the only way that file is written (build-universe, repair-units,
+// measure-options all call writeUniverseSummaryFile). A run on older code once
+// wrote it by another definition ($79T, options and stale funds counted):
+// tests/universe-summary-file.test.mjs and the Site check hold the file to
+// this function.
+export function universeSummaryFile(U, root = process.cwd()) {
+  return { updatedAt: U.updatedAt, ...summarizeUniverse(U.rows || [], { asOf: U.updatedAt, sameBooks: loadSameBooks(root) }) };
+}
+
+export function writeUniverseSummaryFile(U, root = process.cwd()) {
+  const summary = universeSummaryFile(U, root);
+  fs.writeFileSync(path.join(root, 'client', 'public', 'universe-summary.json'), JSON.stringify(summary));
+  return summary;
 }
 
 // The reviewed list of books filed twice (parent and subsidiary).
@@ -106,8 +137,24 @@ export function universeRow({ cik, name }, snap) {
     // the filer's own declared total (cover page), for the nightly check
     ...(Number.isFinite(snap.declared) ? { declared: Math.round(snap.declared) } : {}),
     ...(snap.declaredAlt?.length ? { declaredAlt: snap.declaredAlt.map(Math.round) } : {}),
+    // the reference quarter's filing, when the newest is a later period
+    ...(snap.ref ? { ref: referenceRow(snap.ref) } : {}),
     positions: positions.length,
     top10: Number(top10.toFixed(1)),
+  };
+}
+
+// The reference period's figures a row keeps when its newest filing is a
+// later period (see countedFiling): what summarizeUniverse needs, no more.
+export function referenceRow(snap) {
+  const positions = snap.positions || [];
+  return {
+    reportDate: snap.reportDate,
+    acc: snap.acc,
+    filed: snap.filed,
+    aum: Math.round(snap.aum),
+    putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value : 0), 0)),
+    positions: positions.length,
   };
 }
 

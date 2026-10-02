@@ -41,6 +41,12 @@ export function markMisfiled(rows, books = misfiledBooks) {
       r.misfiled = misfiledMark(f);
       n++;
     } else delete r.misfiled;
+    // the reference-quarter filing a newer filer is counted from
+    if (r.ref) {
+      const g = misfiledFor(r.cik, r.ref.acc, books);
+      if (g) r.ref.misfiled = misfiledMark(g);
+      else delete r.ref.misfiled;
+    }
   }
   return n;
 }

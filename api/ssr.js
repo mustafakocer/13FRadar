@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { render, preload } from '../client/dist/server/entry-server.js';
-import { matchRoute, CACHE } from './_lib/ssr/routes.js';
+import { matchRoute, CACHE, readStatic } from './_lib/ssr/routes.js';
 import { siteUrl } from './_lib/site.js';
 import { splitLang, withLang, preferredLang } from '../client/src/lib/locale.js';
 
@@ -82,6 +82,13 @@ export default async function handler(req, res) {
     cache = CACHE[policy] || CACHE.none;
   } else {
     status = 404;
+  }
+
+  // the fund count is in the menu of every page: the server HTML states it
+  // from the same file the browser then fetches (/universe-summary.json)
+  if (!seeds.some(([k]) => k?.[0] === 'universe-summary')) {
+    const s = readStatic('universe-summary.json');
+    if (s) seeds = [...seeds, [['universe-summary'], s]];
   }
 
   let rendered;

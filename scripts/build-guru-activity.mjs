@@ -28,6 +28,7 @@ import path from 'node:path';
 import { isTradeable } from '../api/_lib/guruActivity.js';
 import { netActivity, activityRow } from '../api/_lib/netActivity.js';
 import { consensusPanel, coverage as coverageOf } from '../api/_lib/gurus.js';
+import { loadListedOn } from '../api/_lib/newListings.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const STOCKS = process.env.GURU_STOCKS_FILE || path.join(root, 'api', '_data', 'guru-stocks.json');
@@ -101,6 +102,8 @@ if (hist?.gurus) {
     const i = dates.indexOf(date);
     return i > 0 ? dates[i - 1] : null;
   };
+  // pre-IPO stakes are not buys in older quarters either (newListings.js)
+  const listedOn = loadListedOn(process.env.NEW_LISTINGS_FILE || path.join(OUT_DIR, 'new-listings.json'));
   for (const quarter of older) {
     const panel = new Set(consensusPanel(quarter).map((g) => g.cik));
     const managers = [];
@@ -112,7 +115,7 @@ if (hist?.gurus) {
       const before = prevOf(g, quarter);
       managers.push({ cik, name: g.name, reportDate: quarter, cur: bookAt(g, quarter), prev: before ? bookAt(g, before) : null });
     }
-    const rows = netActivity(managers, { idOf: (p) => p.ticker || String(p.cusip).toUpperCase() });
+    const rows = netActivity(managers, { idOf: (p) => p.ticker || String(p.cusip).toUpperCase(), listedOn });
     const out = new Map();
     for (const r of rows.values()) {
       const ticker = /^[A-Z][A-Z.\-]{0,6}$/.test(r.id) ? r.id : null;

@@ -11,6 +11,8 @@ import { buildStockMeta } from '../api/_lib/stockMetaBuild.js';
 import { retryUnresolved } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
+import { buildNewListings, writeNewListings } from '../api/_lib/newListings.js';
+import { listingLookup } from '../client/src/lib/newListings.js';
 
 const pub = path.join(process.cwd(), 'client', 'public');
 fs.mkdirSync(pub, { recursive: true });
@@ -19,7 +21,27 @@ fs.mkdirSync(pub, { recursive: true });
 console.log('Building consensus…');
 // The runner has an OpenFIGI key and no request deadline, so this is where the
 // per-stock table earns its tickers; /api/consensus takes the static map only.
-const consensus = await build({ stocksTickers: Number(process.env.CONSENSUS_FIGI_BUDGET || 1500) });
+// Securities that started trading recently (IPOs, spin-offs), from the price
+// store: a fund's first stake in one that listed inside the quarter is a
+// pre-IPO holding, not a purchase (client/src/lib/newListings.js). The fund
+// pages read the same file to tag those lines.
+let cusipTickers = {};
+try {
+  cusipTickers = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'api', '_data', 'cusip-tickers.json'), 'utf8'));
+} catch {
+  /* no map: listings match by ticker only */
+}
+let sectorOf = {};
+try {
+  sectorOf = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'api', '_data', 'sector-map.json'), 'utf8')).bySymbol || {};
+} catch {
+  /* no sector map: ETFs are not told apart */
+}
+const listings = writeNewListings(buildNewListings({ cusipTickers, sectorOf }), path.join(pub, 'new-listings.json'));
+console.log(`new-listings.json: ${listings.rows.length} securities listed since ${listings.rows[0]?.d || '—'} (price floor ${listings.floor || '—'})`);
+const consensus = await build({ stocksTickers: Number(process.env.CONSENSUS_FIGI_BUDGET || 1500), listedOn: listingLookup(listings) });
+const preIpo = consensus.stocks.filter((s) => s.listedOn);
+console.log(`held before listing (${consensus.quarter}): ${preIpo.map((s) => `${s.ticker || s.cusip} ${s.preListing} funds $${s.preListingValue} listed ${s.listedOn}`).join(' · ') || 'none'}`);
 // Public file: the free part — most-held plus the per-manager "what changed"
 // teaser cards for the landing page. Full buys/sells/new-position lists are
 // Pro data and go to api/_data (served by /api/consensus behind the paywall).

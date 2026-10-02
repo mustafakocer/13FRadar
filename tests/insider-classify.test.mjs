@@ -180,6 +180,41 @@ test('home page and /insiders headline numbers still come from one function and 
   assert.equal(feed.stats.buyValue, teaser.pulse.buyValue);
   assert.equal(feed.stats.sellCount, teaser.pulse.sellCount);
   assert.equal(feed.stats.buyCount, 2, 'TFC and the one-share TPL buy; no exercise, award or conversion');
+  // A4: the same day, sell $ and split, rendered by one component on both pages
+  for (const k of ['day', 'sellValue', 'sellShare']) assert.equal(feed.stats[k], teaser.pulse[k], k);
+  assert.ok(teaser.pulse.day, 'the date travels with the numbers');
+  const { pulsePercents } = await import('../client/src/lib/insiderPulse.js');
+  assert.deepEqual(pulsePercents(feed.stats), pulsePercents(teaser.pulse));
+  const pct = pulsePercents({ sellShare: 85.6 });
+  assert.equal(pct.buy + pct.sell, 100);
+  for (const page of ['Home.jsx', 'Insiders.jsx']) {
+    const src = fs.readFileSync(path.join(root, 'client', 'src', 'pages', page), 'utf8');
+    assert.match(src, /<InsiderDaySummary summary=\{(pulse|stats)\}/, `${page} renders the shared block`);
+    assert.doesNotMatch(src, /buyPct|sellShare \?\? 50/, `${page} computes no percentages of its own`);
+  }
+});
+
+test('/insiders reads the home page\'s stored day summary: one result, not two conversions', async () => {
+  const teaser = buildTeaser(mixed, {}, {}, Date.parse('2026-09-19'));
+  // the night's conversion counted one more buy than a request-time one would
+  const stored = { ...teaser.pulse, buyCount: teaser.pulse.buyCount + 1, buyValue: teaser.pulse.buyValue + 1234, fxExcluded: 3 };
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'teaser-')), 'insiders-teaser.json');
+  fs.writeFileSync(file, JSON.stringify({ pulse: stored }));
+  process.env.INSIDER_TEASER_FILE = file;
+  const { resetPulseCache } = await import('../api/_handlers/insider-feed.js');
+  resetPulseCache();
+  try {
+    const feed = await feedOver(mixed, { tab: 'latest' });
+    for (const k of ['day', 'buyCount', 'buyValue', 'sellCount', 'sellValue', 'sellShare', 'fxExcluded']) assert.equal(feed.stats[k], stored[k], k);
+    // another day in the file: the live numbers
+    fs.writeFileSync(file, JSON.stringify({ pulse: { ...stored, day: '2026-01-02' } }));
+    resetPulseCache();
+    const other = await feedOver(mixed, { tab: 'latest' });
+    assert.equal(other.stats.buyCount, teaser.pulse.buyCount);
+  } finally {
+    delete process.env.INSIDER_TEASER_FILE;
+    resetPulseCache();
+  }
 });
 
 test('level labels describe the trade, promise nothing, and "none" shows no label', () => {

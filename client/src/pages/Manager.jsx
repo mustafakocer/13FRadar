@@ -425,6 +425,7 @@ export default function Manager({ segment = 'portfolio' }) {
               exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
               timeHeld={hasHist ? hist.data.timeHeld : null}
               guruSlug={guruSlug}
+              reportDate={filing?.reportDate || null}
             />
           )}
 
@@ -478,7 +479,7 @@ export default function Manager({ segment = 'portfolio' }) {
                           <th className="l">{t('table.symbol')}</th>
                           <th className="l">{t('table.company')}</th>
                           <th>{t('table.type')}</th>
-                          <th>{t('manager.notional')}</th>
+                          <th>{t('opt.notional')} <InfoTip tip="tips.notional" /></th>
                           <th>{t('table.weight')}</th>
                         </tr>
                       </thead>

@@ -35,6 +35,7 @@ for (const p of ['/tr', '/tr/insiders', '/tr/insiders/cluster', '/tr/insiders/pe
 }
 
 let feedClusters = null;
+let feedStats = null;
 const feed = await get('/api/insider-feed?tab=latest');
 if (feed.status !== 200) check(false, `/api/insider-feed → HTTP ${feed.status}`);
 else {
@@ -68,6 +69,7 @@ else {
   check(sig.every((s, i) => i === 0 || lv[sig[i - 1].level] <= lv[s.level]), 'cards list the higher label first');
   check(j.lastFilingDay != null, `newest filing day ${j.lastFilingDay}`);
   feedClusters = j.stats?.clusters || null;
+  feedStats = j.stats || null;
 }
 
 const teaser = await get('/insiders-teaser.json');
@@ -80,6 +82,12 @@ else {
     const x = all.filter((r) => r.t === tk);
     const ok = (r) => (tk === 'CX' ? (r.v == null ? r.ret == null : r.v < 2e6) : r.ret == null);
     if (x.length) check(x.every(ok), `home/penny widgets: ${tk} ${x.length} row(s), value ${[...new Set(x.map((r) => r.v ?? '—'))].join('/')}, return ${[...new Set(x.map((r) => r.ret ?? '—'))].join('/')}`);
+  }
+  // "Piyasa Nabzı" and the /insiders summary: one function (daySummary), the same day and numbers
+  if (feedStats && t.pulse) {
+    const keys = ['day', 'buyCount', 'sellCount', 'buyValue', 'sellValue', 'sellShare'];
+    const diff = keys.filter((k) => (t.pulse[k] ?? null) !== (feedStats[k] ?? null));
+    check(!diff.length, `home pulse = /insiders summary (${keys.map((k) => `${k} ${t.pulse[k]}${diff.includes(k) ? ` ≠ ${feedStats[k]}` : ''}`).join(', ')})`);
   }
   out.push(`- home pulse: ${t.pulse?.day} · ${t.pulse?.buyCount} buys · $${t.pulse?.buyValue}${t.pulse?.fxExcluded ? ` · ${t.pulse.fxExcluded} excluded (currency not verified)` : ''}`);
   const hl = t.highlight;
@@ -124,6 +132,34 @@ else {
     // the pricing page states the same count ("Tam evren tarayıcı (8.909 fon)")
     const priced = priceR.text.match(/Tam evren tarayıcı \(([^)]*?) fon\)/)?.[1];
     check(priceR.status === 200 && priced === count, `/tr/pricing server HTML: "${priced ?? '(not found)'} fon" (the definition ${count})`);
+  }
+}
+
+// A1: a security that listed inside the quarter (IPO, spin-off) is held, not
+// bought — the home page's net buys hold none of them (newListings.js).
+{
+  const { listingLookup, listedInQuarter } = await import('../client/src/lib/newListings.js');
+  const [conR, listR] = await Promise.all([get('/consensus.json'), get('/new-listings.json')]);
+  if (conR.status !== 200 || listR.status !== 200) check(false, `/consensus.json → ${conR.status}, /new-listings.json → ${listR.status}`);
+  else {
+    const con = JSON.parse(conR.text);
+    const on = listingLookup(JSON.parse(listR.text));
+    const q = con.quarter || con.coverage?.quarter;
+    const buys = con.activity?.buys || [];
+    const listed = buys.filter((r) => listedInQuarter(on(r.cusip) || on(r.ticker), q) && !(r.adders > 0 || r.sellers > 0));
+    check(!listed.length, `home "En Çok Alınanlar" ${q}: ${buys.map((r) => r.ticker || r.cusip).join(', ')}${listed.length ? ` — listed in the quarter: ${listed.map((r) => r.ticker).join(', ')}` : ''}`);
+  }
+}
+
+// A3: the stock page's guru count — the header and the history table agree
+// for the newest quarter (guruStockHistory.js)
+{
+  const r = await get('/api/guru-stocks?ticker=TSM&range=all');
+  if (r.status !== 200) check(false, `/api/guru-stocks?ticker=TSM → HTTP ${r.status}`);
+  else {
+    const j = JSON.parse(r.text);
+    const last = j.trend?.quarters?.at(-1);
+    check(Boolean(last) && last.reportDate === j.reportDate && last.holders === j.stock?.holderCount && last.value === Math.round(j.stock?.totalValue || 0), `TSM header ${j.stock?.holderCount} gurus $${j.stock?.totalValue} · table ${last?.reportDate} ${last?.holders} gurus $${last?.value}`);
   }
 }
 

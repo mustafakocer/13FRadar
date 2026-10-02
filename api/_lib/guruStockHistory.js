@@ -11,7 +11,17 @@
 // wide to backfill (see popular.js) contributes nothing, and only positions
 // that ranked in some quarter's top N are stored. The trend therefore
 // describes the funds it can see, and says how many those were.
+//
+// One count per quarter, the same one the stock page's header states: the
+// consensus panel's funds (api/_lib/gurus.js consensusPanel — the wide books
+// such as Citadel, Renaissance or Capital Research are out, as they are out
+// of every consensus number), and for the newest quarter the consensus
+// table's own row (`current`), because the history keeps only each fund's
+// top 100 lines and would miss a holder the full filing has. TSM showed
+// "26 gurus" over a table saying 34 for the same quarter: the table counted
+// nine wide books the header leaves out.
 import { historyTable } from './history.js';
+import { consensusPanel } from './gurus.js';
 
 let cache;
 let builtFrom;
@@ -33,11 +43,8 @@ function build() {
       if (!entry.issuer && pos.issuer) entry.issuer = pos.issuer;
       for (const [reportDate, shares, value, weight] of pos.series || []) {
         if (!reportDate) continue;
-        const q = entry.quarters.get(reportDate) || { reportDate, holders: 0, value: 0, weight: 0, ciks: [] };
-        q.holders++;
-        q.value += Number(value) || 0;
-        q.weight += Number(weight) || 0;
-        q.ciks.push(cik);
+        const q = entry.quarters.get(reportDate) || { reportDate, books: [] };
+        q.books.push([cik, Number(value) || 0, Number(weight) || 0]);
         entry.quarters.set(reportDate, q);
       }
     }
@@ -45,17 +52,10 @@ function build() {
 
   const out = new Map();
   for (const [cusip, entry] of byCusip) {
-    const quarters = [...entry.quarters.values()]
-      .sort((a, b) => (a.reportDate < b.reportDate ? -1 : 1))
-      .map((q) => ({
-        reportDate: q.reportDate,
-        holders: q.holders,
-        value: Math.round(q.value),
-        avgWeight: Number((q.weight / q.holders).toFixed(2)),
-      }));
+    const quarters = [...entry.quarters.values()].sort((a, b) => (a.reportDate < b.reportDate ? -1 : 1));
     out.set(cusip, { cusip, ticker: entry.ticker, issuer: entry.issuer, quarters });
   }
-  return { funds: gurus.length, byCusip: out };
+  return { ciks: new Set(gurus.map(([cik]) => cik)), byCusip: out };
 }
 
 function table() {
@@ -74,11 +74,35 @@ export const resetGuruStockHistoryCache = () => {
 
 const upper = (s) => String(s || '').trim().toUpperCase();
 
+const panelMemo = new Map();
+const panelCiks = (reportDate) => {
+  if (!panelMemo.has(reportDate)) panelMemo.set(reportDate, new Set(consensusPanel(reportDate).map((g) => g.cik)));
+  return panelMemo.get(reportDate);
+};
+
+// One quarter's line from the panel's books.
+function panelQuarter(q, panelOf) {
+  const inPanel = panelOf(q.reportDate);
+  const books = q.books.filter(([cik]) => inPanel.has(cik));
+  if (!books.length) return null;
+  const value = books.reduce((s, b) => s + b[1], 0);
+  const weight = books.reduce((s, b) => s + b[2], 0);
+  return { reportDate: q.reportDate, holders: books.length, value: Math.round(value), avgWeight: Number((weight / books.length).toFixed(2)) };
+}
+
+// The quarter line the stock page's header states, from the consensus
+// table's row (api/_data/guru-stocks.json) — the single source of "how many
+// gurus hold it and for how much" for the newest quarter.
+export const currentOwnership = (row, reportDate) =>
+  row && reportDate ? { reportDate, holders: row.holderCount, value: Math.round(row.totalValue), avgWeight: Number(Number(row.avgWeight || 0).toFixed(2)) } : null;
+
 // Quarterly ownership for one security, oldest quarter first.
 //   { funds, quarters: [{ reportDate, holders, value, avgWeight }] }
-export function ownershipTrend({ cusip, ticker } = {}, { quarters = 40 } = {}) {
+// funds: the panel funds the history covers. current: currentOwnership() of
+// the newest quarter, which replaces (or adds) that quarter's line.
+export function ownershipTrend({ cusip, ticker } = {}, { quarters = 40, current = null, panelOf = panelCiks } = {}) {
   const t = table();
-  if (!t) return null;
+  if (!t) return current ? { funds: 0, cusip: upper(cusip) || null, ticker: ticker || null, quarters: [current] } : null;
   const cu = upper(cusip);
   let entry = cu ? t.byCusip.get(cu) : null;
   if (!entry && ticker) {
@@ -90,12 +114,15 @@ export function ownershipTrend({ cusip, ticker } = {}, { quarters = 40 } = {}) {
       }
     }
   }
-  if (!entry?.quarters?.length) return null;
+  let lines = (entry?.quarters || []).map((q) => panelQuarter(q, panelOf)).filter(Boolean);
+  if (current) lines = [...lines.filter((q) => q.reportDate !== current.reportDate && q.reportDate < current.reportDate), current];
+  if (!lines.length) return null;
+  const newest = lines.at(-1).reportDate;
   return {
-    funds: t.funds,
-    cusip: entry.cusip,
-    ticker: entry.ticker,
-    quarters: entry.quarters.slice(-quarters),
+    funds: [...panelOf(newest)].filter((cik) => t.ciks.has(cik)).length,
+    cusip: entry?.cusip || upper(cusip) || null,
+    ticker: entry?.ticker || ticker || null,
+    quarters: lines.slice(-quarters),
   };
 }
 

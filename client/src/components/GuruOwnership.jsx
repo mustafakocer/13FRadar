@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { useI18n } from '../i18n.jsx';
+import InfoTip from './InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
 import Ico from './Ico.jsx';
@@ -72,6 +73,8 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
         </div>
       </div>
 
+      <p className="small muted mt8">{t('guru.holdingDef')}</p>
+
       <div className="small muted mt16">{t('guru.breakdown')}</div>
       <div className="row mt8" style={{ gap: 16, flexWrap: 'wrap' }}>
         <span className="delta-pos">
@@ -85,6 +88,11 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
         <span className="muted">
           {stock.buyers} {t('guru.netBuyers')} · {stock.sellers} {t('guru.netSellers')}
         </span>
+        {stock.preListing > 0 && (
+          <span className="muted" title={t('manager.preIpoTip')} data-pre-listing={stock.preListing}>
+            {stock.preListing} {t('guru.preIpo')} · {fmtMoney(stock.preListingValue)}
+          </span>
+        )}
       </div>
 
       <div className="row mt16" style={{ gap: 24, alignItems: 'flex-start', flexWrap: 'wrap' }}>
@@ -142,6 +150,13 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
         <>
           <div className="small muted mt16">{t('guru.options')}</div>
           <div className="table-wrap"><table className="data mt8">
+            <thead>
+              <tr>
+                <th className="l">{t('table.type')}</th>
+                <th>{t('opt.notional')} <InfoTip tip="tips.notional" /></th>
+                <th>{t('consensus.funds')}</th>
+              </tr>
+            </thead>
             <tbody>
               {options.map((o) => (
                 <tr key={`${o.cusip}-${o.putCall}`}>

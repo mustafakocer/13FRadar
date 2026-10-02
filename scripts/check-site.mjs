@@ -135,6 +135,24 @@ else {
   }
 }
 
+// C: the home page copy, as the server sends it, with the counts filled in
+// from the data (the fund count, the gurus tracked).
+{
+  const plain = (h) => h.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ');
+  for (const [lang, lead, cta, guru, why] of [
+    ['tr', /ABD'deki ([\d.]+) fonun portföyünü[^.]*\. Her gün güncel, sade ve Türkçe\./, 'Ücretsiz hesap aç', /Takip ettiğimiz (\d+) ünlü yatırımcının[^.]*\./, 'Neden Fundocap?'],
+    ['en', /We compile the portfolios of ([\d,]+) US funds[^.]*\. Updated daily, in plain language\./, 'Create a free account', /What the (\d+) famous investors[^.]*\./, 'Why Fundocap?'],
+  ]) {
+    const r = await get(`/${lang}`);
+    const t = plain(r.text || '');
+    const l = t.match(lead);
+    const g = t.match(guru);
+    check(r.status === 200 && l && g && t.includes(cta) && t.includes(why), `/${lang} copy: lead ${l?.[1] ?? '(missing)'} funds · "${cta}" · consensus ${g?.[1] ?? '(missing)'} gurus · "${why}"`);
+    if (l) out.push(`- /${lang} lead: ${l[0]}`);
+    if (g) out.push(`- /${lang} consensus: ${g[0]}`);
+  }
+}
+
 // A1: a security that listed inside the quarter (IPO, spin-off) is held, not
 // bought — the home page's net buys hold none of them (newListings.js).
 {

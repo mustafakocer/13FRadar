@@ -14,6 +14,13 @@ const show = async (label, fn) => {
     console.log(`\n### ${label}\nFAILED ${e.message}`);
   }
 };
+await show('insider teaser: ÖNE ÇIKAN, day totals, sentiment', async () => {
+  const t = await get('/insiders-teaser.json');
+  const p = t.pulse || {};
+  const h = t.highlight || {};
+  const buyShare = p.buyValue + p.sellValue > 0 ? ((p.buyValue / (p.buyValue + p.sellValue)) * 100).toFixed(1) : 'NA';
+  return `updatedAt ${t.updatedAt}; day ${p.day}\nhighlight ${h.t} ${h.n} (${h.r}) ${h.d} v=${h.v} p=${h.p}\nbuys ${p.buyCount} = $${p.buyValue}; sells ${p.sellCount} = $${p.sellValue}; buy share ${buyShare}%, sell share ${p.sellShare}%; excluded ${p.fxExcluded || 0}`;
+});
 await show('universe-summary.json', async () => JSON.stringify(await get('/universe-summary.json')));
 await show('home page tooltip', async () => {
   const html = await get('/', 'text');

@@ -55,7 +55,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 588
+        "names": 587
       },
       "findings": []
     },

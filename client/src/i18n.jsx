@@ -73,6 +73,7 @@ const dict = {
     'landing.why3.d': 'Hatalı bildirimler otomatik yakalanıyor ve listelerden çıkarılıyor.',
     'footer.disclaimer':
       'Bu sitedeki hiçbir içerik yatırım tavsiyesi değildir. Veriler SEC EDGAR ve halka açık kaynaklardan otomatik derlenir; doğruluğu garanti edilmez. 13F dosyalamaları çeyrek sonunu izleyen 45 gün içinde açıklanır ve geçmişe dönüktür.',
+    'footer.splits': 'Hisse bölünmesi (split) tablosu son güncelleme: {d}',
     'footer.sources': 'Veri kaynakları: SEC EDGAR (13F, Form 4, XBRL şirket verileri) · Twelve Data ve Finnhub (fiyatlar) · OpenFIGI (menkul kıymet kimlikleri) · Federal Reserve H.10 ve ECB (döviz kurları)',
     'footer.contact': 'İletişim',
     'legal.updated': 'Son güncelleme: {d}',
@@ -1189,6 +1190,7 @@ const dict = {
     'landing.why3.d': 'Faulty filings are caught automatically and kept out of the rankings.',
     'footer.disclaimer':
       'Nothing on this site is investment advice. Data is compiled automatically from SEC EDGAR and public sources; accuracy is not guaranteed. 13F filings are disclosed up to 45 days after quarter end and are backward-looking.',
+    'footer.splits': 'Stock split table last updated: {d}',
     'footer.sources': 'Data sources: SEC EDGAR (13F, Form 4, XBRL company facts) · Twelve Data and Finnhub (prices) · OpenFIGI (security identifiers) · Federal Reserve H.10 and ECB (exchange rates)',
     'footer.contact': 'Contact',
     'legal.updated': 'Last updated: {d}',

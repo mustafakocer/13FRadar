@@ -18,6 +18,10 @@ import { tdGet, hasTd } from '../api/_lib/providers.js';
 
 const root = process.cwd();
 const OUT = path.join(root, 'api', '_data', 'splits.json');
+// The footer's "last updated" date: the day the table's content last
+// changed (dataChangedAt), not the day this script last ran.
+const STATUS = path.join(root, 'client', 'public', 'splits-status.json');
+const writeStatus = (dataChangedAt) => fs.writeFileSync(STATUS, `${JSON.stringify({ dataChangedAt: dataChangedAt || null })}\n`);
 const prev = fs.existsSync(OUT) ? JSON.parse(fs.readFileSync(OUT, 'utf8')) : { byTicker: {} };
 const BUDGET = Number(process.env.SPLITS_BUDGET || 60);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -30,6 +34,7 @@ try {
 }
 if (!hasTd() || !(BUDGET > 0)) {
   console.log('splits: no TWELVEDATA_API_KEY or no budget — keeping the previous table');
+  writeStatus(prev.dataChangedAt);
   process.exit(0);
 }
 const tickers = new Set();
@@ -61,5 +66,8 @@ for (const t of queue) {
   }
   await sleep(7600); // 8 credits a minute on the free plan
 }
-fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), checked, byTicker }));
+const changed = JSON.stringify(byTicker) !== JSON.stringify(prev.byTicker || {});
+const dataChangedAt = changed ? today : prev.dataChangedAt || null;
+fs.writeFileSync(OUT, JSON.stringify({ updatedAt: new Date().toISOString(), dataChangedAt, checked, byTicker }));
+writeStatus(dataChangedAt);
 console.log(`splits.json: ${Object.keys(byTicker).length} tickers (${ok} re-checked tonight of ${tickers.size}, ${failed} failed)`);

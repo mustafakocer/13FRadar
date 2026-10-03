@@ -133,8 +133,8 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6124,
-        "unresolved": 82
+        "resolved": 6170,
+        "unresolved": 111
       },
       "findings": []
     },
@@ -159,7 +159,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 177
+        "rows": 216
       },
       "findings": []
     },
@@ -167,7 +167,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 69
+        "filers": 89
       },
       "findings": []
     },

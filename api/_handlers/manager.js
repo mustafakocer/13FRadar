@@ -4,7 +4,7 @@ import { guruHistory } from '../_lib/history.js';
 import { latestHoldingsTable } from '../_lib/latestHoldings.js';
 import { createRequire } from 'node:module';
 import { reportIndex } from './report.js';
-import { misfiledFor, misfiledMark } from '../_lib/misfiledBooks.js';
+import { misfiledFor, misfiledMark, pageFiling } from '../_lib/misfiledBooks.js';
 import { notesFor } from '../_lib/filingNotes.js';
 
 const require = createRequire(import.meta.url);
@@ -69,6 +69,8 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', source === 'edgar' ? 's-maxage=1800, stale-while-revalidate=86400' : 's-maxage=300, stale-while-revalidate=3600');
   const entry = slugForCik(cik);
   const misfiled = misfiledFor(cik);
+  // the quarter the page opens on: the newest valid filing (pageFiling)
+  const page = pageFiling(cik, filings);
   res.status(200).json({
     cik: padCik(cik),
     name: sub.name || entry?.name || `CIK ${padCik(cik)}`,
@@ -83,6 +85,9 @@ export default async function handler(req, res) {
     source,
     // a filing whose table is another filer's (config/misfiled-books.json)
     misfiled: misfiled ? misfiledMark(misfiled) : null,
+    // when the newest filing is misfiled, the earlier valid one shown instead
+    defaultAcc: page.acc,
+    fallback: page.fallback,
     // the filer's own errors, reviewed (config/filing-notes.json)
     notes: notesFor(cik),
     filings,

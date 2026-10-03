@@ -95,6 +95,9 @@ jobs:
         run: |
           set -o pipefail
           node scripts/check-universe-audit.mjs 2>&1 | tee "$RUNNER_TEMP/universe-audit.log"
+        env:
+          # a new copy pair: the filers' other filings for the same quarter
+          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.

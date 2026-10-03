@@ -163,3 +163,29 @@ test('check-universe-audit: a fresh deviation exits 3 and is written to the stat
   assert.match(wf, /api\/_data\/universe-audit\.json/);
   assert.match(wf, /api\/_data\/copy-books\.json/);
 });
+
+test('copy advice: an other original of the same quarter is suggested; none means misfiled; another quarter never', async () => {
+  const { copyAdvice, adviceLine } = await import('../api/_lib/universeAudit.js');
+  const kingsbury = {
+    cik: '0001927315', name: 'Kingsbury', acc: '0001104659-26-100644', reportDate: '2026-06-30', filed: '2026-08-25',
+    filings: [
+      { acc: '0001104659-26-100714', form: '13F-HR', filingDate: '2026-08-25', reportDate: '2026-03-31' },
+      { acc: '0001104659-26-100644', form: '13F-HR', filingDate: '2026-08-25', reportDate: '2026-06-30' },
+    ],
+  };
+  const kmt = {
+    cik: '0002058235', name: 'KMT', acc: '0001104659-26-091013', reportDate: '2026-06-30', filed: '2026-08-05',
+    filings: [
+      { acc: '0001104659-26-091013', form: '13F-HR', filingDate: '2026-08-05', reportDate: '2026-06-30' },
+      { acc: '0001104659-26-095000', form: '13F-HR/A', filingDate: '2026-08-10', reportDate: '2026-06-30' },
+    ],
+  };
+  const [k, m] = copyAdvice([kingsbury, kmt]);
+  assert.equal(k.kind, 'misfiled', 'its 2026-03-31 filing is another quarter: not offered');
+  assert.equal(m.kind, 'misfiled', 'an amendment is not an alternative original');
+  assert.match(adviceLine(k, kingsbury.acc, kingsbury.filed), /başka orijinal bildirim yok.*başka bir çeyreğin bildirimi yerine konmaz/);
+  const withAlt = { ...kingsbury, filings: [...kingsbury.filings, { acc: '0001104659-26-100800', form: '13F-HR', filingDate: '2026-08-26', reportDate: '2026-06-30' }] };
+  const [a] = copyAdvice([withAlt]);
+  assert.deepEqual([a.kind, a.acc], ['alternative', '0001104659-26-100800']);
+  assert.match(adviceLine(a, withAlt.acc, withAlt.filed), /^Öneri: .*0001104659-26-100800/);
+});

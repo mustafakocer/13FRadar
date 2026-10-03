@@ -11,7 +11,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { completeQuarter } from '../api/_lib/universeSummary.js';
-import { totalDeviations, newFindings, pairKey, NIGHTLY_TOP, NIGHTLY_TOLERANCE } from '../api/_lib/universeAudit.js';
+import { totalDeviations, newFindings, pairKey, copyAdvice, adviceLine, NIGHTLY_TOP, NIGHTLY_TOLERANCE } from '../api/_lib/universeAudit.js';
+import { getSubmissions, list13FAll } from '../api/_lib/sec.js';
 import { misfiledBooks } from '../api/_lib/misfiledBooks.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -58,7 +59,24 @@ for (const p of pairs) {
   console.log(`${tag}pair ${a?.name || p.a} (${p.a}) ${a ? $(a.aum) : ''} / ${b?.name || p.b} (${p.b}) ${b ? $(b.aum) : ''}: ${p.matched} lines, ${(p.shareA * 100).toFixed(1)}% / ${(p.shareB * 100).toFixed(1)}%`);
 }
 for (const d of fresh.deviations) console.log(`::error::New total deviation: #${d.rank} ${d.name} (${d.cik}): ours ${$(d.aum)}, declared ${$(d.declared)} (${d.diffPct}%), filing ${d.acc}`);
-for (const p of fresh.pairs) console.log(`::error::New near-identical books: ${byCik.get(p.a)?.name || p.a} (${p.a}) and ${byCik.get(p.b)?.name || p.b} (${p.b}), ${p.matched} lines. Review; config/misfiled-books.json or config/duplicate-books.json if it is a copy.`);
+// For a new pair, what each side filed for the same quarter: an alternative
+// original is suggested, never applied; none means the copy is misfiled.
+for (const p of fresh.pairs) {
+  const sides = [];
+  for (const cik of [p.a, p.b]) {
+    const row = byCik.get(cik);
+    let filings = [];
+    try {
+      filings = list13FAll(await getSubmissions(cik));
+    } catch {
+      /* EDGAR unreachable: the pair is still raised, without advice */
+    }
+    sides.push({ cik, name: row?.name || cik, acc: row?.acc, reportDate: row?.reportDate, filed: row?.filed, filings });
+  }
+  const advice = copyAdvice(sides);
+  for (let k = 0; k < advice.length; k++) console.log(`    ${adviceLine(advice[k], sides[k].acc, sides[k].filed)}`);
+  console.log(`::error::New near-identical books: ${byCik.get(p.a)?.name || p.a} (${p.a}) and ${byCik.get(p.b)?.name || p.b} (${p.b}), ${p.matched} lines. Review; config/misfiled-books.json or config/duplicate-books.json if it is a copy. ${advice.map((a, k) => adviceLine(a, sides[k].acc, sides[k].filed)).join(' ')}`);
+}
 
 fs.writeFileSync(
   stateFile,

@@ -85,7 +85,10 @@ export default function Manager({ segment = 'portfolio' }) {
   const mgr = useQuery({ queryKey: ['manager', cik], queryFn: () => api.manager(cik), enabled: !!cik });
 
   const filings = mgr.data?.filings || [];
-  const acc = selAcc || filings[0]?.acc;
+  // the newest valid filing: a newest one carrying another filer's table is
+  // skipped (api/_lib/misfiledBooks.js pageFiling), the page says so
+  const acc = selAcc || mgr.data?.defaultAcc || filings[0]?.acc;
+  const fallback = mgr.data?.fallback || null;
   const filing = filings.find((f) => f.acc === acc);
   const prevFiling = filings[filings.findIndex((f) => f.acc === acc) + 1];
 
@@ -302,7 +305,7 @@ export default function Manager({ segment = 'portfolio' }) {
           <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)} aria-label={t('manager.filings')}>
             {filings.map((f) => (
               <option key={f.acc} value={f.acc}>
-                {quarterLabel(f.reportDate)}{f.amended ? ' ✎' : ''}
+                {quarterLabel(f.reportDate)}{f.amended ? ' ✎' : ''}{fallback?.misfiled.acc === f.acc ? ` (${t('manager.invalid')})` : ''}
               </option>
             ))}
           </select>
@@ -314,6 +317,18 @@ export default function Manager({ segment = 'portfolio' }) {
           <span className="small">
             <Ico icon={TriangleAlert} size={14} />{' '}
             {t('manager.dormant').replace('{q}', quarterLabel(filings[0].reportDate)).replace('{d}', filings[0].filingDate)}
+          </span>
+        </div>
+      )}
+
+      {fallback && acc !== fallback.misfiled.acc && (
+        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }} data-fallback={fallback.misfiled.acc}>
+          <span className="small">
+            <Ico icon={TriangleAlert} size={14} />{' '}
+            {t('manager.fallback')
+              .replace('{q}', quarterLabel(fallback.reportDate))
+              .replace('{mq}', quarterLabel(fallback.misfiled.reportDate))
+              .replace('{other}', fallback.misfiled.copyOfName || fallback.misfiled.copyOf)}
           </span>
         </div>
       )}

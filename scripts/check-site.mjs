@@ -202,6 +202,26 @@ else {
   check(page.status === 200 && !/veri sağlayıcıdan alınamıyor|Ort\. Hedef Fiyat/.test(page.text), 'stock page: no provider banner, no average target price');
 }
 
+// A filer whose newest 13F carries another filer's table opens on its newest
+// valid quarter, with a note (config/misfiled-books.json, pageFiling).
+{
+  for (const [cik, label] of [['0001927315', 'Kingsbury'], ['0001812095', 'Sixth Street']]) {
+    const r = await get(`/api/manager/${cik}`);
+    if (r.status !== 200) {
+      out.push(`- ${label}: /api/manager → HTTP ${r.status}`);
+      continue;
+    }
+    const m = JSON.parse(r.text);
+    const fb = m.fallback;
+    const shown = (m.filings || []).find((f) => f.acc === m.defaultAcc);
+    check(Boolean(fb) && m.defaultAcc && m.defaultAcc !== fb.misfiled.acc, `${label}: page opens on ${shown?.reportDate || '?'} (${m.defaultAcc}); ${fb ? `${fb.misfiled.reportDate} ${fb.misfiled.acc} carries ${fb.misfiled.copyOfName || fb.misfiled.copyOf}'s table` : 'no fallback'}`);
+    const page = await get(`/tr${m.path || `/manager/${cik}`}`);
+    const plain = page.text.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+    const note = plain.match(/Son geçerli bildirim: [^.]+\.[^;]+;/)?.[0];
+    check(page.status === 200 && Boolean(note), `${label} page (/tr${m.path}): ${note || '(note not in the server HTML)'}`);
+  }
+}
+
 // Old fund addresses (config/slug-aliases.json) answer a permanent redirect
 // to the current page — /guru/berkshire-hathaway broke once when a data run
 // shrank the redirect table.

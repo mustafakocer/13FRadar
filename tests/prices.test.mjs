@@ -277,22 +277,35 @@ test('a quote only extends a series: Finnhub gets every stale series, the symbol
   }
 });
 
-test('Finnhub 429 is the minute limit: wait a minute and go on; three waits in a row end the night', async () => {
-  const { finnhubQuote, resetFinnhubRefusals, FINNHUB_429_RETRIES } = await import('../api/_lib/pricesBuild.js');
+test('Finnhub 429 is the minute limit: wait a minute and go on; 10 in a row end the run; the counts are kept', async () => {
+  const { finnhubQuote, resetFinnhubRefusals, resetFinnhubStats, finnhubStats, finnhubSummary, FINNHUB_429_IN_A_ROW, FINNHUB_PAUSE_MS } = await import('../api/_lib/pricesBuild.js');
+  assert.equal(FINNHUB_PAUSE_MS, 1200, 'the builds pace at 50 a minute, 10 left for the live site');
   process.env.FINNHUB_API_KEY = 'test-key';
   try {
     resetFinnhubRefusals();
+    resetFinnhubStats();
     const waits = [];
     const wait = async (ms) => waits.push(ms);
     let n = 0;
     const once = async () => (n++ === 0 ? { status: 429, data: {} } : { status: 200, data: { c: 9, t: Date.parse('2026-10-02T20:00:00Z') / 1000 } });
     assert.deepEqual(await finnhubQuote('AAPL', null, { get: once, wait }), [{ date: '2026-10-02', close: 9 }]);
     assert.deepEqual(waits, [61000], 'one minute, then the answer');
+    assert.deepEqual(finnhubStats(), { calls: 2, throttled: 1, waitedMs: 61000 });
+    // nine 429s in a row are waited out; the tenth ends the run
     waits.length = 0;
-    await assert.rejects(finnhubQuote('AAPL', null, { get: async () => ({ status: 429, data: {} }), wait }), (e) => e.quota && /429/.test(e.message));
-    assert.equal(waits.length, FINNHUB_429_RETRIES);
+    await assert.rejects(finnhubQuote('MSFT', null, { get: async () => ({ status: 429, data: {} }), wait }), (e) => e.quota && /429 10 times in a row/.test(e.message));
+    assert.equal(waits.length, FINNHUB_429_IN_A_ROW - 1);
+    assert.deepEqual(finnhubStats(), { calls: 12, throttled: 11, waitedMs: 61000 * FINNHUB_429_IN_A_ROW });
+    assert.equal(finnhubSummary('test'), 'test: Finnhub 12 request(s), 11 × 429, 610 s waited');
+    // an answer between them resets the run of 429s
+    resetFinnhubStats();
+    let k = 0;
+    const flaky = async () => (k++ % 2 === 0 ? { status: 429, data: {} } : { status: 200, data: { c: 1, t: 1790000000 } });
+    for (let i = 0; i < 15; i++) await finnhubQuote(`S${i}`, null, { get: flaky, wait });
+    assert.equal(finnhubStats().throttled, 15, 'fifteen 429s, never ten in a row');
   } finally {
     delete process.env.FINNHUB_API_KEY;
+    resetFinnhubStats();
   }
 });
 
@@ -315,4 +328,25 @@ test('TwelveData minute limit: wait a minute and go on; the day limit ends the n
   waits.length = 0;
   await assert.rejects(twelveDataSeries('AAPL', null, { get: async () => { throw day; }, wait }), (e) => e.quota && /for the day/.test(e.message));
   assert.equal(waits.length, 0, 'no wait on the day limit');
+});
+
+test('the insider top-up asks only for symbols with no stored series when missingOnly', async () => {
+  const { topUpCloses } = await import('../api/_lib/pricesBuild.js');
+  const pdir = fs.mkdtempSync(path.join(os.tmpdir(), 'prices-topup-'));
+  const was = process.env.PRICES_DIR;
+  process.env.PRICES_DIR = pdir;
+  process.env.FINNHUB_API_KEY = 'test-key';
+  clearSeriesCache();
+  try {
+    writeSeries('OLD', series('2026-01-01', '2026-09-01'), { src: 'twelvedata' });
+    const asked = [];
+    const quote = async (s) => { asked.push(s); return [{ date: '2026-10-02', close: 5 }]; };
+    const r = await topUpCloses(['OLD', 'NEW1', 'NEW2'], { budget: 10, now: Date.parse('2026-10-03T12:00:00Z'), quote, pauseMs: 0, missingOnly: true, log: () => {} });
+    assert.deepEqual(asked, ['NEW1', 'NEW2'], 'the stale stored series is left to the nightly build');
+    assert.equal(r.written, 2);
+  } finally {
+    process.env.PRICES_DIR = was;
+    delete process.env.FINNHUB_API_KEY;
+    clearSeriesCache();
+  }
 });

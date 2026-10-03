@@ -73,7 +73,8 @@ import { annotateOutcomes, checkPriceUnits } from '../api/_lib/insiderOutcome.js
 import { PLAN_NOTE_RE } from '../api/_lib/insiderClassify.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { priceSnapshots, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
-import { topUpCloses } from '../api/_lib/pricesBuild.js';
+import { topUpCloses, finnhubSummary } from '../api/_lib/pricesBuild.js';
+import { peerRunning } from './finnhub-peer.mjs';
 import { isSecBusinessDay, addDays, calendarCoverage } from '../client/src/lib/secCalendar.js';
 
 // ---------------------------------------------------------------- arguments
@@ -313,7 +314,12 @@ async function enrich(tickers, cikOf) {
   const before = Object.keys(meta).length;
 
   console.log(`Enriching: ${tickers.length} tickers…`);
-  await topUpCloses(tickers, { budget: Number(process.env.INSIDER_QUOTE_BUDGET || 1200) });
+  // the price build shares the Finnhub key: while it runs, the top-up waits
+  // for this build's next run (scripts/finnhub-peer.mjs)
+  const peer = await peerRunning().catch(() => ({ running: false }));
+  if (peer.running) console.log(`  closes top-up skipped: ${process.env.FINNHUB_PEER_WORKFLOW} is running (run ${peer.runs.join(', ')}) — left to the next run`);
+  else await topUpCloses(tickers, { budget: Number(process.env.INSIDER_QUOTE_BUDGET || 150), missingOnly: true });
+  finnhubSummary('insider build');
   const { snapshots } = priceSnapshots(tickers);
   let priced = 0;
   for (const [sym, snap] of snapshots) {

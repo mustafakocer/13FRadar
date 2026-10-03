@@ -1,0 +1,29 @@
+name: Same-day 13F originals (scan)
+
+# Filers with two or more original 13F-HRs on one day: each filing's period,
+# lines, declared total, whether the universe uses it, and whether it is
+# another filer's book. Prints only; commits nothing.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/scan-same-day-originals.mjs'
+      - '.github/workflows/same-day-scan.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/scan-same-day-originals.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap scan (kocergpt@gmail.com)'
+          SCAN_QUARTER: '2026Q3'

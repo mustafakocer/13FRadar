@@ -8,6 +8,14 @@
       "copyOfName": "Charles Schwab Investment Management, Inc.",
       "declared": 579182557,
       "reason": "The 2026-06-30 information table is Charles Schwab Investment Management's (3,439 identical lines, $751.32B); Sixth Street's own cover page declares $579.2M."
+    },
+    {
+      "cik": "0001927315",
+      "acc": "0001104659-26-100644",
+      "copyOf": "0002058235",
+      "copyOfName": "KMT Wealth Management, LLC",
+      "declared": null,
+      "reason": "The 2026-06-30 filing is KMT Wealth Management's (121 of 121 lines identical, cover total $118,195,925 identical too, so Kingsbury's own Q2 total is unknown). Filed 2026-08-25 through the same filing agent as KMT's 2026-08-05 13F; Kingsbury (Evanston/Wilmette IL, CRD 145658) and KMT (Hermosa Beach CA, CRD 328911) are unrelated advisers. Kingsbury's other filing that day, 0001104659-26-100714, is its own 2026-03-31 book (113 lines, $106.4M), a different quarter."
     }
   ]
 }

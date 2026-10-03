@@ -26,5 +26,5 @@ jobs:
       - run: node scripts/probe-copy-pair.mjs
         env:
           SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
-          PAIR: '0001927315:0001104659-26-100644,0002058235:0001104659-26-091013'
+          PAIR: '0001927315:0001104659-26-100714,0001927315:0001104659-26-100644,0002058235:0001104659-26-091013'
           ADV_QUERIES: 'Kingsbury Capital,KMT Wealth Management'

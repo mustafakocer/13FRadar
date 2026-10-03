@@ -41,18 +41,21 @@ for (const [cik, acc] of pair) {
   if (table) {
     const x = String((await secGet(`${dir}/${table}`, { responseType: 'text' })).data);
     const rows = [...x.matchAll(/<(?:\w+:)?infoTable>([\s\S]*?)<\/(?:\w+:)?infoTable>/g)].map((m) => `${one(m[1], 'cusip')}|${one(m[1], 'sshPrnamt')}|${one(m[1], 'putCall') || ''}`);
-    lines[cik] = rows;
+    lines[`${cik}:${acc}`] = rows;
     console.log('information table lines:', rows.length);
   }
 }
-const [a, b] = pair.map(([c]) => c);
-if (lines[a] && lines[b]) {
+const keys = pair.map(([c, a]) => `${c}:${a}`);
+const overlap = (a, b) => {
   const B = new Map();
   for (const l of lines[b]) B.set(l, (B.get(l) || 0) + 1);
   let same = 0;
   for (const l of lines[a]) if (B.get(l) > 0) { same++; B.set(l, B.get(l) - 1); }
-  console.log(`\noverlap (CUSIP + shares + put/call): ${same} of ${lines[a].length} (${a}) and of ${lines[b].length} (${b})`);
-}
+  return same;
+};
+for (let i = 0; i < keys.length; i++)
+  for (let j = i + 1; j < keys.length; j++)
+    if (lines[keys[i]] && lines[keys[j]]) console.log(`overlap ${keys[i]} vs ${keys[j]}: ${overlap(keys[i], keys[j])} of ${lines[keys[i]].length} / ${lines[keys[j]].length}`);
 
 // Form ADV (IAPD): firm records by name
 for (const q of (process.env.ADV_QUERIES || '').split(',').filter(Boolean)) {

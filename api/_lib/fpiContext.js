@@ -89,10 +89,10 @@ export function fpiContext({ raw = {}, seriesFor, meta: m } = {}) {
 }
 
 // (amount, currency, day) → US dollars at that day's rate, null without one
-export function toUsdWith(data = loadFpi()) {
+export function toUsdWith(data = loadFpi(), { maxStaleDays } = {}) {
   const rates = data?.rates || null;
   return (amount, cu, day) => {
-    const k = usdPerUnit(cu, day, rates);
+    const k = usdPerUnit(cu, day, rates, maxStaleDays ? { maxStaleDays } : undefined);
     return k ? amount * k : null;
   };
 }

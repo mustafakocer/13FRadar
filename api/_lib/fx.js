@@ -103,12 +103,12 @@ const SUB_UNITS = { GBX: ['GBP', 0.01], ZAC: ['ZAR', 0.01], ILA: ['ILS', 0.01] }
 // one within MAX_STALE_DAYS before it (weekends, US holidays). null when the
 // currency has no series or there is no rate close enough.
 export const MAX_STALE_DAYS = 7;
-export function usdPerUnit(cur, day, rates) {
+export function usdPerUnit(cur, day, rates, { maxStaleDays = MAX_STALE_DAYS } = {}) {
   if (!cur || !day) return null;
   if (cur === 'USD') return 1;
   if (SUB_UNITS[cur]) {
     const [base, k] = SUB_UNITS[cur];
-    const r = usdPerUnit(base, day, rates);
+    const r = usdPerUnit(base, day, rates, { maxStaleDays });
     return r == null ? null : r * k;
   }
   const s = rates?.[cur];
@@ -125,7 +125,7 @@ export function usdPerUnit(cur, day, rates) {
   }
   if (hit < 0) return null;
   const gap = (Date.parse(day) - Date.parse(s[hit][0])) / 86400000;
-  return gap <= MAX_STALE_DAYS ? s[hit][1] : null;
+  return gap <= maxStaleDays ? s[hit][1] : null;
 }
 
 // Which currency a footnote or security title names. Order matters: the

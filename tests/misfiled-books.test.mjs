@@ -60,3 +60,14 @@ test('every size listing leaves a misfiled row out', () => {
   assert.match(read('scripts/repair-units.mjs'), /markMisfiled\(U\.rows\)/);
   assert.match(read('client/src/pages/Manager.jsx'), /t\('manager\.misfiled'\)/);
 });
+
+test('config: Kingsbury 2026-Q2 carries KMT Wealth\'s table; its 2026-Q1 filing of the same day is not touched', () => {
+  const f = misfiledFor('0001927315', '0001104659-26-100644');
+  assert.ok(f);
+  assert.equal(f.copyOf, '0002058235');
+  assert.equal(f.declared, null, 'the cover total was copied too: Kingsbury\'s own Q2 total is unknown');
+  assert.equal(misfiledFor('0001927315', '0001104659-26-100714'), null, 'its own 2026-03-31 book');
+  const rows = [{ cik: '0001927315', acc: '0001104659-26-100644', aum: 118195925, positions: 121 }];
+  markMisfiled(rows);
+  assert.deepEqual([rows[0].misfiled.copyOf, rows[0].misfiled.declared], ['0002058235', null]);
+});

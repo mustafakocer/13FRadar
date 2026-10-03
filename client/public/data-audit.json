@@ -108,16 +108,22 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 2020
+        "tickers": 3225
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "drift",
+          "severity": "warn",
+          "message": "tickers moved +59.7%, 2020 → 3225"
+        }
+      ]
     },
     {
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 1934,
-        "coveragePct": 45.2
+        "series": 3178,
+        "coveragePct": 65.3
       },
       "findings": []
     },

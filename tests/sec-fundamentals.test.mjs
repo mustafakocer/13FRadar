@@ -152,3 +152,15 @@ test('a re-registered filer: the old CIK\'s periods carry the trailing four quar
   assert.equal(t.basis, 'ttm');
   assert.equal(Number(t.value.toFixed(2)), Number((1.8 + (6.8 - 1.7 - 1.64 - 1.8) + 1.9 + 3.48).toFixed(2)));
 });
+
+test('a weekly-published rate (H.10 TWD) eight days old still converts for fundamentals, not for a day-exact lookup', async () => {
+  const { usdPerUnit } = await import('../api/_lib/fx.js');
+  const { toUsdWith } = await import('../api/_lib/fpiContext.js');
+  const rates = { TWD: [['2026-09-25', 0.0314268]] };
+  assert.equal(usdPerUnit('TWD', '2026-10-03', rates), null, 'the default 7-day window');
+  assert.equal(usdPerUnit('TWD', '2026-10-03', rates, { maxStaleDays: 21 }), 0.0314268);
+  const fx = toUsdWith({ rates }, { maxStaleDays: 21 });
+  assert.equal(Number(fx(65.47, 'TWD', '2026-10-03').toFixed(4)), Number((65.47 * 0.0314268).toFixed(4)));
+  assert.equal(toUsdWith({ rates })(65.47, 'TWD', '2026-10-03'), null);
+  assert.equal(fx(1, 'TWD', '2026-10-20'), null, 'older than three weeks: no rate');
+});

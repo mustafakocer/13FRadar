@@ -295,3 +295,24 @@ test('Finnhub 429 is the minute limit: wait a minute and go on; three waits in a
     delete process.env.FINNHUB_API_KEY;
   }
 });
+
+test('TwelveData minute limit: wait a minute and go on; the day limit ends the night', async () => {
+  const { twelveDataSeries, TD_MINUTE_RETRIES } = await import('../api/_lib/pricesBuild.js');
+  const minute = new Error('TwelveData: You have run out of API credits for the current minute. 9 API credits were used, with the current limit being 8.');
+  const day = new Error('TwelveData: You have run out of API credits for the day. 966 API credits were used, with the current limit being 800.');
+  const waits = [];
+  const wait = async (ms) => waits.push(ms);
+  let n = 0;
+  const once = async () => {
+    if (n++ === 0) throw minute;
+    return { values: [{ datetime: '2026-10-02', close: '10.5' }] };
+  };
+  assert.deepEqual(await twelveDataSeries('AAPL', '2026-10-01', { get: once, wait }), [{ date: '2026-10-02', close: 10.5 }]);
+  assert.deepEqual(waits, [61000]);
+  waits.length = 0;
+  await assert.rejects(twelveDataSeries('AAPL', null, { get: async () => { throw minute; }, wait }), (e) => e.quota);
+  assert.equal(waits.length, TD_MINUTE_RETRIES, 'gives up after the waits');
+  waits.length = 0;
+  await assert.rejects(twelveDataSeries('AAPL', null, { get: async () => { throw day; }, wait }), (e) => e.quota && /for the day/.test(e.message));
+  assert.equal(waits.length, 0, 'no wait on the day limit');
+});

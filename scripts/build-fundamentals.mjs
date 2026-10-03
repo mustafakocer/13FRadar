@@ -64,8 +64,11 @@ const adrRatioOf = (t, cik) => {
   if (iss?.ads && iss.ratio > 0) return iss.ratio;
   return o?.ratio > 0 ? o.ratio : null;
 };
-const fx = toUsdWith(fpi);
-// a rate on or before the day asked; the reporting currency at today's rate
+// The reporting currency at today's rate, else the newest one within three
+// weeks: the H.10-only currencies (TWD, LKR) are published weekly with a
+// lag, so a 7-day window left TSM's EPS without a rate every few days.
+const FUNDAMENTALS_FX_STALE_DAYS = 21;
+const fx = toUsdWith(fpi, { maxStaleDays: FUNDAMENTALS_FX_STALE_DAYS });
 const usd = (amount, cur) => fx(amount, cur, today);
 
 // ---- companyfacts, one filer at a time ----

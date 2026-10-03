@@ -101,15 +101,29 @@ const tenYearsAgo = (now) => isoDay(now - HISTORY_YEARS * 365.25 * DAY);
 const quotaError = (msg) => Object.assign(new Error(msg), { quota: true });
 const deadError = (msg) => Object.assign(new Error(msg), { dead: true });
 
-export async function twelveDataSeries(symbol, from, { now = Date.now() } = {}) {
+// TwelveData's free plan has two limits: 8 credits a minute and 800 a day.
+// The minute one is shared with the live site's calls on the same key, so
+// "run out of API credits for the current minute" means wait the minute out
+// (TD_MINUTE_RETRIES times at most); only the day's limit ends the night.
+export const TD_MINUTE_RETRIES = 3;
+const minuteLimit = (msg) => /current minute|per minute/i.test(msg);
+
+export async function twelveDataSeries(symbol, from, { now = Date.now(), get = tdGet, wait = sleep } = {}) {
   let d;
-  try {
-    d = await tdGet('/time_series', { symbol, interval: '1day', outputsize: 5000, start_date: from || tenYearsAgo(now), order: 'ASC' });
-  } catch (e) {
-    const msg = String(e.message || e);
-    if (/run out|limit|credits|429/i.test(msg)) throw quotaError(msg);
-    if (/not found|invalid|symbol|400/i.test(msg)) return null;
-    throw e;
+  for (let n = 0; ; n++) {
+    try {
+      d = await get('/time_series', { symbol, interval: '1day', outputsize: 5000, start_date: from || tenYearsAgo(now), order: 'ASC' });
+      break;
+    } catch (e) {
+      const msg = String(e.message || e);
+      if (minuteLimit(msg) && n < TD_MINUTE_RETRIES) {
+        await wait(61000);
+        continue;
+      }
+      if (/run out|limit|credits|429/i.test(msg)) throw quotaError(msg);
+      if (/not found|invalid|symbol|400/i.test(msg)) return null;
+      throw e;
+    }
   }
   const vals = d?.values || [];
   const out = vals.map((v) => ({ date: String(v.datetime).slice(0, 10), close: Number(v.close) })).filter((v) => Number.isFinite(v.close));

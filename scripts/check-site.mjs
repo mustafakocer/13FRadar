@@ -191,6 +191,13 @@ else {
     const sec = JSON.parse(r.text).sec || {};
     check(sec.eps != null && (typeof sec.pe === 'number' || sec.pe === 'loss') && sec.marketCap > 0 && /sec\.gov/.test(sec.src?.eps?.url || ''), `AAPL fundamentals: EPS ${sec.eps} · P/E ${sec.pe} · cap $${sec.marketCap} · ${sec.src?.eps?.form} ${sec.src?.eps?.end}`);
   }
+  // a foreign filer, converted through the FX table (printed, not judged:
+  // the rate table is refreshed by another job)
+  const tsm = await get('/api/stock/TSM');
+  if (tsm.status === 200) {
+    const t = JSON.parse(tsm.text).sec || {};
+    out.push(`- TSM fundamentals: EPS ${t.eps ?? '—'}${t.epsReason ? ` (${t.epsReason})` : ''} · P/E ${t.pe ?? '—'} · cap $${t.marketCap ?? '—'} · ${t.src?.eps?.form || ''} ${t.src?.eps?.end || ''}`);
+  }
   const page = await get('/tr/stock/AAPL');
   check(page.status === 200 && !/veri sağlayıcıdan alınamıyor|Ort\. Hedef Fiyat/.test(page.text), 'stock page: no provider banner, no average target price');
 }

@@ -71,3 +71,22 @@ test('config: Kingsbury 2026-Q2 carries KMT Wealth\'s table; its 2026-Q1 filing 
   markMisfiled(rows);
   assert.deepEqual([rows[0].misfiled.copyOf, rows[0].misfiled.declared], ['0002058235', null]);
 });
+
+test('pageFiling: a misfiled newest quarter opens the page on the newest valid one, never another filer', async () => {
+  const { pageFiling } = await import('../api/_lib/misfiledBooks.js');
+  const K = '0001927315';
+  const filings = [
+    { acc: '0001104659-26-100644', reportDate: '2026-06-30' },
+    { acc: '0001104659-26-100714', reportDate: '2026-03-31' },
+    { acc: '0001104659-22-116938', reportDate: '2022-09-30' },
+  ];
+  const p = pageFiling(K, filings);
+  assert.equal(p.acc, '0001104659-26-100714');
+  assert.deepEqual(p.fallback, { reportDate: '2026-03-31', misfiled: { reportDate: '2026-06-30', acc: '0001104659-26-100644', copyOf: '0002058235', copyOfName: 'KMT Wealth Management, LLC' } });
+  // Sixth Street: the same rule
+  const s = pageFiling(SIXTH, [{ acc: ACC, reportDate: '2026-06-30' }, { acc: '0001752724-26-000020', reportDate: '2026-03-31' }]);
+  assert.deepEqual([s.acc, s.fallback.misfiled.copyOf], ['0001752724-26-000020', '0000884546']);
+  // a valid newest filing: no fallback; only a misfiled one and nothing earlier: no fallback
+  assert.deepEqual(pageFiling(K, [{ acc: 'x-new', reportDate: '2026-09-30' }, ...filings]), { acc: 'x-new', fallback: null });
+  assert.deepEqual(pageFiling(K, filings.slice(0, 1)), { acc: '0001104659-26-100644', fallback: null });
+});

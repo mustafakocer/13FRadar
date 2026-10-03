@@ -135,3 +135,30 @@ export function newFindings({ deviations, pairs }, known = {}, reviewed = new Se
     pairs: pairs.filter((p) => !kp.has(pairKey(p.a, p.b)) && !reviewed.has(pairKey(p.a, p.b))),
   };
 }
+
+// What to do about a near-identical pair (the nightly check's advice; never
+// applied by itself). For each side: the filing the universe uses and any
+// other original 13F-HR it sent for the same quarter. A side with such an
+// alternative gets a suggestion to use it once its copy is marked; a side
+// without one would be marked misfiled. A filing of another quarter is never
+// offered as a replacement.
+//   side: { cik, name, acc, reportDate, filings: [{ acc, form, filingDate, reportDate }] }
+//   → [{ cik, name, kind: 'alternative' | 'misfiled', acc?, filingDate?, reportDate }]
+export function copyAdvice(sides) {
+  return sides.map((s) => {
+    const alt = (s.filings || [])
+      .filter((f) => f.reportDate === s.reportDate && f.acc !== s.acc && !/\/A/i.test(String(f.form || '')))
+      .sort((x, y) => (x.filingDate === y.filingDate ? String(y.acc).localeCompare(String(x.acc)) : x.filingDate < y.filingDate ? 1 : -1))[0];
+    return alt
+      ? { cik: s.cik, name: s.name, kind: 'alternative', acc: alt.acc, filingDate: alt.filingDate, reportDate: s.reportDate }
+      : { cik: s.cik, name: s.name, kind: 'misfiled', reportDate: s.reportDate };
+  });
+}
+
+// One line of the alarm per side (Turkish, the alarm issue's language).
+export function adviceLine(a, usedAcc, filed) {
+  if (a.kind === 'alternative') {
+    return `Öneri: ${a.name} (${a.cik}) ${a.reportDate} için başka bir orijinal bildirim de vermiş (${a.acc}, ${a.filingDate}). Kopya bu fonunsa ${usedAcc} bildirimini config/misfiled-books.json'a ekleyin ve ${a.acc} kullanılsın.`;
+  }
+  return `${a.name} (${a.cik}): ${a.reportDate} için başka orijinal bildirim yok (kullanılan ${usedAcc}, ${filed}). Kopya bu fonunsa yanlış dosyalanmış olarak işaretlenmeli; başka bir çeyreğin bildirimi yerine konmaz.`;
+}

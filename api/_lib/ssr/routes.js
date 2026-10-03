@@ -118,7 +118,8 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
   const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 8000));
   if (!mgr) return { seeds, status: 404 };
   seeds.push([['manager', cik], mgr]);
-  const acc = mgr.filings?.[0]?.acc;
+  // the newest valid filing (a misfiled newest one is skipped: pageFiling)
+  const acc = mgr.defaultAcc || mgr.filings?.[0]?.acc;
   if (acc) {
     // free tier: top 10 rows + true totals (isPro is false on the server)
     // Usually answered from the stored snapshot in a few milliseconds; the

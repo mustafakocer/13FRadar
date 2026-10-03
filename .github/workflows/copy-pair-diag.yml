@@ -1,0 +1,30 @@
+name: Copy-book pair (diagnose)
+
+# Evidence for a near-identical 13F pair (issue #68): EDGAR submissions,
+# each filing's cover page, line-by-line overlap and the Form ADV records.
+# Prints only; commits nothing.
+on:
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/probe-copy-pair.mjs'
+      - '.github/workflows/copy-pair-diag.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: node scripts/probe-copy-pair.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          PAIR: '0001927315:0001104659-26-100644,0002058235:0001104659-26-091013'
+          ADV_QUERIES: 'Kingsbury Capital,KMT Wealth Management'

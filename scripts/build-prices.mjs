@@ -16,11 +16,23 @@
 // fill takes at this budget.
 import { buildPrices, finnhubRefusals } from '../api/_lib/pricesBuild.js';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
+import { tdGet } from '../api/_lib/providers.js';
 
 // Without Finnhub only TwelveData's ~400 symbols a night are refreshed: say
 // so where the run summary shows it rather than letting closes go stale.
 for (const key of ['TWELVEDATA_API_KEY', 'FINNHUB_API_KEY']) {
   if (!process.env[key]) console.log(`::warning::price cache: ${key} is not set — that provider is skipped tonight`);
+}
+
+// What the day's TwelveData credits look like before the night spends them:
+// the live site asks Finnhub first, so this is what is left for histories.
+if (process.env.TWELVEDATA_API_KEY && process.env.PRICES_DRY !== '1') {
+  try {
+    const u = await tdGet('/api_usage');
+    console.log(`twelvedata credits before tonight: ${u.current_usage} of ${u.plan_limit} used today, ${u.plan_limit - u.current_usage} left (${u.timestamp || ''})`);
+  } catch (e) {
+    console.log(`twelvedata credits before tonight: unknown (${String(e.message || e).slice(0, 120)})`);
+  }
 }
 
 const r = await buildPrices();

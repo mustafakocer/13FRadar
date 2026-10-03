@@ -137,7 +137,10 @@ jobs:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           # only tickers with no stored series: the nightly price build keeps
           # the rest current, and the Finnhub minute limit is shared with it
-          INSIDER_QUOTE_BUDGET: '300'
+          INSIDER_QUOTE_BUDGET: '150'
+          # skip the top-up while the price build (same Finnhub key) runs
+          GITHUB_TOKEN: ${{ github.token }}
+          FINNHUB_PEER_WORKFLOW: consensus.yml
 
       - name: Report dataset freshness
         if: always()

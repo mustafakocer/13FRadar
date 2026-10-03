@@ -144,19 +144,57 @@ export const resetFinnhubRefusals = () => {
   refusedTotal = 0;
 };
 
-// 429 is Finnhub's per-minute limit (shared with the live site's calls on the
-// same key), not a daily one: wait the minute out and ask again, and give
-// up for the night only after FINNHUB_429_RETRIES waits in a row.
-export const FINNHUB_429_RETRIES = 3;
+// One Finnhub key serves the nightly price build, the insider build and the
+// live site; the free plan allows 60 calls a minute. The two builds never
+// call it at once (scripts/finnhub-peer.mjs) and each paces at
+// FINNHUB_JOB_PER_MIN, leaving the rest of the minute to the live site.
+export const FINNHUB_JOB_PER_MIN = 50;
+export const FINNHUB_PAUSE_MS = Math.ceil(60000 / FINNHUB_JOB_PER_MIN);
+// 429 is the per-minute limit, not a daily one: wait the minute out and ask
+// again; FINNHUB_429_IN_A_ROW of them with no answer between end the run.
+export const FINNHUB_429_IN_A_ROW = 10;
+export const FINNHUB_429_WAIT_MS = 61000;
+const fhStats = { calls: 0, throttled: 0, waitedMs: 0 };
+let throttledInARow = 0;
+export const finnhubStats = () => ({ ...fhStats });
+export const resetFinnhubStats = () => {
+  fhStats.calls = 0;
+  fhStats.throttled = 0;
+  fhStats.waitedMs = 0;
+  throttledInARow = 0;
+};
+// The run summary line both builds print and write to the step summary.
+export function finnhubSummary(label) {
+  const s = finnhubStats();
+  const line = `${label}: Finnhub ${s.calls} request(s), ${s.throttled} × 429, ${Math.round(s.waitedMs / 1000)} s waited`;
+  console.log(line);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    try {
+      fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `- ${line}\n`);
+    } catch {
+      /* the summary is a nicety */
+    }
+  }
+  return line;
+}
 
 export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.get(url, opts), wait = sleep } = {}) {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new Error('FINNHUB_API_KEY not set');
-  let r = await get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
-  for (let n = 0; r.status === 429 && n < FINNHUB_429_RETRIES; n++) {
-    await wait(61000);
-    r = await get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  const ask = () => {
+    fhStats.calls++;
+    return get('https://finnhub.io/api/v1/quote', { params: { symbol, token: key } });
+  };
+  let r = await ask();
+  while (r.status === 429) {
+    fhStats.throttled++;
+    throttledInARow++;
+    if (throttledInARow >= FINNHUB_429_IN_A_ROW) throw quotaError(`Finnhub HTTP 429 ${throttledInARow} times in a row`);
+    fhStats.waitedMs += FINNHUB_429_WAIT_MS;
+    await wait(FINNHUB_429_WAIT_MS);
+    r = await ask();
   }
+  throttledInARow = 0;
   if (r.status === 401) throw deadError('Finnhub quote: key refused (HTTP 401)');
   if (r.status === 403) {
     refusedInARow++;
@@ -164,7 +202,6 @@ export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.ge
     if (refusedInARow >= FINNHUB_REFUSALS_IN_A_ROW) throw deadError(`Finnhub quote: refused (HTTP 403) ${refusedInARow} times in a row`);
     return null;
   }
-  if (r.status === 429) throw quotaError(`Finnhub HTTP 429 after ${FINNHUB_429_RETRIES} one-minute waits`);
   if (r.status !== 200) throw new Error(`Finnhub HTTP ${r.status}`);
   refusedInARow = 0;
   const c = Number(r.data?.c);
@@ -180,7 +217,7 @@ export function providerPlan(env = process.env) {
   return [
     { name: 'twelvedata', enabled: hasTd(), budget: n('PRICES_TD_BUDGET', 400), pauseMs: 7600, concurrency: 1, fetch: twelveDataSeries },
     // a quote only extends a series: symbols with no history wait for TwelveData
-    { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 2400), pauseMs: 1050, concurrency: 1, fetch: finnhubQuote, appendOnly: true },
+    { name: 'finnhub', enabled: hasFinnhub(), budget: n('PRICES_FINNHUB_BUDGET', 2400), pauseMs: FINNHUB_PAUSE_MS, concurrency: 1, fetch: finnhubQuote, appendOnly: true },
   ].filter((p) => p.enabled && p.budget > 0);
 }
 
@@ -339,7 +376,7 @@ export async function buildPrices({
 // `missingOnly`: only symbols with no file at all — the nightly price build
 // keeps the stored series current, and Finnhub's per-minute limit is shared
 // with it and with the live site (1,200 calls here took 50 minutes on 3 Oct).
-export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAgeDays = 1, log = console.log, quote = finnhubQuote, pauseMs = 1050, missingOnly = false } = {}) {
+export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAgeDays = 1, log = console.log, quote = finnhubQuote, pauseMs = FINNHUB_PAUSE_MS, missingOnly = false } = {}) {
   if (!(budget > 0) || !hasFinnhub()) return { asked: 0, written: 0, unknown: 0 };
   const index = seriesIndex();
   const listed = symbols.filter(listedTicker).filter((s) => !missingOnly || !index.has(seriesKey(s)));

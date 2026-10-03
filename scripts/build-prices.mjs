@@ -14,7 +14,8 @@
 // PRICES_MAX_AGE_DAYS (1). The log opens with the plan: how many symbols
 // are missing or stale, what tonight covers, and how many nights a full
 // fill takes at this budget.
-import { buildPrices, finnhubRefusals } from '../api/_lib/pricesBuild.js';
+import { buildPrices, finnhubRefusals, providerPlan, finnhubSummary } from '../api/_lib/pricesBuild.js';
+import { waitForPeer } from './finnhub-peer.mjs';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 import { tdGet } from '../api/_lib/providers.js';
 
@@ -35,8 +36,21 @@ if (process.env.TWELVEDATA_API_KEY && process.env.PRICES_DRY !== '1') {
   }
 }
 
-const r = await buildPrices();
+// The insider build shares the Finnhub key: let a running one finish first
+// (scripts/finnhub-peer.mjs); if it is still going after 20 minutes, tonight
+// runs without Finnhub rather than both throttling each other.
+let providers = providerPlan();
+if (providers.some((p) => p.name === 'finnhub') && process.env.PRICES_DRY !== '1') {
+  const peer = await waitForPeer({ maxMs: Number(process.env.FINNHUB_PEER_WAIT_MIN || 20) * 60000 });
+  if (!peer.clear) {
+    console.log(`::warning::finnhub: ${process.env.FINNHUB_PEER_WORKFLOW} still running after ${Math.round(peer.waitedMs / 60000)} min — no Finnhub this run, the closes wait for the next`);
+    providers = providers.filter((p) => p.name !== 'finnhub');
+  }
+}
+
+const r = await buildPrices({ providers });
 if (r.dryRun) console.log('dry run — nothing written');
+finnhubSummary('price build');
 // symbols the free Finnhub plan does not quote (HTTP 403 on that symbol)
 if (finnhubRefusals()) console.log(`  finnhub: ${finnhubRefusals()} symbol(s) not covered by the plan (HTTP 403), skipped`);
 

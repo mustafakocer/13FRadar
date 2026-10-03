@@ -9,8 +9,10 @@ import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedH
 // GET /api/stock/:ticker — the quote board of a stock page.
 //
 // This answer is cache-first and always 200. The keyed providers are asked
-// all at once (raceProviders) inside a fixed wall-clock budget; the answer
-// is the best-ranked one that lands in time, and when none does the request
+// one after another (raceProviders) inside a fixed wall-clock budget: the
+// next only when the one before failed (429, error, empty), so a page open
+// spends one call; the answer is the first that lands in time, and when none
+// does the request
 // is answered from the freshest of: the last live answer this instance saw
 // (`remember`), the nightly price file (dated, with `priceStale: true`), or
 // a payload whose price fields are all null. The race keeps running after
@@ -26,8 +28,9 @@ import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedH
 // either (its terms do not cover a paid site): the closes come from
 // TwelveData and Finnhub (api/_lib/pricesBuild.js).
 //
-//   TwelveData  quote (800/day free)
-//   Finnhub     quote (60/min free, no daily cap)
+//   Finnhub     quote (60/min free, no daily cap) — asked first
+//   TwelveData  quote (800/day free) — only when Finnhub failed: its daily
+//               credits are what the nightly build fills histories with
 // FMP is out: its free plan spent its 250 calls a day on the first visitors
 // and answered 402 on everything but the quote.
 //
@@ -44,9 +47,9 @@ const SNAPSHOT_BUDGET_MS = Math.max(500, Number(process.env.STOCK_SNAPSHOT_MS) |
 
 // The providers, most complete answer first. Each is a thunk so a test can
 // hand in its own list; `needs` says which key must be present.
-const PROVIDERS = [
-  { name: 'twelvedata', needs: hasTd, run: (t) => tdStock(t) },
+export const PROVIDERS = [
   { name: 'finnhub', needs: hasFinnhub, run: (t) => finnhubStock(t) },
+  { name: 'twelvedata', needs: hasTd, run: (t) => tdStock(t) },
 ];
 
 // Which of the providers to call now. A provider without its key is never
@@ -79,7 +82,9 @@ export function eligibleProviders(providers, { now = Date.now(), quota = quotaSt
 // Returns { withinBudget, eventual, chain } — `chain` is one line per
 // provider: name=outcome:ms, outcome being ok, or the failure class
 // (throttle / forbidden / key / timeout / parse / upstream / network), or
-// why it was not called (key / open / quota / conserve).
+// why it was not called (key / open / quota / conserve, or unneeded: an
+// earlier provider answered). Providers are asked in order, each only after
+// the one before failed.
 export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTREAM_BUDGET_MS, log = () => {}, now = Date.now } = {}) {
   const outcomes = new Map(providers.map((p) => [p.name, 'pending']));
   const line = () => [...outcomes].map(([n, o]) => `${n}=${o}`).join(';');
@@ -88,7 +93,8 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
     if (why) outcomes.set(p.name, `${why}:0`);
     else eligible.push(p);
   }
-  const results = eligible.map((p) => {
+  let answered = false;
+  const ask = (p) => {
     const t0 = now();
     noteCall(p.name, t0);
     return Promise.resolve()
@@ -96,6 +102,7 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
       .then((out) => {
         const ms = now() - t0;
         if (out) {
+          answered = true;
           noteOk(p.name, ms);
           outcomes.set(p.name, `ok:${ms}`);
           log(`${p.name} ok in ${ms}ms`);
@@ -113,6 +120,20 @@ export function raceProviders(ticker, { providers = PROVIDERS, budgetMs = UPSTRE
         log(`${p.name} ${kind} in ${ms}ms: ${String(e?.message || e).slice(0, 120)}`);
         return null;
       });
+  };
+  const results = [];
+  eligible.forEach((p, i) => {
+    results.push(
+      i === 0
+        ? ask(p)
+        : results[i - 1].then(() => {
+            if (answered) {
+              outcomes.set(p.name, 'unneeded:0');
+              return null;
+            }
+            return ask(p);
+          })
+    );
   });
   const settled = results.map(() => false);
   const values = results.map(() => null);

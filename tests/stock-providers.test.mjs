@@ -23,26 +23,37 @@ const P = (name, ms, out, opts = {}) => ({
 });
 const http = (status) => Object.assign(new Error(`HTTP ${status}`), { response: { status } });
 
-test('a slow top-ranked provider does not block a fast lower-ranked one: the answer is live within the budget', async () => {
+test('one provider after another: the first that answers ends the chain, the rest are never called', async () => {
   resetProviderHealth();
-  const providers = [P('slow-best', 5000, payload('best')), P('fast', 30, payload('fast')), P('slower', 200, payload('slower'))];
+  const calls = [];
+  const T = (name, ms, out) => ({ name, run: async () => { calls.push(name); await sleep(ms); if (out instanceof Error) throw out; return out; } });
+  const providers = [T('first', 20, payload('first')), T('second', 20, payload('second'))];
   const t0 = Date.now();
-  const { withinBudget, chain } = raceProviders('AAPL', { providers, budgetMs: 300 });
+  const { withinBudget, eventual, chain } = raceProviders('AAPL', { providers, budgetMs: 1000 });
   const best = await withinBudget;
-  const ms = Date.now() - t0;
-  assert.equal(best.provider, 'fast', 'the best answer available at the budget');
-  assert.ok(ms >= 280 && ms < 1500, `waited for the budget (${ms}ms), not for the slow provider`);
-  assert.match(chain(), /slow-best=pending;fast=ok:\d+;slower=ok:\d+/);
+  await eventual;
+  assert.equal(best.provider, 'first');
+  assert.ok(Date.now() - t0 < 300, 'did not wait for the budget');
+  assert.deepEqual(calls, ['first'], 'the second provider is not called');
+  assert.match(chain(), /first=ok:\d+;second=unneeded:0/);
 });
 
-test('when the top-ranked provider answers first the race ends early with it', async () => {
+test('live chain: a stock page asks Finnhub first; Finnhub 429 falls through to TwelveData', async () => {
   resetProviderHealth();
-  const providers = [P('best', 20, payload('best')), P('other', 400, payload('other'))];
-  const t0 = Date.now();
-  const { withinBudget } = raceProviders('AAPL', { providers, budgetMs: 1000 });
-  const best = await withinBudget;
-  assert.equal(best.provider, 'best');
-  assert.ok(Date.now() - t0 < 300, 'did not wait for the budget');
+  const calls = [];
+  const T = (name, out) => ({ name, run: async () => { calls.push(name); if (out instanceof Error) throw out; return out; } });
+  // the order the handler uses
+  const { PROVIDERS } = await import('../api/_handlers/stock.js');
+  assert.deepEqual(PROVIDERS.map((p) => p.name), ['finnhub', 'twelvedata']);
+  let r = raceProviders('AAPL', { providers: [T('finnhub', payload('fh')), T('twelvedata', payload('td'))], budgetMs: 500 });
+  assert.equal((await r.withinBudget).provider, 'finnhub');
+  await r.eventual;
+  assert.deepEqual(calls, ['finnhub'], 'TwelveData credits are not spent while Finnhub answers');
+  calls.length = 0;
+  r = raceProviders('MSFT', { providers: [T('finnhub', http(429)), T('twelvedata', payload('td'))], budgetMs: 500 });
+  assert.equal((await r.withinBudget).provider, 'twelvedata');
+  assert.deepEqual(calls, ['finnhub', 'twelvedata']);
+  assert.match(r.chain(), /finnhub=throttle:\d+;twelvedata=ok:\d+/);
 });
 
 test('failures are classified, a missing key is never called, and a provider that keeps failing is skipped', async () => {
@@ -84,7 +95,7 @@ test('stockPayload serves live with the provider named, and the handler exposes 
   const res = await invoke(handler, { ticker: 'TSM' });
   assert.equal(res.status, 200);
   assert.ok(['snapshot', 'stale', 'none'].includes(res.headers['x-stock-source']));
-  assert.match(res.headers['x-stock-chain'], /^twelvedata=[a-z]+:\d+;finnhub=[a-z]+:\d+$/, 'keyed providers only: no Yahoo, no Stooq, no FMP');
+  assert.match(res.headers['x-stock-chain'], /^finnhub=[a-z]+:\d+;twelvedata=[a-z]+:\d+$/, 'keyed providers only: no Yahoo, no Stooq, no FMP');
   assert.match(res.headers['x-stock-served'], /live=\d+,stale=\d+,snapshot=\d+,none=\d+/);
   assert.ok(Number(res.headers['x-stock-ms']) >= 0);
 });

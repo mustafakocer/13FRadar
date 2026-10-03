@@ -135,7 +135,12 @@ jobs:
           # the tickers traded today that the nightly price build has not
           # reached get their last close from Finnhub's quote (no Yahoo)
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
-          INSIDER_QUOTE_BUDGET: '1200'
+          # only tickers with no stored series: the nightly price build keeps
+          # the rest current, and the Finnhub minute limit is shared with it
+          INSIDER_QUOTE_BUDGET: '150'
+          # skip the top-up while the price build (same Finnhub key) runs
+          GITHUB_TOKEN: ${{ github.token }}
+          FINNHUB_PEER_WORKFLOW: consensus.yml
 
       - name: Report dataset freshness
         if: always()

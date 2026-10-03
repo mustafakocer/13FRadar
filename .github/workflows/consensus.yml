@@ -149,6 +149,9 @@ jobs:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           PRICES_TD_BUDGET: '400'
+          # wait for a running insider build (same Finnhub key) first
+          GITHUB_TOKEN: ${{ github.token }}
+          FINNHUB_PEER_WORKFLOW: insiders.yml
       # Company fundamentals for the stock pages (EPS, shares outstanding,
       # dividends; beta from the closes above) from SEC's XBRL: one bulk file
       # (companyfacts.zip), read for the site's tickers only

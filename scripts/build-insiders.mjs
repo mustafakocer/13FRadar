@@ -313,7 +313,7 @@ async function enrich(tickers, cikOf) {
   const before = Object.keys(meta).length;
 
   console.log(`Enriching: ${tickers.length} tickers…`);
-  await topUpCloses(tickers, { budget: Number(process.env.INSIDER_QUOTE_BUDGET || 1200) });
+  await topUpCloses(tickers, { budget: Number(process.env.INSIDER_QUOTE_BUDGET || 300), missingOnly: true });
   const { snapshots } = priceSnapshots(tickers);
   let priced = 0;
   for (const [sym, snap] of snapshots) {

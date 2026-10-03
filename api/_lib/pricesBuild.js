@@ -336,9 +336,14 @@ export async function buildPrices({
 // quote, within `budget` calls (the insider build: the tickers traded today
 // that the nightly price build has not reached). Missing series first, then
 // the oldest. Returns { asked, written, unknown }.
-export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAgeDays = 1, log = console.log, quote = finnhubQuote, pauseMs = 1050 } = {}) {
+// `missingOnly`: only symbols with no file at all — the nightly price build
+// keeps the stored series current, and Finnhub's per-minute limit is shared
+// with it and with the live site (1,200 calls here took 50 minutes on 3 Oct).
+export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAgeDays = 1, log = console.log, quote = finnhubQuote, pauseMs = 1050, missingOnly = false } = {}) {
   if (!(budget > 0) || !hasFinnhub()) return { asked: 0, written: 0, unknown: 0 };
-  const plan = planFetch(symbols.filter(listedTicker), seriesIndex(), { now, maxAgeDays, capacity: budget });
+  const index = seriesIndex();
+  const listed = symbols.filter(listedTicker).filter((s) => !missingOnly || !index.has(seriesKey(s)));
+  const plan = planFetch(listed, index, { now, maxAgeDays, capacity: budget });
   let written = 0;
   let unknown = 0;
   let asked = 0;

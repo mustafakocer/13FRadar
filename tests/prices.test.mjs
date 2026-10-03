@@ -316,3 +316,24 @@ test('TwelveData minute limit: wait a minute and go on; the day limit ends the n
   await assert.rejects(twelveDataSeries('AAPL', null, { get: async () => { throw day; }, wait }), (e) => e.quota && /for the day/.test(e.message));
   assert.equal(waits.length, 0, 'no wait on the day limit');
 });
+
+test('the insider top-up asks only for symbols with no stored series when missingOnly', async () => {
+  const { topUpCloses } = await import('../api/_lib/pricesBuild.js');
+  const pdir = fs.mkdtempSync(path.join(os.tmpdir(), 'prices-topup-'));
+  const was = process.env.PRICES_DIR;
+  process.env.PRICES_DIR = pdir;
+  process.env.FINNHUB_API_KEY = 'test-key';
+  clearSeriesCache();
+  try {
+    writeSeries('OLD', series('2026-01-01', '2026-09-01'), { src: 'twelvedata' });
+    const asked = [];
+    const quote = async (s) => { asked.push(s); return [{ date: '2026-10-02', close: 5 }]; };
+    const r = await topUpCloses(['OLD', 'NEW1', 'NEW2'], { budget: 10, now: Date.parse('2026-10-03T12:00:00Z'), quote, pauseMs: 0, missingOnly: true, log: () => {} });
+    assert.deepEqual(asked, ['NEW1', 'NEW2'], 'the stale stored series is left to the nightly build');
+    assert.equal(r.written, 2);
+  } finally {
+    process.env.PRICES_DIR = was;
+    delete process.env.FINNHUB_API_KEY;
+    clearSeriesCache();
+  }
+});

@@ -3,6 +3,7 @@ import { useI18n } from '../i18n.jsx';
 import Logo from './Logo.jsx';
 import { LEGAL } from '../content/registry.js';
 import { CONTACT_EMAIL } from '../content/legal.js';
+import { useSplitsStatus } from '../hooks/useSplitsStatus.js';
 
 const EXPLORE = [
   ['/gurus', 'nav.gurus'],
@@ -30,6 +31,9 @@ const RANKINGS = [
 
 export default function Footer() {
   const { t, lang } = useI18n();
+  // the day the stock-split table last changed (scripts/build-splits.mjs)
+  const splitsDay = useSplitsStatus()?.dataChangedAt;
+  const splitsDate = splitsDay ? new Date(`${splitsDay}T00:00:00Z`).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: lang === 'tr' ? '2-digit' : 'short', year: 'numeric', timeZone: 'UTC' }) : null;
   return (
     <footer className="site-footer no-print">
       <nav aria-label="Footer">
@@ -70,6 +74,7 @@ export default function Footer() {
       </div>
       <p className="muted small">{t('footer.disclaimer')}</p>
       <p className="muted small">{t('footer.sources')}</p>
+      {splitsDate && <p className="muted small" data-splits-date={splitsDay}>{t('footer.splits').replace('{d}', splitsDate)}</p>}
       <p className="muted small">© {new Date().getFullYear()} Fundocap</p>
     </footer>
   );

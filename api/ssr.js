@@ -90,6 +90,9 @@ export default async function handler(req, res) {
     const s = readStatic('universe-summary.json');
     if (s) seeds = [...seeds, [['universe-summary'], s]];
   }
+  // the footer's split-table date, likewise on every page
+  const splits = readStatic('splits-status.json');
+  if (splits) seeds = [...seeds, [['splits-status'], splits]];
 
   let rendered;
   try {

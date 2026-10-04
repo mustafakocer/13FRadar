@@ -309,6 +309,7 @@ body { overflow-x: clip; }
   table.data.positions .only-narrow { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px; }
 }
 .only-narrow { display: none; }
+.only-narrow[data-text]::after { content: attr(data-text); }
 table.data {
   width: 100%; border-collapse: collapse; font-size: 13.5px;
   font-variant-numeric: tabular-nums;

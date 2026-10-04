@@ -49,6 +49,7 @@ on:
       - main
     paths:
       - 'scripts/build-consensus.mjs'
+      - 'scripts/build-company-names.mjs'
       - 'scripts/build-stock-meta.mjs'
       - 'api/_lib/consensusBuild.js'
       - 'api/_lib/consensusList.js'
@@ -169,6 +170,14 @@ jobs:
       # Sector comes from SEC (SIC code), market cap from SEC's share count
       # times the stored close, returns from the same closes (the price cache
       # the step below keeps current). No FMP, no Yahoo.
+      # The company name a stock page shows beside its ticker: SEC's
+      # ticker → registered name list, one request. A failure keeps the
+      # file on record (api/_lib/companyNames.js falls back to 13F names).
+      - name: Build company-names.json (SEC company_tickers)
+        continue-on-error: true
+        run: node scripts/build-company-names.mjs
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
       - name: Build consensus.json, guru-stocks.json & returns.json
         run: node scripts/build-consensus.mjs
         env:
@@ -228,7 +237,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in client/public api/_data/unit-corrections.json api/_data/latest-holdings.json api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/fundamentals.json api/_data/freshness; do
+          for f in client/public api/_data/unit-corrections.json api/_data/latest-holdings.json api/_data/consensus-pro.json api/_data/guru-stocks.json api/_data/guru-history.json api/_data/splits.json api/_data/related.json api/_data/ticker-meta.json api/_data/sector-map.json api/_data/filer-meta.json api/_data/security-master.json api/_data/cusip-tickers.json api/_data/prices api/_data/fundamentals.json api/_data/company-names.json api/_data/freshness; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

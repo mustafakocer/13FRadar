@@ -199,7 +199,15 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     ) : (
                       <span className="muted small" title={`${p.issuer} · ${p.cusip}`}>{securityLabel(p).text}</span>
                     )}
-                    <span className="only-narrow muted small">{p.issuer}{p.putCall ? ` · ${p.putCall.toUpperCase()}` : ''}</span>
+                    {/* the company column is hidden on a phone, so its name is drawn
+                        under the ticker there; from CSS (attr()), not as text, or
+                        every reader without the stylesheet (screen readers, search
+                        engines, copy and paste) got the name twice */}
+                    <span
+                      className="only-narrow muted small"
+                      aria-hidden="true"
+                      data-text={`${p.issuer || ''}${p.putCall ? ` · ${p.putCall.toUpperCase()}` : ''}`}
+                    />
                   </td>
                   <td className="l" data-col="issuer" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {p.issuer}

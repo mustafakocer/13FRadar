@@ -3,6 +3,7 @@ import { readFixture } from '../_lib/fixtures.js';
 import { hasTd, hasFinnhub, tdStock, finnhubStock } from '../_lib/providers.js';
 import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
 import { fundamentalsFor } from '../_lib/fundamentals.js';
+import { withCompanyName } from '../_lib/companyNames.js';
 import { readSeries } from '../_lib/priceStore.js';
 import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
@@ -199,7 +200,7 @@ function withFundamentals(data, ticker) {
 
 export async function stockPayload(ticker, opts = {}) {
   const r = await stockPayloadRaw(ticker, opts);
-  return { ...r, data: withFundamentals(r.data, ticker) };
+  return { ...r, data: withCompanyName(withFundamentals(r.data, ticker), ticker) };
 }
 
 async function stockPayloadRaw(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {
@@ -247,7 +248,7 @@ export default async function handler(req, res) {
   const fx = readFixture(`stock/${ticker}.json`);
   if (fx) {
     res.setHeader('Cache-Control', 'no-store');
-    return res.status(200).json(withFundamentals(fx, ticker));
+    return res.status(200).json(withCompanyName(withFundamentals(fx, ticker), ticker));
   }
 
   const log = (msg) => console.log(`stock ${ticker}: ${msg}`);

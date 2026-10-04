@@ -222,6 +222,43 @@ else {
   }
 }
 
+// Launch audit 1: a stock page names the company beside its ticker — title,
+// H1, meta description and the answer sentence — never "AAPL (AAPL)". The
+// live quote (Finnhub) carries no name; api/_lib/companyNames.js adds it.
+{
+  const plain = (h) => h.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ').trim();
+  for (const lang of ['tr', 'en']) {
+    for (const t of ['AAPL', 'TSM', 'BRK-B', 'SLBT']) {
+      const r = await get(`/${lang}/stock/${t}`);
+      const title = plain(r.text.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1] || '');
+      const h1 = plain(r.text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)?.[1] || '');
+      const desc = r.text.match(/<meta name="description" content="([^"]*)"/)?.[1] || '';
+      const name = h1.replace(new RegExp(`\\s*\\(${t.replace('-', '[-.]')}\\)\\s*$`), '').trim();
+      const self = `${t} (${t})`;
+      check(
+        r.status === 200 && name && name.toUpperCase() !== t && !title.includes(`${t} — ${t} `) && !desc.includes(self) && !r.text.includes(self),
+        `/${lang}/stock/${t}: H1 "${h1}" · title "${title}"`
+      );
+    }
+  }
+}
+
+// Launch audit 2: a fund's positions table names each company once in the
+// server HTML (the phone layout draws it under the ticker from CSS)
+{
+  const r = await get('/tr/guru/berkshire-hathaway-warren-buffett');
+  const m = await get('/api/manager/0001067983');
+  if (r.status !== 200 || m.status !== 200) check(false, `Berkshire: page → HTTP ${r.status}, /api/manager → HTTP ${m.status}`);
+  else {
+    const plain = r.text.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+    const acc = JSON.parse(m.text).defaultAcc;
+    const h = acc ? await get(`/api/holdings/0001067983/${acc}`) : { status: 0, text: '{}' };
+    const top = h.status === 200 ? (JSON.parse(h.text).positions || []).slice(0, 3) : [];
+    const doubled = top.filter((p) => p.issuer && plain.includes(`${p.issuer} ${p.issuer}`));
+    check(top.length > 0 && !doubled.length, `Berkshire table, first rows: ${top.map((p) => `${p.ticker || '—'} · ${p.issuer}`).join(' | ')}${doubled.length ? ` — name written twice: ${doubled.map((p) => p.issuer).join(', ')}` : ''}`);
+  }
+}
+
 // Old fund addresses (config/slug-aliases.json) answer a permanent redirect
 // to the current page — /guru/berkshire-hathaway broke once when a data run
 // shrank the redirect table.

@@ -20,6 +20,7 @@ import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
 import { knownSymbol, priceUnavailable } from '../priceSnapshot.js';
 import { guruStock } from '../guruStocks.js';
+import { withCompanyName } from '../companyNames.js';
 
 const require = createRequire(import.meta.url);
 // A static data file, read from the deployment's built site first
@@ -167,7 +168,7 @@ async function loadStock({ ticker, cusip }) {
   const stock = ok(await withBudget(invoke(stockHandler, { ticker }), 8000));
   const priced = stock?.price?.price != null;
   if (!priced && !knownSymbol(ticker) && !guruStock({ ticker, cusip })) return { seeds, status: 404 };
-  seeds.push([['stock', ticker], stock || priceUnavailable(ticker)]);
+  seeds.push([['stock', ticker], stock || withCompanyName(priceUnavailable(ticker), ticker)]);
   const c = staticConsensus();
   if (c) seeds.push([['consensus'], c]);
   // The guru standing is the free hook and the answer an assistant quotes, so

@@ -14,7 +14,7 @@
 // PRICES_MAX_AGE_DAYS (1). The log opens with the plan: how many symbols
 // are missing or stale, what tonight covers, and how many nights a full
 // fill takes at this budget.
-import { buildPrices, finnhubRefusals, providerPlan, finnhubSummary } from '../api/_lib/pricesBuild.js';
+import { buildPrices, finnhubRefusals, providerPlan, finnhubSummary, tdUsageLines } from '../api/_lib/pricesBuild.js';
 import { waitForPeer } from './finnhub-peer.mjs';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 import { tdGet } from '../api/_lib/providers.js';
@@ -30,7 +30,7 @@ for (const key of ['TWELVEDATA_API_KEY', 'FINNHUB_API_KEY']) {
 if (process.env.TWELVEDATA_API_KEY && process.env.PRICES_DRY !== '1') {
   try {
     const u = await tdGet('/api_usage');
-    console.log(`twelvedata credits before tonight: ${u.current_usage} of ${u.plan_limit} used today, ${u.plan_limit - u.current_usage} left (${u.timestamp || ''})`);
+    for (const line of tdUsageLines(u)) console.log(line);
   } catch (e) {
     console.log(`twelvedata credits before tonight: unknown (${String(e.message || e).slice(0, 120)})`);
   }

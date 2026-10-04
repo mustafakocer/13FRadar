@@ -350,3 +350,15 @@ test('the insider top-up asks only for symbols with no stored series when missin
     clearSeriesCache();
   }
 });
+
+test('tdUsageLines: daily credits first, the minute counter on its own line', async () => {
+  const { tdUsageLines } = await import('../api/_lib/pricesBuild.js');
+  const [daily, minute] = tdUsageLines({ timestamp: '2026-10-04 02:43:00', current_usage: 1, plan_limit: 8, daily_usage: 12, plan_daily_limit: 800 });
+  assert.equal(daily, 'twelvedata credits before tonight: 12 of 800 daily credits used, 788 left (2026-10-04 02:43:00)');
+  assert.equal(minute, 'twelvedata minute counter: 1 of 8 per minute');
+  // an answer without the daily fields never passes the minute counter off as the day's
+  const [d2, m2] = tdUsageLines({ current_usage: 1, plan_limit: 8 });
+  assert.equal(d2, 'twelvedata credits before tonight: daily counter not reported');
+  assert.equal(m2, 'twelvedata minute counter: 1 of 8 per minute');
+  assert.deepEqual(tdUsageLines(null), ['twelvedata credits before tonight: daily counter not reported', 'twelvedata minute counter: not reported']);
+});

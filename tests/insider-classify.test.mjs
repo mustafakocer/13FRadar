@@ -120,6 +120,11 @@ async function feedOver(rows, query) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ins-'));
   fs.writeFileSync(path.join(dir, 'insiders.json'), JSON.stringify({ updatedAt: '2026-09-19T04:00:00Z', rows, companies: {} }));
   process.env.INSIDER_DATA_DIR = dir;
+  // an empty price store: the nightly build fills api/_data/prices, and a
+  // real close beside a made-up fixture price would mark it unverified
+  const prices = fs.mkdtempSync(path.join(os.tmpdir(), 'ins-prices-'));
+  const priorPrices = process.env.PRICES_DIR;
+  process.env.PRICES_DIR = prices;
   resetServedCache();
   try {
     // the Pro feed, past the sign-in check the tests cannot pass
@@ -127,6 +132,8 @@ async function feedOver(rows, query) {
     return await answer(query, { free: false });
   } finally {
     delete process.env.INSIDER_DATA_DIR;
+    if (priorPrices === undefined) delete process.env.PRICES_DIR;
+    else process.env.PRICES_DIR = priorPrices;
     resetServedCache();
   }
 }

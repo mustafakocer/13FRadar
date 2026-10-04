@@ -164,6 +164,25 @@ export const resetFinnhubStats = () => {
   throttledInARow = 0;
 };
 // The run summary line both builds print and write to the step summary.
+// TwelveData's /api_usage answer as two log lines. current_usage/plan_limit
+// is the per-minute counter (8 on the free plan); the day's 800 credits are
+// daily_usage/plan_daily_limit. The first is what the night has to go on.
+export function tdUsageLines(u) {
+  const num = (v) => (Number.isFinite(Number(v)) && v !== null && v !== '' ? Number(v) : null);
+  const dUsed = num(u?.daily_usage);
+  const dLimit = num(u?.plan_daily_limit);
+  const mUsed = num(u?.current_usage);
+  const mLimit = num(u?.plan_limit);
+  const at = u?.timestamp ? ` (${u.timestamp})` : '';
+  const daily = dUsed !== null && dLimit !== null
+    ? `twelvedata credits before tonight: ${dUsed} of ${dLimit} daily credits used, ${Math.max(0, dLimit - dUsed)} left${at}`
+    : `twelvedata credits before tonight: daily counter not reported${at}`;
+  const minute = mUsed !== null && mLimit !== null
+    ? `twelvedata minute counter: ${mUsed} of ${mLimit} per minute`
+    : 'twelvedata minute counter: not reported';
+  return [daily, minute];
+}
+
 export function finnhubSummary(label) {
   const s = finnhubStats();
   const line = `${label}: Finnhub ${s.calls} request(s), ${s.throttled} × 429, ${Math.round(s.waitedMs / 1000)} s waited`;

@@ -30,6 +30,7 @@ import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
 import { TriangleAlert, UserRound, Waves } from 'lucide-react';
 import TickerLogo from '../components/TickerLogo.jsx';
+import PerfStrip from '../components/PerfStrip.jsx';
 
 function KV({ k, v, cls = '', tip, src = null, title = null }) {
   return (
@@ -187,6 +188,7 @@ export default function Stock() {
             )}
             {pr.sector && <span className="badge plain">{pr.sector}</span>}
           </div>
+          <PerfStrip ticker={sym} />
         </div>
       </div>
 

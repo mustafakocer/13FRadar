@@ -3,6 +3,8 @@ import { mapCusipsToTickers } from '../_lib/figi.js';
 import { isPro, noStore } from '../_lib/auth.js';
 import { latestHoldings } from '../_lib/latestHoldings.js';
 import { companyName } from '../_lib/companyNames.js';
+import { closeOn } from '../_lib/valueUnits.js';
+import { readSeries } from '../_lib/priceStore.js';
 
 // GET /api/holdings/:cik/:acc?light=1&full=1&cusips=A,B,C
 //   light=1   skip CUSIP->ticker resolution (comparisons / previous quarter)
@@ -93,7 +95,17 @@ export default async function handler(req, res) {
       positions: out.map((p) => {
         const ticker = tickers[p.cusip] ?? null;
         const co = ticker ? companyName(ticker) : null;
-        return { ...p, ticker, ...(co ? { coName: co.name } : {}) };
+        // Dataroma-style "since reported": the archive close at the filing's
+        // quarter end against the archive's latest close — one split-adjusted
+        // series on both sides. Share rows only; an option row's value is a
+        // notional, not a price position.
+        let sinceReport = null;
+        if (ticker && !p.putCall && meta.reportDate) {
+          const qe = closeOn(ticker, meta.reportDate);
+          const last = qe ? readSeries(ticker)?.prices?.at(-1)?.close : null;
+          if (qe > 0 && last > 0) sinceReport = Number((((last - qe) / qe) * 100).toFixed(1));
+        }
+        return { ...p, ticker, sinceReport, ...(co ? { coName: co.name } : {}) };
       }),
     });
   } catch (err) {

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
+import CompanyName from '../components/CompanyName.jsx';
 import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import ProGate from '../components/ProGate.jsx';
@@ -58,7 +59,7 @@ function Row({ r, cols, t }) {
           <Link to={`/stock/${r.t}`}>{r.t}</Link>
         </div>
         <div className="muted small ins-co">
-          {r.c || '—'}
+          <CompanyName name={r.c} />
           {r.sz && <span className="badge plain sm">{t(`size.${r.sz}`)}</span>}
         </div>
       </td>

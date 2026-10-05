@@ -18,6 +18,15 @@ anchors.forEach((m, i) => {
   dicts[m[1]] = new Set([...i18n.slice(m.index, end).matchAll(/^\s*'([^']+)':/gm)].map((k) => k[1]));
 });
 
+// the section explanations live in their own editable file and are merged
+// into the dictionaries at load time (i18n.jsx Object.assign)
+const expl = fs.readFileSync(path.join(SRC, 'copy', 'explanations.js'), 'utf8');
+const explAnchors = [...expl.matchAll(/^\s*(tr|en):\s*\{/gm)];
+explAnchors.forEach((m, i) => {
+  const end = i + 1 < explAnchors.length ? explAnchors[i + 1].index : expl.length;
+  for (const k of [...expl.slice(m.index, end).matchAll(/^\s*'([^']+)':/gm)].map((x) => x[1])) dicts[m[1]].add(k);
+});
+
 const walk = (dir) =>
   fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
     const full = path.join(dir, e.name);

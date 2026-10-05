@@ -82,7 +82,6 @@ export default function CommandPalette() {
           {results.map((r) => (
             <button key={r.cik} className="search-result-item" onClick={() => go(managerPath(r.cik))}>
               <span><Ico icon={Landmark} /> {r.name}</span>
-              <span className="cik">CIK {r.cik}</span>
             </button>
           ))}
           {q.length >= 2 && !isFetching && !results.length && (

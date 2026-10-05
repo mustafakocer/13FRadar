@@ -11,10 +11,11 @@ import { reportAnswer } from '../lib/reportText.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import { managerPath } from '../lib/paths.js';
+import CompanyName from '../components/CompanyName.jsx';
 import Ico from '../components/Ico.jsx';
 import { Newspaper, Download, Image } from 'lucide-react';
 
-const Sym = ({ r }) => (r.ticker ? <Link to={`/stock/${r.ticker}${r.cusip ? `?cusip=${r.cusip}` : ''}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <b>{r.issuer}</b>);
+const Sym = ({ r }) => (r.ticker ? <Link to={`/stock/${r.ticker}${r.cusip ? `?cusip=${r.cusip}` : ''}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <b><CompanyName name={r.issuer} /></b>);
 
 function Table({ title, rows, cols, empty }) {
   return (

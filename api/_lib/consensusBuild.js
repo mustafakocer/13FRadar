@@ -4,6 +4,7 @@ import { mapCusipsToTickers } from './figi.js';
 import { GURUS, consensusPanel, coverage as coverageOf } from './gurus.js';
 import { netActivity, storiesByManager } from './netActivity.js';
 import { reportDatesByCik } from './guruStatus.js';
+import { companyName } from './companyNames.js';
 
 // How many holders travel with each security in the per-stock table. Twenty
 // five covers every name that matters on the stock page; the tail is funds
@@ -89,7 +90,7 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
     if (!m.prev) continue;
     const s = stories.get(m.cik) || { newBuys: [], adds: [], reduces: [], exits: [] };
     for (const r of s.newBuys) newPositions.push({ manager: m.name, cik: m.cik, cusip: r.cusip, issuer: r.issuer, weight: r.weight, value: r.value, reportDate: m.reportDate });
-    updates.push({ manager: m.name, cik: m.cik, reportDate: m.reportDate, filed: m.filed, newBuys: top(s.newBuys), adds: top(s.adds), reduces: top(s.reduces), exits: top(s.exits) });
+    updates.push({ manager: m.name, cik: m.cik, reportDate: m.reportDate, filed: m.filed, ...(m.cur?.aum ? { aum: Math.round(m.cur.aum) } : {}), newBuys: top(s.newBuys), adds: top(s.adds), reduces: top(s.reduces), exits: top(s.exits) });
   }
 
   const all = [...rows.values()];
@@ -183,7 +184,12 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
   const issuerOf = {};
   for (const s of [...stocks, ...exited, ...options]) issuerOf[s.cusip] = s.issuer;
   Object.assign(tickers, await mapCusipsToTickers(wide, { maxLive: stocksTickers, names: issuerOf }));
-  const dress = (a) => ({ ...a, ticker: tickers[a.cusip] ?? null });
+  const dress = (a) => {
+    const ticker = tickers[a.cusip] ?? null;
+    // the SEC registry name, when the symbol has one: the clean display name
+    const co = ticker ? companyName(ticker) : null;
+    return { ...a, ticker, ...(co ? { coName: co.name } : {}) };
+  };
   const dressCard = (u) => ({ ...u, newBuys: u.newBuys.map(dress), adds: u.adds.map(dress), reduces: u.reduces.map(dress), exits: u.exits.map(dress) });
 
   // The quarter the panel reports on, and how the tracked bench maps onto

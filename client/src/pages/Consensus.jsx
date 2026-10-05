@@ -12,6 +12,8 @@ import { consensusSeo } from '../lib/seoTemplates.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import CoverageLine from '../components/CoverageLine.jsx';
 import { securityLabel } from '../lib/label.js';
+import CompanyName from '../components/CompanyName.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import Paywall from '../components/Paywall.jsx';
 import HoldersPanel from '../components/HoldersPanel.jsx';
 import { managerPath } from '../lib/paths.js';
@@ -40,7 +42,7 @@ const EXPANDABLE = new Set(['held', 'bought', 'sold']);
 const Sym = ({ r }) =>
   r.ticker ? (
     <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }} onClick={(e) => e.stopPropagation()}>
-      {r.ticker}
+      <TickerLogo ticker={r.ticker} size={18} /> {r.ticker}
     </Link>
   ) : (
     <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
@@ -314,7 +316,7 @@ export default function Consensus() {
                     <tr key={`${r.cik}-${r.cusip}-${i}`}>
                       <td className="l"><Link to={managerPath(r.cik, r.path)}>{r.manager}</Link></td>
                       <td className="l"><Sym r={r} /></td>
-                      <td className="l">{r.issuer}</td>
+                      <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
                       <td className="num">{fmtPct(r.weight, { sign: false })}</td>
                       <td className="num">{fmtMoney(r.value)}</td>
                       <td className="num muted">{quarterLabel(r.reportDate)}</td>
@@ -338,7 +340,7 @@ export default function Consensus() {
                     <tr key={r.cusip}>
                       <td className="l muted">{i + 1}</td>
                       <td className="l"><Sym r={r} /></td>
-                      <td className="l">{r.issuer}</td>
+                      <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
                       <td className="num">{fmtNum(r.funds)}</td>
                       <td className="num">{fmtMoney(r.value)}</td>
                     </tr>
@@ -366,7 +368,7 @@ export default function Consensus() {
                       >
                         <td className="l muted"><Ico icon={isOpen ? ChevronDown : ChevronRight} size={14} /></td>
                         <td className="l"><Sym r={r} /></td>
-                        <td className="l">{r.issuer}</td>
+                        <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
                         <td className="num">{fmtNum(count)}</td>
                         <td className={`num ${tab === 'held' ? '' : main >= 0 ? 'delta-pos' : 'delta-neg'}`}>
                           {tab === 'held' ? fmtMoney(main) : `${main >= 0 ? '+' : '−'}${fmtMoney(Math.abs(main))}`}

@@ -4,6 +4,8 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useGuruStocks, useGuruOptions } from '../hooks/useGuruStocks.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
 import { useI18n } from '../i18n.jsx';
+import CompanyName from '../components/CompanyName.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { useSeo } from '../seo.jsx';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
@@ -181,8 +183,8 @@ export default function Rankings() {
                 return (
                   <tr key={`${r.cusip}-${r.putCall || ''}`}>
                     <td className="l muted">{i + 1}</td>
-                    <td className="l">{r.ticker ? <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link> : <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>}</td>
-                    <td className="l">{r.issuer}</td>
+                    <td className="l">{r.ticker ? <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link> : <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>}</td>
+                    <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
                     {isOptions && (
                       <td className="l">
                         <span className={`badge ${r.putCall === 'Put' ? 'neg' : 'pos'}`}>{r.putCall}</span>

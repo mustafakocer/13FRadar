@@ -1,0 +1,49 @@
+name: Stock logos
+
+# Overnight favicon harvest for the top 500 stocks: the company's own site,
+# found through SEC filings — no third-party logo service. Weekly is enough;
+# a logo rarely changes. scripts/build-logos.mjs tops up missing ones and
+# disables the feature (empty manifest) below a 30% success rate.
+on:
+  schedule:
+    - cron: '41 4 * * 6' # Saturdays 04:41 UTC
+  workflow_dispatch:
+    inputs:
+      refresh:
+        description: 'Refetch every logo, not just missing ones'
+        type: boolean
+        default: false
+
+concurrency:
+  group: logos
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  logos:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Fetch logos
+        run: node scripts/build-logos.mjs ${{ inputs.refresh == true && '--refresh' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+      - name: Commit if changed
+        run: |
+          git config user.name 'logos-bot'
+          git config user.email 'actions@github.com'
+          git add --all client/public/logos client/public/logos.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh stock logos'
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep $((i * 10))
+          done
+          echo "::error::could not push after 4 attempts"; exit 1

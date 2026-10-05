@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { fmtPct, deltaClass } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import CompanyName from './CompanyName.jsx';
 import { heldBeforeListing } from '../lib/newListings.js';
 import { useListedOn } from '../hooks/useListedOn.js';
 import { securityLabel } from '../lib/label.js';
@@ -17,7 +18,7 @@ function Row({ p, badge, delta }) {
           {p.putCall ? <span className="badge type" style={{ marginLeft: 6 }}>{p.putCall.toUpperCase()}</span> : null}
           {badge ? <span className="badge type" style={{ marginLeft: 6 }}>{badge}</span> : null}
         </div>
-        <div className="issuer">{p.issuer}</div>
+        <div className="issuer"><CompanyName name={p.coName || p.issuer} /></div>
       </div>
       <div className="right">
         <div className="w">{fmtPct(p.weight, { sign: false })}</div>

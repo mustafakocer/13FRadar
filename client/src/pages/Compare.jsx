@@ -12,6 +12,7 @@ import SearchBox from '../components/SearchBox.jsx';
 import ProGate from '../components/ProGate.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { useI18n } from '../i18n.jsx';
+import CompanyName from '../components/CompanyName.jsx';
 import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import Ico from '../components/Ico.jsx';
@@ -287,7 +288,7 @@ function List({ title, rows, t, side }) {
         <div className="pos-row" key={r.key}>
           <div style={{ minWidth: 0 }}>
             <div className="tick">{r.ticker ? <Link to={`/stock/${r.ticker}`}>{r.ticker}</Link> : r.cusip}</div>
-            <div className="issuer">{r.issuer}</div>
+            <div className="issuer"><CompanyName name={r.issuer} /></div>
           </div>
           <div className="right">
             <div className="w">{fmtPct(side === 'A' ? r.wA : r.wB, { sign: false })}</div>
@@ -461,7 +462,7 @@ export default function Compare() {
                       <tr key={r.key}>
                         <td className="l">
                           <b>{r.ticker ? <Link to={`/stock/${r.ticker}`}>{r.ticker}</Link> : r.cusip}</b>
-                          <div className="muted small">{r.issuer}</div>
+                          <div className="muted small"><CompanyName name={r.issuer} /></div>
                         </td>
                         <td className="num">{fmtPct(r.wA, { sign: false })}</td>
                         <td className="num">{fmtPct(r.wB, { sign: false })}</td>

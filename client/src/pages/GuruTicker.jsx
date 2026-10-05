@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { prettyName } from '../lib/label.js';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
@@ -56,7 +57,7 @@ export default function GuruTicker() {
       <div className="page-head">
         <div>
           <h1>{fill(t('pair.title'), { name, ticker: tk })}</h1>
-          <div className="sub">{fill(t('pair.sub'), { issuer: d.issuer })} · CUSIP {d.cusip}</div>
+          <div className="sub">{fill(t('pair.sub'), { issuer: prettyName(d.issuer) })} · CUSIP {d.cusip}</div>
           <div className="head-badges">
             {d.heldQuarters > 0 ? (
               <span className="badge plain">{t('pair.heldSince')} · {timeHeldLabel(d.heldQuarters, lang, { dataFrom: d.dataFrom })}</span>

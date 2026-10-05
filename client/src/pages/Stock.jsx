@@ -29,6 +29,7 @@ import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
 import { TriangleAlert, UserRound, Waves } from 'lucide-react';
+import TickerLogo from '../components/TickerLogo.jsx';
 
 function KV({ k, v, cls = '', tip, src = null, title = null }) {
   return (
@@ -170,7 +171,7 @@ export default function Stock() {
       <div className="page-head">
         <div>
           <h1>
-            {p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span>
+            <TickerLogo ticker={sym} size={28} /> {p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span>
           </h1>
           <div className="row mt8">
             <span className="price-big">

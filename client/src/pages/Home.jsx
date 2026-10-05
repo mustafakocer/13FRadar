@@ -15,7 +15,10 @@ import { homeSeo } from '../lib/seoTemplates.js';
 import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
 import { fundCountLabel } from '../lib/fundCount.js';
-import { securityLabel } from '../lib/label.js';
+import { securityLabel, niceName } from '../lib/label.js';
+import CompanyName from '../components/CompanyName.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
+import { managerStyle } from '../data/popular.js';
 import Ico from '../components/Ico.jsx';
 import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import UpdatedLine from '../components/UpdatedLine.jsx';
@@ -43,12 +46,6 @@ const INDEXES = [
 ];
 
 const BANNER_KEY = 'banner.v1.closed';
-
-// "AMAZON COM INC" -> "Amazon Com Inc"
-const niceName = (s) =>
-  String(s || '')
-    .toLowerCase()
-    .replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 
 const initials = (name) =>
   String(name || '')
@@ -176,6 +173,29 @@ function Hero({ summary }) {
           {t('landing.cta.ceo')} ›
         </Link>
       </div>
+      {/* three plain-language entry points; the third one hands the cursor
+          to the search box above */}
+      <div className="hero-quick">
+        <Link to="/guru/berkshire-hathaway-warren-buffett/changes" className="btn ghost">
+          {t('landing.quick.buffett')}
+        </Link>
+        <Link to="/insiders" className="btn ghost">
+          {t('landing.quick.insiders')}
+        </Link>
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => {
+            const el = document.querySelector('.hero-band .search-input');
+            if (el) {
+              el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              el.focus({ preventScroll: true });
+            }
+          }}
+        >
+          {t('landing.quick.who')}
+        </button>
+      </div>
       <div className="hero-stats">
         {stats.map(([ico, v, label, tip]) => (
           <div className="hero-stat" key={label} title={tip || undefined}>
@@ -288,6 +308,9 @@ function InsiderSignals({ teaser }) {
               ))}
             </div>
           </div>
+          {(tab === 'cluster' || tab === 'csuite') && (
+            <p className="card-desc">{t(`explain.ins.${tab}`)}</p>
+          )}
           <div className="table-wrap">
             <table className="data sig">
               <thead>
@@ -309,8 +332,8 @@ function InsiderSignals({ teaser }) {
                   tab === 'cluster' ? (
                     <tr key={r.t}>
                       <td className="l">
-                        <div className="sig-tick">{r.t}</div>
-                        <div className="sig-co">{r.c || '—'}</div>
+                        <div className="sig-tick"><TickerLogo ticker={r.t} size={18} /> {r.t}</div>
+                        <div className="sig-co"><CompanyName name={r.c} /></div>
                       </td>
                       <td className="l">
                         <div>
@@ -348,8 +371,8 @@ function InsiderSignals({ teaser }) {
                   ) : (
                     <tr key={`${r.t}-${r.n}`}>
                       <td className="l">
-                        <div className="sig-tick">{r.t}</div>
-                        <div className="sig-co">{r.c || '—'}</div>
+                        <div className="sig-tick"><TickerLogo ticker={r.t} size={18} /> {r.t}</div>
+                        <div className="sig-co"><CompanyName name={r.c} /></div>
                       </td>
                       <td className="l">
                         <div>
@@ -394,7 +417,7 @@ function InsiderSignals({ teaser }) {
 
 // ---- guru conviction ------------------------------------------------------
 
-function ConvictionCard({ icon, title, rows, value, sub }) {
+function ConvictionCard({ icon, title, desc, rows, value, sub }) {
   const { t } = useI18n();
   return (
     <div className="card conv-card">
@@ -402,15 +425,16 @@ function ConvictionCard({ icon, title, rows, value, sub }) {
         <span className="ico"><Ico icon={icon} size={18} /></span>
         {title}
       </h3>
+      {desc && <p className="card-desc">{desc}</p>}
       {rows.map((r) => (
         <div className="pos-row" key={r.cusip}>
           <div style={{ minWidth: 0 }}>
             {r.ticker ? (
-              <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tick">{r.ticker}</Link>
+              <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tick"><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link>
             ) : (
               <span className="tick" title={r.cusip}>{securityLabel(r).text}</span>
             )}
-            <div className="issuer">{niceName(r.issuer)}</div>
+            <div className="issuer"><CompanyName name={r.coName || r.issuer} /></div>
           </div>
           <div className="right">
             <div className="w">{value(r)}</div>
@@ -456,6 +480,7 @@ function GuruConviction({ mostHeld, coverage }) {
         <ConvictionCard
           icon={Trophy}
           title={t('landing.guru.mostOwned')}
+          desc={t('explain.guru.mostOwned')}
           rows={lists.owned}
           value={lists.gurus}
           sub={(r) => fmtMoney(r.totalValue)}
@@ -463,6 +488,7 @@ function GuruConviction({ mostHeld, coverage }) {
         <ConvictionCard
           icon={Plus}
           title={t('landing.guru.byPct')}
+          desc={t('explain.guru.byPct')}
           rows={lists.byPct}
           value={(r) => fmtPct(r.maxWeight, { sign: false, digits: 2 })}
           sub={lists.gurus}
@@ -470,6 +496,7 @@ function GuruConviction({ mostHeld, coverage }) {
         <ConvictionCard
           icon={Flame}
           title={t('landing.guru.conviction')}
+          desc={t('explain.guru.conviction')}
           rows={lists.conviction}
           value={(r) => fmtPct(r.avgWeight, { sign: false, digits: 2 })}
           sub={lists.gurus}
@@ -533,7 +560,15 @@ function PortfolioUpdates({ updates }) {
                 <Link to={managerPath(u.cik, u.path)} style={{ color: 'inherit' }}>
                   <b>{u.manager}</b>
                 </Link>
-                <span>CIK {u.cik}</span>
+                {/* what kind of fund and how big — not its registry number */}
+                <span>
+                  {[
+                    managerStyle(u.cik) ? t(`style.${managerStyle(u.cik)}`) : null,
+                    u.aum ? fmtMoney(u.aum) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </span>
               </div>
               <div className="when">
                 <b>{quarterLabel(u.reportDate)}</b>
@@ -628,12 +663,12 @@ function MarketActivity({ activity, mostHeld, managers, coverage, returns, updat
                   <tr key={r.cusip}>
                     <td className="l">
                       {r.ticker ? (
-                        <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 800 }}>{r.ticker}</Link>
+                        <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 800 }}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link>
                       ) : (
                         <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
                       )}
                     </td>
-                    <td className="l">{niceName(r.issuer)}</td>
+                    <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
                     <td className={`num ${side === 'buys' ? 'delta-pos' : 'delta-neg'}`}>
                       {fmtMoney(Math.abs(r.netValue))}
                     </td>

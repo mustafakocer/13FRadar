@@ -2,6 +2,7 @@ import { Fragment, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
+import CompanyName from '../components/CompanyName.jsx';
 import { useAuth } from '../auth.jsx';
 import ProGate from '../components/ProGate.jsx';
 import { useSeo } from '../seo.jsx';
@@ -93,7 +94,7 @@ export default function InsiderSignal() {
                 <tr>
                   <td className="l">
                     <Link to={`/stock/${r.t}`} className="sig-tick">{r.t}</Link>
-                    <div className="sig-co">{r.c || '—'}</div>
+                    <div className="sig-co"><CompanyName name={r.c} /></div>
                   </td>
                   <td className="l">
                     {kind === 'cluster' ? (

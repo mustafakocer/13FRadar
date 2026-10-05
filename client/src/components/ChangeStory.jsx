@@ -5,6 +5,7 @@ import Ico from './Ico.jsx';
 import { Plus, Minus, BookOpen } from 'lucide-react';
 import { heldBeforeListing } from '../lib/newListings.js';
 import { useListedOn } from '../hooks/useListedOn.js';
+import CompanyName from './CompanyName.jsx';
 
 const Tick = ({ p }) =>
   p.ticker ? (
@@ -12,7 +13,7 @@ const Tick = ({ p }) =>
       {p.ticker}
     </Link>
   ) : (
-    <b>{p.issuer}</b>
+    <b><CompanyName name={p.issuer} /></b>
   );
 
 // Narrative recap of the selected quarter's portfolio changes — the same

@@ -50,6 +50,7 @@ on:
     paths:
       - 'scripts/build-consensus.mjs'
       - 'scripts/build-company-names.mjs'
+      - 'scripts/build-teaser.mjs'
       - 'scripts/build-stock-meta.mjs'
       - 'api/_lib/consensusBuild.js'
       - 'api/_lib/consensusList.js'
@@ -252,10 +253,26 @@ jobs:
             git status --porcelain
             git stash push --include-untracked --quiet
           fi
+          # The home page's insider summary (insiders-teaser.json) is a file;
+          # /insiders computes the same lists per request from the closes on
+          # file. Rebuilt here on tonight's prices, so both read the same
+          # closes — after the rebase, on the newest insiders.json, so an
+          # insider run that landed meanwhile is never rolled back. A summary
+          # that fails its audit is left as it was.
+          teaser_on_tonights_prices() {
+            node scripts/build-teaser.mjs || { git checkout -- client/public/insiders-teaser.json; return 0; }
+            if git diff --quiet -- client/public/insiders-teaser.json; then return 0; fi
+            if node scripts/audit-data.mjs --only=insiders-teaser; then
+              git commit -q -m 'chore: insider summary on tonight'"'"'s prices' -- client/public/insiders-teaser.json client/public/data-audit.json
+            else
+              echo "::warning::insiders-teaser.json failed its audit after the price rebuild — the previous one stays"
+              git checkout -- client/public/insiders-teaser.json client/public/data-audit.json
+            fi
+          }
           # the branch may have moved during the long run — rebase our data
           # commit on top and retry the push a few times
           for i in 1 2 3 4; do
-            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && git push && exit 0
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && teaser_on_tonights_prices && git push && exit 0
             echo "push attempt $i failed, retrying…"; sleep 10
           done
           exit 1

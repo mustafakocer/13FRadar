@@ -71,7 +71,7 @@ import { RateClock } from '../api/_lib/edgarClock.js';
 import { buildTeaser } from '../api/_lib/insiderTeaser.js';
 import { annotateOutcomes, checkPriceUnits } from '../api/_lib/insiderOutcome.js';
 import { PLAN_NOTE_RE } from '../api/_lib/insiderClassify.js';
-import { readSeries } from '../api/_lib/priceStore.js';
+import { readSeries, priceCacheStatus } from '../api/_lib/priceStore.js';
 import { priceSnapshots, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
 import { topUpCloses, finnhubSummary } from '../api/_lib/pricesBuild.js';
 import { peerRunning } from './finnhub-peer.mjs';
@@ -641,7 +641,7 @@ const served = markCompensation(normalizeRows(currentRows(all), fpiContext({ raw
 const fx = normalizeRows.lastStats;
 console.log(`Foreign issuers: ${fx.normalized} line(s) converted to US dollars, ${fx.failed} kept in their own currency, ${fx.security} in a non-common security.`);
 // the cluster rules read footnotes of foreign issuers' re-read lines too
-saveTeaser(buildTeaser(served, companies, meta, Date.now(), { raw: { ...(loadFpi()?.raw || {}), ...rawAll }, seriesFor, toUsd: toUsdWith(), isForeign: isForeignWith() }));
+saveTeaser(buildTeaser(served, companies, meta, Date.now(), { raw: { ...(loadFpi()?.raw || {}), ...rawAll }, seriesFor, toUsd: toUsdWith(), isForeign: isForeignWith(), pricedAt: priceCacheStatus()?.updatedAt || null }));
 
 const now = new Date().toISOString();
 saveFreshness({

@@ -259,6 +259,10 @@ body { overflow-x: clip; }
 
 /* ---------- manager page ---------- */
 .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
+/* a flex item's default min-width is its content: a wide child (the stock
+   page's period-return strip) would grow the column past the phone screen
+   instead of scrolling inside it */
+.page-head > div { min-width: 0; max-width: 100%; }
 .page-head h1 { font-size: 28px; }
 .page-head .sub { color: var(--text-2); font-size: 14px; margin-top: 2px; }
 .head-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }

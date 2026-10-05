@@ -15,6 +15,7 @@ import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
 import { managerPath } from '../lib/paths.js';
 import { securityLabel } from '../lib/label.js';
+import CompanyName from '../components/CompanyName.jsx';
 import { markFilingSeen } from '../hooks/useSeenFilings.js';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
@@ -63,6 +64,11 @@ function Kpi({ label, tip, value, sub, cls = '' }) {
 export default function Manager({ segment = 'portfolio' }) {
   const { cik: cikParam, slug } = useParams();
   const { t, lang } = useI18n();
+  // "2026-08-14" → "14 Ağu 2026": filing dates as a reader writes them
+  const fmtDay = (iso) =>
+    iso
+      ? new Date(`${iso}T00:00:00Z`).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+      : '—';
   // /guru/:slug and /filer/:slug resolve to a CIK first (seeded on the server)
   const slugQ = useQuery({
     queryKey: ['slug', slug],
@@ -275,16 +281,22 @@ export default function Manager({ segment = 'portfolio' }) {
           <div>
             <h1>{mgr.data.displayName || mgr.data.name}</h1>
             <div className="sub">
-              {mgr.data.displayName && mgr.data.displayName !== mgr.data.name ? `${mgr.data.name} · ` : ''}CIK {mgr.data.cik}
-              {mgr.data.city ? ` · ${mgr.data.city}, ${mgr.data.state}` : ''}
-              {filing ? ` · ${t('manager.quarterEnd')}: ${filing.reportDate} · ${t('manager.filedOn')}: ${filing.filingDate}` : ''}
+              {[
+                mgr.data.displayName && mgr.data.displayName !== mgr.data.name ? mgr.data.name : null,
+                mgr.data.city ? `${mgr.data.city}, ${mgr.data.state}` : null,
+                filing ? `${t('manager.quarterEnd')}: ${fmtDay(filing.reportDate)}` : null,
+                filing ? `${t('manager.filedOn')}: ${fmtDay(filing.filingDate)}` : null,
+              ]
+                .filter(Boolean)
+                .join(' · ')}
               {/* Straight to the document these numbers were read from, so a
                   reader can check a figure against the filing itself rather
-                  than take the site's word for it. */}
+                  than take the site's word for it. The registry number lives
+                  in this link's tooltip, not in the page text. */}
               {secUrl && (
                 <>
                   {' · '}
-                  <a href={secUrl} target="_blank" rel="noopener noreferrer">{t('guru.verify')} ↗</a>
+                  <a href={secUrl} target="_blank" rel="noopener noreferrer" title={`SEC EDGAR · CIK ${mgr.data.cik}`}>{t('guru.verify')} ↗</a>
                 </>
               )}
               {managerStyle(mgr.data.cik) && (
@@ -396,7 +408,10 @@ export default function Manager({ segment = 'portfolio' }) {
               value={fmtPct(top10, { sign: false })}
               sub={
                 ms
-                  ? `${t('manager.kpi.turnover')} ${fmtTurnover(ms.turnoverLatest)}`
+                  ? // a near-zero turnover reads as a sentence, not as "<0.1%"
+                    ms.turnoverLatest != null && ms.turnoverLatest < 5
+                    ? t('manager.kpi.lowTurnover')
+                    : `${t('manager.kpi.turnover')} ${fmtTurnover(ms.turnoverLatest)}`
                   : latest?.estFlow != null && <>{t('manager.estFlow')} <b className={deltaClass(latest.estFlow)}>{fmtMoney(latest.estFlow)}</b></>
               }
             />
@@ -512,8 +527,8 @@ export default function Manager({ segment = 'portfolio' }) {
                                 <span className="muted small" title={p.cusip}>{securityLabel(p).text}</span>
                               )}
                             </td>
-                            <td className="l">{p.issuer}</td>
-                            <td><span className="badge type">{p.putCall.toUpperCase()}</span></td>
+                            <td className="l"><CompanyName name={p.coName || p.issuer} /></td>
+                            <td><span className="badge type">{/put/i.test(p.putCall) ? 'Put' : 'Call'}</span></td>
                             <td className="num">{fmtMoney(p.value)}</td>
                             <td className="num">{fmtPct(p.weight, { sign: false, digits: 2 })}</td>
                           </tr>

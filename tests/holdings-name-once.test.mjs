@@ -13,8 +13,8 @@ test('Berkshire positions table: each company name once in the server HTML', asy
   assert.equal(status, 200);
   const plain = html.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ');
   assert.ok(html.includes('data-col="issuer"'), 'the positions table is in the server HTML');
-  for (const name of ['COCA COLA CO', 'APPLE INC', 'AMERICAN EXPRESS CO']) assert.ok(!plain.includes(`${name} ${name}`), `${name} written twice`);
-  assert.ok(html.includes('data-text="COCA COLA CO"'), 'the phone layout still has the name, from CSS');
+  for (const name of ['Coca Cola', 'Apple', 'American Express']) assert.ok(!plain.includes(`${name} ${name}`), `${name} written twice`);
+  assert.ok(html.includes('data-text="Coca Cola'), 'the phone layout still has the name, from CSS');
   const css = fs.readFileSync(new URL('../client/src/styles/app.css', import.meta.url), 'utf8');
   assert.match(css, /\.only-narrow\[data-text\]::after \{ content: attr\(data-text\); \}/);
 });

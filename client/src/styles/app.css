@@ -147,6 +147,14 @@ body { overflow-x: clip; }
    staggered. Matching any grid container keeps the next one from repeating it. */
 .grid > .card + .card, .row > .card + .card, [class*='grid'] > .card + .card { margin-top: 0; }
 .card h3 { font-size: 15px; font-weight: 700; margin-bottom: 12px; color: var(--text); }
+/* the one-sentence explanation under a section or card heading */
+.card-desc { color: var(--text-2); font-size: 12.5px; line-height: 1.45; margin: -6px 0 12px; }
+.conv-card .card-desc { margin-top: -8px; }
+
+/* a stock's own favicon (nightly job), else a tinted two-letter badge */
+.tlogo { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; vertical-align: -4px; object-fit: contain; flex: none; }
+.tlogo-badge { font-weight: 800; letter-spacing: .02em; }
+.tlogo-badge::after { content: attr(data-sym); }
 
 .grid { display: grid; gap: 16px; }
 /* A grid item's default min-width is its content's width, so a card that
@@ -301,7 +309,7 @@ body { overflow-x: clip; }
   .table-wrap table.data tbody tr:hover td:first-child { background: var(--popover); }
   /* the positions table: rank, company and type fold under the symbol,
      and the symbol column is the one that stays */
-  table.data.positions [data-col="rank"], table.data.positions [data-col="issuer"], table.data.positions [data-col="putCall"] { display: none; }
+  table.data.positions [data-col="rank"], table.data.positions [data-col="issuer"] { display: none; }
   table.data.positions td[data-col="ticker"], table.data.positions th[data-col="ticker"] {
     position: sticky; left: 0; z-index: 1; background: var(--card); box-shadow: 1px 0 0 var(--border); max-width: 150px;
   }
@@ -638,6 +646,8 @@ th.sortable { cursor: pointer; user-select: none; }
 .hero-band .search-input { background: var(--page); color: var(--text); border-color: var(--border-strong); }
 .hero-ctas { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
 .hero-ctas .btn { padding: 13px 24px; font-size: 15px; }
+.hero-quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.hero-quick .btn { padding: 8px 14px; font-size: 13.5px; }
 .hero-topbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .hero-kicker { font-size: 12.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--text-2); }
 

@@ -15,6 +15,8 @@ import Ico from '../components/Ico.jsx';
 import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import UpdatedLine from '../components/UpdatedLine.jsx';
 import { X, UserSearch, SlidersHorizontal } from 'lucide-react';
+import CompanyName from '../components/CompanyName.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 
 const TABS = ['latest', 'ceo', 'cfo', 'cluster', 'penny', 'sells'];
 const PERIODS = ['1d', '3d', '1w', '1m', '3m', '1y'];
@@ -373,6 +375,8 @@ export default function Insiders() {
         <div className="sub">
           {t('ins.subtitle')}
         </div>
+        {/* one plain sentence on what Form 4 is, for a first-time reader */}
+        <p className="card-desc">{t('explain.ins.intro')}</p>
         {/* when the data was built and the newest filing day in it */}
         {feed.data?.lastFilingDay && (
           <div className="mt8">
@@ -536,10 +540,10 @@ export default function Insiders() {
                   <tr key={`${r.ticker}-${r.insider}-${r.date}-${i}`} className={r.side === 'buy' ? 'ins-buy' : ''}>
                     <td className="l">
                       <div className="ins-tick">
-                        {r.ticker ? <Link to={`/stock/${r.ticker}`}>{r.ticker}</Link> : <span className="muted">—</span>}
+                        {r.ticker ? <Link to={`/stock/${r.ticker}`}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link> : <span className="muted">—</span>}
                       </div>
                       <div className="muted small ins-co">
-                        {r.company}
+                        <CompanyName name={r.company} />
                         {r.size && <span className="badge plain sm">{t(`size.${r.size}`)}</span>}
                       </div>
                     </td>

@@ -55,7 +55,6 @@ export default function Filers() {
           {rows.map((r) => (
             <li key={r.slug}>
               <Link to={`/${r.kind === 'guru' ? 'guru' : 'filer'}/${r.slug}`}>{r.name}</Link>
-              <span className="muted small"> · CIK {r.cik}</span>
             </li>
           ))}
         </ul>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
+import CompanyName from '../components/CompanyName.jsx';
 import { securityLabel } from '../lib/label.js';
 import { useSeo } from '../seo.jsx';
 import { useGuruStocks } from '../hooks/useGuruStocks.js';
@@ -169,7 +170,7 @@ export default function StockScreen() {
                           <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
                         )}
                       </td>
-                      <td className="l">{r.issuer}</td>
+                      <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
                       <td className="l small muted">{r.sector || '—'}</td>
                       <td className="num">{fmtNum(r.holderCount)}</td>
                       <td className="num">{fmtMoney(r.totalValue)}</td>

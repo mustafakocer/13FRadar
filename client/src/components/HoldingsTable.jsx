@@ -5,7 +5,9 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
-import { securityLabel } from '../lib/label.js';
+import { securityLabel, displayCompany } from '../lib/label.js';
+import CompanyName from './CompanyName.jsx';
+import TickerLogo from './TickerLogo.jsx';
 import { useAuth } from '../auth.jsx';
 import { Suspense } from 'react';
 import { SparkBar } from './Charts/index.js';
@@ -21,7 +23,6 @@ const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
   { key: 'ticker', tKey: 'table.symbol', left: true },
   { key: 'issuer', tKey: 'table.company', left: true },
-  { key: 'putCall', tKey: 'table.type' },
   { key: 'value', tKey: 'table.value' },
   { key: 'weight', tKey: 'table.weight' },
   { key: 'delta', tKey: 'table.delta' },
@@ -194,10 +195,16 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                         to={`/stock/${p.ticker}?cusip=${p.cusip}`}
                         style={{ fontWeight: 700 }}
                       >
-                        {p.ticker}
+                        <TickerLogo ticker={p.ticker} size={18} /> {p.ticker}
                       </Link>
                     ) : (
                       <span className="muted small" title={`${p.issuer} · ${p.cusip}`}>{securityLabel(p).text}</span>
+                    )}
+                    {/* option rows say so next to the symbol; share rows need no label */}
+                    {p.putCall && (
+                      <span className="badge type" style={{ marginLeft: 6 }}>
+                        {/put/i.test(p.putCall) ? 'Put' : 'Call'}
+                      </span>
                     )}
                     {/* the company column is hidden on a phone, so its name is drawn
                         under the ticker there; from CSS (attr()), not as text, or
@@ -206,18 +213,11 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     <span
                       className="only-narrow muted small"
                       aria-hidden="true"
-                      data-text={`${p.issuer || ''}${p.putCall ? ` · ${p.putCall.toUpperCase()}` : ''}`}
+                      data-text={`${displayCompany(p.coName || p.issuer).short}${p.putCall ? ` · ${/put/i.test(p.putCall) ? 'Put' : 'Call'}` : ''}`}
                     />
                   </td>
                   <td className="l" data-col="issuer" style={{ maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {p.issuer}
-                  </td>
-                  <td data-col="putCall">
-                    {p.putCall ? (
-                      <span className="badge type">{p.putCall.toUpperCase()}</span>
-                    ) : (
-                      <span className="muted small">SH</span>
-                    )}
+                    <CompanyName name={p.coName || p.issuer} />
                   </td>
                   <td className="num" data-col="value">
                     {fmtMoney(p.value)}

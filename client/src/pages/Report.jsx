@@ -16,6 +16,7 @@ import InfoTip from '../components/InfoTip.jsx';
 import GuruActivityBars from '../components/GuruActivityBars.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import { managerPath } from '../lib/paths.js';
+import CompanyName from '../components/CompanyName.jsx';
 import { CAPS, capBucket, consensusOf, isFresh, pctChange } from '../../../api/_lib/guruActivity.js';
 import Ico from '../components/Ico.jsx';
 import { Newspaper, Crown, Flame, Landmark } from 'lucide-react';
@@ -421,7 +422,7 @@ export default function Report() {
         <div className="row" style={{ gap: 8 }}>
           {mostHeld.slice(0, 8).map((r) => (
             <span key={r.cusip} className="chip" style={{ cursor: 'default' }}>
-              {r.ticker ? <Sym t={r.ticker} /> : <b>{r.issuer}</b>}
+              {r.ticker ? <Sym t={r.ticker} /> : <b><CompanyName name={r.issuer} /></b>}
               <span className="muted small"> · {r.holderCount} {t('report.funds')}</span>
             </span>
           ))}
@@ -442,7 +443,7 @@ export default function Report() {
                   {m.buys.slice(0, 5).map((p, i) => (
                     <span key={p.cusip}>
                       {i > 0 && ' · '}
-                      {p.ticker ? <Sym t={p.ticker} /> : <b>{p.issuer}</b>}
+                      {p.ticker ? <Sym t={p.ticker} /> : <b><CompanyName name={p.issuer} /></b>}
                       <span className="muted"> ({fmtPct(p.weight, { sign: false })})</span>
                     </span>
                   ))}

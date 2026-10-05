@@ -64,8 +64,7 @@ export default function SearchBox({ onSelect, placeholder, small = false, autoFo
             >
               <span>{r.name}</span>
               <span className="cik">
-                CIK {r.cik}
-                {r.filings ? ` · ${r.filings} ${t('search.filings')}` : ''}
+                {r.filings ? `${r.filings} ${t('search.filings')}` : ''}
               </span>
             </button>
           ))}

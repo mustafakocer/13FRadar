@@ -59,9 +59,7 @@ export default function GuruBrowser({ limit = null, variant = 'chips', onPrefetc
           {shown.map((g) => (
             <Link key={g.cik} to={href(g)} className={`card feature-card${isClosed(g) ? ' muted' : ''}`} title={g.name}>
               <h3>{g.name}{isClosed(g) && <span className="muted small"> {t('guru.closed')}</span>}</h3>
-              <p className="muted small">
-                {managerStyle(g.cik) ? t(`style.${managerStyle(g.cik)}`) + ' · ' : ''}CIK {g.cik}
-              </p>
+              {managerStyle(g.cik) && <p className="muted small">{t(`style.${managerStyle(g.cik)}`)}</p>}
             </Link>
           ))}
         </div>

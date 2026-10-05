@@ -2,6 +2,7 @@ import { getHoldings, getEffectiveHoldings, getSubmissions, list13F, filingForAc
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { isPro, noStore } from '../_lib/auth.js';
 import { latestHoldings } from '../_lib/latestHoldings.js';
+import { companyName } from '../_lib/companyNames.js';
 
 // GET /api/holdings/:cik/:acc?light=1&full=1&cusips=A,B,C
 //   light=1   skip CUSIP->ticker resolution (comparisons / previous quarter)
@@ -89,7 +90,11 @@ export default async function handler(req, res) {
       amended,
       ...(amended ? { amendments } : {}),
       ...(holdings.unitFix ? { unitFix: true } : {}),
-      positions: out.map((p) => ({ ...p, ticker: tickers[p.cusip] ?? null })),
+      positions: out.map((p) => {
+        const ticker = tickers[p.cusip] ?? null;
+        const co = ticker ? companyName(ticker) : null;
+        return { ...p, ticker, ...(co ? { coName: co.name } : {}) };
+      }),
     });
   } catch (err) {
     res.status(502).json({ error: String(err.message || err) });

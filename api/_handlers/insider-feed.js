@@ -12,6 +12,7 @@ import { filingTotals, signalLevel } from '../_lib/insiderSignal.js';
 import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
 import { sinceTrade } from '../_lib/splitAdjust.js';
 import { priceCheck } from '../_lib/insiderPriceCheck.js';
+import { companyName } from '../_lib/companyNames.js';
 import { readRawServed } from '../_lib/insiderStore.js';
 import { seriesWithFpi, toUsdWith, isForeignWith } from '../_lib/fpiContext.js';
 import { buildClusters } from '../_lib/insiderCluster.js';
@@ -140,7 +141,7 @@ function shape(r, meta, companies, d) {
   const sig = levelOf(r, d, meta);
   return {
     ticker: r.t,
-    company: companies[r.t] || null,
+    company: companyName(r.t)?.name || companies[r.t] || null,
     cik: r.ci,
     insider: r.n,
     role: r.r,

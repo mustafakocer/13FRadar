@@ -1,5 +1,6 @@
 import { createContext, useContext, useCallback, useMemo } from 'react';
 import { splitLang, withLang } from './lib/locale.js';
+import { EXPLANATIONS } from './copy/explanations.js';
 
 const dict = {
   tr: {
@@ -98,6 +99,9 @@ const dict = {
       "ABD'deki fonların portföyünü ve şirket yöneticilerinin kendi hisselerindeki alım-satımlarını SEC kayıtlarından derliyoruz. Her gün güncel, sade ve Türkçe.",
     'landing.cta.start': 'Ücretsiz hesap aç',
     'landing.cta.ceo': 'Son CEO Alımlarını Gör',
+    'landing.quick.buffett': 'Buffett bu çeyrek ne aldı?',
+    'landing.quick.insiders': 'Bugün hangi yöneticiler alım yaptı?',
+    'landing.quick.who': 'Bir hisseyi kim tutuyor?',
     'landing.stat.aum': 'Toplam portföy',
     'landing.stat.aumTip': 'En son çeyrek ({q}), fon başına tek bildirim, SEC 13F; opsiyonlar hariç; aynı hisse farklı fonlarda ayrı sayılır.',
     'landing.stat.positions': 'Pozisyon',
@@ -378,7 +382,7 @@ const dict = {
       'SEC\'deki bu bildirimin pozisyon tablosu başka bir fona ait: {other} tablosunun birebir aynısı (dosyalama hatası). Fonun kendi beyan ettiği toplam {declared}. Bu yüzden fon sıralamalarında, hisse toplamlarında ve ana sayfa toplamında yer almıyor; aşağıdaki tablo EDGAR\'da olduğu gibi gösteriliyor.',
     'manager.dormant':
       'EDGAR\'da bu CIK adına en son {q} bildirimi var ({d}). O tarihten sonra 13F bildirimi yok — fon bildirmeyi bıraktı ya da başka bir tüzel kişilik adına bildiriyor. Aşağıdaki pozisyonlar o tarihin fotoğrafı, güncel portföy değil.',
-    'manager.filedOn': 'Dosyalama tarihi',
+    'manager.filedOn': "SEC'e bildirim",
     'manager.sectors': 'Sektör Dağılımı',
     'manager.benchmark': 'Getiri Karşılaştırma',
     'manager.benchmarkNote':
@@ -1216,6 +1220,9 @@ const dict = {
       "We compile the portfolios of US funds and the trades executives make in their own companies' shares, straight from SEC filings. Updated daily, in plain language.",
     'landing.cta.start': 'Create a free account',
     'landing.cta.ceo': 'View Latest CEO Buys',
+    'landing.quick.buffett': 'What did Buffett buy this quarter?',
+    'landing.quick.insiders': 'Which executives bought today?',
+    'landing.quick.who': 'Who owns a stock?',
     'landing.stat.aum': 'Total portfolio value',
     'landing.stat.aumTip': 'Latest quarter ({q}), one filing per fund, SEC 13F; options excluded; a share held by several funds is counted once per fund.',
     'landing.stat.positions': 'Positions',
@@ -1495,7 +1502,7 @@ const dict = {
       'The holdings table filed under this name at the SEC belongs to another filer: it is identical to {other}\'s table (a filing error). The fund\'s own declared total is {declared}. It is left out of fund rankings, stock totals and the headline total; the table below is shown as EDGAR has it.',
     'manager.dormant':
       'The most recent 13F EDGAR holds under this CIK is {q}, filed {d}. Nothing has been filed since — the fund stopped filing, or it files under a different entity now. The positions below are a snapshot of that date, not a current portfolio.',
-    'manager.filedOn': 'Filed on',
+    'manager.filedOn': 'Filed with SEC',
     'manager.sectors': 'Sector Allocation',
     'manager.benchmarkNote':
       "Computed from current portfolio weights over the top 50 ticker-resolved positions; not the manager's realized return.",
@@ -2235,6 +2242,12 @@ const dict = {
     'palette.goStock': 'Go to stock:',
   },
 };
+
+// The one-file section explanations (client/src/copy/explanations.js) land
+// in the dictionary last, so an editor changing that file wins over any
+// same-named key above.
+Object.assign(dict.tr, EXPLANATIONS.tr);
+Object.assign(dict.en, EXPLANATIONS.en);
 
 const I18nCtx = createContext(null);
 

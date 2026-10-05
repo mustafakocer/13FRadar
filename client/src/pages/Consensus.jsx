@@ -6,6 +6,7 @@ import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useGuruStocks } from '../hooks/useGuruStocks.js';
 import { fmtMoney, fmtNum, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import { consensusSeo } from '../lib/seoTemplates.js';
@@ -143,6 +144,7 @@ export default function Consensus() {
   }, [tab, q, table.ready, table.stocks, mostHeld, topBought, topSold, newPositions, managers, updates, uniStocks.data]);
 
   const onExport = async () => {
+    track(EVENTS.export, { kind: 'excel', what: 'consensus' });
     setExporting(true);
     try {
       const XLSX = await import('xlsx');

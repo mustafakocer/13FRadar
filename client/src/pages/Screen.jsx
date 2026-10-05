@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
 import { POPULAR_MANAGERS } from '../data/popular.js';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
@@ -142,6 +143,7 @@ export default function Screen() {
   const arrow = (key) => (sort.key === key ? (sort.dir === -1 ? ' ↓' : ' ↑') : '');
 
   const onExport = async () => {
+    track(EVENTS.export, { kind: 'excel', what: 'screen' });
     setExporting(true);
     try {
       const XLSX = await import('xlsx');

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import { useSeo } from '../seo.jsx';
 import Ico from '../components/Ico.jsx';
 import { CircleCheck, CircleX } from 'lucide-react';
@@ -15,10 +16,15 @@ export default function Checkout() {
   const { t } = useI18n();
   const { plan, refreshPlan, user, configured } = useAuth();
   const ok = outcome === 'success';
+  const reported = useRef(false);
   const [tries, setTries] = useState(0);
   useSeo({ title: `${ok ? t('checkout.successTitle') : t('checkout.cancelTitle')} — Fundocap`, description: '', path: `/checkout/${ok ? 'success' : 'cancel'}`, noindex: true });
 
   useEffect(() => {
+    if (ok && plan === 'pro' && !reported.current) {
+      reported.current = true;
+      track(EVENTS.checkoutComplete);
+    }
     if (!ok || plan === 'pro' || !refreshPlan || tries >= 12) return undefined;
     const id = setTimeout(() => {
       refreshPlan();

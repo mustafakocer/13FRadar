@@ -6,6 +6,7 @@ import Root, { queryDefaults } from './Root.jsx';
 import { splitLang, withLang, isLang } from './lib/locale.js';
 import { preloadPagesFor } from './pages/lazyPages.js';
 import { preloadCharts } from './components/Charts/index.js';
+import { inject } from '@vercel/analytics';
 import './styles/tokens.css';
 import './styles/app.css';
 
@@ -33,6 +34,15 @@ if (!lang) {
   window.history.replaceState(null, '', withLang(lang, path) + window.location.search + window.location.hash);
 }
 document.documentElement.lang = lang;
+
+// Cookieless page analytics (Vercel Web Analytics; lib/analytics.js has the
+// event wrapper). Client entry only — the server never loads it. inject()
+// also reports SPA route changes; until the Vercel switch is on it no-ops.
+try {
+  inject();
+} catch {
+  /* blocked or unavailable: the site works the same without it */
+}
 
 const queryClient = new QueryClient(queryDefaults);
 const state = window.__STATE__;

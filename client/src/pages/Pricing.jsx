@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import { useSeo } from '../seo.jsx';
 import { api } from '../lib/api.js';
 import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
@@ -55,6 +56,7 @@ export default function Pricing() {
   // Stripe Checkout session is created on the server (it also decides the
   // regional price and currency from the visitor's IP), then we redirect.
   const startCheckout = async (c = cycle) => {
+    track(EVENTS.proClick, { cycle: c });
     setBusy(true);
     setErr(null);
     try {
@@ -145,7 +147,7 @@ export default function Pricing() {
             {isPro && configured ? (
               <span className="badge pro">{t('pricing.current')}</span>
             ) : !user && configured ? (
-              <Link to={signInHref} className="btn" style={{ textDecoration: 'none' }} data-cta="start-pro">
+              <Link to={signInHref} className="btn" style={{ textDecoration: 'none' }} data-cta="start-pro" onClick={() => track(EVENTS.proClick, { cycle })}>
                 {t('pricing.startPro')}
               </Link>
             ) : (

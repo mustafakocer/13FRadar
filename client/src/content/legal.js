@@ -4,7 +4,7 @@
 // client/vite.config.js) with a placeholder until it is set.
 export const CONTACT_EMAIL = typeof __CONTACT_EMAIL__ !== 'undefined' && __CONTACT_EMAIL__ ? __CONTACT_EMAIL__ : 'hello@fundocap.co';
 export const OPERATOR = 'KOCERLER LTD';
-export const LEGAL_UPDATED = '2026-09-28';
+export const LEGAL_UPDATED = '2026-10-05';
 
 export const LEGAL_CONTENT = {
   privacy: {
@@ -19,7 +19,8 @@ export const LEGAL_CONTENT = {
           'Teknik veri: barındırma sağlayıcımızın (Vercel) standart sunucu günlükleri (IP adresi, tarayıcı, istenen sayfa, zaman) kısa süre tutulur. Ziyaretçinin ülkesi yalnız bölgesel fiyat ve dil seçimi için, anlık olarak kullanılır; saklanmaz.',
         ] },
         { h2: 'Çerezler ve tarayıcı depolaması', p: [
-          'Reklam veya davranış izleme çerezi kullanmıyoruz. Yalnız işlevsel kayıtlar vardır: dil tercihi (çerez), tema ve izleme listenizin cihazdaki kopyası (tarayıcı depolaması) ve giriş yaptıysanız oturum anahtarınız. Üçüncü taraf analitik veya reklam ağı yüklenmez.',
+          'Reklam veya davranış izleme çerezi kullanmıyoruz. Yalnız işlevsel kayıtlar vardır: dil tercihi (çerez), tema ve izleme listenizin cihazdaki kopyası (tarayıcı depolaması) ve giriş yaptıysanız oturum anahtarınız. Reklam ağı yüklenmez.',
+          'Sayfa kullanımını ölçmek için barındırma sağlayıcımızın çerezsiz analitiği (Vercel Web Analytics) çalışır: çerez bırakmaz, kişisel veri veya kimlik göndermez, siteler arası izleme yapmaz; yalnız sayfa görüntülemeleri ve kayıt, Pro, izleme listesi, dışa aktarma gibi az sayıda isimsiz olay sayılır.',
         ] },
         { h2: 'Verileri kim işliyor?', p: [
           'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı) ve GitHub (günlük veri üretimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
@@ -47,7 +48,8 @@ export const LEGAL_CONTENT = {
           'Technical data: our hosting provider (Vercel) keeps standard server logs (IP address, browser, requested page, time) for a short period. A visitor’s country is used momentarily for regional pricing and language, and is not stored.',
         ] },
         { h2: 'Cookies and browser storage', p: [
-          'We use no advertising or behavioural tracking cookies. Only functional records exist: your language preference (a cookie), your theme and a copy of your watchlist on the device (browser storage), and, when signed in, your session key. No third-party analytics or ad network is loaded.',
+          'We use no advertising or behavioural tracking cookies. Only functional records exist: your language preference (a cookie), your theme and a copy of your watchlist on the device (browser storage), and, when signed in, your session key. No ad network is loaded.',
+          'To measure page usage we run our hosting provider\u2019s cookieless analytics (Vercel Web Analytics): it sets no cookies, sends no personal data or identifier, does no cross-site tracking, and counts only page views and a handful of anonymous events (sign-up, Pro, watchlist, export).',
         ] },
         { h2: 'Who processes the data', p: [
           'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery) and GitHub (the nightly data builds). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import { useI18n } from '../i18n.jsx';
 import Ico from './Ico.jsx';
 import GoogleButton from './GoogleButton.jsx';
@@ -89,6 +90,7 @@ export default function AuthForm({ next = null, initialMode = 'signup' }) {
           setError(t('account.err.exists'));
           return;
         }
+        track(EVENTS.signup, { method: 'password' });
         if (data?.session) {
           done(); // confirmation disabled → already signed in
           return;

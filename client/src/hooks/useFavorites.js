@@ -1,3 +1,4 @@
+import { track, EVENTS } from '../lib/analytics.js';
 import { useCallback, useSyncExternalStore } from 'react';
 import { getSupabase } from '../lib/supabase.js';
 
@@ -68,6 +69,7 @@ export async function setFavorite(mgr, adding) {
   const has = before.some((f) => f.cik === mgr.cik);
   if (adding === has) return true;
   save(adding ? [...before, { cik: mgr.cik, name: mgr.name }] : before.filter((f) => f.cik !== mgr.cik));
+  if (adding) track(EVENTS.watchlistAdd); // event name only, nothing personal
   setError(null);
   try {
     await cloud(mgr, adding);

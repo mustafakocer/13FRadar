@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import { securityLabel, displayCompany } from '../lib/label.js';
 import CompanyName from './CompanyName.jsx';
 import TickerLogo from './TickerLogo.jsx';
@@ -125,6 +126,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
     setSort((s) => ({ key, dir: s.key === key ? -s.dir : key === 'ticker' || key === 'issuer' ? 1 : -1 }));
 
   const onExport = async () => {
+    track(EVENTS.export, { kind: 'excel', what: 'holdings' });
     setExporting(true);
     try {
       await exportHoldingsToExcel(positions, returns, exportName || 'holdings.xlsx');

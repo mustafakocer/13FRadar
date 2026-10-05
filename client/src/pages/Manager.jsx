@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { fmtMoney, fmtNum, fmtPct, fmtTurnover, deltaClass, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 import FavoriteButton from '../components/FavoriteButton.jsx';
 import PositionCards from '../components/PositionCards.jsx';
 import ChartBox from '../components/ChartBox.jsx';
@@ -311,7 +312,7 @@ export default function Manager({ segment = 'portfolio' }) {
           </div>
         </div>
         <div className="row">
-          <button className="btn ghost no-print" onClick={() => window.print()}>
+          <button className="btn ghost no-print" onClick={() => { track(EVENTS.export, { kind: 'pdf', what: 'manager' }); window.print(); }}>
             <Ico icon={Printer} /> {t('manager.print')}
           </button>
           <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)} aria-label={t('manager.filings')}>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
+import { track, EVENTS } from '../lib/analytics.js';
 
 // "Continue with Google": starts the OAuth round trip through Supabase and
 // lands back on /account with `next` preserved (lib/authRedirect.js).
@@ -11,6 +12,7 @@ export default function GoogleButton({ next = null, className = 'btn auth-google
   const click = async () => {
     setBusy(true);
     try {
+      track(EVENTS.signup, { method: 'google' }); // fires on the way out; Google decides the rest
       const { error } = (await signInGoogle(next)) || {};
       if (error) throw error;
       // the browser is leaving for Google; nothing else to do

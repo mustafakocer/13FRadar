@@ -10,14 +10,17 @@ import { Star } from 'lucide-react';
 // The star on a fund page. Signed in (or auth not configured): toggles the
 // watchlist at once. Signed out with auth available: the fund is remembered
 // and the sign-in dialog opens; after sign-in the auth provider adds it.
-export default function FavoriteButton({ cik, name }) {
+export default function FavoriteButton({ cik, name, small = false }) {
   const { isFavorite, toggleFavorite } = useFavorites();
   const { configured, user } = useAuth();
   const { pathname } = useLocation();
   const [ask, setAsk] = useState(false);
   const fav = isFavorite(cik);
   const mgr = { cik, name };
-  const click = () => {
+  // the small variant sits inside card links: the star must not navigate
+  const click = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (configured && !user && !fav) {
       setPendingFavorite(mgr);
       setAsk(true);
@@ -28,12 +31,12 @@ export default function FavoriteButton({ cik, name }) {
   return (
     <>
       <button
-        className="fav-btn"
+        className={small ? 'fav-btn sm' : 'fav-btn'}
         onClick={click}
         title={fav ? 'Remove from watchlist' : 'Add to watchlist'}
         aria-pressed={fav}
       >
-        <Ico icon={Star} size={18} fill={fav ? 'currentColor' : 'none'} />
+        <Ico icon={Star} size={small ? 14 : 18} fill={fav ? 'currentColor' : 'none'} />
       </button>
       <LoginPrompt
         open={ask}

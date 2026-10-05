@@ -19,6 +19,7 @@ import { securityLabel, niceName } from '../lib/label.js';
 import CompanyName from '../components/CompanyName.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import { managerStyle } from '../data/popular.js';
+import FavoriteButton from '../components/FavoriteButton.jsx';
 import Ico from '../components/Ico.jsx';
 import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import UpdatedLine from '../components/UpdatedLine.jsx';
@@ -574,6 +575,7 @@ function PortfolioUpdates({ updates }) {
                 <b>{quarterLabel(u.reportDate)}</b>
                 <span>{u.filed ? new Date(`${u.filed}T00:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' }) : ''}</span>
               </div>
+              <FavoriteButton cik={u.cik} name={u.manager} small />
             </div>
             {UPDATE_ROWS.map(([key, kind, mark]) => (
               <div className={`upd-row ${kind}`} key={key}>

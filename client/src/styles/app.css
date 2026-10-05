@@ -156,6 +156,12 @@ body { overflow-x: clip; }
 .tlogo-badge { font-weight: 800; letter-spacing: .02em; }
 .tlogo-badge::after { content: attr(data-sym); }
 
+/* the period-return strip under the stock page price; scrolls sideways on
+   a phone instead of wrapping into the stats below */
+.perf-strip { display: flex; gap: 6px; margin-top: 10px; overflow-x: auto; max-width: 100%; padding-bottom: 2px; scrollbar-width: thin; }
+.perf-cell { display: inline-flex; align-items: baseline; gap: 6px; flex: none; padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; background: var(--card); font-size: 12.5px; white-space: nowrap; }
+.perf-label { color: var(--text-2); font-weight: 700; font-size: 11px; letter-spacing: .04em; }
+
 .grid { display: grid; gap: 16px; }
 /* A grid item's default min-width is its content's width, so a card that
    holds a wide table (a scroller) or a long row pushed the whole grid past
@@ -277,6 +283,7 @@ body { overflow-x: clip; }
   width: 38px; height: 38px; font-size: 17px; cursor: pointer; flex-shrink: 0;
   background: var(--card);
 }
+.fav-btn.sm { width: 26px; height: 26px; min-width: 26px; padding: 0; display: inline-flex; align-items: center; justify-content: center; vertical-align: middle; }
 .fav-btn:hover { border-color: var(--border-strong); background: var(--popover); }
 .fav-btn { color: var(--text-2); display: inline-flex; align-items: center; justify-content: center; }
 .fav-btn[aria-pressed='true'] { color: var(--accent); }

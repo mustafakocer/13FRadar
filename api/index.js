@@ -13,6 +13,7 @@ import holdings from './_handlers/holdings.js';
 import changes from './_handlers/changes.js';
 import stock from './_handlers/stock.js';
 import chart from './_handlers/chart.js';
+import perf from './_handlers/perf.js';
 import insiders from './_handlers/insiders.js';
 import backtest from './_handlers/backtest.js';
 import positionHistory from './_handlers/position-history.js';
@@ -66,6 +67,7 @@ const ROUTES = {
   'aum-history': [aumHistory, 'cik'],
   stock: [stock, 'ticker'],
   chart: [chart, 'ticker'],
+  perf: [perf, 'ticker'],
   insiders: [insiders, 'ticker'],
   backtest: [backtest, 'cik'],
   'manager-stats': [managerStats, 'cik'],

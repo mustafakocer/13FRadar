@@ -29,6 +29,7 @@ const COLS = [
   { key: 'shares', tKey: 'table.shares' },
   { key: 'ret1y', tKey: 'table.ret1y' },
   { key: 'retYtd', tKey: 'table.retYtd' },
+  { key: 'sinceReport', tKey: 'table.sinceReport', tip: 'tips.sinceReport' },
 ];
 
 // Expanded row: weight history across recent quarters for one CUSIP.
@@ -168,7 +169,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
           <thead>
             <tr>
               {cols.map((c) => (
-                <th key={c.key} className={c.left ? 'l' : ''} data-col={c.key} onClick={() => onSort(c.key)}>
+                <th key={c.key} className={c.left ? 'l' : ''} data-col={c.key} onClick={() => onSort(c.key)} title={c.tip ? t(c.tip) : undefined}>
                   {t(c.tKey)}
                   {sort.key === c.key ? (sort.dir === -1 ? ' ↓' : ' ↑') : ''}
                 </th>
@@ -256,6 +257,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                   <td className="num" data-col="shares">{fmtNum(p.shares)}</td>
                   <td className={`num ${deltaClass(p.ret1y)}`} data-col="ret1y">{fmtPct(p.ret1y)}</td>
                   <td className={`num ${deltaClass(p.retYtd)}`} data-col="retYtd">{fmtPct(p.retYtd)}</td>
+                  <td className={`num ${deltaClass(p.sinceReport)}`} data-col="sinceReport" title={t('tips.sinceReport')}>{fmtPct(p.sinceReport)}</td>
                 </tr>,
                 cik && expanded === rowKey ? (
                   <tr key={`${rowKey}-hist`}>

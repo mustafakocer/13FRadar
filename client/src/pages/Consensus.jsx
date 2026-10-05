@@ -13,6 +13,7 @@ import AnswerBox from '../components/AnswerBox.jsx';
 import CoverageLine from '../components/CoverageLine.jsx';
 import { securityLabel } from '../lib/label.js';
 import CompanyName from '../components/CompanyName.jsx';
+import FavoriteButton from '../components/FavoriteButton.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import Paywall from '../components/Paywall.jsx';
 import HoldersPanel from '../components/HoldersPanel.jsx';
@@ -326,7 +327,9 @@ export default function Consensus() {
                 {tab === 'funds' &&
                   rows.map((m) => (
                     <tr key={m.cik}>
-                      <td className="l"><Link to={managerPath(m.cik, m.path)} style={{ fontWeight: 600 }}>{m.name}</Link></td>
+                      <td className="l">
+                        <FavoriteButton cik={m.cik} name={m.name} small /> <Link to={managerPath(m.cik, m.path)} style={{ fontWeight: 600 }}>{m.name}</Link>
+                      </td>
                       <td className="l muted small">{m.reportDate ? quarterLabel(m.reportDate) : '—'}</td>
                       <td className="l"><Tickers list={m.newBuys} cls="delta-pos" /></td>
                       <td className="l"><Tickers list={m.adds} cls="delta-pos" /></td>

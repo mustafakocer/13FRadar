@@ -4,6 +4,7 @@ import { POPULAR_MANAGERS, managerStyle } from '../data/popular.js';
 import { CATS, catCounts, filterGurus, chipName, isClosed } from '../lib/guruBrowse.js';
 import { managerPath } from '../lib/paths.js';
 import { useI18n } from '../i18n.jsx';
+import FavoriteButton from './FavoriteButton.jsx';
 
 // The curated funds with category tabs and a "show closed" switch — the
 // same control on the home page (chips, the first `limit`, then "see all")
@@ -58,7 +59,10 @@ export default function GuruBrowser({ limit = null, variant = 'chips', onPrefetc
         <div className="grid grid-3 mt16" data-guru-cards>
           {shown.map((g) => (
             <Link key={g.cik} to={href(g)} className={`card feature-card${isClosed(g) ? ' muted' : ''}`} title={g.name}>
-              <h3>{g.name}{isClosed(g) && <span className="muted small"> {t('guru.closed')}</span>}</h3>
+              <h3 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                <span>{g.name}{isClosed(g) && <span className="muted small"> {t('guru.closed')}</span>}</span>
+                <FavoriteButton cik={g.cik} name={g.name} small />
+              </h3>
               {managerStyle(g.cik) && <p className="muted small">{t(`style.${managerStyle(g.cik)}`)}</p>}
             </Link>
           ))}

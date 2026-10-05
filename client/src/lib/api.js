@@ -64,6 +64,7 @@ export const api = {
   stock: (ticker) => get(`/api/stock/${encodeURIComponent(ticker)}`),
   chart: (ticker, range = '1y') =>
     get(`/api/chart/${encodeURIComponent(ticker)}?range=${range}`),
+  perf: (ticker) => get(`/api/perf/${encodeURIComponent(ticker)}`),
   sectors: (symbols) => get(`/api/sectors?symbols=${symbols.join(',')}`),
   positionHistory: (cik, cusip) =>
     get(`/api/position-history/${cik}/${encodeURIComponent(cusip)}`),

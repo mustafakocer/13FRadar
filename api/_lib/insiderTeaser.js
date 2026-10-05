@@ -261,6 +261,10 @@ export function buildTeaser(all, companies = {}, meta = {}, now = Date.now(), op
 
   return {
     updatedAt: new Date(now).toISOString(),
+    // the price build the levels and returns were computed on
+    // (api/_data/prices/_index.json); updatedAt stays the insider data's
+    // own time, so a price rebuild never makes old filings look fresh
+    pricedAt: opts.pricedAt || null,
     lastDay: lastDay || null,
     total: buys.length,
     pulse,

@@ -1,27 +1,25 @@
-// Stock logos for the client, fetched overnight and served from this site —
-// never from a third-party logo service at page-view time.
+// Stock logos, harvested weekly and served from this site — never a
+// third-party logo service, never a request to a company's site from a
+// reader's browser.
 //
-//   node scripts/build-logos.mjs            # top up: only tickers without a logo
+//   node scripts/build-logos.mjs            # top up: tickers without a logo (or older than 60 days)
 //   node scripts/build-logos.mjs --refresh  # refetch everything
 //
-// Pipeline, per ticker of the top 500 (client/public/stocks.json):
-//   1. SEC company_tickers.json → CIK
-//   2. SEC submissions JSON → the company's own website (no website: no logo)
-//   3. that site's /favicon.ico, else the first <link rel="icon"> on its
-//      home page — validated by magic bytes, capped in size
-// Output: client/public/logos/{TICKER}.{ext} + client/public/logos.json.
-//
-// The kill switch the client honours: when fewer than 30% of the tried
-// tickers produced a logo, the manifest ships empty (`disabled: true`) and
-// every page falls back to the two-letter badge.
-//
-// Env: SEC_USER_AGENT (required for SEC requests).
+// Per ticker of the top 500 (client/public/stocks.json):
+//   1. Finnhub company profile → the company's own website (FINNHUB_API_KEY;
+//      paced at LOGO_FINNHUB_PER_MIN, half the shared 50/min job budget)
+//   2. that site's robots.txt is read and obeyed (FundocapBot / *)
+//   3. its home page's <link rel="apple-touch-icon">, <link rel="icon"
+//      sizes≥64> or a near-square og:image — never favicon.ico — validated
+//      by magic bytes and pixel size (shorter side ≥ 64px), ≤ 150 KB
+// Output: client/public/logos/{TICKER}.{ext} + client/public/logos.json
+// (tried, ok, pct, bytes, per-source counts). Below 30% success the
+// manifest ships empty (`disabled: true`) and every page keeps the badge.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import axios from 'axios';
-import { secGet } from '../api/_lib/sec.js';
-import { mapLimit } from '../api/_lib/mapLimit.js';
+import { parseRobots, robotsAllows, imageInfo, usable, MIN_SIDE } from '../api/_lib/logoScrape.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const pub = path.join(here, '..', 'client', 'public');
@@ -30,157 +28,132 @@ const manifestPath = path.join(pub, 'logos.json');
 const refresh = process.argv.includes('--refresh');
 
 const TOP = Number(process.env.LOGOS_TOP) || 500;
-const MIN_PCT = 30; // below this success rate the feature turns itself off
-const MAX_BYTES = 120 * 1024;
+const MIN_PCT = 30;
+const MAX_BYTES = 150 * 1024;
+const STALE_DAYS = 60;
+const PER_MIN = Number(process.env.LOGO_FINNHUB_PER_MIN) || 25;
+const UA = 'FundocapBot/1.0 (+https://www.fundocap.co; hello@fundocap.co)';
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 const http = axios.create({
-  timeout: 10000,
+  timeout: 12000,
   maxRedirects: 4,
-  maxContentLength: 512 * 1024,
+  maxContentLength: 600 * 1024,
   responseType: 'arraybuffer',
-  headers: { 'User-Agent': 'Mozilla/5.0 (compatible; FundocapBot/1.0; +https://www.fundocap.co)' },
+  headers: { 'User-Agent': UA, Accept: 'text/html,image/*;q=0.9,*/*;q=0.5' },
   validateStatus: (s) => s >= 200 && s < 300,
 });
+const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
 
-const readJson = (p) => {
+// ---------- robots.txt: one group per host, cached ----------
+const robotsCache = new Map();
+async function robotsFor(origin) {
+  if (robotsCache.has(origin)) return robotsCache.get(origin);
+  let rules = { allow: [], disallow: [] };
   try {
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch {
-    return null;
-  }
-};
-
-// what the bytes say the file is — the server's content-type lies often enough
-function sniff(buf) {
-  if (!buf || buf.length < 8) return null;
-  const b = Buffer.from(buf);
-  if (b[0] === 0x00 && b[1] === 0x00 && b[2] === 0x01 && b[3] === 0x00) return 'ico';
-  if (b[0] === 0x89 && b.toString('ascii', 1, 4) === 'PNG') return 'png';
-  if (b[0] === 0xff && b[1] === 0xd8) return 'jpg';
-  if (b.toString('ascii', 0, 4) === 'GIF8') return 'gif';
-  if (b.toString('ascii', 0, 4) === 'RIFF' && b.toString('ascii', 8, 12) === 'WEBP') return 'webp';
-  const head = b.toString('utf8', 0, Math.min(b.length, 512)).trimStart().toLowerCase();
-  if (head.startsWith('<') && head.includes('<svg')) return 'svg';
-  return null;
+    const r = await http.get(`${origin}/robots.txt`, { responseType: 'text', transformResponse: [(d) => d], timeout: 8000 });
+    rules = parseRobots(r.data);
+  } catch { /* no robots.txt: everything allowed */ }
+  robotsCache.set(origin, rules);
+  return rules;
+}
+async function allowed(urlStr) {
+  const u = new URL(urlStr);
+  return robotsAllows(await robotsFor(u.origin), u.pathname);
 }
 
-async function fetchIcon(urlStr) {
+async function fetchImage(urlStr, opts) {
+  if (!(await allowed(urlStr))) return null;
   const r = await http.get(urlStr);
   const buf = Buffer.from(r.data);
   if (buf.length > MAX_BYTES) return null;
-  const ext = sniff(buf);
-  return ext ? { buf, ext } : null;
+  const info = imageInfo(buf);
+  return usable(info, opts) ? { buf, ext: info.ext } : null;
 }
 
-// the home page's declared icon, when /favicon.ico is not there
-async function iconFromHomepage(origin) {
-  const r = await http.get(origin, { responseType: 'text', transformResponse: [(d) => d] });
-  const html = String(r.data).slice(0, 300 * 1024);
-  const links = [...html.matchAll(/<link\s[^>]*rel=["']?([^"'>]*icon[^"'>]*)["']?[^>]*>/gi)].map((m) => m[0]);
-  for (const tag of links) {
-    const href = tag.match(/href=["']?([^"'\s>]+)/i)?.[1];
-    if (!href || href.startsWith('data:')) continue;
-    try {
-      const icon = await fetchIcon(new URL(href, origin).href);
-      if (icon) return icon;
-    } catch {
-      /* next candidate */
-    }
+// ---------- the site's declared icons, in order of preference ----------
+async function logoFor(site) {
+  let origin;
+  try { origin = new URL(/^https?:\/\//i.test(site) ? site : `https://${site}`).origin; } catch { return null; }
+  if (!(await allowed(`${origin}/`))) return null;
+  const r = await http.get(`${origin}/`, { responseType: 'text', transformResponse: [(d) => d] });
+  const html = String(r.data).slice(0, 400 * 1024);
+  const finalOrigin = (() => { try { return new URL(r.request?.res?.responseUrl || origin).origin; } catch { return origin; } })();
+  const tags = [...html.matchAll(/<(link|meta)\s[^>]*>/gi)].map((m) => m[0]);
+  const attr = (tag, name) => tag.match(new RegExp(`\\s${name}\\s*=\\s*["']?([^"'\\s>]+)`, 'i'))?.[1];
+  const sizeOf = (tag) => Math.max(0, ...(attr(tag, 'sizes') || '').split(/\s+/).map((s) => Number(s.split('x')[0]) || 0));
+  const abs = (href) => { try { return new URL(href, finalOrigin).href; } catch { return null; } };
+  const links = tags.filter((t) => /^<link/i.test(t)).map((t) => ({ rel: (attr(t, 'rel') || '').toLowerCase(), href: attr(t, 'href'), size: sizeOf(t) })).filter((l) => l.href && !l.href.startsWith('data:'));
+  const candidates = [
+    ...links.filter((l) => l.rel.includes('apple-touch-icon')).sort((a, b) => b.size - a.size).map((l) => ({ url: abs(l.href), src: 'apple' })),
+    { url: `${finalOrigin}/apple-touch-icon.png`, src: 'apple' },
+    ...links.filter((l) => /(^|\s)icon(\s|$)/.test(l.rel) && !/\.ico(\?|$)/i.test(l.href)).sort((a, b) => b.size - a.size).map((l) => ({ url: abs(l.href), src: 'icon' })),
+    ...tags.filter((t) => /^<meta/i.test(t) && /(property|name)\s*=\s*["']?(og:image|twitter:image)/i.test(t)).map((t) => ({ url: abs(attr(t, 'content')), src: 'og', square: true })),
+  ].filter((c) => c.url);
+  const seen = new Set();
+  for (const c of candidates) {
+    if (seen.has(c.url)) continue; seen.add(c.url);
+    try { const img = await fetchImage(c.url, { square: c.square }); if (img) return { ...img, src: c.src }; } catch { /* next */ }
   }
   return null;
 }
 
-async function logoFor(site) {
-  let origin;
-  try {
-    origin = new URL(/^https?:\/\//i.test(site) ? site : `https://${site}`).origin;
-  } catch {
-    return null;
-  }
-  try {
-    const direct = await fetchIcon(`${origin}/favicon.ico`);
-    if (direct) return direct;
-  } catch {
-    /* fall through to the home page */
-  }
-  try {
-    return await iconFromHomepage(origin);
-  } catch {
-    return null;
-  }
+// ---------- Finnhub profile → website, paced ----------
+async function websiteOf(sym, key) {
+  const r = await axios.get('https://finnhub.io/api/v1/stock/profile2', { params: { symbol: sym, token: key }, timeout: 15000, validateStatus: () => true });
+  if (r.status === 429) { await sleep(60000); return websiteOf(sym, key); }
+  if (r.status !== 200) return null;
+  return String(r.data?.weburl || '').trim() || null;
 }
 
 async function main() {
+  const key = process.env.FINNHUB_API_KEY;
+  if (!key) { console.log('::warning::logos: FINNHUB_API_KEY not set — nothing fetched'); return; }
   const stocks = readJson(path.join(pub, 'stocks.json'));
-  const tickers = [...new Set((Array.isArray(stocks) ? stocks : stocks?.rows || stocks?.stocks || [])
-    .map((s) => String(s.ticker || '').trim().toUpperCase())
-    .filter(Boolean))].slice(0, TOP);
-  if (!tickers.length) {
-    console.log('::warning::logos: stocks.json has no tickers — nothing to do');
-    return;
-  }
-
-  // ticker → CIK, in SEC's hyphen spelling (BRK-B)
-  const { data: ct } = await secGet('https://www.sec.gov/files/company_tickers.json', { timeout: 30000 });
-  const cikOf = {};
-  for (const row of Object.values(ct || {})) {
-    const t = String(row?.ticker || '').trim().toUpperCase();
-    if (t && row?.cik_str && !cikOf[t]) cikOf[t] = String(row.cik_str).padStart(10, '0');
-  }
-  const cikFor = (t) => cikOf[t] || cikOf[t.replace(/\./g, '-')] || cikOf[t.replace(/-/g, '.')] || null;
-
+  const tickers = [...new Set((stocks?.rows || []).map((s) => String(s.ticker || '').trim().toUpperCase()).filter(Boolean))].slice(0, TOP);
+  if (!tickers.length) { console.log('::warning::logos: stocks.json has no tickers'); return; }
   fs.mkdirSync(outDir, { recursive: true });
   const prior = readJson(manifestPath);
+  const fetched = { ...(prior?.fetched || {}) };
   const logos = {};
-  let okCount = 0;
+  const sources = {};
+  const fresh = (sym) => { const at = fetched[sym]; return at && (Date.now() - Date.parse(at)) / 86400000 < STALE_DAYS; };
+  let kept = 0, got = 0, noSite = 0, noIcon = 0;
 
-  // SEC submissions carry the registrant's own website; fetched politely
-  // through secGet (its own EDGAR rate clock).
-  const sites = new Map();
-  await mapLimit(tickers, 3, async (t) => {
-    const cik = cikFor(t);
-    if (!cik) return;
-    try {
-      const { data } = await secGet(`https://data.sec.gov/submissions/CIK${cik}.json`, { timeout: 20000 });
-      const site = String(data?.website || data?.investorWebsite || '').trim();
-      if (site) sites.set(t, site);
-    } catch {
-      /* no submissions answer: no logo for this one */
+  for (const [i, t] of tickers.entries()) {
+    const key2 = t.replace(/\./g, '-');
+    const existing = prior?.logos?.[key2];
+    if (!refresh && existing && fs.existsSync(path.join(pub, existing)) && fresh(key2)) { logos[key2] = existing; kept++; continue; }
+    const t0 = Date.now();
+    const site = await websiteOf(t, key).catch(() => null);
+    if (!site) { noSite++; }
+    else {
+      const img = await logoFor(site).catch(() => null);
+      if (!img) noIcon++;
+      else {
+        const file = `logos/${key2.replace(/[^A-Z0-9-]/g, '')}.${img.ext}`;
+        fs.writeFileSync(path.join(pub, file), img.buf);
+        logos[key2] = file; fetched[key2] = new Date().toISOString(); sources[img.src] = (sources[img.src] || 0) + 1; got++;
+      }
     }
-  });
-
-  await mapLimit(tickers, 6, async (t) => {
-    const key = t.replace(/\./g, '-');
-    const existing = prior?.logos?.[key];
-    if (!refresh && existing && fs.existsSync(path.join(pub, existing))) {
-      logos[key] = existing;
-      okCount++;
-      return;
-    }
-    const site = sites.get(t);
-    if (!site) return;
-    const icon = await logoFor(site);
-    if (!icon) return;
-    const file = `logos/${key.replace(/[^A-Z0-9-]/g, '')}.${icon.ext}`;
-    fs.writeFileSync(path.join(pub, file), icon.buf);
-    logos[key] = file;
-    okCount++;
-  });
-
-  const tried = tickers.length;
-  const pct = Math.round((okCount / tried) * 100);
-  const disabled = pct < MIN_PCT;
-  if (disabled) {
-    // badge-only mode: nothing referenced, nothing served
-    for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f));
-    fs.writeFileSync(manifestPath, JSON.stringify({ updatedAt: new Date().toISOString(), tried, ok: okCount, pct, disabled: true, logos: {} }));
-    console.log(`::warning::logos: ${okCount}/${tried} (${pct}%) — below ${MIN_PCT}%, logos disabled, badges stay`);
-    return;
+    if ((i + 1) % 50 === 0) console.log(`logos: ${i + 1}/${tickers.length} · ${got} new, ${kept} kept, ${noSite} no site, ${noIcon} no icon`);
+    await sleep(Math.max(0, Math.ceil(60000 / PER_MIN) - (Date.now() - t0)));
   }
-  // drop files no longer in the manifest, so the folder mirrors it
+
+  const ok = Object.keys(logos).length;
+  const pct = Math.round((ok / tickers.length) * 100);
+  const bytes = Object.values(logos).reduce((s, f) => { try { return s + fs.statSync(path.join(pub, f)).size; } catch { return s; } }, 0);
   const keep = new Set(Object.values(logos).map((f) => path.basename(f)));
   for (const f of fs.readdirSync(outDir)) if (!keep.has(f)) fs.rmSync(path.join(outDir, f));
-  fs.writeFileSync(manifestPath, JSON.stringify({ updatedAt: new Date().toISOString(), tried, ok: okCount, pct, logos }));
-  console.log(`logos: ${okCount}/${tried} tickers (${pct}%) → client/public/logos`);
+  const base = { updatedAt: new Date().toISOString(), tried: tickers.length, ok, pct, bytes, sources, noSite, noIcon, fetched };
+  if (pct < MIN_PCT) {
+    for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f));
+    fs.writeFileSync(manifestPath, JSON.stringify({ ...base, disabled: true, logos: {} }));
+    console.log(`::warning::logos: ${ok}/${tickers.length} (${pct}%) — below ${MIN_PCT}%, logos disabled, badges stay. ${noSite} without a website, ${noIcon} without a usable icon`);
+    return;
+  }
+  fs.writeFileSync(manifestPath, JSON.stringify({ ...base, logos }));
+  console.log(`logos: ${ok}/${tickers.length} (${pct}%), ${(bytes / 1024).toFixed(0)} KB on disk · sources ${JSON.stringify(sources)} · ${noSite} without a website, ${noIcon} without a usable icon`);
 }
 
 await main();

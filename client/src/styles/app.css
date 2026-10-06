@@ -152,9 +152,18 @@ body { overflow-x: clip; }
 .conv-card .card-desc { margin-top: -8px; }
 
 /* a stock's own favicon (nightly job), else a tinted two-letter badge */
-.tlogo { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; vertical-align: -4px; object-fit: contain; flex: none; }
+/* Stock logo: a white tile with a hairline so transparent / dark marks stay
+   legible on the dark theme too; the badge keeps its own tint. The tile is
+   the hit area, the image sits 2px inside it. */
+.tlogo { display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; vertical-align: -5px; object-fit: contain; flex: none; }
+img.tlogo { background: #fff; border: 1px solid var(--border); padding: 2px; box-sizing: border-box; }
 .tlogo-badge { font-weight: 800; letter-spacing: .02em; }
 .tlogo-badge::after { content: attr(data-sym); }
+/* ticker + logo as one unit: no wrap between them, aligned on the text line */
+.tk-cell { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; vertical-align: middle; }
+.tk-cell .tlogo { vertical-align: 0; }
+/* list rows (position cards, signal boards): the logo leads the row */
+.pos-row .tk-cell { gap: 9px; }
 
 /* the period-return strip under the stock page price; scrolls sideways on
    a phone instead of wrapping into the stats below */
@@ -735,7 +744,7 @@ th.sortable { cursor: pointer; user-select: none; }
 .ins-bar.big { height: 12px; }
 .hl-kicker { font-size: 11.5px; letter-spacing: .1em; font-weight: 700; color: var(--text-2); margin: 18px 0 8px; }
 .hl-card { border: 1px solid var(--border); background: color-mix(in srgb, var(--buy) 7%, var(--card)); border-radius: 12px; padding: 14px; }
-.hl-card .tick { display: inline-flex; align-items: center; justify-content: center; min-width: 46px; height: 32px; padding: 0 6px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); font-weight: 800; font-size: 12px; }
+.hl-card .tick { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-width: 46px; height: 32px; padding: 0 6px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); font-weight: 800; font-size: 12px; }
 .hl-card .who { font-weight: 700; }
 .hl-card .role { color: var(--buy); font-size: 12.5px; font-weight: 600; }
 .hl-card .amt { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin-top: 8px; }

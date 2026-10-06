@@ -9,6 +9,7 @@ import { useSeo } from '../seo.jsx';
 import { fmtMoney, fmtPct, fmtFormPrice } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import Ico from '../components/Ico.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import { Zap } from 'lucide-react';
 
 const SIGNALS = ['cluster', 'csuite', 'penny'];
@@ -93,7 +94,7 @@ export default function InsiderSignal() {
                 <Fragment key={`${r.t}-${r.n || ''}`}>
                 <tr>
                   <td className="l">
-                    <Link to={`/stock/${r.t}`} className="sig-tick">{r.t}</Link>
+                    <Link to={`/stock/${r.t}`} className="sig-tick tk-cell"><TickerLogo ticker={r.t} size={20} /> {r.t}</Link>
                     <div className="sig-co"><CompanyName name={r.c} /></div>
                   </td>
                   <td className="l">
@@ -175,7 +176,7 @@ export default function InsiderSignal() {
                 {lookalikes.map((e) => (
                   <tr key={e.t}>
                     <td className="l">
-                      <Link to={`/stock/${e.t}`} className="sig-tick">{e.t}</Link>
+                      <Link to={`/stock/${e.t}`} className="sig-tick tk-cell"><TickerLogo ticker={e.t} size={20} /> {e.t}</Link>
                       <div className="sig-co">{e.c || '—'}</div>
                     </td>
                     <td className="l">

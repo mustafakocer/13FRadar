@@ -279,7 +279,7 @@ function InsiderSignals({ teaser }) {
               <div className="hl-kicker">{t('landing.ins.highlight')}</div>
               <Link to={`/stock/${hl.t}`} className="hl-card" style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
                 <div className="row" style={{ gap: 10, flexWrap: 'nowrap' }}>
-                  <span className="tick">{hl.t}</span>
+                  <span className="tick"><TickerLogo ticker={hl.t} size={18} /> {hl.t}</span>
                   <div style={{ minWidth: 0 }}>
                     <div className="who" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {niceName(hl.n)}
@@ -533,7 +533,7 @@ function Chip({ r, kind }) {
     </>
   );
   return r.ticker ? (
-    <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className={`tk ${kind}`}>{inner}</Link>
+    <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className={`tk ${kind}`}><TickerLogo ticker={r.ticker} size={14} />{inner}</Link>
   ) : (
     <span className={`tk ${kind}`}>{inner}</span>
   );

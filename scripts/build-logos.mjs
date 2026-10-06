@@ -12,6 +12,11 @@
 //   3. its home page's <link rel="apple-touch-icon">, <link rel="icon"
 //      sizes≥64> or a near-square og:image — never favicon.ico — validated
 //      by magic bytes and pixel size (shorter side ≥ 64px), ≤ 150 KB
+//   4. when the site itself yields nothing (bot walls, CDN challenges, no
+//      declared icon): the public favicon caches — DuckDuckGo, then Google
+//      at 128px — fetched HERE, once, and committed like any other logo.
+//      The same size rule applies, so their "unknown site" placeholder
+//      (16px) never passes. LOGO_FALLBACK=0 turns this step off.
 // Output: client/public/logos/{TICKER}.{ext} + client/public/logos.json
 // (tried, ok, pct, bytes, per-source counts). Below 30% success the
 // manifest ships empty (`disabled: true`) and every page keeps the badge.
@@ -32,6 +37,7 @@ const MIN_PCT = 30;
 const MAX_BYTES = 150 * 1024;
 const STALE_DAYS = 60;
 const PER_MIN = Number(process.env.LOGO_FINNHUB_PER_MIN) || 25;
+const FALLBACK = process.env.LOGO_FALLBACK !== '0';
 const UA = 'FundocapBot/1.0 (+https://www.fundocap.co; hello@fundocap.co)';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -98,6 +104,29 @@ async function logoFor(site) {
   return null;
 }
 
+// ---------- the favicon caches, by host, when the site gave nothing ----------
+// Their robots.txt is not consulted: these are APIs meant to be called, and
+// the image is the site's own icon, not the cache's content.
+const fallbackUrls = (host) => [
+  { url: `https://icons.duckduckgo.com/ip3/${host}.ico`, src: 'ddg' },
+  { url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(host)}&sz=128`, src: 'google' },
+];
+async function fallbackFor(site) {
+  let host;
+  try { host = new URL(/^https?:\/\//i.test(site) ? site : `https://${site}`).hostname.replace(/^www\./, ''); } catch { return null; }
+  if (!host) return null;
+  for (const c of fallbackUrls(host)) {
+    try {
+      const r = await http.get(c.url);
+      const buf = Buffer.from(r.data);
+      if (buf.length > MAX_BYTES) continue;
+      const info = imageInfo(buf);
+      if (usable(info)) return { buf, ext: info.ext, src: c.src };
+    } catch { /* next */ }
+  }
+  return null;
+}
+
 // ---------- Finnhub profile → website, paced ----------
 async function websiteOf(sym, key) {
   const r = await axios.get('https://finnhub.io/api/v1/stock/profile2', { params: { symbol: sym, token: key }, timeout: 15000, validateStatus: () => true });
@@ -128,7 +157,7 @@ async function main() {
     const site = await websiteOf(t, key).catch(() => null);
     if (!site) { noSite++; }
     else {
-      const img = await logoFor(site).catch(() => null);
+      const img = (await logoFor(site).catch(() => null)) || (FALLBACK ? await fallbackFor(site) : null);
       if (!img) noIcon++;
       else {
         const file = `logos/${key2.replace(/[^A-Z0-9-]/g, '')}.${img.ext}`;

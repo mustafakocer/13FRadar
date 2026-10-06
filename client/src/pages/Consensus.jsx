@@ -58,7 +58,7 @@ function Tickers({ list, cls }) {
       {list.slice(0, 3).map((p, i) => (
         <span key={p.cusip}>
           {i > 0 && ', '}
-          {p.ticker ? <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`}>{p.ticker}</Link> : p.issuer}
+          {p.ticker ? <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} className="tk-cell"><TickerLogo ticker={p.ticker} size={14} /> {p.ticker}</Link> : p.issuer}
           {p.change != null && <span className="muted"> {fmtPct(p.change, { digits: 0 })}</span>}
         </span>
       ))}

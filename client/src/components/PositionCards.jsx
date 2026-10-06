@@ -6,13 +6,15 @@ import { heldBeforeListing } from '../lib/newListings.js';
 import { useListedOn } from '../hooks/useListedOn.js';
 import { securityLabel } from '../lib/label.js';
 import Ico from './Ico.jsx';
+import TickerLogo from './TickerLogo.jsx';
 import { Trophy, TrendingUp, TrendingDown } from 'lucide-react';
 
 function Row({ p, badge, delta }) {
   const name = securityLabel(p).text;
   const body = (
     <>
-      <div style={{ minWidth: 0 }}>
+      {p.ticker ? <TickerLogo ticker={p.ticker} size={28} /> : null}
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div className="tick">
           {name}
           {p.putCall ? <span className="badge type" style={{ marginLeft: 6 }}>{p.putCall.toUpperCase()}</span> : null}

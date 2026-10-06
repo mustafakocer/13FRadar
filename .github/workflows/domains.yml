@@ -1,0 +1,58 @@
+name: Company domains
+
+# Daily top-up of the ticker → domain manifest (scripts/build-domains.mjs)
+# behind the stock logos: SEC-sourced, no key, at most DOMAINS_BATCH tickers
+# per run so the backlog of every ticker a page can show fills over a few
+# days and later runs finish in seconds. 06:11 UTC: after the nightly data
+# chain (01:23–05:30) and before the insider run at 11:02, so the SEC rate
+# budget is not shared.
+on:
+  schedule:
+    - cron: '11 6 * * *'
+  push:
+    branches: [main, 'claude/**']
+    paths:
+      - scripts/build-domains.mjs
+      - .github/workflows/domains.yml
+  workflow_dispatch:
+    inputs:
+      batch:
+        description: 'Tickers to resolve in this run'
+        type: number
+        default: 1200
+
+concurrency:
+  group: logos
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  domains:
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Resolve company domains
+        run: node scripts/build-domains.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          DOMAINS_BATCH: ${{ inputs.batch || 1200 }}
+      - name: Commit if changed
+        run: |
+          git config user.name 'logos-bot'
+          git config user.email 'actions@github.com'
+          git add client/public/domains.json
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh company domains'
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push && exit 0
+            sleep $((i * 10))
+          done
+          echo "::error::could not push after 4 attempts"; exit 1

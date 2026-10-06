@@ -19,7 +19,6 @@ on:
     branches: [main, 'claude/**']
     paths:
       - scripts/build-logos.mjs
-      - scripts/build-domains.mjs
       - api/_lib/logoScrape.js
       - .github/workflows/logos.yml
   workflow_dispatch:
@@ -57,9 +56,10 @@ jobs:
             echo "a data job is running ($busy) — waiting"; sleep 60
           done
           echo "::warning::data jobs still running after 40 minutes — skipping this week"; exit 1
-      - name: Resolve company domains (SEC, then Finnhub)
+      - name: Top up company domains (the daily domains.yml carries the backlog)
         run: node scripts/build-domains.mjs | tee -a "$GITHUB_STEP_SUMMARY"
         env:
+          DOMAINS_BATCH: '200'
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       - name: Fetch logos

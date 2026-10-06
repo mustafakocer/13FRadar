@@ -2,7 +2,7 @@
 // only images with a 64px shorter side count, favicon-size icons do not.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRobots, robotsAllows, imageInfo, usable, hostOf } from '../api/_lib/logoScrape.js';
+import { parseRobots, robotsAllows, imageInfo, usable, hostOf, rootDomain, sponsorDomain } from '../api/_lib/logoScrape.js';
 
 const png = (w, h) => { const b = Buffer.alloc(33); b.write('\x89PNG\r\n\x1a\n', 0, 'binary'); b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
 const gif = (w, h) => { const b = Buffer.alloc(16); b.write('GIF89a', 0); b.writeUInt16LE(w, 6); b.writeUInt16LE(h, 8); return b; };
@@ -45,4 +45,25 @@ test('hostOf: filing / profile website strings → bare host', () => {
   assert.equal(hostOf(''), null);
   assert.equal(hostOf('n/a'), null, 'no dot is not a host');
   assert.equal(hostOf('mailto:ir@x.com'), null);
+});
+
+test('rootDomain: the brand root, two-level ccTLDs kept', () => {
+  assert.equal(rootDomain('corporate.walmart.com'), 'walmart.com');
+  assert.equal(rootDomain('https://ir.kkr.com/'), 'kkr.com');
+  assert.equal(rootDomain('usa.visa.com'), 'visa.com');
+  assert.equal(rootDomain('mn.my.xcelenergy.com'), 'xcelenergy.com');
+  assert.equal(rootDomain('www.bp.co.uk'), 'bp.co.uk');
+  assert.equal(rootDomain('apple.com'), 'apple.com');
+  assert.equal(rootDomain(''), null);
+});
+
+test('sponsorDomain: ETF / trust issuers map to the sponsor brand', () => {
+  assert.equal(sponsorDomain('ISHARES TR'), 'ishares.com');
+  assert.equal(sponsorDomain('VANGUARD INDEX FDS'), 'vanguard.com');
+  assert.equal(sponsorDomain('STATE STR SPDR S&P 500 ETF'), 'ssga.com');
+  assert.equal(sponsorDomain('SPDR GOLD TR'), 'spdrgoldshares.com');
+  assert.equal(sponsorDomain('SELECT SECTOR SPDR TR'), 'ssga.com');
+  assert.equal(sponsorDomain('INVESCO QQQ TR'), 'invesco.com');
+  assert.equal(sponsorDomain('NVIDIA CORPORATION'), null);
+  assert.equal(sponsorDomain(''), null);
 });

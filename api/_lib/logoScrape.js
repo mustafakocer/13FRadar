@@ -15,6 +15,60 @@ export function hostOf(site) {
   } catch { return null; }
 }
 
+// The brand's registrable domain: "corporate.walmart.com" → "walmart.com",
+// "ir.kkr.com" → "kkr.com", "bp.co.uk" stays — the logo CDN knows brands by
+// their root, not by the investor-relations host a filing happens to list.
+const TWO_LEVEL = /\.(co|com|org|net|ac|gov|edu|or|ne)\.[a-z]{2}$/;
+export function rootDomain(host) {
+  const h = hostOf(host);
+  if (!h) return null;
+  const parts = h.split('.');
+  const keep = TWO_LEVEL.test(h) ? 3 : 2;
+  return parts.slice(-keep).join('.');
+}
+
+// ETFs and trusts file under the sponsor's trust ("ISHARES TR", "VANGUARD
+// INDEX FDS") and the SEC feed carries no website for them; the sponsor's
+// brand is the logo readers expect. Issuer name → domain, first match wins.
+const SPONSORS = [
+  [/\bISHARES\b/, 'ishares.com'],
+  [/\bVANGUARD\b/, 'vanguard.com'],
+  [/\bSPDR GOLD\b/, 'spdrgoldshares.com'],
+  [/\bSPDR\b|\bSTATE STR\b|\bSELECT SECTOR\b|\bSSGA\b/, 'ssga.com'],
+  [/\bINVESCO\b|\bPOWERSHARES\b/, 'invesco.com'],
+  [/\bSCHWAB STRATEGIC\b|\bSCHWAB (?:U S|US) \w+ ETF\b/, 'schwabassetmanagement.com'],
+  [/\bDIMENSIONAL\b/, 'dimensional.com'],
+  [/\bFIRST TR(?:UST)?\b/, 'ftportfolios.com'],
+  [/\bPROSHARES\b/, 'proshares.com'],
+  [/\bDIREXION\b/, 'direxion.com'],
+  [/\bWISDOMTREE\b/, 'wisdomtree.com'],
+  [/\bARK ETF\b|\bARK INVEST\b/, 'ark-funds.com'],
+  [/\bGLOBAL X\b/, 'globalxetfs.com'],
+  [/\bVANECK\b|\bMARKET VECTORS\b/, 'vaneck.com'],
+  [/\bPIMCO\b/, 'pimco.com'],
+  [/\bGRAYSCALE\b/, 'grayscale.com'],
+  [/\bJPMORGAN (?:EXCHANGE|ETF)\b|\bJ P MORGAN EXCHANGE\b/, 'jpmorgan.com'],
+  [/\bGOLDMAN SACHS ETF\b/, 'gsam.com'],
+  [/\bFIDELITY COVINGTON\b|\bFIDELITY .*ETF\b/, 'fidelity.com'],
+  [/\bXTRACKERS\b|\bDWS\b/, 'dws.com'],
+  [/\bPACER\b/, 'paceretfs.com'],
+  [/\bAMPLIFY ETF\b/, 'amplifyetfs.com'],
+  [/\bROUNDHILL\b/, 'roundhillinvestments.com'],
+  [/\bYIELDMAX\b/, 'yieldmaxetfs.com'],
+  [/\bFLEXSHARES\b/, 'flexshares.com'],
+  [/\bALPS ETF\b/, 'alpsfunds.com'],
+  [/\bJANUS (?:HENDERSON|DETROIT)\b/, 'janushenderson.com'],
+  [/\bCAPITAL GROUP\b/, 'capitalgroup.com'],
+  [/\bAVANTIS\b|\bAMERICAN CENT(?:URY|Y) ETF\b/, 'avantisinvestors.com'],
+  [/\bBLACKROCK ETF\b|\bBLACKROCK FDS\b/, 'blackrock.com'],
+];
+export function sponsorDomain(issuer) {
+  const name = String(issuer || '').toUpperCase();
+  if (!name) return null;
+  const hit = SPONSORS.find(([re]) => re.test(name));
+  return hit ? hit[1] : null;
+}
+
 // robots.txt text → the rules for our bot: the FundocapBot group, else *
 export function parseRobots(text) {
   const groups = []; let cur = null;

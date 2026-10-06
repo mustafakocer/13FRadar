@@ -1,33 +1,58 @@
 // Ticker → company web domain, for the logo CDN (TickerLogo.jsx) and as the
 // logo harvest's first source of a company's site (build-logos.mjs).
 //
-//   node scripts/build-domains.mjs            # top up: tickers without a domain
+//   node scripts/build-domains.mjs            # top up: the next batch of unresolved tickers
 //   node scripts/build-domains.mjs --refresh  # redo every ticker
 //
-// Per ticker of client/public/stocks.json (DOMAINS_TOP, default all):
+// The universe is every ticker a page can show, most visible first: the top
+// 500 (client/public/stocks.json), the superinvestor set's stocks
+// (api/_data/guru-stocks.json), the insider feed's companies
+// (api/_data/insiders.json), then the rest of SEC's ticker list
+// (api/_data/company-names.json). Per ticker not yet resolved:
+//   0. an ETF / trust sponsor recognised in the issuer name (no website at
+//      the SEC for those; the sponsor's brand is the logo)
 //   1. SEC company_tickers.json → CIK, then the submissions feed's `website`
 //      (else `investorWebsite`) — free, no key, SEC_USER_AGENT only
 //   2. Finnhub's company profile when SEC has none and FINNHUB_API_KEY is set
 //      (paced at LOGO_FINNHUB_PER_MIN, default 25/min)
-// Output: client/public/domains.json — { updatedAt, tried, ok, domains:
-// { TICKER: "apple.com" } }. A ticker with no domain anywhere is left out and
-// every page keeps its two-letter badge for it.
+// Hosts are reduced to the brand's registrable domain (ir.kkr.com → kkr.com).
+// One run resolves at most DOMAINS_BATCH tickers (default 1200, ~45 min at
+// the SEC's pace), so the backlog fills over a few daily runs and a weekly
+// top-up after that is seconds. A ticker that resolved nowhere is noted in
+// `tried` and not asked again for RETRY_DAYS.
+// Output: client/public/domains.json — { updatedAt, universe, ok, pct,
+// domains: { TICKER: "apple.com" }, tried: { TICKER: iso } }.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import axios from 'axios';
 import { tickerMap } from '../api/_lib/tickers.js';
 import { getSubmissions } from '../api/_lib/sec.js';
-import { hostOf } from '../api/_lib/logoScrape.js';
+import { hostOf, rootDomain, sponsorDomain } from '../api/_lib/logoScrape.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const pub = path.join(here, '..', 'client', 'public');
+const root = path.join(here, '..');
+const pub = path.join(root, 'client', 'public');
+const data = path.join(root, 'api', '_data');
 const outPath = path.join(pub, 'domains.json');
 const refresh = process.argv.includes('--refresh');
-const TOP = Number(process.env.DOMAINS_TOP) || Infinity;
+const BATCH = Number(process.env.DOMAINS_BATCH) || 1200;
+const RETRY_DAYS = 30;
 const PER_MIN = Number(process.env.LOGO_FINNHUB_PER_MIN) || 25;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
+const TICKER = /^[A-Z][A-Z0-9.-]{0,6}$/;
+
+// ---------- the universe: [ticker, issuer name], most visible first ----------
+function universe() {
+  const seen = new Map();
+  const add = (t, name) => { const sym = String(t || '').trim().toUpperCase(); if (TICKER.test(sym) && !seen.has(sym)) seen.set(sym, String(name || '')); };
+  for (const r of readJson(path.join(pub, 'stocks.json'))?.rows || []) add(r.ticker, r.issuer);
+  for (const r of readJson(path.join(data, 'guru-stocks.json'))?.stocks || []) add(r.ticker, r.issuer);
+  for (const [t, name] of Object.entries(readJson(path.join(data, 'insiders.json'))?.companies || {})) add(t, name);
+  for (const [t, name] of Object.entries(readJson(path.join(data, 'company-names.json'))?.names || {})) add(t, name);
+  return [...seen.entries()];
+}
 
 async function fromSec(sym, ciks) {
   const cik = ciks.get(sym) || ciks.get(sym.replace(/[.-]/g, '')) || ciks.get(sym.replace(/\./g, '-'));
@@ -42,31 +67,38 @@ async function fromFinnhub(sym, key) {
 }
 
 async function main() {
-  const stocks = readJson(path.join(pub, 'stocks.json'));
-  const tickers = [...new Set((stocks?.rows || []).map((s) => String(s.ticker || '').trim().toUpperCase()).filter(Boolean))].slice(0, TOP);
-  if (!tickers.length) { console.log('::warning::domains: stocks.json has no tickers'); return; }
-  const prior = refresh ? {} : (readJson(outPath)?.domains || {});
+  const all = universe();
+  if (!all.length) { console.log('::warning::domains: no tickers found in the data files'); return; }
+  const prior = refresh ? null : readJson(outPath);
+  // prior hosts re-normalised: an older manifest may hold ir./corporate. hosts
+  const domains = Object.fromEntries(Object.entries(prior?.domains || {}).map(([t, h]) => [t, rootDomain(h) || h]));
+  const tried = { ...(prior?.tried || {}) };
+  const stale = (t) => !tried[t] || (Date.now() - Date.parse(tried[t])) / 86400000 >= RETRY_DAYS;
+  const todo = all.filter(([t]) => !domains[t] && stale(t)).slice(0, BATCH);
   const ciks = await tickerMap();
   const key = process.env.FINNHUB_API_KEY || '';
-  const domains = {};
-  let kept = 0, sec = 0, fin = 0, none = 0;
-  for (const [i, t] of tickers.entries()) {
-    if (prior[t]) { domains[t] = prior[t]; kept++; continue; }
-    let host = await fromSec(t, ciks);
-    if (host) sec++;
-    else if (key) {
-      const t0 = Date.now();
-      host = await fromFinnhub(t, key).catch(() => null);
-      if (host) fin++;
-      await sleep(Math.max(0, Math.ceil(60000 / PER_MIN) - (Date.now() - t0)));
+  let sponsor = 0, sec = 0, fin = 0, none = 0;
+  for (const [i, [t, name]] of todo.entries()) {
+    let host = sponsorDomain(name);
+    if (host) sponsor++;
+    else {
+      host = rootDomain(await fromSec(t, ciks));
+      if (host) sec++;
+      else if (key) {
+        const t0 = Date.now();
+        host = rootDomain(await fromFinnhub(t, key).catch(() => null));
+        if (host) fin++;
+        await sleep(Math.max(0, Math.ceil(60000 / PER_MIN) - (Date.now() - t0)));
+      }
     }
-    if (host) domains[t] = host; else none++;
-    if ((i + 1) % 100 === 0) console.log(`domains: ${i + 1}/${tickers.length} · ${sec} SEC, ${fin} Finnhub, ${kept} kept, ${none} none`);
+    if (host) { domains[t] = host; delete tried[t]; } else { none++; tried[t] = new Date().toISOString(); }
+    if ((i + 1) % 100 === 0) console.log(`domains: ${i + 1}/${todo.length} · ${sponsor} sponsor, ${sec} SEC, ${fin} Finnhub, ${none} none`);
   }
   const ok = Object.keys(domains).length;
-  fs.writeFileSync(outPath, JSON.stringify({ updatedAt: new Date().toISOString(), tried: tickers.length, ok, pct: Math.round((ok / tickers.length) * 100), domains }));
-  console.log(`domains: ${ok}/${tickers.length} (${Math.round((ok / tickers.length) * 100)}%) · ${sec} from SEC, ${fin} from Finnhub, ${kept} kept, ${none} without a site${key ? '' : ' (FINNHUB_API_KEY not set: SEC only)'}`);
+  const left = all.filter(([t]) => !domains[t] && stale(t)).length;
+  fs.writeFileSync(outPath, JSON.stringify({ updatedAt: new Date().toISOString(), universe: all.length, ok, pct: Math.round((ok / all.length) * 100), backlog: left, domains, tried }));
+  console.log(`domains: ${ok}/${all.length} (${Math.round((ok / all.length) * 100)}%) · this run ${todo.length}: ${sponsor} sponsor, ${sec} SEC, ${fin} Finnhub, ${none} none · ${left} still to try${key ? '' : ' (FINNHUB_API_KEY not set: SEC only)'}`);
 }
 
-// a SEC outage keeps last week's manifest rather than failing the logo job
+// a SEC outage keeps the last manifest rather than failing the job
 try { await main(); } catch (e) { console.log(`::warning::domains: ${e.response?.status || e.code || e.message} — manifest left as is`); }

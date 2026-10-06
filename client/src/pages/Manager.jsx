@@ -11,6 +11,7 @@ import ChartBox from '../components/ChartBox.jsx';
 import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, BacktestChart } from '../components/Charts/index.js';
 import HoldingsTable from '../components/HoldingsTable.jsx';
 import GuruForm4 from '../components/GuruForm4.jsx';
+import PerformanceCard from '../components/PerformanceCard.jsx';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
@@ -176,6 +177,15 @@ export default function Manager({ segment = 'portfolio' }) {
 
   // the fund's own Form 4 lines (10%+ owner trades inside the quarter);
   // empty for most filers, so the card only appears when there are rows
+  // chained 13F portfolio returns vs SPY (nightly; 404 outside the curated set)
+  const perf = useQuery({
+    queryKey: ['guru-performance', cik],
+    queryFn: () => api.guruPerformance(cik),
+    enabled: !!cik && tab === 'history',
+    staleTime: 6 * 60 * 60 * 1000,
+    retry: 0,
+  });
+
   const form4 = useQuery({
     queryKey: ['guru-form4', cik],
     queryFn: () => api.guruForm4(cik),
@@ -309,7 +319,7 @@ export default function Manager({ segment = 'portfolio' }) {
               {secUrl && (
                 <>
                   {' · '}
-                  <a href={secUrl} target="_blank" rel="noopener noreferrer" title={`SEC EDGAR · CIK ${mgr.data.cik}`}>{t('guru.verify')} ↗</a>
+                  <a href={secUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }} title={`SEC EDGAR · CIK ${mgr.data.cik}`}>{t('guru.verify')} ↗</a>
                 </>
               )}
               {managerStyle(mgr.data.cik) && (
@@ -560,6 +570,7 @@ export default function Manager({ segment = 'portfolio' }) {
 
           {tab === 'history' && (
             <>
+              {perf.data && <div style={{ marginBottom: 16 }}><PerformanceCard data={perf.data} /></div>}
               <div className="card">
                 <h3>{t('manager.aumHistory')}</h3>
                 <ChartBox height={260}>

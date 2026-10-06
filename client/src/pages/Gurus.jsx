@@ -13,6 +13,9 @@ import { Compass } from 'lucide-react';
 export default function Gurus() {
   const { t, lang } = useI18n();
   const gurus = useQuery({ queryKey: ['gurus'], queryFn: api.gurus, staleTime: Infinity });
+  // 1Y chained 13F return per guru, for the "best performance" order
+  const perfQ = useQuery({ queryKey: ['guru-performance-list'], queryFn: api.guruPerformanceList, staleTime: 6 * 60 * 60 * 1000, retry: 0 });
+  const perf = useMemo(() => (perfQ.data?.rows ? Object.fromEntries(perfQ.data.rows.map((r) => [r.cik, r])) : null), [perfQ.data]);
   useSeo(
     useMemo(
       () => ({
@@ -38,7 +41,7 @@ export default function Gurus() {
       </div>
       {/* the registry with the home page's category tabs and closed switch;
           the slug table gives each card its canonical URL */}
-      <GuruBrowser variant="cards" pathFor={(g) => (slugByCik.get(g.cik) ? `/guru/${slugByCik.get(g.cik)}` : null)} />
+      <GuruBrowser variant="cards" perf={perf} pathFor={(g) => (slugByCik.get(g.cik) ? `/guru/${slugByCik.get(g.cik)}` : null)} />
       <p className="muted small mt16">
         <Link to="/filers">{t('gurus.allFilers')} →</Link>
       </p>

@@ -16,6 +16,8 @@ export const EVENTS = {
   checkoutComplete: 'checkout_complete',
   watchlistAdd: 'watchlist_add',
   export: 'export',
+  digestOn: 'digest_on',
+  digestOff: 'digest_off',
 };
 
 export function track(name, props) {

@@ -8,7 +8,7 @@ export default function InfoTip({ tip }) {
   const text = t(tip);
   if (!text || text === tip) return null;
   return (
-    <span className="tip" tabIndex={0} aria-label={text}>
+    <span className="tip" tabIndex={0} role="note" aria-label={text}>
       <Ico icon={Info} size={14} /><span className="tip-box">{text}</span>
     </span>
   );

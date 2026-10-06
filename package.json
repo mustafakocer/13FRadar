@@ -16,6 +16,7 @@
     "teaser": "node scripts/build-teaser.mjs",
     "report": "node scripts/build-report.mjs",
     "related": "node scripts/build-related.mjs",
+    "performance": "node scripts/build-guru-performance.mjs",
     "filings": "node scripts/build-filings.mjs",
     "alerts": "node scripts/send-alerts.mjs",
     "backfill": "node scripts/backfill-13f.mjs",

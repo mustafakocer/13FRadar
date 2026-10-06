@@ -71,6 +71,11 @@ export default function Watchlist() {
           {t('watchlist.syncFailed')} <button className="linklike" onClick={clearError}>{t('common.close')}</button>
         </div>
       )}
+      {!signedOut && user && (
+        <p className="muted small" style={{ marginBottom: 4 }} data-digest-hint>
+          <Ico icon={Bell} /> {t('watchlist.digestHint')} <Link to="/account">{t('watchlist.digestLink')} →</Link>
+        </p>
+      )}
       {!favorites.length && !signedOut && <div className="card muted">{t('watchlist.empty')}</div>}
       {favorites.map((f, i) => {
         const latest = infos[i]?.data?.filings?.[0];

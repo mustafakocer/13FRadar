@@ -42,6 +42,18 @@ export default async function handler(req, res) {
   const cleanSearch = qs.toString() ? `?${qs.toString()}` : '';
 
   const { lang, path: bare } = splitLang(pathname);
+  // A file that is not in the build (a manifest the weekly job has not
+  // written yet, a stray /foo.json) reaches the renderer through the
+  // catch-all. Sending it through the language redirect and then rendering
+  // the 404 page as HTML answers a fetch() with a page it cannot parse and
+  // holds a browser's network-idle for the whole round trip. A path with a
+  // file extension is not a page: a plain 404, no redirect, no render.
+  if (/\.[a-z0-9]{1,8}$/i.test(bare) && !/\.html?$/i.test(bare)) {
+    res.statusCode = 404;
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    return res.end('Not found');
+  }
   if (!lang) {
     const pick = preferredLang({
       cookie: cookie(req, 'lang'),

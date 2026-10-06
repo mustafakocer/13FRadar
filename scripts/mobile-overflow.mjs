@@ -77,6 +77,17 @@ let bad = 0;
 for (const vp of VIEWPORTS) {
   const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
+  // The check measures layout, not third parties: a logo CDN, a font host
+  // or an analytics beacon that answers slowly (or not at all on a runner)
+  // would hold `networkidle` past the timeout and fail every page. Anything
+  // off the served origin is answered with an empty 204; an <img> keeps its
+  // box, so the width it is measured at is the width a reader gets.
+  const origin = new URL(BASE).origin;
+  await page.route('**/*', (route) => {
+    const u = route.request().url();
+    if (u.startsWith(origin) || u.startsWith('data:') || u.startsWith('blob:')) return route.continue();
+    return route.fulfill({ status: 204, body: '' });
+  });
   for (const p of PAGES) {
     let r;
     try {

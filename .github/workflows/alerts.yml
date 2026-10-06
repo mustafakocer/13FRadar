@@ -1,18 +1,23 @@
 name: Send alert digests
 
-# E-POSTA UYARILARI 2026-09'DA KALDIRILDI / email alerts removed in 2026-09.
-# The schedule is gone and scripts/send-alerts.mjs stops at its first line
-# ("email alerts are removed"): a hand-run reads nothing, sends nothing and
-# marks nothing as sent. The file stays so the feature can come back — see
-# docs/EMAIL_ALERTS.md for the steps, including how to keep the backlog of
-# old alerts from going out in one burst.
+# The email digest (docs/EMAIL_ALERTS.md): new 13F filings from the funds
+# on a reader's watchlist, Form 4 trades of watched gurus, and saved insider
+# filters — to readers who opted in on the account page. Runs every morning
+# after the nightly data builds; the script decides who is due (daily /
+# weekly) and moves each reader's marks only after a real send.
 on:
+  schedule:
+    - cron: '23 8 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
-        description: 'Match and print without sending'
+        description: 'Match and print (addresses masked) without sending'
         type: boolean
         default: true
+      force:
+        description: 'Ignore the weekly cadence'
+        type: boolean
+        default: false
 
 jobs:
   digest:
@@ -24,23 +29,29 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      # A repository without the service key has nobody to read alerts for.
-      # That is a configuration state, not a failure, so the job says so and
-      # stops rather than going red every morning.
+      # Without the service key there is nobody to read; without the mail key
+      # (on a real run) nothing can be sent. Both are configuration states,
+      # not failures: the job says which is missing and stops green.
       - name: Check configuration
         id: cfg
         env:
           SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAIL_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.ALERT_FROM }}
+          DRY: ${{ github.event.inputs.dry_run }}
         run: |
+          ready=true
           if [ -z "$SERVICE_KEY" ]; then
             echo "SUPABASE_SERVICE_ROLE_KEY not configured — skipping the digest."
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=true" >> "$GITHUB_OUTPUT"
+            ready=false
+          elif [ "$DRY" != "true" ] && { [ -z "$MAIL_KEY" ] || [ -z "$MAIL_FROM" ]; }; then
+            echo "RESEND_API_KEY / ALERT_FROM not configured — nothing can be sent; skipping (run with dry_run to match only)."
+            ready=false
           fi
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
       - name: Send digests
         if: steps.cfg.outputs.ready == 'true'
-        run: node scripts/send-alerts.mjs ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        run: node scripts/send-alerts.mjs ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ github.event.inputs.force == 'true' && '--force' || '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

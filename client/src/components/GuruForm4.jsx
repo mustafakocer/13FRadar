@@ -27,7 +27,7 @@ export default function GuruForm4({ data, limit = 8 }) {
   return (
     <div className="card" style={{ marginBottom: 16 }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8 }}>
-        <h3 style={{ margin: 0 }}><Ico icon={FileText} /> {t('gf4.title')}</h3>
+        <h2 style={{ margin: 0, fontSize: '1.05rem' }}><Ico icon={FileText} /> {t('gf4.title')}</h2>
         <span className="muted small">{t('gf4.sub').replace('{n}', String(data.count))}{rows[0]?.f ? ` · ${t('gf4.lastDay')}: ${shortDay(rows[0].f, lang)}` : ''}</span>
       </div>
       <div className="table-wrap" style={{ marginTop: 8 }}>
@@ -69,7 +69,7 @@ export default function GuruForm4({ data, limit = 8 }) {
                   <td className="num">{r.p != null ? fmtPx(r.p) : '—'}</td>
                   <td className="num">{r.v != null ? fmtMoney(r.v) : '—'}</td>
                   <td className={`num ${deltaClass(r.oc)}`} title={r.o != null ? `${fmtNum(r.o)} ${t('pair.shares').toLowerCase()}` : undefined}>{r.oc != null ? fmtPct(r.oc) : '—'}</td>
-                  <td className="l"><a href={secForm4Url(r.ci, r.a)} target="_blank" rel="noopener noreferrer" className="muted small">Form 4 ↗</a></td>
+                  <td className="l"><a href={secForm4Url(r.ci, r.a)} target="_blank" rel="noopener noreferrer" className="muted small" style={{ textDecoration: 'underline' }}>Form 4 ↗</a></td>
                 </tr>
               );
             })}

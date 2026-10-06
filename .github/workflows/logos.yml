@@ -1,16 +1,29 @@
 name: Stock logos
 
-# Overnight favicon harvest for the top 500 stocks: the company's own site,
-# found through SEC filings — no third-party logo service. Weekly is enough;
-# a logo rarely changes. scripts/build-logos.mjs tops up missing ones and
-# disables the feature (empty manifest) below a 30% success rate.
+# Weekly logo harvest for the top 500 stocks (scripts/build-logos.mjs):
+# the company's own website from its Finnhub profile, then that site's
+# apple-touch-icon / icon / og:image (≥ 64px, robots.txt obeyed), cached in
+# the repo so readers' browsers never call a company's site. Below a 30%
+# success rate the manifest ships empty and the badges stay.
+#
+# It never overlaps the nightly data jobs: Saturday mid-morning (the chain
+# runs 01:23–05:30 UTC, insiders 03:31 and 11:02) and, before fetching, it
+# waits while any data workflow is still running — they share the Finnhub
+# 50/min budget, and this job paces itself at 25/min.
 on:
   schedule:
-    - cron: '41 4 * * 6' # Saturdays 04:41 UTC
+    - cron: '41 7 * * 6' # Saturdays 07:41 UTC
+  # a change to the harvester itself runs once right after it lands
+  push:
+    branches: [main]
+    paths:
+      - scripts/build-logos.mjs
+      - api/_lib/logoScrape.js
+      - .github/workflows/logos.yml
   workflow_dispatch:
     inputs:
       refresh:
-        description: 'Refetch every logo, not just missing ones'
+        description: 'Refetch every logo, not just missing or stale ones'
         type: boolean
         default: false
 
@@ -20,21 +33,32 @@ concurrency:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   logos:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm ci
+      - name: Wait for the data jobs to finish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for i in $(seq 1 40); do
+            busy=$(gh run list --repo "$GITHUB_REPOSITORY" --status in_progress --json workflowName --jq '[.[] | select(.workflowName | test("consensus|universe|insider|FPI|Build"; "i"))] | length')
+            if [ "${busy:-0}" = "0" ]; then echo "no data job running"; exit 0; fi
+            echo "a data job is running ($busy) — waiting"; sleep 60
+          done
+          echo "::warning::data jobs still running after 40 minutes — skipping this week"; exit 1
       - name: Fetch logos
         run: node scripts/build-logos.mjs ${{ inputs.refresh == true && '--refresh' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
         env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       - name: Commit if changed
         run: |
           git config user.name 'logos-bot'

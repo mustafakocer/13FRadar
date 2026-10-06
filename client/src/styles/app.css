@@ -162,6 +162,8 @@ img.tlogo { background: #fff; border: 1px solid var(--border); padding: 2px; box
 /* ticker + logo as one unit: no wrap between them, aligned on the text line */
 .tk-cell { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; vertical-align: middle; }
 .tk-cell .tlogo { vertical-align: 0; }
+/* page title: the logo sits on the text's centre line, radius scaled up */
+.page-head h1 .tlogo { vertical-align: -10px; border-radius: 10px; margin-right: 2px; }
 /* list rows (position cards, signal boards): the logo leads the row */
 .pos-row .tk-cell { gap: 9px; }
 

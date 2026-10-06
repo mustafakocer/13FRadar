@@ -18,7 +18,7 @@
 //      The same size rule applies, so their "unknown site" placeholder
 //      (16px) never passes. LOGO_FALLBACK=0 turns this step off.
 // Output: client/public/logos/{TICKER}.{ext} + client/public/logos.json
-// (tried, ok, pct, bytes, per-source counts). Below 30% success the
+// (tried, ok, pct, bytes, per-source counts). Below 10% success the
 // manifest ships empty (`disabled: true`) and every page keeps the badge.
 import fs from 'node:fs';
 import path from 'node:path';
@@ -33,7 +33,9 @@ const manifestPath = path.join(pub, 'logos.json');
 const refresh = process.argv.includes('--refresh');
 
 const TOP = Number(process.env.LOGOS_TOP) || 500;
-const MIN_PCT = 30;
+// Below this the set is too patchy to be worth shipping; above it, a logo
+// where we have one and the badge elsewhere reads fine side by side.
+const MIN_PCT = 10;
 const MAX_BYTES = 150 * 1024;
 const STALE_DAYS = 60;
 const PER_MIN = Number(process.env.LOGO_FINNHUB_PER_MIN) || 25;

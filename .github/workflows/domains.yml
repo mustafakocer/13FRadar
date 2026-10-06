@@ -3,12 +3,13 @@ name: Company domains
 # Daily top-up of the ticker → domain manifest (scripts/build-domains.mjs)
 # behind the stock logos: SEC-sourced, no key, at most DOMAINS_BATCH tickers
 # per run so the backlog of every ticker a page can show fills over a few
-# days and later runs finish in seconds. 06:11 UTC: after the nightly data
-# chain (01:23–05:30) and before the insider run at 11:02, so the SEC rate
-# budget is not shared.
+# days and later runs finish in seconds. Three times a day while the
+# backlog lasts — 06:11, 14:11, 22:11 UTC — each clear of the nightly data
+# chain (01:23–05:30) and the insider runs (03:31, 11:02), so the SEC rate
+# budget is not shared. Once caught up each run is a few seconds.
 on:
   schedule:
-    - cron: '11 6 * * *'
+    - cron: '11 6,14,22 * * *'
   push:
     branches: [main, 'claude/**']
     paths:

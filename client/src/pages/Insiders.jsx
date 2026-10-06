@@ -411,7 +411,7 @@ export default function Insiders() {
           {stats?.signals?.map((s) => (
             <div className="pos-row" key={`${s.ticker}-${s.kind}`}>
               <div>
-                <Link to={`/stock/${s.ticker}`} style={{ fontWeight: 700 }}>{s.ticker}</Link>
+                <Link to={`/stock/${s.ticker}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={s.ticker} size={18} /> {s.ticker}</Link>
                 <div className="muted small">
                   {s.level && s.level !== 'none' && <span className={`badge sm ${LEVEL_CLASS[s.level]}`} style={{ marginRight: 4 }} title={t('ins.levelDisclaimer')}>{t(`ins.level.${s.level}`)}</span>}
                   {t(`ins.signal.${s.kind}`)}
@@ -437,7 +437,7 @@ export default function Insiders() {
           {(topSide === 'buys' ? stats?.topBuys : stats?.topSells)?.map((r, i) => (
             <div className="pos-row" key={`${r.ticker}-${i}`}>
               <div style={{ minWidth: 0 }}>
-                <Link to={`/stock/${r.ticker}`} style={{ fontWeight: 700 }}>{r.ticker}</Link>{' '}
+                <Link to={`/stock/${r.ticker}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link>{' '}
                 <span className="muted small">{r.insider}</span>
                 <div className={`small ${topSide === 'buys' ? 'delta-pos' : 'delta-neg'}`}>
                   {topSide === 'buys' ? '+' : '−'}{fmtMoney(Math.abs(r.value || 0))} · {t('ins.avg')} {fmtNum(r.price, 2)}

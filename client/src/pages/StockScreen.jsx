@@ -12,6 +12,7 @@ import FilterSelect from '../components/FilterSelect.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { Disclaimer } from '../components/Faq.jsx';
 import Ico from '../components/Ico.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import { Search } from 'lucide-react';
 
 const CAPS = ['mega', 'large', 'mid', 'small', 'micro'];
@@ -165,7 +166,7 @@ export default function StockScreen() {
                       <td className="l muted">{r.rank}</td>
                       <td className="l">
                         {r.ticker ? (
-                          <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }}>{r.ticker}</Link>
+                          <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link>
                         ) : (
                           <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
                         )}

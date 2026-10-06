@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import Logo from './Logo.jsx';
+import { cdnEnabled } from './TickerLogo.jsx';
 import { LEGAL } from '../content/registry.js';
 import { CONTACT_EMAIL } from '../content/legal.js';
 import { useSplitsStatus } from '../hooks/useSplitsStatus.js';
@@ -73,6 +74,7 @@ export default function Footer() {
         <Logo size={18} /> <span>Fundo<span className="dot">cap</span></span>
       </div>
       <p className="muted small">{t('footer.disclaimer')}</p>
+      {cdnEnabled() && <p className="muted small">{t('footer.logos')} <a href="https://brandfetch.com" rel="noopener nofollow" target="_blank">Brandfetch</a></p>}
       <p className="muted small">{t('footer.sources')}</p>
       {splitsDate && <p className="muted small" data-splits-date={splitsDay}>{t('footer.splits').replace('{d}', splitsDate)}</p>}
       <p className="muted small">© {new Date().getFullYear()} Fundocap</p>

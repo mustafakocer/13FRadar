@@ -3,6 +3,18 @@
 // usable as a logo. No network here, so tests can cover the rules.
 export const MIN_SIDE = 64;
 
+// A company's website as written in a filing or a profile ("www.apple.com",
+// "https://investor.x.com/", "apple.com") → its bare host for the logo CDN
+// and the domain manifest; junk (empty, no dot, a mailto) → null.
+export function hostOf(site) {
+  const s = String(site || '').trim();
+  if (!s || /^mailto:/i.test(s)) return null;
+  try {
+    const host = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`).hostname.toLowerCase().replace(/^www\./, '').replace(/\.$/, '');
+    return /^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(host) ? host : null;
+  } catch { return null; }
+}
+
 // robots.txt text → the rules for our bot: the FundocapBot group, else *
 export function parseRobots(text) {
   const groups = []; let cur = null;

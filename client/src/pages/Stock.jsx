@@ -172,7 +172,7 @@ export default function Stock() {
       <div className="page-head">
         <div>
           <h1>
-            <TickerLogo ticker={sym} size={28} /> {p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span>
+            <TickerLogo ticker={sym} size={40} /> {p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span>
           </h1>
           <div className="row mt8">
             <span className="price-big">

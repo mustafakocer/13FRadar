@@ -13,6 +13,7 @@ import AnswerBox from '../components/AnswerBox.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import Ico from '../components/Ico.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import { Gem, Users, Sparkles, TriangleAlert } from 'lucide-react';
 
 // /insiders/penny — Penny Stock Insider Gems.
@@ -56,7 +57,7 @@ function Row({ r, cols, t }) {
     <tr>
       <td className="l">
         <div className="ins-tick">
-          <Link to={`/stock/${r.t}`}>{r.t}</Link>
+          <Link to={`/stock/${r.t}`} className="tk-cell"><TickerLogo ticker={r.t} size={18} /> {r.t}</Link>
         </div>
         <div className="muted small ins-co">
           <CompanyName name={r.c} />
@@ -307,7 +308,7 @@ export default function PennyStocks() {
           {board?.signals?.map((s) => (
             <div className="pos-row" key={`${s.t}-${s.kind}`}>
               <div style={{ minWidth: 0 }}>
-                <Link to={`/stock/${s.t}`} style={{ fontWeight: 700 }}>{s.t}</Link>
+                <Link to={`/stock/${s.t}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={s.t} size={18} /> {s.t}</Link>
                 <div className="muted small">
                   {t(`ins.signal.${s.kind}`)}
                   {s.kind === 'cluster' ? ` (${s.ins})` : ''} · {t('ins.cost')} {money2(s.p)}
@@ -333,7 +334,7 @@ export default function PennyStocks() {
           {top?.map((r) => (
             <div className="pos-row" key={`${r.t}-${r.n}-${r.d}`}>
               <div style={{ minWidth: 0 }}>
-                <Link to={`/stock/${r.t}`} style={{ fontWeight: 700 }}>{r.t}</Link>{' '}
+                <Link to={`/stock/${r.t}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={r.t} size={18} /> {r.t}</Link>{' '}
                 <span className="muted small">{r.n}</span>
                 <div className={`small ${side === 'buys' ? 'delta-pos' : 'delta-neg'}`}>
                   {fmtMoney(r.v)} · {t('ins.avg')} {money2(r.p)}

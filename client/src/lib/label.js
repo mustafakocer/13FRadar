@@ -23,6 +23,43 @@ function titleWord(w) {
   return w.toLowerCase().replace(/(^|[-/'.(])([a-z])/g, (_, p, c) => p + c.toUpperCase());
 }
 
+// small words that stay lower case inside a name: "Bank of America"
+const SMALL = new Set(['OF', 'AND', 'THE', 'DE', 'DEL', 'LA', 'DA', 'DI', 'Y', 'EN', 'FOR']);
+// registry abbreviations spelled out
+const ABBR = { FINL: 'Financial', PETE: 'Petroleum', PHARMS: 'Pharmaceuticals', SVCS: 'Services', MTRS: 'Motors', HLTH: 'Health', INDS: 'Industries', ELEC: 'Electric', AMER: 'American' };
+// brands whose spelling the registry flattens; matched on the all-caps name's start
+const BRAND = [
+  ['COCA COLA', 'Coca-Cola'], ['BANK OF AMER', 'Bank of America'], ['JPMORGAN CHASE', 'JPMorgan Chase'], ['MCDONALDS', "McDonald's"],
+  ['PEPSICO', 'PepsiCo'], ['EBAY', 'eBay'], ['UNITEDHEALTH', 'UnitedHealth'], ['NVIDIA', 'NVIDIA'], ['AMAZON COM', 'Amazon'],
+  ['ABBVIE', 'AbbVie'], ['PAYPAL', 'PayPal'], ['SERVICENOW', 'ServiceNow'], ['GAMESTOP', 'GameStop'], ['DOORDASH', 'DoorDash'],
+  ['LOWES', "Lowe's"], ['KOHLS', "Kohl's"], ['MACYS', "Macy's"], ['MASTERCARD', 'Mastercard'], ['LULULEMON', 'Lululemon'],
+  ['BLACKROCK', 'BlackRock'], ['BIONTECH', 'BioNTech'], ['GLAXOSMITHKLINE', 'GlaxoSmithKline'], ['ASTRAZENECA', 'AstraZeneca'],
+  ['EXXON MOBIL', 'Exxon Mobil'], ['INTL BUSINESS MACHINES', 'IBM'], ['WALMART', 'Walmart'], ['SALESFORCE', 'Salesforce'], ['ALIBABA GROUP', 'Alibaba'], ['LINDE', 'Linde'], ['O REILLY AUTOMOTIVE', "O'Reilly Automotive"],
+];
+// "FULLER H B CO" → "H.B. Fuller Co": one or two single letters after the
+// surname are initials that belong in front
+function initialsFirst(words) {
+  const isInitial = (w) => /^[A-Z]$/.test(w);
+  // already in front: "D R HORTON INC" → "D.R. Horton Inc"
+  if (isInitial(words[0]) && isInitial(words[1] || '') && words[2] && !isInitial(words[2])) return [`${words[0]}.${words[1]}.`, ...words.slice(2)];
+  if (words.length < 2 || !isInitial(words[1])) return words;
+  const n = isInitial(words[2] || '') ? 2 : 1;
+  const rest = words.slice(1 + n);
+  if (rest.length && !TAIL_NOISE.has(rest[0])) return words;
+  return [`${words.slice(1, 1 + n).join('.')}.`, words[0], ...rest];
+}
+function capsToTitle(s) {
+  const brand = BRAND.find(([k]) => s === k || s.startsWith(`${k} `));
+  let words = (brand ? s.slice(brand[0].length).trim() : s).split(' ').filter(Boolean);
+  words = initialsFirst(words).map((w, i) => {
+    const bare = w.replace(/[^A-Z0-9&]/g, '');
+    if (ABBR[bare]) return ABBR[bare];
+    if (i > 0 && SMALL.has(bare)) return w.toLowerCase();
+    return /^[A-Z]\.([A-Z]\.)*$/.test(w) ? w : titleWord(w);
+  });
+  return [brand ? brand[1] : null, ...words].filter(Boolean).join(' ');
+}
+
 // Registry name → readable full name: EDGAR suffixes off, all-caps names in
 // title case, a name that already carries lower case left as is.
 export function prettyName(raw) {
@@ -30,10 +67,15 @@ export function prettyName(raw) {
   if (!s) return '';
   // EDGAR's state suffixes: "CATERPILLAR INC /DE/", "XYZ CORP \NEW\"
   s = s.replace(/\s*[/\\][A-Z]{2,3}[/\\]?\s*$/i, '').replace(/\s*[/\\]NEW[/\\]?\s*$/i, '').trim();
-  if (/[a-z]/.test(s)) return s;
+  const upper = (s.match(/[A-Z]/g) || []).length;
+  const lower = (s.match(/[a-z]/g) || []).length;
+  // a name that already carries real lower case is left as it is; a mostly
+  // upper-case one ("ELI LILLY & Co") is a registry name
+  if (lower > 0 && lower * 2 >= upper) return s;
+  s = s.toUpperCase();
   // bare registry tails on all-caps names: "BERKSHIRE HATHAWAY INC DEL"
   s = s.replace(/\s+(DEL|NEW)$/, '');
-  return s.split(' ').map(titleWord).join(' ');
+  return capsToTitle(s);
 }
 
 // trailing words the short display form drops; the full name keeps them
@@ -79,4 +121,29 @@ export function securityLabel({ ticker, issuer, cusip } = {}) {
   if (ticker) return { text: ticker, isTicker: true, title: cusip || '' };
   const name = shortIssuer(issuer);
   return { text: name || cusip || '—', isTicker: false, title: [issuer, cusip].filter(Boolean).join(' · ') };
+}
+
+// Form 4 names arrive surname first ("COHEN RYAN", "MURDOCH LACHLAN K",
+// "O'BRIEN DEIRDRE"); readers expect "Ryan Cohen". A single middle initial
+// gets its period; generational suffixes stay at the end.
+const SUFFIX = new Set(['JR', 'SR', 'II', 'III', 'IV', 'MD', 'PHD', 'ESQ', 'CPA']);
+const capWord = (w) =>
+  w
+    .toLowerCase()
+    .replace(/(^|[-'’])([a-z])/g, (_, p, c) => p + c.toUpperCase())
+    .replace(/^Mc([a-z])/, (_, c) => `Mc${c.toUpperCase()}`);
+export function personName(raw) {
+  let s = String(raw || '').replace(/\s+/g, ' ').trim();
+  if (!s) return '';
+  if (s.includes(',')) {
+    const [last, first] = s.split(',').map((x) => x.trim());
+    s = `${last} ${first || ''}`.trim();
+  }
+  const words = s.split(' ');
+  if (words.length < 2) return capWord(s);
+  const suffix = [];
+  while (words.length > 2 && SUFFIX.has(words[words.length - 1].replace(/\./g, '').toUpperCase())) suffix.unshift(words.pop());
+  const [last, ...given] = words;
+  const parts = given.map((w) => (/^[A-Za-z]$/.test(w) ? `${w.toUpperCase()}.` : capWord(w)));
+  return [...parts, capWord(last), ...suffix.map((x) => capWord(x.replace(/\./g, '')) + (x.length <= 3 ? '.' : ''))].join(' ').replace(/\bIi\b/g, 'II').replace(/\bIii\b/g, 'III');
 }

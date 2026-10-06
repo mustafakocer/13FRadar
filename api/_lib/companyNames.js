@@ -25,33 +25,10 @@ const load = (rel, override) => {
   }
 };
 
-// words that stay upper case: legal forms, roman numerals, common acronyms
-const KEEP_UPPER = new Set([
-  'AB', 'ADR', 'ADS', 'AG', 'AS', 'ASA', 'BV', 'ETF', 'ETN', 'II', 'III', 'IV', 'IX', 'KGAA', 'LLC', 'LP', 'LLP', 'NA', 'NV', 'PLC',
-  'REIT', 'SA', 'SAB', 'SE', 'SPA', 'SPDR', 'UK', 'US', 'USA', 'VI', 'VII', 'VIII', 'XL',
-]);
-// abbreviations with vowels removed that read as words in title case
-const TITLE_ABBR = new Set(['LTD', 'CORP', 'CO', 'INC', 'HLDGS', 'HLDG', 'GRP', 'INTL', 'TR', 'MFG', 'BK', 'BANCORP', 'FINL', 'SVCS', 'TECH', 'PPTYS', 'CL', 'CTR', 'DEV', 'NATL']);
-
-function titleWord(w) {
-  const bare = w.replace(/[^A-Z0-9&]/g, '');
-  if (!bare) return w;
-  if (/\d/.test(bare) || KEEP_UPPER.has(bare)) return w;
-  // vowel-less short words are tickers or initials (CVS, PNC, TJX, JPM), but
-  // the usual abbreviations (LTD, CORP) read as words
-  if (!TITLE_ABBR.has(bare) && bare.length <= 4 && !/[AEIOUY]/.test(bare)) return w;
-  // each part of a hyphenated or slashed word: COCA-COLA → Coca-Cola
-  return w.toLowerCase().replace(/(^|[-/'.(])([a-z])/g, (_, p, c) => p + c.toUpperCase());
-}
-
-export function displayName(raw) {
-  let s = String(raw || '').replace(/\s+/g, ' ').trim();
-  if (!s) return null;
-  // EDGAR's state suffixes: "CATERPILLAR INC /DE/", "XYZ CORP \NEW\"
-  s = s.replace(/\s*[/\\][A-Z]{2,3}[/\\]?\s*$/i, '').replace(/\s*[/\\]NEW[/\\]?\s*$/i, '').trim();
-  if (/[a-z]/.test(s)) return s;
-  return s.split(' ').map(titleWord).join(' ');
-}
+// One casing rule for server and client: the client's label.js (the SSR
+// bundle and the browser print the same name).
+import { prettyName } from '../../client/src/lib/label.js';
+export const displayName = (raw) => prettyName(raw) || null;
 
 let sec;
 let meta;

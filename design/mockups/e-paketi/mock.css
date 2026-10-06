@@ -135,7 +135,7 @@ button, input, select { font: inherit; color: inherit; }
 .vbar:hover i { background: var(--accent-hover); }
 .vbar span { font-size: 11px; color: var(--text-3); }
 .vbar em { font-style: normal; font-size: 11px; font-weight: 700; color: var(--text-2); }
-.line { width: 100%; height: auto; display: block; } .line path { fill: none; stroke: var(--accent); stroke-width: 2; } .line circle { fill: var(--accent); }
+.line { width: 100%; height: auto; display: block; } .line path { fill: none; stroke: var(--accent); stroke-width: 2; } .line circle { fill: var(--accent); } .line .ax { font: 11px var(--font); fill: var(--text-2); }
 
 /* ---- kim tutuyor ---- */
 .holders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
@@ -162,7 +162,7 @@ body.mobile .main { padding: 0 14px calc(76px + env(safe-area-inset-bottom)); }
 .chipnav { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 10px; scrollbar-width: none; }
 .chipnav a { flex: none; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border); font-size: 13px; font-weight: 700; color: var(--text-2); background: var(--card); }
 .chipnav a.on { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--text); border-color: transparent; }
-body.mobile .fundhead { gap: 12px; } body.mobile .summary { font-size: 14.5px; padding: 12px 14px; }
+body.mobile .fundhead { gap: 12px; } body.mobile .fundhead h1 { font-size: 20px; line-height: 1.2; } body.mobile .summary { font-size: 14.5px; padding: 12px 14px; }
 body.mobile .kpis.two .kpi > b { font-size: 20px; } body.mobile .card { padding: 14px; }
 body.mobile .qgrid { grid-template-columns: 1fr 1fr; } body.mobile .qcard li { font-size: 13px; }
 .rows { display: flex; flex-direction: column; }

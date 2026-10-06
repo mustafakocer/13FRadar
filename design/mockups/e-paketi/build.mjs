@@ -9,7 +9,9 @@ import { nextDeadline } from '../../../api/_lib/calendar.js';
 import { readSeries } from '../../../api/_lib/priceStore.js';
 import { closeOn } from '../../../api/_lib/valueUnits.js';
 import { periodReturns } from '../../../api/_handlers/perf.js';
-import { displayCompany } from '../../../client/src/lib/label.js';
+import { displayCompany, personName } from '../../../client/src/lib/label.js';
+import { guruHistory } from '../../../api/_lib/history.js';
+import { changesFromHistory, historyBooks } from '../../../api/_lib/holdingsChanges.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '../../..');
@@ -72,13 +74,11 @@ const prevQ = brkQ[brkQ.length - 2];
 const lastQ = brkQ[brkQ.length - 1];
 const aum8 = brkQ.slice(-8);
 const changeOf = (cusip) => {
-  const s = brkPos[cusip]?.series || [];
-  const cur = s.find((r) => r[0] === lastQ.reportDate);
-  const prev = s.find((r) => r[0] === prevQ.reportDate);
-  if (!cur) return null;
-  if (!prev) return { kind: 'new' };
-  const d = ((cur[1] - prev[1]) / prev[1]) * 100;
-  return { kind: Math.abs(d) < 0.05 ? 'same' : d > 0 ? 'add' : 'reduce', d };
+  const find = (list) => list.find((x) => x.cusip === cusip);
+  if (find(CH.new)) return { kind: 'new' };
+  const a = find(CH.added); if (a) return { kind: 'add', d: a.pct };
+  const r = find(CH.reduced); if (r) return { kind: 'reduce', d: r.pct };
+  return { kind: 'same' };
 };
 const heldLabel = (cusip) => {
   const p = brkPos[cusip];
@@ -93,7 +93,14 @@ const sinceReport = (t) => {
   const last = readSeries(t)?.prices?.at(-1)?.close;
   return qe > 0 && last > 0 ? ((last - qe) / qe) * 100 : null;
 };
-const positions = brk.top.map((p) => ({ ...p, t: cusips[p.cusip] || null }));
+// the full book (all 29 lines) from the guru history — latest-holdings keeps
+// the top ten only — and the quarter's changes from the same library the
+// live fund page uses (/api/changes → holdingsChanges → portfolioChanges)
+const books = historyBooks(guruHistory(BRK), brk.reportDate);
+const positions = [...books.current].sort((a, b) => b.value - a.value).map((p) => ({ ...p, t: p.ticker || cusips[p.cusip] || null }));
+const changes = changesFromHistory(guruHistory(BRK), brk.reportDate);
+const byAbs = (list) => [...list].sort((a, b) => Math.abs(b.value - (b.prevValue || 0)) - Math.abs(a.value - (a.prevValue || 0)));
+const CH = { new: byAbs(changes.new), added: byAbs(changes.added), reduced: byAbs(changes.reduced), exited: byAbs(changes.exited) };
 const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
 let w = 0, r = 0;
 for (const p of positions.slice(0, 50)) { const rr = p.t && returns[p.t]?.ret1y; if (rr != null) { w += p.weight; r += p.weight * rr; } }
@@ -104,9 +111,9 @@ for (const p of positions) { const s = meta[p.t]?.sector || 'Diğer'; sectors[s]
 const sectorRows = Object.entries(sectors).sort((a, b) => b[1] - a[1]);
 const sec4 = sectorRows.slice(0, 4); const secOther = sectorRows.slice(4).reduce((s, x) => s + x[1], 0);
 const SECTOR_TR = { Technology: 'Teknoloji', 'Financial Services': 'Finans', 'Consumer Defensive': 'Temel Tüketim', Energy: 'Enerji', 'Communication Services': 'İletişim', Healthcare: 'Sağlık', Industrials: 'Sanayi', 'Consumer Cyclical': 'Tüketim', 'Basic Materials': 'Hammadde', Utilities: 'Kamu Hizmeti', 'Real Estate': 'Gayrimenkul', Diğer: 'Diğer' };
-const biggestAdd = [...brkUpd.adds].sort((a, b) => b.value - a.value)[0];
-const biggestExit = brkUpd.exits[0];
-const biggestReduce = [...brkUpd.reduces].sort((a, b) => b.value - a.value)[0];
+const biggestAdd = { ...CH.added[0], change: CH.added[0].pct };
+const biggestExit = CH.exited[0];
+const biggestReduce = { ...CH.reduced[0], change: CH.reduced[0].pct };
 
 // ---------- veri: AAPL ----------
 const aapl = consensus.mostHeld.find((m) => m.ticker === 'AAPL');
@@ -117,7 +124,15 @@ const aaplFun = fund.AAPL, aaplMeta = meta.AAPL;
 const tryRate = fpi.rates.TRY.at(-1); // [date, usd per TRY]
 const usdTry = 1 / tryRate[1];
 const holders3 = [...aapl.holders].sort((a, b) => b.weight - a.weight).slice(0, 3);
-const aaplIns = insiders.rows.filter((x) => x.t === 'AAPL' && x.d >= '2025-10-06').sort((a, b) => b.d.localeCompare(a.d)).slice(0, 6);
+// one line per person, day and kind: lots summed, price share-weighted
+const lots = new Map();
+for (const x of insiders.rows.filter((x) => x.t === 'AAPL' && x.d >= '2025-10-06')) {
+  const k = `${x.n}|${x.d}|${x.k}`;
+  const m = lots.get(k) || { ...x, s: 0, v: 0, lots: 0, pv: 0 };
+  m.s += x.s || 0; m.v += x.v || 0; m.pv += (x.p || 0) * (x.s || 0); m.lots += 1;
+  lots.set(k, m);
+}
+const aaplIns = [...lots.values()].map((m) => ({ ...m, p: m.s ? m.pv / m.s : m.p })).sort((a, b) => b.d.localeCompare(a.d) || b.v - a.v).slice(0, 6);
 const year = aaplSeries.prices.filter((p) => p.date >= '2025-10-06');
 
 // ---------- veri: Bugün ----------
@@ -213,7 +228,7 @@ ${topbar('Bugün', `son veri: ${dayShort(lastDay)} · güncelleme ${dayShort(sum
   <div class="kpi"><div class="lbl">Yönetici işlemleri · ${dayShort(lastDay)}</div>
     <div class="two"><div><b class="up">${num(pulse.buyCount)} alım</b><span>${money(pulse.buyValue)}</span></div><div><b class="down">${num(pulse.sellCount)} satış</b><span>${money(pulse.sellValue)}</span></div></div>
     <div class="sub">Alımlar ${pct(buyShare, 1, false)} · yöneticiler net ${buyShare >= 50 ? 'alıcı' : 'satıcı'}</div></div>
-  <div class="kpi"><div class="lbl">Yeni 13F bildirimi · ${dayShort(lastFilingDay)}</div><b>${num(dayRows.length)}</b><div class="sub">${amendedN} düzeltme · ${newQ} yeni çeyrek (${q('2026-09-30')})</div></div>
+  <div class="kpi"><div class="lbl">Yeni 13F bildirimi · ${dayShort(lastFilingDay)}</div><b>${num(dayRows.length)}</b><div class="sub">${newQ} yeni çeyrek (${q('2026-09-30')}) · ${amendedN} düzeltme${dayRows.length - newQ - amendedN ? ` · ${dayRows.length - newQ - amendedN} önceki dönem` : ''}</div></div>
   <div class="kpi"><div class="lbl">Takip listem</div><b>${watch.length} fon</b><div class="sub">Bu hafta bildirim yapan yok · son: ${dayShort(watch[0].filed)}</div></div>
   <div class="kpi"><div class="lbl">Sıradaki 13F son tarihi</div><b>${day(dl.deadline)}</b><div class="sub">${dl.quarter.replace(/Q(\d) (\d+)/, '$2 Q$1')} bildirimleri · ${daysTo(dl.deadline)} gün kaldı</div></div>
 </section>
@@ -238,7 +253,7 @@ ${topbar('Bugün', `son veri: ${dayShort(lastDay)} · güncelleme ${dayShort(sum
       <thead><tr><th>Hisse</th><th>Kim aldı</th><th class="r">Tutar</th><th class="r">Alımdan bu yana</th><th></th></tr></thead>
       <tbody>
         ${cluster.map((c) => `<tr><td><div class="sym">${logo(c.t)}<div><b>${c.t}</b><span>${esc(coName(c.t, c.c))}</span></div><span class="chip new">Küme alımı · ${c.insiders} yönetici</span></div></td><td><span class="role">Yön. Kurulu ×${c.insiders}</span></td><td class="r">${money(c.v)}</td><td class="r ${cls(c.ret)}">${pct(c.ret)}</td><td class="r"><a href="/stock/${c.t}">Detay ›</a></td></tr>`).join('\n        ')}
-        ${csuite.map((c) => `<tr><td><div class="sym">${logo(c.t)}<div><b>${c.t}</b><span>${esc(coName(c.t, c.c))}</span></div></div></td><td><span class="role ${c.r}">${ROLE[c.r] || c.r}</span> <span class="muted small">${esc(c.n.split(' ').map((w) => w[0] + w.slice(1).toLowerCase()).join(' '))}</span></td><td class="r">${money(c.v)}</td><td class="r ${cls(c.ret)}">${pct(c.ret)}</td><td class="r"><a href="/stock/${c.t}">Detay ›</a></td></tr>`).join('\n        ')}
+        ${csuite.map((c) => `<tr><td><div class="sym">${logo(c.t)}<div><b>${c.t}</b><span>${esc(coName(c.t, c.c))}</span></div></div></td><td><span class="role ${c.r}">${ROLE[c.r] || c.r}</span> <span class="muted small">${esc(personName(c.n))}</span></td><td class="r">${money(c.v)}</td><td class="r ${cls(c.ret)}">${pct(c.ret)}</td><td class="r"><a href="/stock/${c.t}">Detay ›</a></td></tr>`).join('\n        ')}
       </tbody>
     </table>
   </section>
@@ -281,7 +296,7 @@ const posRow = (p, i) => {
   const sr = sinceReport(p.t);
   return `<tr><td class="muted">${i + 1}</td><td><div class="sym">${logo(p.t || '?')}<div><b>${p.t || '—'}</b><span>${esc(coName(p.t, p.issuer))}</span></div></div></td><td class="r">${money(p.value)}</td><td class="r"><div class="wbar"><span>${pct(p.weight, 1, false)}</span><i style="width:${Math.min(100, (p.weight / positions[0].weight) * 100)}%"></i></div></td><td class="r">${chg(p)}</td><td class="r ${cls(sr)}">${pct(sr)}</td><td class="r muted">${heldLabel(p.cusip)}</td><td class="r">${num(p.shares)}</td></tr>`;
 };
-const cardList = (title, kind, rows, fmt) => `<article class="qcard ${kind}"><div class="lbl">${title} · ${rows.length}</div>${rows.length ? `<ul>${rows.slice(0, 3).map((x) => `<li>${logo(x.ticker || '?', 20)}<b>${x.ticker || coName(null, x.issuer)}</b><span>${fmt(x)}</span></li>`).join('')}</ul>${rows.length > 3 ? `<a href="#" class="small">+ ${rows.slice(3).map((x) => x.ticker).join(', ')}</a>` : ''}` : '<p class="muted small">Bu çeyrek yok</p>'}</article>`;
+const cardList = (title, kind, rows, fmt) => `<article class="qcard ${kind}"><div class="lbl">${title} · ${rows.length}</div>${rows.length ? `<ul>${rows.slice(0, 3).map((x) => `<li>${logo(x.ticker || '?', 20)}<b>${x.ticker || coName(null, x.issuer)}</b><span>${fmt(x)}</span></li>`).join('')}</ul>${rows.length > 3 ? `<a href="#" class="small" title="Tam liste">+ ${rows.slice(3).map((x) => x.ticker || coName(null, x.issuer)).join(', ')}</a>` : ''}` : '<p class="muted small">Bu çeyrek yok</p>'}</article>`;
 const maxAum = Math.max(...aum8.map((x) => x.aum));
 const fonBody = `
 ${topbar('Berkshire Hathaway', `${q(brk.reportDate)} bildirimi · son veri: ${dayShort(lastDay)}`, '<button class="btn ghost">☆ Takip et</button><button class="btn ghost">Excel</button><select class="btn ghost" aria-label="Çeyrek"><option>2026 Q2</option><option>2026 Q1</option><option>2025 Q4</option></select>')}
@@ -298,17 +313,17 @@ ${topbar('Berkshire Hathaway', `${q(brk.reportDate)} bildirimi · son veri: ${da
 </section>
 <section class="kpis four">
   <div class="kpi"><div class="lbl">Portföy büyüklüğü</div><b>${money(brk.aum)}</b><div class="sub ${cls(aumQoq)}">${pct(aumQoq)} 3 aylık</div><p class="desc">Fonun SEC'e bildirdiği ABD hisselerinin toplam değeri.</p></div>
-  <div class="kpi"><div class="lbl">Pozisyon</div><b>${brk.count}</b><div class="sub">${lastQ.newCount} yeni · ${lastQ.exitCount} çıkış</div><p class="desc">Bu çeyrek tutulan farklı hisse sayısı.</p></div>
+  <div class="kpi"><div class="lbl">Pozisyon</div><b>${brk.count}</b><div class="sub">${CH.new.length} yeni · ${CH.exited.length} çıkış</div><p class="desc">Bu çeyrek tutulan farklı hisse sayısı.</p></div>
   <div class="kpi"><div class="lbl">İlk 10 hissenin payı</div><b>${pct(top10, 1, false)}</b><div class="sub">çok odaklı portföy</div><p class="desc">Portföyün yüzde kaçı en büyük 10 hissede. Yüksekse fon az sayıda hisseye odaklı.</p></div>
   <div class="kpi"><div class="lbl">İlk 50 pozisyonun 1 yıllık getirisi</div><b class="${cls(brkRet1y)}">${pct(brkRet1y)}</b><div class="sub">S&P 500 ${pct(returns.SPY.ret1y)}</div><p class="desc">Bugünkü ağırlıklarla, son 1 yılın fiyat getirisi; fonun gerçek getirisi değil.</p></div>
 </section>
 <section id="ceyrek" class="card">
   <div class="head"><h2>Bu çeyrek ne yaptı?</h2><span class="muted small">${q(prevQ.reportDate)} → ${q(lastQ.reportDate)} · pay adedine göre · fiyat hareketi sayılmaz</span></div>
   <div class="qgrid">
-    ${cardList('YENİ ALIM', 'new', brkUpd.newBuys, (x) => coName(x.ticker, x.issuer))}
-    ${cardList('ARTIRDI', 'add', brkUpd.adds, (x) => pct(x.change, 0) + ' pay')}
-    ${cardList('AZALTTI', 'reduce', brkUpd.reduces, (x) => pct(x.change, 0) + ' pay')}
-    ${cardList('TAMAMEN ÇIKTI', 'exit', brkUpd.exits, (x) => coName(x.ticker, x.issuer))}
+    ${cardList('YENİ ALIM', 'new', CH.new, (x) => coName(x.ticker, x.issuer))}
+    ${cardList('ARTIRDI', 'add', CH.added, (x) => pct(x.pct, 0) + ' pay')}
+    ${cardList('AZALTTI', 'reduce', CH.reduced, (x) => pct(x.pct, 0) + ' pay')}
+    ${cardList('TAMAMEN ÇIKTI', 'exit', CH.exited, (x) => coName(x.ticker, x.issuer))}
   </div>
 </section>
 <section id="pozisyonlar" class="card">
@@ -329,7 +344,7 @@ ${topbar('Berkshire Hathaway', `${q(brk.reportDate)} bildirimi · son veri: ${da
 <section id="gecmis" class="card">
   <div class="head"><h2>Portföy büyüklüğü · son 8 çeyrek</h2></div>
   <div class="vbars" role="img" aria-label="Son 8 çeyrek portföy büyüklüğü">
-    ${aum8.map((x) => `<div class="vbar" title="${q(x.reportDate)}: ${money(x.aum)}">${x === aum8.at(-1) ? `<em>${money(x.aum)}</em>` : ''}<i style="height:${(x.aum / maxAum) * 100}%"></i><span>${q(x.reportDate).replace('20', '').replace(' ', ' ')}</span></div>`).join('')}
+    ${aum8.map((x) => `<div class="vbar" title="${q(x.reportDate)}: ${money(x.aum)}"><em>$${Math.round(x.aum / 1e9)}B</em><i style="height:${(x.aum / maxAum) * 100}%"></i><span>${q(x.reportDate).replace('20', '').replace(' ', ' ')}</span></div>`).join('')}
   </div>
   <p class="muted small">13F toplamları, birim düzeltmesi uygulanmış. Üzerine gelince değer.</p>
 </section>
@@ -337,8 +352,8 @@ ${topbar('Berkshire Hathaway', `${q(brk.reportDate)} bildirimi · son veri: ${da
 <section id="backtest" class="card"><div class="head"><h2>Backtest</h2><span class="badge pro">PRO</span></div><p class="muted small">[mevcut backtest bölümü — değişmiyor]</p></section>
 <section id="sss" class="card">
   <h2>Sık sorulanlar</h2>
-  <details open><summary>Berkshire Hathaway ${q(brk.reportDate)}'de ne aldı?</summary><p>${brkUpd.newBuys.length} yeni pozisyon açtı (${brkUpd.newBuys.map((x) => coName(x.ticker, x.issuer)).join(', ')}) ve ${brkUpd.adds.length} pozisyonu artırdı; en büyüğü ${coName(biggestAdd.ticker, biggestAdd.issuer)} (${pct(biggestAdd.change, 0)} pay).</p></details>
-  <details><summary>Ne sattı?</summary><p>${brkUpd.exits.length} pozisyondan tamamen çıktı (${brkUpd.exits.map((x) => coName(x.ticker, x.issuer)).join(', ')}) ve ${brkUpd.reduces.length} pozisyonu azalttı; en büyüğü ${coName(biggestReduce.ticker, biggestReduce.issuer)} (${pct(biggestReduce.change, 0)} pay).</p></details>
+  <details open><summary>Berkshire Hathaway ${q(brk.reportDate)}'de ne aldı?</summary><p>${CH.new.length} yeni pozisyon açtı (${CH.new.map((x) => coName(x.ticker, x.issuer)).join(', ')}) ve ${CH.added.length} pozisyonu artırdı; en büyüğü ${coName(biggestAdd.ticker, biggestAdd.issuer)} (${pct(biggestAdd.change, 0)} pay).</p></details>
+  <details><summary>Ne sattı?</summary><p>${CH.exited.length} pozisyondan tamamen çıktı (${CH.exited.map((x) => coName(x.ticker, x.issuer)).join(', ')}) ve ${CH.reduced.length} pozisyonu azalttı; en büyüğü ${coName(biggestReduce.ticker, biggestReduce.issuer)} (${pct(biggestReduce.change, 0)} pay).</p></details>
   <details><summary>Bu veri ne kadar güncel?</summary><p>13F bildirimleri çeyrek sonundan itibaren 45 güne kadar gecikmeli gelir. Bu sayfa ${day(brk.filed)} tarihli bildirime dayanır; fiyatlar her gece güncellenir.</p></details>
 </section>`;
 
@@ -386,7 +401,7 @@ ${topbar('Apple', `fiyat: ${dayShort(aaplLast.date)} kapanışı · 13F: ${q(con
 <section id="fiyat" class="card">
   <div class="head"><h2>Fiyat</h2><div class="seg-group">${['1A', '3A', '6A', '1Y', '5Y'].map((l) => `<button class="seg ${l === '1Y' ? 'on' : ''}">${l}</button>`).join('')}</div></div>
   <div class="cols chart">
-    <svg viewBox="0 0 ${W} ${H}" class="line" role="img" aria-label="AAPL son 1 yıl kapanış"><path d="${linePath}"/><circle cx="${W}" cy="${(H - ((aaplLast.close - lo) / (hi - lo)) * (H - 20) - 10).toFixed(1)}" r="4"/></svg>
+    <svg viewBox="-4 0 ${W + 72} ${H + 22}" class="line" role="img" aria-label="AAPL son 1 yıl kapanış"><path d="${linePath}"/><circle cx="${W}" cy="${(H - ((aaplLast.close - lo) / (hi - lo)) * (H - 20) - 10).toFixed(1)}" r="4"/><text x="${W + 8}" y="14" class="ax">${tr(hi)}</text><text x="${W + 8}" y="${H - 4}" class="ax">${tr(lo)}</text><text x="0" y="${H + 16}" class="ax">${dayShort(pts[0].date)} ${pts[0].date.slice(0, 4)}</text><text x="${W}" y="${H + 16}" class="ax" text-anchor="end">${dayShort(aaplLast.date)} ${aaplLast.date.slice(0, 4)}</text></svg>
     <table class="tbl mini facts"><tbody>
       <tr><td>Önceki kapanış</td><td class="r">${tr(aaplPrev.close)}</td></tr>
       <tr><td>52 hafta</td><td class="r">${tr(aaplMeta.lo)} – ${tr(aaplMeta.hi)}</td></tr>
@@ -408,8 +423,8 @@ ${topbar('Apple', `fiyat: ${dayShort(aaplLast.date)} kapanışı · 13F: ${q(con
 <section id="yonetici" class="card">
   <div class="head"><h2>Yönetici işlemleri</h2><a href="/insiders?q=AAPL">Tümü →</a></div>
   <p class="desc">Şirket yöneticileri kendi hisselerini alıp sattığında 2 iş günü içinde SEC'e bildirir (Form 4).</p>
-  ${aaplIns.length ? `<table class="tbl"><thead><tr><th>Tarih</th><th>Kim</th><th>İşlem</th><th class="r">Adet</th><th class="r">Fiyat</th><th class="r">Tutar</th><th class="r">Alımdan bu yana</th></tr></thead><tbody>
-    ${aaplIns.map((x) => `<tr><td>${dayShort(x.d)}</td><td><b>${esc(x.n.split(' ').map((w) => w[0] + w.slice(1).toLowerCase()).join(' '))}</b><span class="muted small"> · ${esc(x.ti || ROLE[x.r] || '')}</span></td><td><span class="chip ${x.k === 'P' ? 'add' : x.k === 'S' ? 'reduce' : ''}">${KIND[x.k] || x.k}</span></td><td class="r">${num(x.s)}</td><td class="r">${x.p ? '$' + tr(x.p) : '—'}</td><td class="r">${x.v ? money(x.v) : '—'}</td><td class="r muted">${x.k === 'P' || x.k === 'S' ? pct(((aaplLast.close - x.p) / x.p) * 100) : '—'}</td></tr>`).join('')}
+  ${aaplIns.length ? `<table class="tbl"><thead><tr><th>Tarih</th><th>Kim</th><th>İşlem</th><th class="r">Adet</th><th class="r">Fiyat</th><th class="r">Tutar</th><th class="r">İşlemden bu yana</th></tr></thead><tbody>
+    ${aaplIns.map((x) => `<tr><td>${dayShort(x.d)}</td><td><b>${esc(personName(x.n))}</b><span class="muted small"> · ${esc(x.ti || ROLE[x.r] || '')}</span></td><td><span class="chip ${x.k === 'P' ? 'add' : x.k === 'S' ? 'reduce' : ''}">${KIND[x.k] || x.k}</span></td><td class="r">${num(x.s)}${x.lots > 1 ? `<span class="muted small"> · ${x.lots} lot</span>` : ''}</td><td class="r">${x.p ? '$' + tr(x.p) : '—'}</td><td class="r">${x.v ? money(x.v) : '—'}</td><td class="r muted">${x.k === 'P' || x.k === 'S' ? pct(((aaplLast.close - x.p) / x.p) * 100) : '—'}</td></tr>`).join('')}
   </tbody></table>` : '<p class="muted">Son 12 ayda bildirilen işlem yok.</p>'}
 </section>`;
 
@@ -425,12 +440,12 @@ const mobBody = `
 <div class="chipnav">${FUND_NAV.filter(([k]) => k !== 'backtest').map(([id, l], i) => `<a href="#${id}" ${i === 0 ? 'class="on"' : ''}>${l}</a>`).join('')}</div>
 <section id="ozet" class="fundhead">
   ${fundLogo('Berkshire Hathaway', 44)}
-  <div><div class="muted small">Warren Buffett · Değer yatırımcısı</div><div class="chips"><span class="chip">Dönem sonu ${dayShort(brk.reportDate)}</span><span class="chip">SEC'e bildirim ${dayShort(brk.filed)}</span></div></div>
+  <div><h1>Berkshire Hathaway</h1><div class="muted small">Warren Buffett · Değer yatırımcısı</div><div class="chips"><span class="chip">Dönem sonu ${dayShort(brk.reportDate)}</span><span class="chip">SEC'e bildirim ${dayShort(brk.filed)}</span></div></div>
 </section>
 <section class="summary"><p>${dayLong(brk.reportDate)} itibarıyla <b>${brk.count} pozisyon</b>, toplam <b>${money(brk.aum)}</b>. En büyük pozisyon ${esc(coName(positions[0].t, positions[0].issuer))} (${pct(positions[0].weight, 0, false)}). Bu çeyrek: ${esc(coName(biggestAdd.ticker, biggestAdd.issuer))} <b>${pct(biggestAdd.change, 0)}</b>, ${esc(coName(biggestExit?.ticker, biggestExit?.issuer))}'ten <b>çıktı</b>.</p></section>
 <section class="kpis two">
   <div class="kpi"><div class="lbl">Portföy</div><b>${money(brk.aum)}</b><div class="sub ${cls(aumQoq)}">${pct(aumQoq)} 3 aylık</div></div>
-  <div class="kpi"><div class="lbl">Pozisyon</div><b>${brk.count}</b><div class="sub">${lastQ.newCount} yeni · ${lastQ.exitCount} çıkış</div></div>
+  <div class="kpi"><div class="lbl">Pozisyon</div><b>${brk.count}</b><div class="sub">${CH.new.length} yeni · ${CH.exited.length} çıkış</div></div>
   <div class="kpi"><div class="lbl">İlk 10 payı</div><b>${pct(top10, 0, false)}</b><div class="sub">çok odaklı</div></div>
   <div class="kpi"><div class="lbl">1Y getiri (ilk 50)</div><b class="${cls(brkRet1y)}">${pct(brkRet1y)}</b><div class="sub">S&P ${pct(returns.SPY.ret1y)}</div></div>
 </section>
@@ -438,10 +453,10 @@ const mobBody = `
   <div class="head"><h2>Bu çeyrek ne yaptı?</h2></div>
   <div class="muted small">${q(prevQ.reportDate)} → ${q(lastQ.reportDate)} · pay adedine göre</div>
   <div class="qgrid">
-    ${cardList('YENİ', 'new', brkUpd.newBuys, (x) => coName(x.ticker, x.issuer))}
-    ${cardList('ARTIRDI', 'add', brkUpd.adds, (x) => pct(x.change, 0))}
-    ${cardList('AZALTTI', 'reduce', brkUpd.reduces, (x) => pct(x.change, 0))}
-    ${cardList('ÇIKTI', 'exit', brkUpd.exits, (x) => coName(x.ticker, x.issuer))}
+    ${cardList('YENİ', 'new', CH.new, (x) => coName(x.ticker, x.issuer))}
+    ${cardList('ARTIRDI', 'add', CH.added, (x) => pct(x.pct, 0))}
+    ${cardList('AZALTTI', 'reduce', CH.reduced, (x) => pct(x.pct, 0))}
+    ${cardList('ÇIKTI', 'exit', CH.exited, (x) => coName(x.ticker, x.issuer))}
   </div>
 </section>
 <section id="pozisyonlar" class="card">
@@ -452,8 +467,8 @@ const mobBody = `
   <button class="btn ghost wide">${brk.count - 6} pozisyon daha göster</button>
 </section>
 <section id="dagilim" class="card"><div class="head"><h2>Sektör dağılımı</h2></div><div class="hbars">${[...sec4, ['Diğer', secOther]].map(([s, v]) => `<div class="hbar"><span>${SECTOR_TR[s] || s}</span><i style="width:${(v / sec4[0][1]) * 100}%"></i><b>${pct(v, 0, false)}</b></div>`).join('')}</div></section>
-<section id="gecmis" class="card"><div class="head"><h2>Son 8 çeyrek</h2></div><div class="vbars">${aum8.map((x) => `<div class="vbar" title="${q(x.reportDate)}: ${money(x.aum)}"><i style="height:${(x.aum / maxAum) * 100}%"></i><span>${q(x.reportDate).slice(2).replace(' ', '')}</span></div>`).join('')}</div></section>
-<section id="sss" class="card"><h2>Sık sorulanlar</h2><details><summary>Ne aldı?</summary><p>${brkUpd.newBuys.map((x) => coName(x.ticker, x.issuer)).join(', ')}; ${coName(biggestAdd.ticker, biggestAdd.issuer)} ${pct(biggestAdd.change, 0)}.</p></details><details><summary>Ne sattı?</summary><p>${brkUpd.exits.map((x) => coName(x.ticker, x.issuer)).join(', ')} (çıkış); ${coName(biggestReduce.ticker, biggestReduce.issuer)} ${pct(biggestReduce.change, 0)}.</p></details><details><summary>Bu veri ne kadar güncel?</summary><p>${day(brk.filed)} tarihli 13F; fiyatlar her gece.</p></details></section>`;
+<section id="gecmis" class="card"><div class="head"><h2>Son 8 çeyrek</h2></div><div class="vbars">${aum8.map((x) => `<div class="vbar" title="${q(x.reportDate)}: ${money(x.aum)}"><em>$${Math.round(x.aum / 1e9)}B</em><i style="height:${(x.aum / maxAum) * 100}%"></i><span>${q(x.reportDate).slice(2).replace(' ', '')}</span></div>`).join('')}</div></section>
+<section id="sss" class="card"><h2>Sık sorulanlar</h2><details><summary>Ne aldı?</summary><p>${CH.new.map((x) => coName(x.ticker, x.issuer)).join(', ')}; ${coName(biggestAdd.ticker, biggestAdd.issuer)} ${pct(biggestAdd.change, 0)}.</p></details><details><summary>Ne sattı?</summary><p>${CH.exited.map((x) => coName(x.ticker, x.issuer)).join(', ')} (çıkış); ${coName(biggestReduce.ticker, biggestReduce.issuer)} ${pct(biggestReduce.change, 0)}.</p></details><details><summary>Bu veri ne kadar güncel?</summary><p>${day(brk.filed)} tarihli 13F; fiyatlar her gece.</p></details></section>`;
 
 // ---------- yaz ----------
 fs.writeFileSync(path.join(here, 'Main.html'), page({ title: 'Bugün', body: mainBody, active: 'bugun' }));

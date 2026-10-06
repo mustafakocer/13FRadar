@@ -4,7 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ssr } from './helpers.mjs';
-import { displayCompany, prettyName } from '../client/src/lib/label.js';
+import { displayCompany, prettyName, personName } from '../client/src/lib/label.js';
 import { EXPLANATIONS } from '../client/src/copy/explanations.js';
 
 // visible text only: scripts (JSON-LD, state), tags and title attributes out
@@ -21,10 +21,20 @@ test('registry names read like company names', () => {
   assert.equal(displayCompany('BERKSHIRE HATHAWAY INC DEL').full, 'Berkshire Hathaway Inc');
   assert.equal(displayCompany('TAIWAN SEMICONDUCTOR MANUFAC').short, 'Taiwan Semiconductor');
   assert.equal(displayCompany('Apple Inc.').short, 'Apple');
-  assert.equal(displayCompany('COCA COLA CO').short, 'Coca Cola');
+  assert.equal(displayCompany('COCA COLA CO').short, 'Coca-Cola');
   // a name that is nothing but its one word stays whole
   assert.equal(displayCompany('VISA INC.').short, 'Visa');
   assert.equal(prettyName('CATERPILLAR INC /DE/'), 'Caterpillar Inc');
+  // initials, brands, small words, mostly-caps names
+  assert.equal(displayCompany('FULLER H B CO').short, 'H.B. Fuller');
+  assert.equal(displayCompany('D R HORTON INC').short, 'D.R. Horton');
+  assert.equal(displayCompany('BANK OF AMER CORP').short, 'Bank of America');
+  assert.equal(displayCompany('ELI LILLY & Co').short, 'Eli Lilly');
+  assert.equal(displayCompany('O REILLY AUTOMOTIVE INC').short, "O'Reilly Automotive");
+  assert.equal(personName('COHEN RYAN'), 'Ryan Cohen');
+  assert.equal(personName('MURDOCH LACHLAN K'), 'Lachlan K. Murdoch');
+  assert.equal(personName("O'BRIEN DEIRDRE"), "Deirdre O'Brien");
+  assert.equal(personName('SMITH JOHN JR'), 'John Smith Jr.');
 });
 
 test('the seven section explanations exist in both languages', () => {

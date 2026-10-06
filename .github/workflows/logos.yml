@@ -3,7 +3,7 @@ name: Stock logos
 # Weekly logo harvest for the top 500 stocks (scripts/build-logos.mjs):
 # the company's own website from its Finnhub profile, then that site's
 # apple-touch-icon / icon / og:image (≥ 64px, robots.txt obeyed), cached in
-# the repo so readers' browsers never call a company's site. Below a 30%
+# the repo so readers' browsers never call a company's site. Below a 10%
 # success rate the manifest ships empty and the badges stay.
 #
 # It never overlaps the nightly data jobs: Saturday mid-morning (the chain
@@ -13,9 +13,10 @@ name: Stock logos
 on:
   schedule:
     - cron: '41 7 * * 6' # Saturdays 07:41 UTC
-  # a change to the harvester itself runs once right after it lands
+  # a change to the harvester itself runs once right after it lands — on
+  # main, and on a work branch so the result can be checked before merging
   push:
-    branches: [main]
+    branches: [main, 'claude/**']
     paths:
       - scripts/build-logos.mjs
       - api/_lib/logoScrape.js

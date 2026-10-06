@@ -1,0 +1,39 @@
+name: Lighthouse
+
+# Performance, accessibility, best-practice and SEO scores on every
+# finished Vercel deployment (PR previews and production), for the pages a
+# reader lands on (scripts/lighthouse-check.mjs). Accessibility below 90
+# fails the check; performance is reported for a person to judge. No
+# account or key: the open-source Lighthouse CLI on the runner's Chrome.
+on:
+  deployment_status: {}
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Base URL to measure'
+        type: string
+        default: 'https://www.fundocap.co'
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install -g lighthouse@12
+      - name: Measure the deployment
+        env:
+          URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url || inputs.url }}
+          VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          set -o pipefail
+          echo "measuring $URL"
+          node scripts/lighthouse-check.mjs "$URL" | tee lighthouse.md
+          cat lighthouse.md >> "$GITHUB_STEP_SUMMARY"

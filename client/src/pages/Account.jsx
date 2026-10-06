@@ -6,6 +6,7 @@ import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { api } from '../lib/api.js';
 import AuthForm from '../components/AuthForm.jsx';
+import { useNotificationPrefs } from '../hooks/useNotificationPrefs.js';
 
 const longDate = (iso, lang) =>
   iso ? new Date(iso).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: 'long', year: 'numeric' }) : null;
@@ -21,6 +22,7 @@ export default function Account() {
   // ?next=/pricing — come back to the page that asked for sign-in
   const next = params.get('next') && params.get('next').startsWith('/') ? params.get('next') : null;
   const [billingBusy, setBillingBusy] = useState(false);
+  const digest = useNotificationPrefs(user, lang);
   const [billingErr, setBillingErr] = useState(null);
   useSeo(
     useMemo(
@@ -135,6 +137,38 @@ export default function Account() {
       </div>
       {billingErr && <div className="muted small mt8">{billingErr}</div>}
 
+      {/* the email digest: opt-in, the reader's watchlist decides the content */}
+      <div className="mt16" style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }} data-digest-prefs>
+        <h3 style={{ marginTop: 0 }}>{t('digest.title')}</h3>
+        <p className="muted small">{t('digest.what')}</p>
+        <label className="row" style={{ gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+          <input
+            type="checkbox"
+            checked={Boolean(digest.prefs?.email_digest)}
+            disabled={digest.loading}
+            onChange={(e) => digest.save({ email_digest: e.target.checked })}
+          />
+          <span>{t('digest.optIn')}</span>
+        </label>
+        {digest.prefs?.email_digest && (
+          <div className="row mt8" style={{ gap: 6 }}>
+            {['daily', 'weekly'].map((f) => (
+              <button
+                key={f}
+                className={`chip sm${digest.prefs.digest_frequency === f ? ' fsel-active' : ''}`}
+                onClick={() => digest.save({ digest_frequency: f })}
+                aria-pressed={digest.prefs.digest_frequency === f}
+              >
+                {t(`digest.freq.${f}`)}
+              </button>
+            ))}
+          </div>
+        )}
+        <p className="muted small mt8">
+          {digest.prefs?.email_digest ? t('digest.on') : t('digest.off')} <Link to="/watchlist">{t('digest.watchlistLink')} →</Link>
+        </p>
+        {digest.error && <div className="muted small">{t('digest.saveFailed')}</div>}
+      </div>
     </div>
   );
 }

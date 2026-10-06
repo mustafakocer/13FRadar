@@ -4,7 +4,7 @@
 // client/vite.config.js) with a placeholder until it is set.
 export const CONTACT_EMAIL = typeof __CONTACT_EMAIL__ !== 'undefined' && __CONTACT_EMAIL__ ? __CONTACT_EMAIL__ : 'hello@fundocap.co';
 export const OPERATOR = 'KOCERLER LTD';
-export const LEGAL_UPDATED = '2026-10-05';
+export const LEGAL_UPDATED = '2026-10-06';
 
 export const LEGAL_CONTENT = {
   privacy: {
@@ -14,7 +14,7 @@ export const LEGAL_CONTENT = {
       sections: [
         { h2: 'Hangi verileri topluyoruz?', p: [
           'Hesap açarsanız e-posta adresiniz ve (şifreyle giriş yapıyorsanız) şifrenizin karması. Google ile giriş yaparsanız Google’dan yalnız adınız, e-postanız ve profil resminizin adresi gelir; şifreniz bize ulaşmaz.',
-          'Kullanım verisi: izleme listeniz ve plan bilginiz (ücretsiz / Pro). Daha önce kaydettiğiniz uyarılar ve e-posta özeti tercihiniz hesabınızda saklı kalır; e-posta uyarısı gönderimi şu an kapalıdır ve bu kayıtlar başka bir amaçla işlenmez.',
+          'Kullanım verisi: izleme listeniz, plan bilginiz (ücretsiz / Pro) ve e-posta bildirimi tercihiniz. Bildirimi Hesabım sayfasında siz açarsınız (varsayılan kapalı); açarsanız izleme listenizdeki fonların yeni 13F bildirimleri ve takip ettiğiniz usta yatırımcıların Form 4 işlemleri için e-posta gönderilir ve son gönderimin tarihi saklanır. İstediğiniz an kapatabilirsiniz.',
           'Pro aboneliği alırsanız ödeme kart bilgileriniz Stripe’ta kalır; biz yalnız Stripe müşteri ve abonelik numaralarını ve abonelik durumunu saklarız. Kart numaranızı hiç görmeyiz.',
           'Teknik veri: barındırma sağlayıcımızın (Vercel) standart sunucu günlükleri (IP adresi, tarayıcı, istenen sayfa, zaman) kısa süre tutulur. Ziyaretçinin ülkesi yalnız bölgesel fiyat ve dil seçimi için, anlık olarak kullanılır; saklanmaz.',
         ] },
@@ -23,7 +23,7 @@ export const LEGAL_CONTENT = {
           'Sayfa kullanımını ölçmek için barındırma sağlayıcımızın çerezsiz analitiği (Vercel Web Analytics) çalışır: çerez bırakmaz, kişisel veri veya kimlik göndermez, siteler arası izleme yapmaz; yalnız sayfa görüntülemeleri ve kayıt, Pro, izleme listesi, dışa aktarma gibi az sayıda isimsiz olay sayılır.',
         ] },
         { h2: 'Verileri kim işliyor?', p: [
-          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı) ve GitHub (günlük veri üretimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
+          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı), GitHub (günlük veri üretimi) ve — bildirimi açtıysanız — Resend (e-posta gönderimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
         ] },
         { h2: 'Sitedeki veriler nereden geliyor?', p: [
           'Portföy ve insider verileri SEC EDGAR’daki kamuya açık bildirimlerden (13F, Form 4, 13D/G) otomatik derlenir. Şirket temel verileri (hisse başı kâr, dolaşımdaki hisse, temettü) SEC’in XBRL verilerinden; fiyat verileri Twelve Data ve Finnhub’dan; menkul kıymet kimlikleri OpenFIGI’den; döviz kurları Federal Reserve H.10 ve ECB’den alınır. Bu veriler kişisel veri değildir; şirket içi işlemlerdeki kişi adları SEC’in yayımladığı kamu kayıtlarıdır.',
@@ -43,7 +43,7 @@ export const LEGAL_CONTENT = {
       sections: [
         { h2: 'What we collect', p: [
           'If you create an account: your email address and, for password sign-in, a hash of your password. If you sign in with Google, we receive only your name, email and profile picture URL from Google; your password never reaches us.',
-          'Usage data: your watchlist and your plan (free / Pro). Alerts you saved earlier and your email digest preference stay stored with your account; sending email alerts is currently switched off and these records are not processed for any other purpose.',
+          'Usage data: your watchlist, your plan (free / Pro) and your email notification preference. You switch notifications on yourself on the account page (off by default); if on, we email you about new 13F filings from funds on your watchlist and Form 4 trades of gurus you follow, and keep the date of the last email. You can switch it off at any time.',
           'If you subscribe to Pro, your card details stay with Stripe; we store only the Stripe customer and subscription ids and the subscription status. We never see your card number.',
           'Technical data: our hosting provider (Vercel) keeps standard server logs (IP address, browser, requested page, time) for a short period. A visitor’s country is used momentarily for regional pricing and language, and is not stored.',
         ] },
@@ -52,7 +52,7 @@ export const LEGAL_CONTENT = {
           'To measure page usage we run our hosting provider\u2019s cookieless analytics (Vercel Web Analytics): it sets no cookies, sends no personal data or identifier, does no cross-site tracking, and counts only page views and a handful of anonymous events (sign-up, Pro, watchlist, export).',
         ] },
         { h2: 'Who processes the data', p: [
-          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery) and GitHub (the nightly data builds). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
+          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), GitHub (the nightly data builds) and — if you switched notifications on — Resend (email delivery). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
         ] },
         { h2: 'Where the site’s data comes from', p: [
           'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Company fundamentals (earnings per share, shares outstanding, dividends) come from SEC XBRL data; prices from Twelve Data and Finnhub; security identifiers from OpenFIGI; exchange rates from the Federal Reserve H.10 and the ECB. This is not personal data; the names in insider transactions are public records published by the SEC.',

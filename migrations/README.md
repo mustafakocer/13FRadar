@@ -13,6 +13,7 @@ plain SQL, safe to re-run. The opt-in historical store has its own single file
 | `0002_constraints` | S3 · `plan` CHECK, `ls_customer_id` dropped, Stripe id UNIQUE, CIK normalisation |
 | `0003_stripe_events` | S4 · webhook idempotency table + `apply_stripe_event()` |
 | `0004_alerts` | S6 · `notification_prefs` (opt-in digest, frequency) + `alerts` (filing/insider targets), RLS 4 policies each, cap free 5 / pro 100, signup trigger opens the preference row |
+| `0006_digest_marks` | S7 · per-reader digest marks on `notification_prefs` (`lang`, `filings_seen`, `filings_seen_acc`, `form4_seen`, `last_sent_at`); marks start today (no backlog burst); opt-ins reset for re-consent; signup trigger seeds the marks |
 | `0005_job_triggers` | pg_cron + pg_net start the data workflows on the minute through GitHub `workflow_dispatch` (token in Vault `github_actions_dispatch`); `ops.dispatch_log` keeps GitHub's answer, 3 retries; sends one test call (freshness) when applied |
 
 ## Apply to the live project
@@ -23,7 +24,7 @@ IPv6-only on the free plan.
 
 ```bash
 export SUPABASE_DB_URL='postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres'
-for f in migrations/0001_rls migrations/0002_constraints migrations/0003_stripe_events migrations/0004_alerts migrations/0005_job_triggers; do
+for f in migrations/0001_rls migrations/0002_constraints migrations/0003_stripe_events migrations/0004_alerts migrations/0005_job_triggers migrations/0006_digest_marks; do
   psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -1 -f "$f.up.sql"
 done
 ```

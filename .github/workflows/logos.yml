@@ -19,6 +19,7 @@ on:
     branches: [main, 'claude/**']
     paths:
       - scripts/build-logos.mjs
+      - scripts/build-domains.mjs
       - api/_lib/logoScrape.js
       - .github/workflows/logos.yml
   workflow_dispatch:
@@ -56,6 +57,11 @@ jobs:
             echo "a data job is running ($busy) — waiting"; sleep 60
           done
           echo "::warning::data jobs still running after 40 minutes — skipping this week"; exit 1
+      - name: Resolve company domains (SEC, then Finnhub)
+        run: node scripts/build-domains.mjs | tee -a "$GITHUB_STEP_SUMMARY"
+        env:
+          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       - name: Fetch logos
         run: node scripts/build-logos.mjs ${{ inputs.refresh == true && '--refresh' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
         env:
@@ -64,7 +70,7 @@ jobs:
         run: |
           git config user.name 'logos-bot'
           git config user.email 'actions@github.com'
-          git add --all client/public/logos client/public/logos.json
+          git add --all client/public/logos client/public/logos.json client/public/domains.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh stock logos'
           for i in 1 2 3 4; do

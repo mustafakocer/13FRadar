@@ -6,8 +6,9 @@
 //   node scripts/build-logos.mjs --refresh  # refetch everything
 //
 // Per ticker of the top 500 (client/public/stocks.json):
-//   1. Finnhub company profile → the company's own website (FINNHUB_API_KEY;
-//      paced at LOGO_FINNHUB_PER_MIN, half the shared 50/min job budget)
+//   1. the company's website: client/public/domains.json (build-domains.mjs,
+//      SEC-sourced), else Finnhub's profile when FINNHUB_API_KEY is set
+//      (paced at LOGO_FINNHUB_PER_MIN, half the shared 50/min job budget)
 //   2. that site's robots.txt is read and obeyed (FundocapBot / *)
 //   3. its home page's <link rel="apple-touch-icon">, <link rel="icon"
 //      sizes≥64> or a near-square og:image — never favicon.ico — validated
@@ -30,6 +31,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const pub = path.join(here, '..', 'client', 'public');
 const outDir = path.join(pub, 'logos');
 const manifestPath = path.join(pub, 'logos.json');
+const domainsPath = path.join(pub, 'domains.json');
 const refresh = process.argv.includes('--refresh');
 
 const TOP = Number(process.env.LOGOS_TOP) || 500;
@@ -138,8 +140,9 @@ async function websiteOf(sym, key) {
 }
 
 async function main() {
-  const key = process.env.FINNHUB_API_KEY;
-  if (!key) { console.log('::warning::logos: FINNHUB_API_KEY not set — nothing fetched'); return; }
+  const key = process.env.FINNHUB_API_KEY || '';
+  const domains = readJson(domainsPath)?.domains || {};
+  if (!key && !Object.keys(domains).length) { console.log('::warning::logos: neither domains.json nor FINNHUB_API_KEY — nothing fetched'); return; }
   const stocks = readJson(path.join(pub, 'stocks.json'));
   const tickers = [...new Set((stocks?.rows || []).map((s) => String(s.ticker || '').trim().toUpperCase()).filter(Boolean))].slice(0, TOP);
   if (!tickers.length) { console.log('::warning::logos: stocks.json has no tickers'); return; }
@@ -156,7 +159,7 @@ async function main() {
     const existing = prior?.logos?.[key2];
     if (!refresh && existing && fs.existsSync(path.join(pub, existing)) && fresh(key2)) { logos[key2] = existing; kept++; continue; }
     const t0 = Date.now();
-    const site = await websiteOf(t, key).catch(() => null);
+    const site = domains[t] || domains[key2] || (key ? await websiteOf(t, key).catch(() => null) : null);
     if (!site) { noSite++; }
     else {
       const img = (await logoFor(site).catch(() => null)) || (FALLBACK ? await fallbackFor(site) : null);

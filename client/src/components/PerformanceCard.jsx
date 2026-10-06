@@ -12,7 +12,7 @@ export default function PerformanceCard({ data, compact = false }) {
   if (!h || KEYS.every((k) => h[k]?.port == null)) return null;
   return (
     <div className="card" data-performance>
-      <h3 style={{ marginTop: 0 }}>{t('perf.title')}</h3>
+      <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>{t('perf.title')}</h2>
       {!compact && h.y1?.port != null && (
         <p className="muted small">
           {t(h.y1.diff >= 0 ? 'perf.lead.beat' : 'perf.lead.trail')

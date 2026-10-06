@@ -319,7 +319,7 @@ export default function Manager({ segment = 'portfolio' }) {
               {secUrl && (
                 <>
                   {' · '}
-                  <a href={secUrl} target="_blank" rel="noopener noreferrer" title={`SEC EDGAR · CIK ${mgr.data.cik}`}>{t('guru.verify')} ↗</a>
+                  <a href={secUrl} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline' }} title={`SEC EDGAR · CIK ${mgr.data.cik}`}>{t('guru.verify')} ↗</a>
                 </>
               )}
               {managerStyle(mgr.data.cik) && (

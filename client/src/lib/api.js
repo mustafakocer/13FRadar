@@ -93,6 +93,7 @@ export const api = {
   report: (id) => get(`/api/report-id/${encodeURIComponent(id)}`),
   emerging: () => get('/api/emerging'),
   guruHistory: (cik) => get(`/api/guru-history/${cik}`),
+  guruForm4: (cik) => get(`/api/guru-form4/${cik}`),
   guruStock: ({ ticker, cusip }) =>
     get(`/api/guru-stocks?${cusip ? `cusip=${encodeURIComponent(cusip)}` : `ticker=${encodeURIComponent(ticker)}`}`),
   guruStocks: ({ limit, sector, cap, minHolders, strongBuy } = {}) => {

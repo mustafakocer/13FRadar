@@ -51,8 +51,11 @@ const Sym = ({ r }) =>
   );
 
 // A handful of tickers as links — the fund segment's cells.
-function Tickers({ list, cls }) {
+// count: the category's true size (consensus.json `counts`); the list holds
+// the three largest lines
+function Tickers({ list, cls, count = null }) {
   if (!list?.length) return <span className="muted">—</span>;
+  const total = count ?? list.length;
   return (
     <span className={`small ${cls || ''}`}>
       {list.slice(0, 3).map((p, i) => (
@@ -62,7 +65,7 @@ function Tickers({ list, cls }) {
           {p.change != null && <span className="muted"> {fmtPct(p.change, { digits: 0 })}</span>}
         </span>
       ))}
-      {list.length > 3 && <span className="muted"> +{list.length - 3}</span>}
+      {total > Math.min(3, list.length) && <span className="muted"> +{total - Math.min(3, list.length)}</span>}
     </span>
   );
 }
@@ -333,10 +336,10 @@ export default function Consensus() {
                         <FavoriteButton cik={m.cik} name={m.name} small /> <Link to={managerPath(m.cik, m.path)} style={{ fontWeight: 600 }}>{m.name}</Link>
                       </td>
                       <td className="l muted small">{m.reportDate ? quarterLabel(m.reportDate) : '—'}</td>
-                      <td className="l"><Tickers list={m.newBuys} cls="delta-pos" /></td>
-                      <td className="l"><Tickers list={m.adds} cls="delta-pos" /></td>
-                      <td className="l"><Tickers list={m.reduces} cls="delta-neg" /></td>
-                      <td className="l"><Tickers list={m.exits} cls="delta-neg" /></td>
+                      <td className="l"><Tickers list={m.newBuys} count={m.counts?.newBuys} cls="delta-pos" /></td>
+                      <td className="l"><Tickers list={m.adds} count={m.counts?.adds} cls="delta-pos" /></td>
+                      <td className="l"><Tickers list={m.reduces} count={m.counts?.reduces} cls="delta-neg" /></td>
+                      <td className="l"><Tickers list={m.exits} count={m.counts?.exits} cls="delta-neg" /></td>
                     </tr>
                   ))}
 

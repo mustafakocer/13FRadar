@@ -10,6 +10,7 @@ import PositionCards from '../components/PositionCards.jsx';
 import ChartBox from '../components/ChartBox.jsx';
 import { AumLineChart, FlowBarChart, PortfolioPie, SectorPie, BenchmarkBars, BacktestChart } from '../components/Charts/index.js';
 import HoldingsTable from '../components/HoldingsTable.jsx';
+import GuruForm4 from '../components/GuruForm4.jsx';
 import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
@@ -172,6 +173,16 @@ export default function Manager({ segment = 'portfolio' }) {
   });
   const hasHist = !!hist.data?.quarters?.length;
   const guruSlug = mgr.data?.kind === 'guru' ? mgr.data.slug : null;
+
+  // the fund's own Form 4 lines (10%+ owner trades inside the quarter);
+  // empty for most filers, so the card only appears when there are rows
+  const form4 = useQuery({
+    queryKey: ['guru-form4', cik],
+    queryFn: () => api.guruForm4(cik),
+    enabled: !!cik,
+    staleTime: 30 * 60 * 1000,
+    retry: 0,
+  });
 
   const seo = useMemo(
     () =>
@@ -450,6 +461,7 @@ export default function Manager({ segment = 'portfolio' }) {
           </div>
 
           {/* ---- one thing per segment ----------------------------------- */}
+          {tab === 'portfolio' && form4.data?.count > 0 && <GuruForm4 data={form4.data} />}
           {tab === 'portfolio' && (
             <HoldingsTable
               positions={positions}
@@ -460,6 +472,8 @@ export default function Manager({ segment = 'portfolio' }) {
               locked={!!holdings.data?.locked}
               exportName={`13F_${mgr.data.cik}_${filing?.reportDate || ''}.xlsx`}
               timeHeld={hasHist ? hist.data.timeHeld : null}
+              cost={hasHist && hist.data.cost ? hist.data.cost : null}
+              form4={form4.data?.count > 0 ? form4.data.byTicker : null}
               guruSlug={guruSlug}
               reportDate={filing?.reportDate || null}
             />

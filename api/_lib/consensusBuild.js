@@ -90,7 +90,7 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
     if (!m.prev) continue;
     const s = stories.get(m.cik) || { newBuys: [], adds: [], reduces: [], exits: [] };
     for (const r of s.newBuys) newPositions.push({ manager: m.name, cik: m.cik, cusip: r.cusip, issuer: r.issuer, weight: r.weight, value: r.value, reportDate: m.reportDate });
-    updates.push({ manager: m.name, cik: m.cik, reportDate: m.reportDate, filed: m.filed, ...(m.cur?.aum ? { aum: Math.round(m.cur.aum) } : {}), newBuys: top(s.newBuys), adds: top(s.adds), reduces: top(s.reduces), exits: top(s.exits) });
+    updates.push({ manager: m.name, cik: m.cik, reportDate: m.reportDate, filed: m.filed, ...(m.cur?.aum ? { aum: Math.round(m.cur.aum) } : {}), counts: { newBuys: s.newBuys.length, adds: s.adds.length, reduces: s.reduces.length, exits: s.exits.length }, newBuys: top(s.newBuys), adds: top(s.adds), reduces: top(s.reduces), exits: top(s.exits) });
   }
 
   const all = [...rows.values()];

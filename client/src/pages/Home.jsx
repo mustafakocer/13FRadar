@@ -584,7 +584,10 @@ function PortfolioUpdates({ updates }) {
                 </div>
                 <div className="tks">
                   {u[key]?.length ? (
-                    u[key].map((r) => <Chip key={r.cusip} r={r} kind={kind} />)
+                    <>
+                      {u[key].map((r) => <Chip key={r.cusip} r={r} kind={kind} />)}
+                      {u.counts?.[key] > u[key].length && <span className={`tk ${kind}`} title={`${u.counts[key]} ${t(`landing.upd.${kind}`)}`}>+{u.counts[key] - u[key].length}</span>}
+                    </>
                   ) : (
                     <span className="muted small">{t('landing.upd.none')}</span>
                   )}

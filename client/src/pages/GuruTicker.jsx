@@ -5,12 +5,22 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
-import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtPx, deltaClass, quarterLabel } from '../lib/format.js';
 import { breadcrumbs, quarterText } from '../lib/seoTemplates.js';
 import { timeHeldLabel } from '../lib/timeHeld.js';
 import { Disclaimer } from '../components/Faq.jsx';
 
 const fill = (s, vars) => s.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? '');
+
+function Kpi({ label, value, sub, cls = '' }) {
+  return (
+    <div className="card" style={{ padding: '12px 16px' }}>
+      <div className="small muted">{label}</div>
+      <div className={cls} style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{value}</div>
+      {sub && <div className="small muted">{sub}</div>}
+    </div>
+  );
+}
 
 // /guru/:slug/:ticker — every quarter's activity for one guru × security
 // pair, from the precomputed history (public, indexable).
@@ -28,6 +38,7 @@ export default function GuruTicker() {
     retry: 0,
   });
   const d = pair.data;
+  const cost = d?.cost || null;
   const name = slugQ.data?.name || '';
   const latest = d?.rows?.[d.rows.length - 1];
   useSeo(
@@ -73,6 +84,27 @@ export default function GuruTicker() {
           <Link to={`/stock/${tk}?cusip=${d.cusip}`} className="btn ghost">{t('pair.backStock')} →</Link>
         </div>
       </div>
+      {/* what the guru probably paid, against today's price (costBasis.js) */}
+      {cost && (cost.avgBuy != null || cost.unpriced) && (
+        <div className="grid grid-3" style={{ marginBottom: 16 }}>
+          <Kpi
+            label={t('pair.avgBuy')}
+            value={cost.avgBuy != null ? fmtPx(cost.avgBuy) : '—'}
+            sub={cost.unpriced ? t('pair.unpriced') : `${t('pair.since')}: ${quarterLabel(cost.since)}${cost.openedBeforeData ? ` (${t('pair.openedBeforeData')})` : ''}`}
+          />
+          <Kpi
+            label={t('pair.current')}
+            value={cost.current != null ? fmtPx(cost.current) : '—'}
+            sub={cost.asOf || ''}
+          />
+          <Kpi
+            label={t('pair.gain')}
+            value={fmtPct(cost.gainPct)}
+            cls={deltaClass(cost.gainPct)}
+            sub={cost.lotCost != null ? `${t('pair.lotCost')}: ${fmtMoney(cost.lotCost)}` : ''}
+          />
+        </div>
+      )}
       <div className="card">
         <div className="table-wrap">
           <table className="data">
@@ -86,6 +118,8 @@ export default function GuruTicker() {
                 <th>{t('pair.deltaPct')}</th>
                 <th>{t('table.value')}</th>
                 <th>{t('pair.weight')}</th>
+                <th>{t('pair.avgClose')}</th>
+                <th>{t('pair.range')}</th>
               </tr>
             </thead>
             <tbody>
@@ -103,12 +137,15 @@ export default function GuruTicker() {
                   <td className={`num ${deltaClass(r.deltaPct)}`}>{r.deltaPct != null ? fmtPct(r.deltaPct) : '—'}</td>
                   <td className="num">{r.value ? fmtMoney(r.value) : '—'}</td>
                   <td className="num">{r.weight ? fmtPct(r.weight, { sign: false, digits: 2 }) : '—'}</td>
+                  <td className="num">{r.avgClose != null ? fmtPx(r.avgClose) : '—'}</td>
+                  <td className="num muted">{r.lo != null ? `${fmtPx(r.lo)} – ${fmtPx(r.hi)}` : '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className="muted small mt8">{t('hist.splitNote')}</p>
+        <p className="muted small mt8">{t('pair.costNote')}</p>
         <Disclaimer />
       </div>
     </div>

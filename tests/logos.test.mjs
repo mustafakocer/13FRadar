@@ -2,7 +2,7 @@
 // only images with a 64px shorter side count, favicon-size icons do not.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRobots, robotsAllows, imageInfo, usable } from '../api/_lib/logoScrape.js';
+import { parseRobots, robotsAllows, imageInfo, usable, hostOf } from '../api/_lib/logoScrape.js';
 
 const png = (w, h) => { const b = Buffer.alloc(33); b.write('\x89PNG\r\n\x1a\n', 0, 'binary'); b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
 const gif = (w, h) => { const b = Buffer.alloc(16); b.write('GIF89a', 0); b.writeUInt16LE(w, 6); b.writeUInt16LE(h, 8); return b; };
@@ -36,4 +36,13 @@ test('robots.txt: our group wins over *, longest rule wins, no file means allowe
   assert.ok(!robotsAllows(star, '/assets/icon.png'));
   assert.ok(robotsAllows(star, '/apple-touch-icon.png'));
   assert.ok(robotsAllows(parseRobots(''), '/anything'));
+});
+
+test('hostOf: filing / profile website strings → bare host', () => {
+  assert.equal(hostOf('https://www.apple.com/'), 'apple.com');
+  assert.equal(hostOf('investor.nvidia.com'), 'investor.nvidia.com');
+  assert.equal(hostOf('WWW.Microsoft.COM'), 'microsoft.com');
+  assert.equal(hostOf(''), null);
+  assert.equal(hostOf('n/a'), null, 'no dot is not a host');
+  assert.equal(hostOf('mailto:ir@x.com'), null);
 });

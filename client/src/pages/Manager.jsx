@@ -27,6 +27,7 @@ import { managerStyle } from '../data/popular.js';
 import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import Ico from '../components/Ico.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert } from 'lucide-react';
 
 // The same shape as the consensus page: the four numbers that frame the
@@ -537,7 +538,7 @@ export default function Manager({ segment = 'portfolio' }) {
                           <tr key={`${p.cusip}|${p.putCall}`}>
                             <td className="l">
                               {p.ticker ? (
-                                <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>{p.ticker}</Link>
+                                <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={p.ticker} size={18} /> {p.ticker}</Link>
                               ) : (
                                 <span className="muted small" title={p.cusip}>{securityLabel(p).text}</span>
                               )}
@@ -613,7 +614,7 @@ export default function Manager({ segment = 'portfolio' }) {
                                 <span key={`${tk}-${i}`}>
                                   {i > 0 && ', '}
                                   {/^[A-Z0-9.\-]{1,6}$/.test(tk) ? (
-                                    guruSlug ? <Link to={`/guru/${guruSlug}/${tk}`}>{tk}</Link> : <Link to={`/stock/${tk}`}>{tk}</Link>
+                                    guruSlug ? <Link to={`/guru/${guruSlug}/${tk}`} className="tk-cell"><TickerLogo ticker={tk} size={14} /> {tk}</Link> : <Link to={`/stock/${tk}`} className="tk-cell"><TickerLogo ticker={tk} size={14} /> {tk}</Link>
                                   ) : (
                                     <span className="muted">{tk}</span>
                                   )}

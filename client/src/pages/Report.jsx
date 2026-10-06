@@ -19,6 +19,7 @@ import { managerPath } from '../lib/paths.js';
 import CompanyName from '../components/CompanyName.jsx';
 import { CAPS, capBucket, consensusOf, isFresh, pctChange } from '../../../api/_lib/guruActivity.js';
 import Ico from '../components/Ico.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import { Newspaper, Crown, Flame, Landmark } from 'lucide-react';
 
 // /report — what the tracked superinvestors bought and sold, quarter by
@@ -32,8 +33,8 @@ const SIDES = ['buys', 'sells'];
 const KINDS = ['all', 'stock', 'etf'];
 
 const Sym = ({ t }) => (
-  <Link to={`/stock/${t}`} className="ins-tick">
-    {t}
+  <Link to={`/stock/${t}`} className="ins-tick tk-cell">
+    <TickerLogo ticker={t} size={18} /> {t}
   </Link>
 );
 

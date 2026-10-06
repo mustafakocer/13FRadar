@@ -1,25 +1,28 @@
 import { useQuery } from '@tanstack/react-query';
 
-// The ticker → logo-file manifest the nightly job writes
-// (client/public/logos.json, scripts/build-logos.mjs). Absent file or a run
-// that disabled itself both come back as an empty map: every caller falls
-// back to the two-letter badge. Fetched once per session.
+// Two small manifests the weekly job writes, each fetched once per session
+// and read as an empty map when absent or unreadable — every caller then
+// falls back to the two-letter badge.
+async function manifest(file, key) {
+  try {
+    const r = await fetch(`/${file}`);
+    if (!r.ok) return {};
+    const j = await r.json();
+    return j?.[key] && typeof j[key] === 'object' ? j[key] : {};
+  } catch {
+    return {};
+  }
+}
+const opts = { staleTime: Infinity, gcTime: Infinity, retry: 0 };
+
+// ticker → self-hosted logo file (client/public/logos.json, scripts/build-logos.mjs)
 export function useLogos() {
-  const q = useQuery({
-    queryKey: ['logos'],
-    queryFn: async () => {
-      try {
-        const r = await fetch('/logos.json');
-        if (!r.ok) return {};
-        const j = await r.json();
-        return j?.logos && typeof j.logos === 'object' ? j.logos : {};
-      } catch {
-        return {};
-      }
-    },
-    staleTime: Infinity,
-    gcTime: Infinity,
-    retry: 0,
-  });
+  const q = useQuery({ queryKey: ['logos'], queryFn: () => manifest('logos.json', 'logos'), ...opts });
+  return q.data || {};
+}
+
+// ticker → company web domain (client/public/domains.json, scripts/build-domains.mjs)
+export function useDomains() {
+  const q = useQuery({ queryKey: ['domains'], queryFn: () => manifest('domains.json', 'domains'), ...opts });
   return q.data || {};
 }

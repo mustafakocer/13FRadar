@@ -16,6 +16,7 @@ import CompanyName from '../components/CompanyName.jsx';
 import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import Ico from '../components/Ico.jsx';
+import TickerLogo from '../components/TickerLogo.jsx';
 import { X, TriangleAlert, Handshake, Plus } from 'lucide-react';
 
 // The comparison a signed-out reader sees, and the one the server renders:
@@ -124,7 +125,7 @@ function StockCompare({ t, isPro }) {
                   <th className="l"> </th>
                   {tickers.map((tk, i) => (
                     <th key={tk}>
-                      <Link to={`/stock/${tk}`}>{tk}</Link>
+                      <Link to={`/stock/${tk}`} className="tk-cell"><TickerLogo ticker={tk} size={18} /> {tk}</Link>
                       {stocks[i].isLoading ? ' …' : ''}
                     </th>
                   ))}
@@ -287,7 +288,7 @@ function List({ title, rows, t, side }) {
       {shown.map((r) => (
         <div className="pos-row" key={r.key}>
           <div style={{ minWidth: 0 }}>
-            <div className="tick">{r.ticker ? <Link to={`/stock/${r.ticker}`}>{r.ticker}</Link> : r.cusip}</div>
+            <div className="tick">{r.ticker ? <Link to={`/stock/${r.ticker}`} className="tk-cell"><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link> : r.cusip}</div>
             <div className="issuer"><CompanyName name={r.issuer} /></div>
           </div>
           <div className="right">
@@ -461,7 +462,7 @@ export default function Compare() {
                     {books.common.map((r) => (
                       <tr key={r.key}>
                         <td className="l">
-                          <b>{r.ticker ? <Link to={`/stock/${r.ticker}`}>{r.ticker}</Link> : r.cusip}</b>
+                          <b>{r.ticker ? <Link to={`/stock/${r.ticker}`} className="tk-cell"><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link> : r.cusip}</b>
                           <div className="muted small"><CompanyName name={r.issuer} /></div>
                         </td>
                         <td className="num">{fmtPct(r.wA, { sign: false })}</td>

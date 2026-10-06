@@ -6,11 +6,12 @@ import { Plus, Minus, BookOpen } from 'lucide-react';
 import { heldBeforeListing } from '../lib/newListings.js';
 import { useListedOn } from '../hooks/useListedOn.js';
 import CompanyName from './CompanyName.jsx';
+import TickerLogo from './TickerLogo.jsx';
 
 const Tick = ({ p }) =>
   p.ticker ? (
-    <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} style={{ fontWeight: 700 }}>
-      {p.ticker}
+    <Link to={`/stock/${p.ticker}?cusip=${p.cusip}`} className="tk-cell" style={{ fontWeight: 700 }}>
+      <TickerLogo ticker={p.ticker} size={16} /> {p.ticker}
     </Link>
   ) : (
     <b><CompanyName name={p.issuer} /></b>

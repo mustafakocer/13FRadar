@@ -64,3 +64,11 @@ Fark = fon seti farkı; tanım (yeni pozisyon %100) her ikisinde aynı.
 | /report sektör sütunu | `guru-activity.json.rows[].sec` (sector-map) | |
 | /stock profil | sağlayıcı `profile.sector`, snapshot `ticker-meta.sector` | |
 | rapor `sectorFlow` | `null` (TODO) | değişmedi |
+
+## 6. Tahmini alış fiyatı, kazanç, çeyrek fiyat aralığı (2026-10-06)
+
+| Yer | Kaynak | Tanım |
+|---|---|---|
+| Guru sayfası "Tahmini Alış" / "Kazanç" kolonları | `/api/guru-history/:cik` → `cost[cusip]` (`api/_handlers/guru-history.js` `costTable`, süreç içi memo) | `api/_lib/costBasis.js` `costBasis()`: 13F adet artışı = o çeyreğin ortalama kapanışından alım; azalış = ortalama maliyetten satış (ortalama değişmez); satır yoksa lot kapanır, sonraki alım yeni lot. Adetler history'deki gibi bölünme düzeltmeli, fiyatlar `api/_data/prices/` (düzeltilmiş kapanış). Verinin ilk çeyreğinde zaten tutulan pozisyon o çeyreğin ortalamasıyla fiyatlanır ve `openedBeforeData` (UI'da `*`). Alım yapılan bir çeyrekte kapanış yoksa `avgBuy: null` (`unpriced`). Kazanç = (son kapanış − avgBuy) / avgBuy. Yalnız history'deki (her çeyrek ilk-100) ve son çeyrekte açık pozisyonlar; opsiyon satırları hariç. |
+| Guru × hisse sayfası KPI'ları ve "Ort. Kapanış" / "Fiyat Aralığı" kolonları | `/api/guru-history/:cik/:ticker` → `cost{}` ve `rows[].avgClose/lo/hi` | Çeyrek penceresi = önceki çeyrek sonundan (hariç) bu çeyrek sonuna (dahil) günlük kapanışlar; ilk çeyrekte 91 gün geriye. Stockcircle'ın "Avg closing price / Price range" tanımıyla aynı. |
+| Guru sayfası "Form 4 — çeyrek içi işlemler" kartı ve pozisyon rozetleri | `/api/guru-form4/:cik` (`api/_lib/guruForm4.js`) | `insiders.json` satırları: `ow` (bildirim sahibi CIK, 2026-09-16'dan itibaren dolu) = fon CIK **veya** `ow` yokken normalize ad = universe filer adı. İştirakler (National Indemnity vb.) eşleşmez. Aynı gün + aynı tür satırlar tek satıra katlanır (`foldDays`): adet ve değer toplam, fiyat adet ağırlıklı; `oc` yalnız tek satırda. `byTicker` → tablo rozetinde son işlem tarihi ve yönü. |

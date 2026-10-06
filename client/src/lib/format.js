@@ -15,6 +15,14 @@ export function fmtNum(v, digits = 0) {
   return v.toLocaleString('en-US', { maximumFractionDigits: digits });
 }
 
+// A share price: two decimals from ten dollars up, four below ($253.50,
+// $0.1234), the way the price store rounds a close.
+export function fmtPx(v) {
+  if (v == null || Number.isNaN(v)) return '—';
+  const d = Math.abs(v) >= 10 ? 2 : 4;
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+
 // "−22,6" / "-22.6": an off-market price's distance from the close
 export function fmtOffPct(v, lang = 'tr') {
   if (v == null || Number.isNaN(v)) return '—';

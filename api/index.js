@@ -29,6 +29,7 @@ import slug from './_handlers/slug.js';
 import sitemap from './_handlers/sitemap.js';
 import og from './_handlers/og.js';
 import guruHistoryH from './_handlers/guru-history.js';
+import guruForm4 from './_handlers/guru-form4.js';
 import exportH from './_handlers/export.js';
 import calendar from './_handlers/calendar.js';
 import emerging from './_handlers/emerging.js';
@@ -50,6 +51,7 @@ const ROUTES = {
   og: [og],
   'guru-history': [guruHistoryH, 'cik'],
   'guru-history-ticker': [guruHistoryH, 'cik', 'ticker'],
+  'guru-form4': [guruForm4, 'cik'],
   export: [exportH, 'kind', 'id'],
   calendar: [calendar],
   emerging: [emerging],

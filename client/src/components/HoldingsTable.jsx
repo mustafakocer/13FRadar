@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { fmtMoney, fmtNum, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtPx, deltaClass, quarterLabel } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
@@ -19,6 +19,7 @@ import { Download } from 'lucide-react';
 import { timeHeldLabel } from '../lib/timeHeld.js';
 import { heldBeforeListing } from '../lib/newListings.js';
 import { useListedOn } from '../hooks/useListedOn.js';
+import { shortDay } from './GuruForm4.jsx';
 
 const COLS = [
   { key: 'rank', tKey: 'table.rank', left: true },
@@ -67,7 +68,14 @@ function HistoryPanel({ cik, cusip, t }) {
 // has one — it adds a column, and the top-ten table this replaced used to be
 // the only place it showed. guruSlug turns the label into a link to the
 // guru × ticker page.
-export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked, timeHeld = null, guruSlug = null, reportDate = null }) {
+// cost: { [cusip]: { avgBuy, gainPct } } from the same history — the
+// estimated average purchase price (api/_lib/costBasis.js) and today's
+// price against it; two more columns, and "biggest wins / losses" is a
+// click on the gain header.
+// form4: { [ticker]: { count, last: { d, k, s, p } } } — the fund's own
+// Form 4 lines (api/guru-form4); a dated badge beside the symbol says the
+// count moved inside the quarter, before the next 13F.
+export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked, timeHeld = null, cost = null, form4 = null, guruSlug = null, reportDate = null }) {
   const { t, lang } = useI18n();
   // a first line in a security that listed inside this quarter: held before the IPO
   const listedOn = useListedOn();
@@ -97,6 +105,9 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
         retYtd: returns?.[p.ticker]?.retYtd ?? null,
         held: timeHeld ? (timeHeld[p.cusip]?.quarters ?? 0) : null,
         heldFrom: timeHeld?.[p.cusip]?.dataFrom || null,
+        avgBuy: cost && !p.putCall ? (cost[p.cusip]?.avgBuy ?? null) : null,
+        gainPct: cost && !p.putCall ? (cost[p.cusip]?.gainPct ?? null) : null,
+        openedBeforeData: Boolean(cost?.[p.cusip]?.openedBeforeData),
       };
     });
     const f = filter.trim().toLowerCase();
@@ -117,7 +128,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
       if (typeof av === 'string') return av.localeCompare(bv) * dir;
       return (av - bv) * dir;
     });
-  }, [positions, prevPositions, hasPrev, returns, filter, sort, timeHeld, reportDate, listedOn]);
+  }, [positions, prevPositions, hasPrev, returns, filter, sort, timeHeld, cost, reportDate, listedOn]);
 
   // free tier sees the top 10 positions only
   const visible = !isPro ? rows.slice(0, 10) : showAll ? rows : rows.slice(0, 100);
@@ -141,6 +152,12 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
     // position is
     const at = cols.findIndex((c) => c.key === 'shares');
     cols = [...cols.slice(0, at), { key: 'held', tKey: 'hist.timeHeld' }, ...cols.slice(at)];
+  }
+  if (cost) {
+    // what was probably paid, and what it is worth against that — next to
+    // the price-return columns they are read with
+    const at = cols.findIndex((c) => c.key === 'ret1y');
+    cols = [...cols.slice(0, at), { key: 'avgBuy', tKey: 'table.avgBuy', tip: 'tips.avgBuy' }, { key: 'gainPct', tKey: 'table.gain', tip: 'tips.gain' }, ...cols.slice(at)];
   }
 
   return (
@@ -203,6 +220,17 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     ) : (
                       <span className="muted small" title={`${p.issuer} · ${p.cusip}`}>{securityLabel(p).text}</span>
                     )}
+                    {/* a Form 4 the fund filed since: the trade's date and side */}
+                    {form4?.[p.ticker]?.last && !p.putCall && (() => {
+                      const f = form4[p.ticker].last;
+                      const side = f.k === 'P' ? 'add' : f.k === 'S' ? 'reduce' : '';
+                      const what = t(`ins.code.${f.k}`) !== `ins.code.${f.k}` ? t(`ins.code.${f.k}`) : f.k;
+                      return (
+                        <span className={`badge plain sm tk ${side}`} style={{ marginLeft: 6 }} title={t('gf4.badgeTip').replace('{what}', what).replace('{date}', f.d)}>
+                          {f.k === 'P' ? '▲' : f.k === 'S' ? '▼' : '•'} {shortDay(f.d, lang)}
+                        </span>
+                      );
+                    })()}
                     {/* option rows say so next to the symbol; share rows need no label */}
                     {p.putCall && (
                       <span className="badge type" style={{ marginLeft: 6 }}>
@@ -257,6 +285,14 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     </td>
                   )}
                   <td className="num" data-col="shares">{fmtNum(p.shares)}</td>
+                  {cost && (
+                    <td className="num" data-col="avgBuy" title={p.openedBeforeData ? t('pair.openedBeforeData') : undefined}>
+                      {p.avgBuy != null ? `${fmtPx(p.avgBuy)}${p.openedBeforeData ? '*' : ''}` : '—'}
+                    </td>
+                  )}
+                  {cost && (
+                    <td className={`num ${deltaClass(p.gainPct)}`} data-col="gainPct">{fmtPct(p.gainPct)}</td>
+                  )}
                   <td className={`num ${deltaClass(p.ret1y)}`} data-col="ret1y">{fmtPct(p.ret1y)}</td>
                   <td className={`num ${deltaClass(p.retYtd)}`} data-col="retYtd">{fmtPct(p.retYtd)}</td>
                   <td className={`num ${deltaClass(p.sinceReport)}`} data-col="sinceReport" title={t('tips.sinceReport')}>{fmtPct(p.sinceReport)}</td>

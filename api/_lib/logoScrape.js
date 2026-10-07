@@ -42,7 +42,44 @@ const SPONSORS = [
   [/\bPROSHARES\b/, 'proshares.com'],
   [/\bDIREXION\b/, 'direxion.com'],
   [/\bWISDOMTREE\b/, 'wisdomtree.com'],
-  [/\bARK ETF\b|\bARK INVEST\b/, 'ark-funds.com'],
+  [/\bARK (?:ETF|INVEST|21SHARES)\b|\bARK\b.*\bETF\b/, 'ark-funds.com'],
+  [/\bKRANESHARES\b/, 'kraneshares.com'],
+  [/\bDAVIS (?:FUNDAMENTAL|SELECT|ETF)\b/, 'davisetfs.com'],
+  [/\bNUVEEN\b/, 'nuveen.com'],
+  [/\bBLACKROCK\b/, 'blackrock.com'],
+  [/\bBROOKFIELD\b/, 'brookfield.com'],
+  [/\bEATON VANCE\b/, 'eatonvance.com'],
+  [/\bCOHEN & STEERS\b|\bCOHEN AND STEERS\b/, 'cohenandsteers.com'],
+  [/\bFRANKLIN\b.*\b(?:ETF|TR|FUND|TEMPLETON)\b|\bTEMPLETON\b/, 'franklintempleton.com'],
+  [/\bWESTERN ASSET\b/, 'westernasset.com'],
+  [/\bJOHN HANCOCK\b/, 'jhinvestments.com'],
+  [/\bCALAMOS\b/, 'calamos.com'],
+  [/\bGABELLI\b/, 'gabelli.com'],
+  [/\bVIRTUS\b/, 'virtus.com'],
+  [/\bABRDN\b|\bABERDEEN\b/, 'abrdn.com'],
+  [/\bSABA CAPITAL\b/, 'sabacapital.com'],
+  [/\bTORTOISE\b/, 'tortoiseecofin.com'],
+  [/\bPUTNAM\b/, 'putnam.com'],
+  [/\bMORGAN STANLEY (?:ETF|CHINA|EMERGING|INDIA)\b/, 'morganstanley.com'],
+  [/\bSPROTT\b/, 'sprott.com'],
+  [/\bWORLD GOLD TR\b/, 'spdrgoldshares.com'],
+  [/\b21SHARES\b/, '21shares.com'],
+  [/\bBITWISE\b/, 'bitwiseinvestments.com'],
+  [/\bGRANITESHARES\b/, 'graniteshares.com'],
+  [/\bSIMPLIFY\b.*\bETF\b/, 'simplify.us'],
+  [/\bINNOVATOR\b.*\bETF\b/, 'innovatoretfs.com'],
+  [/\bDEFIANCE\b.*\bETF\b/, 'defianceetfs.com'],
+  [/\bVOLATILITY SHARES\b/, 'volatilityshares.com'],
+  [/\bTIDAL (?:ETF|TR)\b/, 'tidalfinancialgroup.com'],
+  [/\bPGIM\b/, 'pgim.com'],
+  [/\bNEUBERGER BERMAN\b/, 'nb.com'],
+  [/\bAB (?:ETF|BOND|TAX)\b|\bALLIANCEBERNSTEIN\b/, 'alliancebernstein.com'],
+  [/\bHARTFORD\b.*\b(?:ETF|FUND)\b/, 'hartfordfunds.com'],
+  [/\bPRINCIPAL\b.*\bETF\b/, 'principal.com'],
+  [/\bNATIXIS\b/, 'im.natixis.com'],
+  [/\bMFS\b/, 'mfs.com'],
+  [/\bALLSPRING\b/, 'allspringglobal.com'],
+  [/\bDWS\b/, 'dws.com'],
   [/\bGLOBAL X\b/, 'globalxetfs.com'],
   [/\bVANECK\b|\bMARKET VECTORS\b/, 'vaneck.com'],
   [/\bPIMCO\b/, 'pimco.com'],
@@ -62,6 +99,18 @@ const SPONSORS = [
   [/\bAVANTIS\b|\bAMERICAN CENT(?:URY|Y) ETF\b/, 'avantisinvestors.com'],
   [/\bBLACKROCK ETF\b|\bBLACKROCK FDS\b/, 'blackrock.com'],
 ];
+// A warrant, unit, right or preferred line ("HTZWW", "FLYX-WS", "AAC-U",
+// "BAC-PL", "CORZW") is the same company as its common stock: the base
+// ticker it derives from, or null for a plain common ticker.
+export function baseTicker(sym) {
+  const t = String(sym || '').toUpperCase();
+  let m = t.match(/^([A-Z]{1,5})-(WS|WT|W|U|R|P[A-Z]?)$/) || t.match(/^([A-Z]{1,5})\.(WS|WT|W|U|R|P[A-Z]?)$/);
+  if (m) return m[1];
+  // no separator: "HTZWW", "CORZW", "RNGTU" — a plain ticker can end in W/U/R
+  // too (DOW, GRU), so the caller must confirm the base is the same filer
+  m = t.match(/^([A-Z]{2,4}?)(WW|WS|W|U|R)$/);
+  return m ? m[1] : null;
+}
 export function sponsorDomain(issuer) {
   const name = String(issuer || '').toUpperCase();
   if (!name) return null;

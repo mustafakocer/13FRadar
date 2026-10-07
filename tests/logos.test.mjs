@@ -2,7 +2,7 @@
 // only images with a 64px shorter side count, favicon-size icons do not.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRobots, robotsAllows, imageInfo, usable, hostOf, rootDomain, sponsorDomain } from '../api/_lib/logoScrape.js';
+import { parseRobots, robotsAllows, imageInfo, usable, hostOf, rootDomain, sponsorDomain, baseTicker } from '../api/_lib/logoScrape.js';
 
 const png = (w, h) => { const b = Buffer.alloc(33); b.write('\x89PNG\r\n\x1a\n', 0, 'binary'); b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
 const gif = (w, h) => { const b = Buffer.alloc(16); b.write('GIF89a', 0); b.writeUInt16LE(w, 6); b.writeUInt16LE(h, 8); return b; };
@@ -66,4 +66,15 @@ test('sponsorDomain: ETF / trust issuers map to the sponsor brand', () => {
   assert.equal(sponsorDomain('INVESCO QQQ TR'), 'invesco.com');
   assert.equal(sponsorDomain('NVIDIA CORPORATION'), null);
   assert.equal(sponsorDomain(''), null);
+});
+
+test('baseTicker: warrants, units, rights, preferreds → the common ticker', () => {
+  assert.equal(baseTicker('HTZWW'), 'HTZ');
+  assert.equal(baseTicker('CORZW'), 'CORZ');
+  assert.equal(baseTicker('FLYX-WS'), 'FLYX');
+  assert.equal(baseTicker('AAC-U'), 'AAC');
+  assert.equal(baseTicker('BAC-PL'), 'BAC');
+  assert.equal(baseTicker('AAPL'), null);
+  assert.equal(baseTicker('BRK-B'), null, 'a share class is not a derivative');
+  assert.equal(baseTicker('DOW'), 'DO', 'ambiguous: the caller checks the filer');
 });

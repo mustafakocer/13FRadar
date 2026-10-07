@@ -213,9 +213,10 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                     {p.ticker ? (
                       <Link
                         to={`/stock/${p.ticker}?cusip=${p.cusip}`}
+                        className="tk-cell"
                         style={{ fontWeight: 700 }}
                       >
-                        <TickerLogo ticker={p.ticker} size={18} /> {p.ticker}
+                        <TickerLogo ticker={p.ticker} size={28} /> {p.ticker}
                       </Link>
                     ) : (
                       <span className="muted small" title={`${p.issuer} · ${p.cusip}`}>{securityLabel(p).text}</span>

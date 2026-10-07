@@ -919,3 +919,31 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 .home-more .btn { display: inline-flex; align-items: center; gap: 6px; padding: 12px 22px; font-size: 14.5px; }
 .home-source { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 40px; text-align: center; }
 .home-pulse { margin-bottom: 18px; }
+
+/* ---------- fund page: profile header, stat strip, segment tabs ---------- */
+.fund-head { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px 24px 0; margin-bottom: 20px; }
+.fund-id { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.fund-title h1 { font-size: 34px; letter-spacing: -0.03em; line-height: 1.1; margin: 0; }
+.fund-firm { color: var(--text-2); font-size: 17px; margin-top: 4px; }
+.fund-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fund-head .page-head { margin-top: 10px; }
+.fund-head .page-head .sub { font-size: 13.5px; }
+.fund-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 18px -24px 0; border-top: 1px solid var(--border); }
+.fund-stat { display: flex; flex-direction: column; gap: 3px; padding: 16px 24px; border-right: 1px solid var(--border); min-width: 0; }
+.fund-stat:last-child { border-right: 0; }
+.fund-stat .k { color: var(--text-2); font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.fund-stat > b { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.fund-stat .s { color: var(--text-2); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fund-tabs { margin: 0 -24px; border-top: 1px solid var(--border); border-bottom: 0; padding: 0 12px; }
+.fund-tabs .home-tab { text-decoration: none !important; }
+@media (max-width: 840px) {
+  .fund-head { padding: 18px 16px 0; }
+  .fund-title h1 { font-size: 26px; }
+  .fund-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 14px -16px 0; }
+  .fund-stat { padding: 12px 16px; }
+  .fund-stat:nth-child(2) { border-right: 0; }
+  .fund-stat:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+  .fund-tabs { margin: 0 -16px; padding: 0 4px; }
+}
+/* the positions table breathes like the cards: a logo-height row */
+table.data.positions td { padding-top: 10px; padding-bottom: 10px; }

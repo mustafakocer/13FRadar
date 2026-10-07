@@ -29,7 +29,7 @@ import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
-import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert } from 'lucide-react';
+import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert, TrendingUp } from 'lucide-react';
 
 // The same shape as the consensus page: the four numbers that frame the
 // quarter, the segments of the page as pages of their own — /guru/<slug>,
@@ -181,7 +181,7 @@ export default function Manager({ segment = 'portfolio' }) {
   const perf = useQuery({
     queryKey: ['guru-performance', cik],
     queryFn: () => api.guruPerformance(cik),
-    enabled: !!cik && tab === 'history',
+    enabled: !!cik,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 0,
   });
@@ -296,13 +296,36 @@ export default function Manager({ segment = 'portfolio' }) {
   const amendments = holdings.data?.amendments || filing?.amendments || [];
   const amendedOn = (holdings.data?.amended || filing?.amended) && amendments.length ? amendments.map((a) => a.filingDate).join(', ') : null;
 
+  // the H1 is the entity's full name (SEO and the tests read it as such)
+  const shown = mgr.data.displayName || mgr.data.name;
+  // last year: the chained 13F return when the nightly job has one, else the
+  // current book's weighted 1Y
+  const y1 = perf.data?.horizons?.y1;
+  const lastYear = y1?.port != null ? { v: y1.port, spy: y1.spy, chained: true } : port1y != null ? { v: port1y, spy: spy1y, chained: false } : null;
+
   return (
-    <div>
-      <div className="page-head">
-        <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-          <FavoriteButton cik={mgr.data.cik} name={mgr.data.name} />
+    <div className="fund">
+      <div className="fund-head">
+        <div className="fund-id">
+          <div className="fund-title">
+            <h1>{shown}</h1>
+          </div>
+          <div className="fund-actions no-print">
+            <FavoriteButton cik={mgr.data.cik} name={mgr.data.name} />
+            <button className="btn ghost sm" onClick={() => { track(EVENTS.export, { kind: 'pdf', what: 'manager' }); window.print(); }}>
+              <Ico icon={Printer} /> {t('manager.print')}
+            </button>
+            <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)} aria-label={t('manager.filings')}>
+              {filings.map((f) => (
+                <option key={f.acc} value={f.acc}>
+                  {quarterLabel(f.reportDate)}{f.amended ? ' ✎' : ''}{fallback?.misfiled.acc === f.acc ? ` (${t('manager.invalid')})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        <div className="page-head" style={{ marginBottom: 0 }}>
           <div>
-            <h1>{mgr.data.displayName || mgr.data.name}</h1>
             <div className="sub">
               {[
                 mgr.data.displayName && mgr.data.displayName !== mgr.data.name ? mgr.data.name : null,
@@ -333,18 +356,49 @@ export default function Manager({ segment = 'portfolio' }) {
             </div>
           </div>
         </div>
-        <div className="row">
-          <button className="btn ghost no-print" onClick={() => { track(EVENTS.export, { kind: 'pdf', what: 'manager' }); window.print(); }}>
-            <Ico icon={Printer} /> {t('manager.print')}
-          </button>
-          <select className="select" value={acc || ''} onChange={(e) => setSelAcc(e.target.value)} aria-label={t('manager.filings')}>
-            {filings.map((f) => (
-              <option key={f.acc} value={f.acc}>
-                {quarterLabel(f.reportDate)}{f.amended ? ' ✎' : ''}{fallback?.misfiled.acc === f.acc ? ` (${t('manager.invalid')})` : ''}
-              </option>
+
+        {/* ---- the strip: last year, size, lines, concentration ---------- */}
+        {ready && (
+          <div className="fund-stats">
+            <div className="fund-stat">
+              <span className="k"><Ico icon={TrendingUp} size={16} /> {lastYear?.chained ? t('fund.lastYear') : t('manager.ret1y')}</span>
+              <b className={lastYear ? deltaClass(lastYear.v) : ''}>{lastYear ? fmtPct(lastYear.v) : '—'}</b>
+              <span className="s">{lastYear?.spy != null ? `SPY ${fmtPct(lastYear.spy)}` : lastYear ? t('manager.ret1yNote') : t('common.na')}</span>
+            </div>
+            <div className="fund-stat">
+              <span className="k">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
+              <b>{fmtMoney(holdings.data?.aum)}</b>
+              <span className="s">{latest?.qoq != null ? <>{t('manager.qoq')} <b className={deltaClass(latest.qoq)}>{fmtPct(latest.qoq)}</b></> : filing && quarterLabel(filing.reportDate)}</span>
+            </div>
+            <div className="fund-stat">
+              <span className="k">{t('manager.positions')}</span>
+              <b>{fmtNum(holdings.data?.count)}</b>
+              <span className="s">{ms ? t('manager.kpi.newExit').replace('{n}', fmtNum(ms.newCount ?? 0)).replace('{m}', fmtNum(ms.exitCount ?? 0)) : latest?.yoy != null ? <>{t('manager.yoy')} <b className={deltaClass(latest.yoy)}>{fmtPct(latest.yoy)}</b></> : null}</span>
+            </div>
+            <div className="fund-stat">
+              <span className="k">{t('manager.top10')}<InfoTip tip="tips.top10" /></span>
+              <b>{fmtPct(top10, { sign: false })}</b>
+              <span className="s">{ms ? (ms.turnoverLatest != null && ms.turnoverLatest < 5 ? t('manager.kpi.lowTurnover') : `${t('manager.kpi.turnover')} ${fmtTurnover(ms.turnoverLatest)}`) : latest?.estFlow != null ? <>{t('manager.estFlow')} <b className={deltaClass(latest.estFlow)}>{fmtMoney(latest.estFlow)}</b></> : null}</span>
+            </div>
+          </div>
+        )}
+
+        {/* ---- segments ------------------------------------------------ */}
+        {ready && (
+          <div className="home-tabs fund-tabs" role="tablist">
+            {TABS.map((k) => (
+              <Link
+                key={k}
+                to={k === 'portfolio' ? base : `${base}/${k}`}
+                className={`home-tab${tab === k ? ' on' : ''}${k === 'backtest' ? ' no-print' : ''}`}
+                aria-current={tab === k ? 'page' : undefined}
+              >
+                {t(`manager.tab.${k}`)}
+                {k === 'backtest' && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
+              </Link>
             ))}
-          </select>
-        </div>
+          </div>
+        )}
       </div>
 
       {dormant && (
@@ -402,74 +456,6 @@ export default function Manager({ segment = 'portfolio' }) {
 
       {ready && (
         <>
-          {/* ---- the four numbers that frame the quarter ------------------ */}
-          <div className="grid grid-4" style={{ marginBottom: 16 }}>
-            <Kpi
-              label={t('manager.aum')}
-              tip="tips.aum"
-              value={fmtMoney(holdings.data?.aum)}
-              sub={
-                latest?.qoq != null ? (
-                  <>{t('manager.qoq')} <b className={deltaClass(latest.qoq)}>{fmtPct(latest.qoq)}</b></>
-                ) : (
-                  filing && quarterLabel(filing.reportDate)
-                )
-              }
-            />
-            <Kpi
-              label={t('manager.positions')}
-              value={fmtNum(holdings.data?.count)}
-              sub={
-                ms
-                  ? t('manager.kpi.newExit').replace('{n}', fmtNum(ms.newCount ?? 0)).replace('{m}', fmtNum(ms.exitCount ?? 0))
-                  : latest?.yoy != null && <>{t('manager.yoy')} <b className={deltaClass(latest.yoy)}>{fmtPct(latest.yoy)}</b></>
-              }
-            />
-            <Kpi
-              label={t('manager.top10')}
-              tip="tips.top10"
-              value={fmtPct(top10, { sign: false })}
-              sub={
-                ms
-                  ? // a near-zero turnover reads as a sentence, not as "<0.1%"
-                    ms.turnoverLatest != null && ms.turnoverLatest < 5
-                    ? t('manager.kpi.lowTurnover')
-                    : `${t('manager.kpi.turnover')} ${fmtTurnover(ms.turnoverLatest)}`
-                  : latest?.estFlow != null && <>{t('manager.estFlow')} <b className={deltaClass(latest.estFlow)}>{fmtMoney(latest.estFlow)}</b></>
-              }
-            />
-            {port1y != null ? (
-              <Kpi
-                label={t('manager.ret1y')}
-                value={fmtPct(port1y)}
-                cls={deltaClass(port1y)}
-                sub={spy1y != null ? `SPY ${fmtPct(spy1y)} · ${t('manager.ret1yNote')}` : t('manager.ret1yNote')}
-              />
-            ) : (
-              <Kpi
-                label={t('manager.estFlow')}
-                value={latest?.estFlow != null ? fmtMoney(latest.estFlow) : '—'}
-                cls={latest?.estFlow != null ? deltaClass(latest.estFlow) : ''}
-                sub={filing && quarterLabel(filing.reportDate)}
-              />
-            )}
-          </div>
-
-          {/* ---- segments ------------------------------------------------ */}
-          <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-            {TABS.map((k) => (
-              <Link
-                key={k}
-                to={k === 'portfolio' ? base : `${base}/${k}`}
-                className={`chip${tab === k ? ' fsel-active' : ''}${k === 'backtest' ? ' no-print' : ''}`}
-                aria-current={tab === k ? 'page' : undefined}
-              >
-                {t(`manager.tab.${k}`)}
-                {k === 'backtest' && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
-              </Link>
-            ))}
-          </div>
-
           {/* ---- one thing per segment ----------------------------------- */}
           {tab === 'portfolio' && form4.data?.count > 0 && <GuruForm4 data={form4.data} />}
           {tab === 'portfolio' && (

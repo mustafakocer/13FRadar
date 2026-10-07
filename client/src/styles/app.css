@@ -614,7 +614,7 @@ th.sortable { cursor: pointer; user-select: none; }
 .ins-table th { cursor: pointer; white-space: nowrap; }
 .ins-table tr.ins-buy { background: color-mix(in srgb, var(--buy) 6%, transparent); }
 .ins-tick { font-weight: 700; }
-.ins-co { display: flex; align-items: center; gap: 6px; max-width: 220px; }
+.ins-co { display: flex; align-items: center; gap: 6px; max-width: 220px; flex-wrap: wrap; row-gap: 2px; }
 .ins-co .badge.sm { font-size: 10px; padding: 1px 6px; }
 
 .modal-backdrop {
@@ -968,3 +968,24 @@ table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
 
 /* the coverage sentence under the fund count wraps rather than clips */
 .consensus .fund-stat .s { white-space: normal; }
+
+/* ---------- insider page: the same profile header; strip closes the card ---------- */
+.insiders-head .fund-stats { margin-top: 14px; }
+.insiders-head .page-head .card-desc { margin-bottom: 6px; }
+.insiders-head .fund-stat .s { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* the shared day block takes two columns of the strip */
+.ins-strip { grid-template-columns: 2fr 1fr 1fr; }
+.ins-strip .fund-stat.wide .ins-day { margin-top: 2px; }
+.ins-strip .fund-stat.wide .ins-day > .muted.small:first-child { margin-bottom: 6px; }
+@media (max-width: 840px) {
+  .ins-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ins-strip .fund-stat.wide { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid var(--border); }
+  .ins-strip .fund-stat:nth-child(2) { border-right: 1px solid var(--border); }
+  .ins-strip .fund-stat:nth-child(-n+2) { border-bottom: 0; }
+  .ins-strip .fund-stat.wide { border-bottom: 1px solid var(--border); }
+}
+.ins-signals { margin-top: 0; }
+.ins-tabs { margin-top: 20px; margin-bottom: 14px; }
+.insiders .ins-toolbar { margin-top: 0; }
+.ins-table .ins-tick a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
+.insiders .ins-table td { padding-top: 10px; padding-bottom: 10px; }

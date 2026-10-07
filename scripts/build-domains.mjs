@@ -16,7 +16,7 @@
 //   2. Finnhub's company profile when SEC has none and FINNHUB_API_KEY is set
 //      (paced at LOGO_FINNHUB_PER_MIN, default 25/min)
 // Hosts are reduced to the brand's registrable domain (ir.kkr.com → kkr.com).
-// One run resolves at most DOMAINS_BATCH tickers (default 1200, ~45 min at
+// One run resolves at most DOMAINS_BATCH tickers (default 1500, ~60 min at
 // the SEC's pace), so the backlog fills over a few daily runs and a weekly
 // top-up after that is seconds. A ticker that resolved nowhere is noted in
 // `tried` and not asked again for RETRY_DAYS.
@@ -28,7 +28,7 @@ import { fileURLToPath } from 'node:url';
 import axios from 'axios';
 import { tickerMap } from '../api/_lib/tickers.js';
 import { getSubmissions } from '../api/_lib/sec.js';
-import { hostOf, rootDomain, sponsorDomain } from '../api/_lib/logoScrape.js';
+import { hostOf, rootDomain, sponsorDomain, baseTicker } from '../api/_lib/logoScrape.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
@@ -36,7 +36,7 @@ const pub = path.join(root, 'client', 'public');
 const data = path.join(root, 'api', '_data');
 const outPath = path.join(pub, 'domains.json');
 const refresh = process.argv.includes('--refresh');
-const BATCH = Number(process.env.DOMAINS_BATCH) || 1200;
+const BATCH = Number(process.env.DOMAINS_BATCH) || 1500;
 const RETRY_DAYS = 30;
 const PER_MIN = Number(process.env.LOGO_FINNHUB_PER_MIN) || 25;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -47,9 +47,13 @@ const TICKER = /^[A-Z][A-Z0-9.-]{0,6}$/;
 function universe() {
   const seen = new Map();
   const add = (t, name) => { const sym = String(t || '').trim().toUpperCase(); if (TICKER.test(sym) && !seen.has(sym)) seen.set(sym, String(name || '')); };
+  const insiders = readJson(path.join(data, 'insiders.json'));
+  const names = insiders?.companies || {};
   for (const r of readJson(path.join(pub, 'stocks.json'))?.rows || []) add(r.ticker, r.issuer);
+  // the insider pages open on the newest filings: those tickers next
+  for (const r of (insiders?.rows || []).slice(0, 4000)) add(r.t, names[r.t]);
   for (const r of readJson(path.join(data, 'guru-stocks.json'))?.stocks || []) add(r.ticker, r.issuer);
-  for (const [t, name] of Object.entries(readJson(path.join(data, 'insiders.json'))?.companies || {})) add(t, name);
+  for (const [t, name] of Object.entries(names)) add(t, name);
   for (const [t, name] of Object.entries(readJson(path.join(data, 'company-names.json'))?.names || {})) add(t, name);
   return [...seen.entries()];
 }
@@ -76,11 +80,15 @@ async function main() {
   const stale = (t) => !tried[t] || (Date.now() - Date.parse(tried[t])) / 86400000 >= RETRY_DAYS;
   const todo = all.filter(([t]) => !domains[t] && stale(t)).slice(0, BATCH);
   const ciks = await tickerMap();
+  // a derivative line is its base's company only when SEC lists both under
+  // one CIK, or lists the derivative not at all (DOW is not DO + W)
+  const sameFiler = (t) => { const b = baseTicker(t); return Boolean(b && domains[b] && (!ciks.get(t) || ciks.get(t) === ciks.get(b))); };
   const key = process.env.FINNHUB_API_KEY || '';
   let sponsor = 0, sec = 0, fin = 0, none = 0;
   for (const [i, [t, name]] of todo.entries()) {
     let host = sponsorDomain(name);
     if (host) sponsor++;
+    else if (sameFiler(t)) { host = domains[baseTicker(t)]; }
     else {
       host = rootDomain(await fromSec(t, ciks));
       if (host) sec++;
@@ -94,10 +102,15 @@ async function main() {
     if (host) { domains[t] = host; delete tried[t]; } else { none++; tried[t] = new Date().toISOString(); }
     if ((i + 1) % 100 === 0) console.log(`domains: ${i + 1}/${todo.length} · ${sponsor} sponsor, ${sec} SEC, ${fin} Finnhub, ${none} none`);
   }
+  // warrants, units, rights, preferreds: the common stock's domain, no lookup
+  let derived = 0;
+  for (const [t] of all) {
+    if (!domains[t] && sameFiler(t)) { domains[t] = domains[baseTicker(t)]; delete tried[t]; derived++; }
+  }
   const ok = Object.keys(domains).length;
   const left = all.filter(([t]) => !domains[t] && stale(t)).length;
   fs.writeFileSync(outPath, JSON.stringify({ updatedAt: new Date().toISOString(), universe: all.length, ok, pct: Math.round((ok / all.length) * 100), backlog: left, domains, tried }));
-  console.log(`domains: ${ok}/${all.length} (${Math.round((ok / all.length) * 100)}%) · this run ${todo.length}: ${sponsor} sponsor, ${sec} SEC, ${fin} Finnhub, ${none} none · ${left} still to try${key ? '' : ' (FINNHUB_API_KEY not set: SEC only)'}`);
+  console.log(`domains: ${ok}/${all.length} (${Math.round((ok / all.length) * 100)}%) · this run ${todo.length}: ${sponsor} sponsor, ${sec} SEC, ${fin} Finnhub, ${none} none, ${derived} derivatives from their base · ${left} still to try${key ? '' : ' (FINNHUB_API_KEY not set: SEC only)'}`);
 }
 
 // a SEC outage keeps the last manifest rather than failing the job

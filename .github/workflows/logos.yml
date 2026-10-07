@@ -1,22 +1,22 @@
 name: Stock logos
 
-# Weekly logo harvest for the top 500 stocks (scripts/build-logos.mjs):
-# the company's own website from its Finnhub profile, then that site's
-# apple-touch-icon / icon / og:image (≥ 64px, robots.txt obeyed), cached in
-# the repo so readers' browsers never call a company's site. Below a 10%
-# success rate the manifest ships empty and the badges stay.
+# Daily logo harvest (scripts/build-logos.mjs), LOGOS_BATCH tickers per run
+# over every ticker with a known domain (client/public/domains.json): that
+# site's apple-touch-icon / icon / og:image (≥ 64px, robots.txt obeyed),
+# else the public favicon caches — cached in the repo so readers' browsers
+# never call a company's site. The self-hosted fallback behind the logo CDN.
 #
-# It never overlaps the nightly data jobs: Saturday mid-morning (the chain
-# runs 01:23–05:30 UTC, insiders 03:31 and 11:02) and, before fetching, it
-# waits while any data workflow is still running — they share the Finnhub
-# 50/min budget, and this job paces itself at 25/min.
+# It never overlaps the nightly data jobs: 08:41 UTC (the chain runs
+# 01:23–05:30, insiders 03:31 and 11:02, domains 06:11) and, before
+# fetching, it waits while any data workflow is still running — they share
+# the Finnhub 50/min budget, and this job paces itself at 25/min.
 on:
   schedule:
-    - cron: '41 7 * * 6' # Saturdays 07:41 UTC
+    - cron: '41 8 * * *' # daily 08:41 UTC
   # a change to the harvester itself runs once right after it lands — on
   # main, and on a work branch so the result can be checked before merging
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
     paths:
       - scripts/build-logos.mjs
       - api/_lib/logoScrape.js
@@ -55,7 +55,7 @@ jobs:
             if [ "${busy:-0}" = "0" ]; then echo "no data job running"; exit 0; fi
             echo "a data job is running ($busy) — waiting"; sleep 60
           done
-          echo "::warning::data jobs still running after 40 minutes — skipping this week"; exit 1
+          echo "::warning::data jobs still running after 40 minutes — skipping today"; exit 1
       - name: Top up company domains (the daily domains.yml carries the backlog)
         run: node scripts/build-domains.mjs | tee -a "$GITHUB_STEP_SUMMARY"
         env:
@@ -66,6 +66,7 @@ jobs:
         run: node scripts/build-logos.mjs ${{ inputs.refresh == true && '--refresh' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
+          LOGOS_BATCH: '400'
       - name: Commit if changed
         run: |
           git config user.name 'logos-bot'

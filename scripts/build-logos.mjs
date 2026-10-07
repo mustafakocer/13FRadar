@@ -1,11 +1,14 @@
-// Stock logos, harvested weekly and served from this site — never a
-// third-party logo service, never a request to a company's site from a
-// reader's browser.
+// Stock logos harvested into this repo and served from this site — the
+// fallback behind the logo CDN (TickerLogo.jsx) for brands it does not know,
+// and the whole logo when no CDN client id is set. Never a request to a
+// company's site from a reader's browser.
 //
-//   node scripts/build-logos.mjs            # top up: tickers without a logo (or older than 60 days)
+//   node scripts/build-logos.mjs            # top up: the next LOGOS_BATCH tickers without a logo (or older than 60 days)
 //   node scripts/build-logos.mjs --refresh  # refetch everything
 //
-// Per ticker of the top 500 (client/public/stocks.json):
+// Per ticker of client/public/domains.json, in its order (most visible
+// first; build-domains.mjs), at most LOGOS_BATCH (default 400) per run so a
+// daily run walks the whole set in about two weeks and then only tops up:
 //   1. the company's website: client/public/domains.json (build-domains.mjs,
 //      SEC-sourced), else Finnhub's profile when FINNHUB_API_KEY is set
 //      (paced at LOGO_FINNHUB_PER_MIN, half the shared 50/min job budget)
@@ -19,8 +22,8 @@
 //      The same size rule applies, so their "unknown site" placeholder
 //      (16px) never passes. LOGO_FALLBACK=0 turns this step off.
 // Output: client/public/logos/{TICKER}.{ext} + client/public/logos.json
-// (tried, ok, pct, bytes, per-source counts). Below 10% success the
-// manifest ships empty (`disabled: true`) and every page keeps the badge.
+// (ok, bytes, per-source counts, `fetched` and `missed` timestamps). A ticker
+// whose site gave no usable icon is not asked again for STALE_DAYS.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,10 +37,7 @@ const manifestPath = path.join(pub, 'logos.json');
 const domainsPath = path.join(pub, 'domains.json');
 const refresh = process.argv.includes('--refresh');
 
-const TOP = Number(process.env.LOGOS_TOP) || 500;
-// Below this the set is too patchy to be worth shipping; above it, a logo
-// where we have one and the badge elsewhere reads fine side by side.
-const MIN_PCT = 10;
+const BATCH = Number(process.env.LOGOS_BATCH) || 400;
 const MAX_BYTES = 150 * 1024;
 const STALE_DAYS = 60;
 const PER_MIN = Number(process.env.LOGO_FINNHUB_PER_MIN) || 25;
@@ -142,52 +142,43 @@ async function websiteOf(sym, key) {
 async function main() {
   const key = process.env.FINNHUB_API_KEY || '';
   const domains = readJson(domainsPath)?.domains || {};
-  if (!key && !Object.keys(domains).length) { console.log('::warning::logos: neither domains.json nor FINNHUB_API_KEY — nothing fetched'); return; }
-  const stocks = readJson(path.join(pub, 'stocks.json'));
-  const tickers = [...new Set((stocks?.rows || []).map((s) => String(s.ticker || '').trim().toUpperCase()).filter(Boolean))].slice(0, TOP);
-  if (!tickers.length) { console.log('::warning::logos: stocks.json has no tickers'); return; }
+  const tickers = Object.keys(domains).filter((t) => /^[A-Z][A-Z0-9.-]{0,6}$/.test(t));
+  if (!tickers.length) { console.log('::warning::logos: domains.json has no tickers — run build-domains.mjs first'); return; }
   fs.mkdirSync(outDir, { recursive: true });
-  const prior = readJson(manifestPath);
+  const prior = refresh ? null : readJson(manifestPath);
   const fetched = { ...(prior?.fetched || {}) };
-  const logos = {};
+  const missed = { ...(prior?.missed || {}) };
+  // last run's set, minus files that have gone missing
+  const logos = Object.fromEntries(Object.entries(prior?.logos || {}).filter(([, f]) => fs.existsSync(path.join(pub, f))));
   const sources = {};
-  const fresh = (sym) => { const at = fetched[sym]; return at && (Date.now() - Date.parse(at)) / 86400000 < STALE_DAYS; };
-  let kept = 0, got = 0, noSite = 0, noIcon = 0;
+  const fresh = (at) => at && (Date.now() - Date.parse(at)) / 86400000 < STALE_DAYS;
+  const todo = tickers.map((t) => [t, t.replace(/\./g, '-')]).filter(([, k]) => !(logos[k] && fresh(fetched[k])) && !fresh(missed[k])).slice(0, BATCH);
+  let got = 0, noSite = 0, noIcon = 0;
 
-  for (const [i, t] of tickers.entries()) {
-    const key2 = t.replace(/\./g, '-');
-    const existing = prior?.logos?.[key2];
-    if (!refresh && existing && fs.existsSync(path.join(pub, existing)) && fresh(key2)) { logos[key2] = existing; kept++; continue; }
+  for (const [i, [t, key2]] of todo.entries()) {
     const t0 = Date.now();
     const site = domains[t] || domains[key2] || (key ? await websiteOf(t, key).catch(() => null) : null);
-    if (!site) { noSite++; }
+    if (!site) { noSite++; missed[key2] = new Date().toISOString(); }
     else {
       const img = (await logoFor(site).catch(() => null)) || (FALLBACK ? await fallbackFor(site) : null);
-      if (!img) noIcon++;
+      if (!img) { noIcon++; missed[key2] = new Date().toISOString(); }
       else {
         const file = `logos/${key2.replace(/[^A-Z0-9-]/g, '')}.${img.ext}`;
         fs.writeFileSync(path.join(pub, file), img.buf);
-        logos[key2] = file; fetched[key2] = new Date().toISOString(); sources[img.src] = (sources[img.src] || 0) + 1; got++;
+        logos[key2] = file; fetched[key2] = new Date().toISOString(); delete missed[key2]; sources[img.src] = (sources[img.src] || 0) + 1; got++;
       }
     }
-    if ((i + 1) % 50 === 0) console.log(`logos: ${i + 1}/${tickers.length} · ${got} new, ${kept} kept, ${noSite} no site, ${noIcon} no icon`);
+    if ((i + 1) % 50 === 0) console.log(`logos: ${i + 1}/${todo.length} · ${got} new, ${noSite} no site, ${noIcon} no icon`);
     await sleep(Math.max(0, Math.ceil(60000 / PER_MIN) - (Date.now() - t0)));
   }
 
   const ok = Object.keys(logos).length;
-  const pct = Math.round((ok / tickers.length) * 100);
   const bytes = Object.values(logos).reduce((s, f) => { try { return s + fs.statSync(path.join(pub, f)).size; } catch { return s; } }, 0);
   const keep = new Set(Object.values(logos).map((f) => path.basename(f)));
   for (const f of fs.readdirSync(outDir)) if (!keep.has(f)) fs.rmSync(path.join(outDir, f));
-  const base = { updatedAt: new Date().toISOString(), tried: tickers.length, ok, pct, bytes, sources, noSite, noIcon, fetched };
-  if (pct < MIN_PCT) {
-    for (const f of fs.readdirSync(outDir)) fs.rmSync(path.join(outDir, f));
-    fs.writeFileSync(manifestPath, JSON.stringify({ ...base, disabled: true, logos: {} }));
-    console.log(`::warning::logos: ${ok}/${tickers.length} (${pct}%) — below ${MIN_PCT}%, logos disabled, badges stay. ${noSite} without a website, ${noIcon} without a usable icon`);
-    return;
-  }
-  fs.writeFileSync(manifestPath, JSON.stringify({ ...base, logos }));
-  console.log(`logos: ${ok}/${tickers.length} (${pct}%), ${(bytes / 1024).toFixed(0)} KB on disk · sources ${JSON.stringify(sources)} · ${noSite} without a website, ${noIcon} without a usable icon`);
+  const left = tickers.filter((t) => { const k = t.replace(/\./g, '-'); return !(logos[k] && fresh(fetched[k])) && !fresh(missed[k]); }).length;
+  fs.writeFileSync(manifestPath, JSON.stringify({ updatedAt: new Date().toISOString(), universe: tickers.length, ok, pct: Math.round((ok / tickers.length) * 100), bytes, backlog: left, sources, fetched, missed, logos }));
+  console.log(`logos: ${ok}/${tickers.length} (${Math.round((ok / tickers.length) * 100)}%), ${(bytes / 1024).toFixed(0)} KB on disk · this run ${todo.length}: ${got} new (${JSON.stringify(sources)}), ${noSite} without a website, ${noIcon} without a usable icon · ${left} still to try`);
 }
 
 await main();

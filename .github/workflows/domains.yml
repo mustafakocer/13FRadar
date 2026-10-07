@@ -11,7 +11,7 @@ on:
   schedule:
     - cron: '11 6,14,22 * * *'
   push:
-    branches: [main, 'claude/**']
+    branches: [main]
     paths:
       - scripts/build-domains.mjs
       - .github/workflows/domains.yml

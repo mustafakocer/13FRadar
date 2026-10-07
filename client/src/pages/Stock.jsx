@@ -28,7 +28,7 @@ import { useGuruStock } from '../hooks/useGuruStock.js';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
-import { TriangleAlert, UserRound, Waves } from 'lucide-react';
+import { TriangleAlert, UserRound, Waves, Users, ArrowLeftRight } from 'lucide-react';
 import TickerLogo from '../components/TickerLogo.jsx';
 import PerfStrip from '../components/PerfStrip.jsx';
 
@@ -167,29 +167,66 @@ export default function Stock() {
   const quoteMissing = !!error || !data || data.priceUnavailable || p.price == null;
   const quoteStale = !quoteMissing && !!(data.priceStale || data.stale);
 
+  // the standing among the superinvestors: the per-security answer when the
+  // daily table has it, else the static most-held row
+  const gs = guru.stock || consensusRow || null;
+  const net = gs?.netValue;
+  const pe = sec.pe;
+  const sections = [
+    ['gurus', t('stock.sec.gurus')],
+    ['quote', t('stock.sec.quote')],
+    ['financials', t('stock.sec.financials')],
+    ['insiders', t('stock.sec.insiders')],
+    ['about', t('stock.sec.about')],
+  ];
+
   return (
-    <div>
-      <div className="page-head">
-        <div>
-          <h1>
-            <TickerLogo ticker={sym} size={40} /> {p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span>
-          </h1>
-          <div className="row mt8">
-            <span className="price-big">
-              {p.price != null ? `${fmtNum(p.price, 2)} ${p.currency || ''}` : '—'}
-            </span>
-            {chg != null && (
-              <span className={`badge ${chg >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 15 }}>
-                {fmtPct(chg, { digits: 2 })}
-              </span>
-            )}
-            {quoteStale && data.priceAsOf && (
-              <span className="badge plain" title={t('stock.priceStale')}>{t('stock.asOf')} {data.priceAsOf}</span>
-            )}
-            {pr.sector && <span className="badge plain">{pr.sector}</span>}
+    <div className="fund stock">
+      <div className="fund-head">
+        <div className="fund-id">
+          <div className="stock-title">
+            <TickerLogo ticker={sym} size={56} />
+            <div style={{ minWidth: 0 }}>
+              <h1>{p.name || sym} <span className="muted" style={{ fontWeight: 600 }}>({sym})</span></h1>
+              <div className="row" style={{ gap: 10, marginTop: 4 }}>
+                <span className="price-big">{p.price != null ? `${fmtNum(p.price, 2)} ${p.currency || ''}` : '—'}</span>
+                {chg != null && <span className={`badge ${chg >= 0 ? 'pos' : 'neg'}`} style={{ fontSize: 15 }}>{fmtPct(chg, { digits: 2 })}</span>}
+                {quoteStale && data.priceAsOf && <span className="badge plain" title={t('stock.priceStale')}>{t('stock.asOf')} {data.priceAsOf}</span>}
+                {pr.sector && <span className="badge plain">{pr.sector}</span>}
+              </div>
+            </div>
           </div>
           <PerfStrip ticker={sym} />
         </div>
+
+        <div className="fund-stats">
+          <div className="fund-stat">
+            <span className="k"><Ico icon={Users} size={16} /> {t('stock.stat.holders')}</span>
+            <b>{gs?.holderCount != null ? fmtNum(gs.holderCount) : '—'}</b>
+            <span className="s">{gs?.rank != null && guru.universe ? t('stock.stat.rank').replace('{r}', gs.rank).replace('{n}', guru.universe) : gs ? t('stock.stat.ofTracked') : t('stock.stat.none')}</span>
+          </div>
+          <div className="fund-stat">
+            <span className="k"><Ico icon={ArrowLeftRight} size={16} /> {t('stock.stat.net')}</span>
+            <b className={net != null ? deltaClass(net) : ''}>{net != null ? `${net >= 0 ? '+' : '−'}${fmtMoney(Math.abs(net))}` : '—'}</b>
+            <span className="s">{gs?.buyers != null ? t('stock.stat.buyersSellers').replace('{b}', gs.buyers).replace('{s}', gs.sellers ?? 0) : t('stock.stat.quarter')}</span>
+          </div>
+          <div className="fund-stat">
+            <span className="k">{t('stock.mktCap')}</span>
+            <b>{fmtMoney(sec.marketCap ?? p.marketCap)}</b>
+            <span className="s">{p.low52 != null && p.high52 != null ? `${t('stock.range52')}: ${fmtNum(p.low52, 2)} – ${fmtNum(p.high52, 2)}` : ''}</span>
+          </div>
+          <div className="fund-stat">
+            <span className="k">{t('stock.trailingPE')}<InfoTip tip="tips.pe" /></span>
+            <b className={pe === 'loss' ? 'delta-neg' : ''}>{pe === 'loss' ? t('stock.loss') : fmtRatio(pe ?? null)}</b>
+            <span className="s">{sec.dividendYield != null ? `${t('stock.divYield')}: ${fmtFracPct(sec.dividendYield, { digits: 2 })}` : sec.eps != null ? `EPS ${fmtNum(sec.eps, 2)}` : ''}</span>
+          </div>
+        </div>
+
+        <nav className="home-tabs fund-tabs" aria-label={t('stock.sections')}>
+          {sections.map(([id, label]) => (
+            <a key={id} href={`#${id}`} className="home-tab">{label}</a>
+          ))}
+        </nav>
       </div>
 
       {/* The quote is one provider among several on this page. When it is
@@ -212,13 +249,26 @@ export default function Stock() {
 
       <AnswerBox text={seo.answer} />
 
-      <GuruSignal ticker={ticker} cusip={cusip} />
+      <section id="gurus" className="stock-section">
+        <GuruSignal ticker={ticker} cusip={cusip} />
+        {guru.held && (
+          <GuruOwnership
+            stock={guru.stock}
+            byConviction={guru.topByConviction}
+            byValue={guru.topByValue}
+            truncated={guru.holdersTruncated}
+            options={guru.options}
+            ownedPct={guru.stock?.totalShares && tr.sharesOutstanding ? (guru.stock.totalShares / tr.sharesOutstanding) * 100 : null}
+            universe={guru.universe}
+            trend={guru.trend}
+          />
+        )}
+      </section>
 
       {/* The quote board reads like the one on a finance portal: the chart
-          with its own range tabs, then the numbers a reader checks against it.
-          It sits directly under the guru signal because that is the order the
-          question comes in — who is buying this, and what has the price done. */}
-      <div className="card mt16">
+          with its own range tabs, then the numbers a reader checks against it. */}
+      <section id="quote" className="card mt16 stock-section">
+        <h3>{t('stock.sec.quote')}</h3>
         <ChartBox height={300}><PriceChart ticker={ticker} lang={lang} /></ChartBox>
         <div className="kv-grid quote-grid mt16">
           <KV k={t('stock.prevClose')} v={fmtNum(p.prevClose, 2)} />
@@ -241,8 +291,9 @@ export default function Stock() {
           <KV k={t('stock.eps')} tip="tips.eps" v={sec.eps != null ? fmtNum(sec.eps, 2) : '—'} title={sec.epsReason} src={<SecSource s={sec.src?.eps} t={t} lang={lang} />} />
           <KV k={t('stock.divYield')} tip="tips.divYield" v={sec.dividendYield != null ? fmtFracPct(sec.dividendYield, { digits: 2 }) : '—'} src={<SecSource s={sec.src?.div} t={t} lang={lang} />} />
         </div>
-      </div>
+      </section>
 
+      <div id="financials" className="stock-section" />
       <YearTable
         title={t('stock.income')}
         rows={data?.income}
@@ -308,6 +359,7 @@ export default function Stock() {
         </div>
       )}
 
+      <div id="insiders" className="stock-section" />
       {insiders.data?.transactions?.length > 0 && (
         <div className="card mt16">
           <h3><Ico icon={UserRound} /> {t('stock.insiders')}</h3>
@@ -385,23 +437,6 @@ export default function Stock() {
         </div>
       )}
 
-      {guru.held && (
-        <GuruOwnership
-          stock={guru.stock}
-          byConviction={guru.topByConviction}
-          byValue={guru.topByValue}
-          truncated={guru.holdersTruncated}
-          options={guru.options}
-          ownedPct={
-            guru.stock?.totalShares && tr.sharesOutstanding
-              ? (guru.stock.totalShares / tr.sharesOutstanding) * 100
-              : null
-          }
-          universe={guru.universe}
-          trend={guru.trend}
-        />
-      )}
-
       {cusip && isPro && (ownership.isLoading || ownership.data?.holders?.length > 0) && (
         <div className="card mt16">
           <h3><Ico icon={Waves} /> {t('stock.ownership')}</h3>
@@ -462,6 +497,7 @@ export default function Stock() {
         </div>
       )}
 
+      <div id="about" className="stock-section" />
       {(pr.summary || pr.sector) && (
         <div className="card mt16">
           <h3>{t('stock.about')}</h3>

@@ -20,7 +20,7 @@ import Paywall from '../components/Paywall.jsx';
 import HoldersPanel from '../components/HoldersPanel.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
-import { Compass, ChevronRight, ChevronDown, Download } from 'lucide-react';
+import { Compass, ChevronRight, ChevronDown, Download, Users, CalendarDays, Trophy, TrendingUp } from 'lucide-react';
 
 // One page, one table, one question at a time.
 //
@@ -43,8 +43,8 @@ const EXPANDABLE = new Set(['held', 'bought', 'sold']);
 
 const Sym = ({ r }) =>
   r.ticker ? (
-    <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 700 }} onClick={(e) => e.stopPropagation()}>
-      <TickerLogo ticker={r.ticker} size={18} /> {r.ticker}
+    <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tk-cell" style={{ fontWeight: 700 }} onClick={(e) => e.stopPropagation()}>
+      <TickerLogo ticker={r.ticker} size={28} /> {r.ticker}
     </Link>
   ) : (
     <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
@@ -67,24 +67,6 @@ function Tickers({ list, cls, count = null }) {
       ))}
       {total > Math.min(3, list.length) && <span className="muted"> +{total - Math.min(3, list.length)}</span>}
     </span>
-  );
-}
-
-function Kpi({ label, value, sub, locked }) {
-  return (
-    <div className="card" style={{ padding: '12px 16px' }}>
-      <div className="small muted">{label}</div>
-      {locked ? (
-        <div style={{ marginTop: 4 }}>
-          <Link to="/pricing" className="badge pro sm">PRO</Link>
-        </div>
-      ) : (
-        <>
-          <div style={{ fontSize: 20, fontWeight: 800, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{value}</div>
-          {sub && <div className="small muted">{sub}</div>}
-        </>
-      )}
-    </div>
   );
 }
 
@@ -187,52 +169,61 @@ export default function Consensus() {
   const topBuy = topBought[0];
 
   return (
-    <div>
-      <div className="page-head">
-        <div>
-          <h1><Ico icon={Compass} size={22} /> {t('consensus.title')}</h1>
-          <div className="sub">{t(`consensus.desc.${tab}`)}</div>
+    <div className="fund consensus">
+      <div className="fund-head">
+        <div className="fund-id">
+          <div className="fund-title">
+            <h1><Ico icon={Compass} size={24} /> {t('consensus.title')}</h1>
+            <div className="fund-firm">{t(`consensus.desc.${tab}`)}</div>
+          </div>
+        </div>
+
+        {/* ---- the four numbers that frame the quarter — on the front only --- */}
+        {tab === 'held' && (
+          <div className="fund-stats">
+            <div className="fund-stat">
+              <span className="k"><Ico icon={Users} size={16} /> {t('consensus.kpi.funds')}</span>
+              <b>{fmtNum(data?.coverage?.included ?? managers.length)}</b>
+              <span className="s"><CoverageLine coverage={data?.coverage} className="" /> <Link to="/gurus">{t('consensus.seeFunds')} →</Link></span>
+            </div>
+            <div className="fund-stat">
+              <span className="k"><Ico icon={CalendarDays} size={16} /> {t('consensus.kpi.period')}</span>
+              <b>{latest ? quarterLabel(latest) : '—'}</b>
+              <span className="s">{t('consensus.kpi.periodNote')}</span>
+            </div>
+            <div className="fund-stat">
+              <span className="k"><Ico icon={Trophy} size={16} /> {t('consensus.kpi.topHeld')}</span>
+              <b className="tk-cell">{topHeld ? <>{topHeld.ticker && <TickerLogo ticker={topHeld.ticker} size={26} />} {topHeld.ticker || topHeld.issuer}</> : '—'}</b>
+              <span className="s">{topHeld ? `${fmtNum(topHeld.holderCount)} ${t('consensus.kpi.fundsHold')}` : ''}</span>
+            </div>
+            <div className="fund-stat">
+              <span className="k"><Ico icon={TrendingUp} size={16} /> {t('consensus.kpi.topBought')}</span>
+              {isPro ? (
+                <>
+                  <b className="tk-cell">{topBuy ? <>{topBuy.ticker && <TickerLogo ticker={topBuy.ticker} size={26} />} {topBuy.ticker || topBuy.issuer}</> : '—'}</b>
+                  <span className="s">{topBuy ? `+${fmtMoney(topBuy.netValue)} · ${fmtNum(topBuy.buyers)} ${t('consensus.kpi.fundsBought')}` : ''}</span>
+                </>
+              ) : (
+                <>
+                  <b><Link to="/pricing" className="badge pro sm">PRO</Link></b>
+                  <span className="s">{t('consensus.kpi.proNote')}</span>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ---- segments ---------------------------------------------------- */}
+        <div className={`home-tabs fund-tabs${tab === 'held' ? '' : ' fund-tabs-top'}`} role="tablist">
+          {TABS.map((k) => (
+            <Link key={k} to={pathOf(k)} className={`home-tab${k === tab ? ' on' : ''}`} aria-current={k === tab ? 'page' : undefined}>
+              {t(`consensus.tab.${k}`)}
+              {PRO_TABS.has(k) && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
+            </Link>
+          ))}
         </div>
       </div>
       <AnswerBox text={seo.answer} />
-
-      {/* ---- the four numbers that frame the quarter — on the front only --- */}
-      {tab === 'held' && (
-      <div className="grid grid-4" style={{ marginBottom: 16 }}>
-        <Kpi
-          label={t('consensus.kpi.funds')}
-          value={fmtNum(data?.coverage?.included ?? managers.length)}
-          sub={
-            <>
-              <CoverageLine coverage={data?.coverage} className="small muted" />
-              <Link to="/gurus">{t('consensus.seeFunds')} →</Link>
-            </>
-          }
-        />
-        <Kpi label={t('consensus.kpi.period')} value={latest ? quarterLabel(latest) : '—'} sub={t('consensus.kpi.periodNote')} />
-        <Kpi
-          label={t('consensus.kpi.topHeld')}
-          value={topHeld ? topHeld.ticker || topHeld.issuer : '—'}
-          sub={topHeld ? `${fmtNum(topHeld.holderCount)} ${t('consensus.kpi.fundsHold')}` : null}
-        />
-        <Kpi
-          label={t('consensus.kpi.topBought')}
-          locked={!isPro}
-          value={topBuy ? topBuy.ticker || topBuy.issuer : '—'}
-          sub={topBuy ? `+${fmtMoney(topBuy.netValue)} · ${fmtNum(topBuy.buyers)} ${t('consensus.kpi.fundsBought')}` : null}
-        />
-      </div>
-      )}
-
-      {/* ---- segments ---------------------------------------------------- */}
-      <div className="row" style={{ gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-        {TABS.map((k) => (
-          <Link key={k} to={pathOf(k)} className={`chip${k === tab ? ' fsel-active' : ''}`} aria-current={k === tab ? 'page' : undefined}>
-            {t(`consensus.tab.${k}`)}
-            {PRO_TABS.has(k) && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
-          </Link>
-        ))}
-      </div>
 
       {locked && <Paywall />}
       {!locked && isPro && proLoading && tab !== 'held' && tab !== 'funds' && (

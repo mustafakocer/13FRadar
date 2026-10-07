@@ -12,9 +12,9 @@ import FilterSelect from '../components/FilterSelect.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import { SkeletonRows } from '../components/Skeleton.jsx';
 import Ico from '../components/Ico.jsx';
-import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import UpdatedLine from '../components/UpdatedLine.jsx';
-import { X, UserSearch, SlidersHorizontal } from 'lucide-react';
+import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
+import { X, SlidersHorizontal } from 'lucide-react';
 import CompanyName from '../components/CompanyName.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 
@@ -350,12 +350,16 @@ export default function Insiders() {
     retry: 0,
   });
 
+  // the first page carries the day's stats and the sector list; later pages
+  // (and a filtered query) do not, so the last seen ones stay on screen —
+  // read straight from the data on the server, where effects never run
   const [sectors, setSectors] = useState([]);
-  const [stats, setStats] = useState(null);
+  const [lastStats, setLastStats] = useState(null);
   useEffect(() => {
     if (feed.data?.sectors) setSectors(feed.data.sectors);
-    if (feed.data?.stats) setStats(feed.data.stats);
+    if (feed.data?.stats) setLastStats(feed.data.stats);
   }, [feed.data]);
+  const stats = feed.data?.stats || lastStats;
 
   const advCount = Object.entries(adv).filter(([, v]) => v && v !== '').length;
   const rows = feed.data?.rows || [];
@@ -366,23 +370,58 @@ export default function Insiders() {
     setSort((s) => ({ key, dir: s.key === key && s.dir === 'desc' ? 'asc' : 'desc' }));
   const arrow = (key) => (sort.key === key ? (sort.dir === 'desc' ? ' ↓' : ' ↑') : '');
 
+  // The profile header every page shares (fund, stock, consensus): the title
+  // card, then the newest filing day as a strip — the shared day block the
+  // home page prints too (InsiderDaySummary, one component so the two pages
+  // agree), beside the company count and the day's biggest purchase.
+  const topBuy = stats?.topBuys?.[0];
   const header = (
-    <div className="page-head">
-      <div>
-        <h1>
-          <Ico icon={UserSearch} size={22} /> {t('ins.title')} <span className="badge plain">BETA</span>
-        </h1>
-        <div className="sub">
-          {t('ins.subtitle')}
+    <div className="fund-head insiders-head">
+      <div className="fund-id">
+        <div className="fund-title">
+          <h1>{t('ins.title')}</h1>
+          <div className="fund-firm">{t('ins.subtitle')}</div>
         </div>
-        {/* one plain sentence on what Form 4 is, for a first-time reader */}
-        <p className="card-desc">{t('explain.ins.intro')}</p>
-        {/* when the data was built and the newest filing day in it */}
-        {feed.data?.lastFilingDay && (
-          <div className="mt8">
-            <UpdatedLine updatedAt={feed.data.updatedAt} dataDay={feed.data.lastFilingDay} />
-          </div>
-        )}
+      </div>
+      <div className="page-head" style={{ marginBottom: 0 }}>
+        <div>
+          {/* one plain sentence on what Form 4 is, for a first-time reader */}
+          <p className="card-desc" style={{ marginTop: 0 }}>{t('explain.ins.intro')}</p>
+          {/* when the data was built and the newest filing day in it */}
+          {feed.data?.lastFilingDay && (
+            <div className="sub">
+              <UpdatedLine updatedAt={feed.data.updatedAt} dataDay={feed.data.lastFilingDay} />
+            </div>
+          )}
+        </div>
+      </div>
+      <div className="fund-stats ins-strip" data-ins-strip={stats?.day || ''}>
+        <div className="fund-stat wide">
+          <span className="k">{t('ins.marketActivity')}<InfoTip tip="tips.insActivity" /></span>
+          {stats ? <InsiderDaySummary summary={stats} /> : <span className="s">{t('common.loading')}</span>}
+        </div>
+        <div className="fund-stat">
+          <span className="k">{t('ins.stat.companies')}</span>
+          <b>{stats ? fmtNum(stats.companies) : '—'}</b>
+          <span className="s">{t('ins.stat.companiesNote')}</span>
+        </div>
+        <div className="fund-stat">
+          <span className="k">{t('ins.stat.topBuy')}</span>
+          {topBuy ? (
+            <>
+              <b><Link to={`/stock/${topBuy.ticker}`} className="tk-cell"><TickerLogo ticker={topBuy.ticker} size={28} /> {topBuy.ticker}</Link></b>
+              <span className="s" title={topBuy.insider}>
+                {fmtMoney(topBuy.value)} · {topBuy.insider}
+                {topBuy.ret != null && <> · <span className={deltaClass(topBuy.ret)}>{fmtPct(topBuy.ret)}</span></>}
+              </span>
+            </>
+          ) : (
+            <>
+              <b>—</b>
+              <span className="s">{stats ? t('common.na') : t('common.loading')}</span>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -390,22 +429,11 @@ export default function Insiders() {
   const preview = Boolean(feed.data?.preview) || (!isPro && !feed.data);
 
   return (
-    <div>
+    <div className="insiders">
       {header}
 
-      {/* ---- signal cards ------------------------------------------------ */}
-      <div className="grid grid-3">
-        <Stat label={t('ins.marketActivity')} tip="tips.insActivity">
-          {stats ? (
-            <>
-              <div className="muted small">{fmtNum(stats.companies)} {t('ins.companies')}</div>
-              <InsiderDaySummary summary={stats} />
-            </>
-          ) : (
-            <div className="muted small">{t('common.loading')}</div>
-          )}
-        </Stat>
-
+      {/* ---- the day's signals: executive & cluster buys, biggest trades ---- */}
+      <div className="grid grid-2 ins-signals">
         <Stat label={t('ins.highConviction')} tip="tips.insSignals">
           {!stats?.signals?.length && <div className="muted small">{t('common.na')}</div>}
           {stats?.signals?.map((s) => (
@@ -454,9 +482,9 @@ export default function Insiders() {
       </div>
 
       {/* ---- tabs -------------------------------------------------------- */}
-      <div className="tabs">
+      <div className="home-tabs ins-tabs" role="tablist">
         {TABS.map((k) => (
-          <button key={k} className={`tab${tab === k ? ' active' : ''}`} onClick={() => setTab(k)}>
+          <button key={k} type="button" role="tab" aria-selected={tab === k} className={`home-tab${tab === k ? ' on' : ''}`} onClick={() => setTab(k)}>
             {t(`ins.tab.${k}`)}
           </button>
         ))}
@@ -540,7 +568,7 @@ export default function Insiders() {
                   <tr key={`${r.ticker}-${r.insider}-${r.date}-${i}`} className={r.side === 'buy' ? 'ins-buy' : ''}>
                     <td className="l">
                       <div className="ins-tick">
-                        {r.ticker ? <Link to={`/stock/${r.ticker}`}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link> : <span className="muted">—</span>}
+                        {r.ticker ? <Link to={`/stock/${r.ticker}`} className="tk-cell"><TickerLogo ticker={r.ticker} size={28} /> {r.ticker}</Link> : <span className="muted">—</span>}
                       </div>
                       <div className="muted small ins-co">
                         <CompanyName name={r.company} />

@@ -849,3 +849,73 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 
 /* ---------- answer box ---------- */
 .answer-box { font-size: 15.5px; line-height: 1.6; color: var(--text); background: var(--popover); border-left: 3px solid var(--border-strong); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 4px 0 18px; max-width: 900px; }
+
+/* ---------- home: hero, tabs, investor cards ---------- */
+.home-hero { text-align: center; padding: 56px 0 28px; }
+.home-hero h1 { font-size: 52px; line-height: 1.05; letter-spacing: -0.03em; max-width: 760px; margin: 0 auto 14px; }
+.home-hero .lead { color: var(--text-2); font-size: 18px; max-width: 620px; margin: 0 auto; line-height: 1.5; }
+.home-hero .search-wrap { margin: 26px auto 0; max-width: 600px; }
+@media (max-width: 840px) { .home-hero { padding: 36px 0 20px; } .home-hero h1 { font-size: 34px; } .home-hero .lead { font-size: 16px; } }
+
+/* the tab row runs edge to edge like a page section divider */
+.home-tabs { display: flex; gap: 4px; margin: 28px calc(var(--bleed-x) * -1) 0; padding: 0 var(--bleed-x); border-bottom: 1px solid var(--border); overflow-x: auto; scrollbar-width: none; }
+.home-tabs::-webkit-scrollbar { display: none; }
+.home-tab { border: 0; background: none; color: var(--text-2); font: inherit; font-weight: 700; font-size: 15.5px; padding: 14px 18px; cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.home-tab:hover { color: var(--text); }
+.home-tab.on { color: var(--text); border-bottom-color: var(--accent); }
+
+.home-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 22px 0 18px; }
+.home-lead { color: var(--text-2); margin: 22px 0 18px; max-width: 720px; }
+
+.inv-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
+@media (max-width: 1000px) { .inv-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .inv-grid { grid-template-columns: 1fr; } }
+
+.inv-card { display: flex; flex-direction: column; background: var(--card); border: 1px solid var(--border); border-radius: 14px; color: inherit; text-decoration: none !important; transition: border-color .12s, box-shadow .12s; min-width: 0; }
+.inv-card:hover { border-color: var(--border-strong); box-shadow: 0 8px 28px rgba(0, 0, 0, .06); }
+.inv-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 20px 22px 16px; border-bottom: 1px solid var(--border); }
+.inv-head h3 { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; margin: 0; line-height: 1.2; }
+.inv-head h3 a { color: inherit; }
+.inv-firm { color: var(--text-2); font-size: 14.5px; margin-top: 4px; }
+.inv-perf { display: flex; align-items: center; gap: 10px; padding: 14px 22px; border-bottom: 1px solid var(--border); font-size: 15px; color: var(--text-2); }
+.inv-perf b { font-weight: 800; }
+.inv-perf .ico-svg { color: var(--text-2); }
+.inv-body { padding: 16px 22px 20px; flex: 1; display: flex; flex-direction: column; }
+.inv-aum { font-weight: 800; font-size: 16px; margin-bottom: 12px; }
+.inv-holdings { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.inv-holding { display: flex; align-items: center; gap: 14px; color: var(--text); font-size: 15.5px; min-width: 0; }
+.inv-holding:hover { text-decoration: none; }
+.inv-holding:hover .inv-holding-name { text-decoration: underline; text-underline-offset: 3px; }
+.inv-holding .tlogo { border-radius: 10px; }
+.inv-holding img.tlogo { padding: 3px; }
+.inv-holding-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.inv-more { color: var(--text-2); }
+.inv-plus { width: 40px; height: 40px; border-radius: 50%; background: var(--popover); border: 1px solid var(--border); display: inline-flex; align-items: center; justify-content: center; flex: none; color: var(--text); }
+.inv-link { display: inline-flex; align-items: center; gap: 6px; margin-top: auto; padding-top: 14px; font-weight: 700; }
+
+/* the FAQ card sits in the grid like an investor */
+.faq-card .inv-head h3 { display: flex; align-items: center; gap: 8px; }
+.faq-card details { border-bottom: 1px solid var(--border); padding: 9px 0; }
+.faq-card details:last-of-type { border-bottom: 0; }
+.faq-card summary { cursor: pointer; font-weight: 600; font-size: 14.5px; list-style: none; display: flex; gap: 8px; }
+.faq-card summary::-webkit-details-marker { display: none; }
+.faq-card summary::before { content: '+'; color: var(--text-2); font-weight: 800; flex: none; width: 12px; }
+.faq-card details[open] summary::before { content: '–'; }
+.faq-card details p { color: var(--text-2); font-size: 13.5px; margin-top: 6px; padding-left: 20px; line-height: 1.5; }
+
+/* stock cards: insider buys and the picks */
+.pick-card { padding: 18px 20px; gap: 12px; }
+.pick-head { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.pick-head b { font-size: 17px; font-weight: 800; }
+.pick-head .tlogo { border-radius: 10px; }
+.pick-stat { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: 14px; }
+.pick-stat b { font-size: 16px; font-weight: 800; }
+.ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.more-card { align-items: center; justify-content: center; text-align: center; color: var(--text-2); border-style: dashed; gap: 6px; }
+.more-card b { color: var(--text); font-size: 16px; }
+.more-card .ico-svg { color: var(--accent); }
+
+.home-more { display: flex; justify-content: center; margin-top: 24px; }
+.home-more .btn { display: inline-flex; align-items: center; gap: 6px; padding: 12px 22px; font-size: 14.5px; }
+.home-source { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 40px; text-align: center; }
+.home-pulse { margin-bottom: 18px; }

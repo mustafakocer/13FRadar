@@ -1,60 +1,30 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '../lib/api.js';
-import SearchBox from '../components/SearchBox.jsx';
-import GuruBrowser from '../components/GuruBrowser.jsx';
-import { useFavorites } from '../hooks/useFavorites.js';
-import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
-import CoverageLine from '../components/CoverageLine.jsx';
-import { useStaticReturns } from '../hooks/useStaticReturns.js';
+import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
-import { useAuth } from '../auth.jsx';
 import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
-import { fmtMoney, fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtPct, deltaClass } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
+import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
+import { useStaticReturns } from '../hooks/useStaticReturns.js';
+import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
 import { fundCountLabel } from '../lib/fundCount.js';
-import { securityLabel, niceName } from '../lib/label.js';
-import CompanyName from '../components/CompanyName.jsx';
+import SearchBox from '../components/SearchBox.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
-import { managerStyle } from '../data/popular.js';
+import CompanyName from '../components/CompanyName.jsx';
 import FavoriteButton from '../components/FavoriteButton.jsx';
 import Ico from '../components/Ico.jsx';
-import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import UpdatedLine from '../components/UpdatedLine.jsx';
-import { Folder, Compass, Waves, ChartColumn, Scale, Download, X, Gift, Landmark, Coins, Receipt, Radar, TrendingUp, Zap, Flame, Briefcase, Gem, Trophy, Plus, Star, Info } from 'lucide-react';
+import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
+import { TrendingUp, Plus, CircleHelp, ArrowRight, Users, UserSearch } from 'lucide-react';
 
-// ---------------------------------------------------------------------------
-// Landing page. Every block reads a static CDN file written by the daily
-// GitHub Actions (consensus.json, insiders-teaser.json, returns.json,
-// universe-summary.json) — no API call, no paywall, instant first paint.
-// ---------------------------------------------------------------------------
-
-const FEATURES = [
-  [Folder, 'f1', '/manager/0001067983'],
-  [Compass, 'f2', '/consensus'],
-  [Waves, 'f3', '/stock/AAPL'],
-  [ChartColumn, 'f4', '/screen'],
-  [Scale, 'f5', '/compare'],
-  [Download, 'f6', '/watchlist'],
-];
-
-const INDEXES = [
-  { sym: 'SPY', name: 'S&P 500' },
-  { sym: 'QQQ', name: 'Nasdaq 100' },
-  { sym: 'IWM', name: 'Russell 2000' },
-];
-
-const BANNER_KEY = 'banner.v1.closed';
-
-const initials = (name) =>
-  String(name || '')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0].toUpperCase())
-    .join('');
+// The home page: a headline, the search, three tabs — the superinvestors as
+// cards (who, firm, last year's return, portfolio size, three largest stocks),
+// the insider buys of the week, the stocks the superinvestors agree on — and
+// the questions a first visit asks. Everything else (how the numbers are
+// computed, where the data comes from) lives on the methodology page the
+// footer links.
 
 function useStaticJson(key, file) {
   return useQuery({
@@ -70,628 +40,225 @@ function useStaticJson(key, file) {
   });
 }
 
-// Compact numbers for the stat band: 7,830+ · $60T+ · 1.2M+
-function compact(n, locale) {
-  if (!Number.isFinite(n)) return null;
-  if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, '')}M+`;
-  if (n >= 1e4) return `${(Math.floor(n / 100) * 100).toLocaleString(locale)}+`;
-  return n.toLocaleString(locale);
+// $356B · $24.5B · $980M — a portfolio's size in two or three figures
+export function money(n) {
+  if (!Number.isFinite(n) || n <= 0) return '—';
+  const f = (v, s) => `$${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, '') : v.toFixed(2).replace(/\.?0+$/, '')}${s}`;
+  if (n >= 1e12) return f(n / 1e12, 'T');
+  if (n >= 1e9) return f(n / 1e9, 'B');
+  if (n >= 1e6) return f(n / 1e6, 'M');
+  return `$${Math.round(n / 1e3)}K`;
 }
 
-const shortDate = (iso, locale) => {
-  if (!iso) return '—';
-  const d = new Date(`${iso}T00:00:00Z`);
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' });
-};
+const TABS = ['gurus', 'insiders', 'picks'];
+const FILTERS = ['popular', 'performance', 'largest', 'value', 'growth', 'activist', 'macro', 'quant'];
 
-const daysBetween = (a, b) => {
-  if (!a || !b) return null;
-  return Math.round((new Date(`${b}T00:00:00Z`) - new Date(`${a}T00:00:00Z`)) / 86400000);
-};
+function Tabs({ tab, setTab }) {
+  const { t } = useI18n();
+  return (
+    <div className="home-tabs" role="tablist">
+      {TABS.map((k) => (
+        <button key={k} role="tab" aria-selected={tab === k} className={`home-tab${tab === k ? ' on' : ''}`} onClick={() => setTab(k)} data-home-tab={k}>
+          {t(`home.tab.${k}`)}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // ---------------------------------------------------------------------------
+// Superinvestor cards
 
-function LangSwitch() {
-  const { lang, setLang, t } = useI18n();
-  return (
-    <div className="lang-switch" role="group" aria-label={t('landing.lang.hint')}>
-      {['tr', 'en'].map((l) => (
-        <button key={l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)} aria-pressed={lang === l}>
-          {l.toUpperCase()}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function PromoBanner() {
+function GuruCard({ g }) {
   const { t } = useI18n();
-  const [closed, setClosed] = useState(false);
-  useEffect(() => {
-    try {
-      if (localStorage.getItem(BANNER_KEY) === '1') setClosed(true);
-    } catch {
-      /* storage blocked */
-    }
-  }, []);
-  if (closed) return null;
-  const close = () => {
-    try {
-      localStorage.setItem(BANNER_KEY, '1');
-    } catch {
-      /* ignore */
-    }
-    setClosed(true);
-  };
+  const to = managerPath(g.cik, g.slug ? `/guru/${g.slug}` : null);
+  const more = Math.max(0, (g.count || 0) - g.top.length);
   return (
-    <div className="promo-banner">
-      <Ico icon={Gift} />
-      <span>{t('landing.banner')}</span>
-      <Link to="/pricing">{t('landing.banner.cta')}</Link>
-      <button className="close" onClick={close} aria-label={t('common.close')}>
-        <Ico icon={X} />
-      </button>
-    </div>
-  );
-}
-
-function Hero({ summary }) {
-  const { t, lang } = useI18n();
-  const { configured } = useAuth();
-  const navigate = useNavigate();
-  const [params] = useSearchParams();
-  const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
-
-  // the lead and the first stat box state the same count (lib/fundCount.js)
-  const funds = fundCountLabel(summary?.count, { locale });
-  const stats = [
-    [Landmark, funds || '—', t('landing.stat.funds2')],
-    // the latest complete quarter, one filing per fund (universeSummary.js);
-    // the tooltip says so, since a reader will compare it with other sites
-    [Coins, summary?.totalAum ? `$${Math.floor(summary.totalAum / 1e12)}T+` : '—', t('landing.stat.aum'), summary?.quarter ? t('landing.stat.aumTip').replace('{q}', quarterLabel(summary.quarter)) : null],
-    [Receipt, compact(summary?.totalPositions, locale) || '1M+', t('landing.stat.positions')],
-    [Radar, t('landing.stat.live.v'), t('landing.stat.live')],
-  ];
-
-  return (
-    <section className="hero-band">
-      <div className="hero-topbar">
-        <span className="hero-kicker">SEC 13F · Form 4</span>
-        <LangSwitch />
-      </div>
-      <h1>
-        {t('landing.h1.pre')}
-        <em>{t('landing.h1.accent')}</em>
-        {t('landing.h1.post')}
-      </h1>
-      <p className="lead">{funds ? t('landing.sub').replace('{n}', funds) : t('landing.sub.noCount')}</p>
-      <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} />
-      <div className="hero-ctas">
-        <Link to={configured ? '/account?next=/pricing' : '/pricing'} className="btn">
-          {t('landing.cta.start')}
-        </Link>
-        <Link to="/insiders" className="btn ghost">
-          {t('landing.cta.ceo')} ›
-        </Link>
-      </div>
-      {/* three plain-language entry points; the third one hands the cursor
-          to the search box above */}
-      <div className="hero-quick">
-        <Link to="/guru/berkshire-hathaway-warren-buffett/changes" className="btn ghost">
-          {t('landing.quick.buffett')}
-        </Link>
-        <Link to="/insiders" className="btn ghost">
-          {t('landing.quick.insiders')}
-        </Link>
-        <button
-          type="button"
-          className="btn ghost"
-          onClick={() => {
-            const el = document.querySelector('.hero-band .search-input');
-            if (el) {
-              el.scrollIntoView({ block: 'center', behavior: 'smooth' });
-              el.focus({ preventScroll: true });
-            }
-          }}
-        >
-          {t('landing.quick.who')}
-        </button>
-      </div>
-      <div className="hero-stats">
-        {stats.map(([ico, v, label, tip]) => (
-          <div className="hero-stat" key={label} title={tip || undefined}>
-            <div className="ico"><Ico icon={ico} size={20} /></div>
-            <b>{v}</b>
-            <span>
-              {label}
-              {tip && (
-                <span className="stat-tip" tabIndex={0} role="note" aria-label={tip} data-tip={tip}>
-                  <Ico icon={Info} size={12} />
-                </span>
-              )}
-            </span>
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function MarketStrip({ returns }) {
-  const { t } = useI18n();
-  const rows = INDEXES.map((ix) => ({ ...ix, r: returns?.[ix.sym] })).filter((x) => x.r);
-  if (!rows.length) return null;
-  return (
-    <div className="mkt-strip">
-      {rows.map((x) => (
-        <span key={x.sym}>
-          <span className="name">{x.name}</span>
-          <span className="sym">{x.sym}</span>
-          <span className={deltaClass(x.r.ret1d)}>{fmtPct(x.r.ret1d, { digits: 2 })}</span>
-          <span className="ytd">
-            {t('landing.mkt.ytd')} <span className={deltaClass(x.r.retYtd)}>{fmtPct(x.r.retYtd)}</span>
-          </span>
+    <article className="inv-card" data-guru-card={g.cik}>
+      <header className="inv-head">
+        <div style={{ minWidth: 0 }}>
+          <h3><Link to={to}>{g.person || g.firm}</Link></h3>
+          {g.person && <p className="inv-firm">{g.firm}</p>}
+        </div>
+        <FavoriteButton cik={g.cik} name={g.name} small />
+      </header>
+      <div className="inv-perf">
+        <Ico icon={TrendingUp} size={18} />
+        <span>
+          {t('home.perf')}:{' '}
+          {g.y1 != null ? (
+            <b className={deltaClass(g.y1)}>{fmtPct(g.y1)}</b>
+          ) : (
+            <b className="muted">—</b>
+          )}{' '}
+          <span className="muted">{t('home.perf.lastYear')}</span>
         </span>
-      ))}
-    </div>
+      </div>
+      <div className="inv-body">
+        <div className="inv-aum">{money(g.aum)} {t('home.portfolio')}</div>
+        <ul className="inv-holdings">
+          {g.top.map((p) => (
+            <li key={p.t}>
+              <Link to={`/stock/${p.t}`} className="inv-holding">
+                <TickerLogo ticker={p.t} size={40} />
+                <span className="inv-holding-name"><CompanyName name={p.n} /></span>
+              </Link>
+            </li>
+          ))}
+          {more > 0 && (
+            <li>
+              <Link to={to} className="inv-holding inv-more">
+                <span className="inv-plus"><Ico icon={Plus} size={16} /></span>
+                <span className="inv-holding-name">{t('home.moreStocks').replace('{n}', more.toLocaleString())}</span>
+              </Link>
+            </li>
+          )}
+        </ul>
+      </div>
+    </article>
   );
 }
 
-// ---- insider block --------------------------------------------------------
+function FaqCard() {
+  const { t } = useI18n();
+  const items = [1, 2, 3, 4, 5].map((n) => [t(`home.faq.q${n}`), t(`home.faq.a${n}`)]);
+  return (
+    <article className="inv-card faq-card" data-home-faq>
+      <header className="inv-head"><h3><Ico icon={CircleHelp} /> {t('seo.faq')}</h3></header>
+      <div className="inv-body">
+        {items.map(([q, a]) => (
+          <details key={q}>
+            <summary>{q}</summary>
+            <p>{a}</p>
+          </details>
+        ))}
+        <Link to={t('home.methodology.path')} className="inv-link">{t('home.methodology')} <Ico icon={ArrowRight} size={14} /></Link>
+      </div>
+    </article>
+  );
+}
 
-const ROLE_LABEL = { ceo: 'CEO', cfo: 'CFO', director: 'DIR', officer: 'OFF', owner10: '10%' };
+function GuruGrid({ cards }) {
+  const { t } = useI18n();
+  const [filter, setFilter] = useState('popular');
+  const rows = useMemo(() => {
+    const all = cards?.rows || [];
+    const has = (f) => (g) => g.category === f;
+    switch (filter) {
+      case 'performance': return [...all].filter((g) => g.y1 != null).sort((a, b) => b.y1 - a.y1);
+      case 'largest': return [...all].sort((a, b) => (b.aum || 0) - (a.aum || 0));
+      case 'popular': return all;
+      default: return all.filter(has(filter));
+    }
+  }, [cards, filter]);
+  const shown = rows.slice(0, 11);
+  return (
+    <section aria-label={t('home.tab.gurus')} data-home-gurus>
+      <div className="home-filters">
+        <span className="muted small">{t('home.filters')}:</span>
+        {FILTERS.map((f) => (
+          <button key={f} className={`chip sm${filter === f ? ' fsel-active' : ''}`} onClick={() => setFilter(f)} aria-pressed={filter === f} data-filter={f}>
+            {t(`home.filter.${f}`)}
+          </button>
+        ))}
+      </div>
+      <div className="inv-grid">
+        {shown.map((g) => <GuruCard key={g.cik} g={g} />)}
+        <FaqCard />
+      </div>
+      <div className="home-more">
+        <Link to="/gurus" className="btn outline">{t('home.allGurus').replace('{n}', String(cards?.count || ''))} <Ico icon={ArrowRight} size={14} /></Link>
+      </div>
+    </section>
+  );
+}
 
-function InsiderSignals({ teaser }) {
+// ---------------------------------------------------------------------------
+// Insider buys of the week — the cluster and C-suite signals the teaser carries
+
+const ROLE = { ceo: 'CEO', cfo: 'CFO', director: 'Director', officer: 'Officer', owner10: '10%' };
+
+function InsiderGrid({ teaser }) {
   const { t, lang } = useI18n();
   const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
-  const [tab, setTab] = useState('cluster');
-  if (!teaser) return null;
-
-  const pulse = teaser.pulse;
-  const hl = teaser.highlight;
-  const signals = teaser.signals || {};
-  // older teaser files only carry `rows`; derive a C-suite list from them
-  const list =
-    signals[tab] ||
-    (tab === 'csuite' ? (teaser.rows || []).filter((r) => r.r === 'ceo' || r.r === 'cfo') : []);
-
+  const pulse = teaser?.pulse;
+  const rows = useMemo(() => {
+    const cluster = (teaser?.signals?.cluster || []).map((r) => ({ kind: 'cluster', t: r.t, c: r.c, v: r.v, d: r.last || r.to, who: t('home.ins.nInsiders').replace('{n}', r.insiders), sub: r.ceoCfo ? t('home.ins.withCsuite') : null }));
+    const csuite = (teaser?.signals?.csuite || []).map((r) => ({ kind: 'csuite', t: r.t, c: r.c, v: r.v, d: r.d, who: `${ROLE[r.r] || r.r} · ${r.n}`, sub: null }));
+    const seen = new Set();
+    return [...cluster, ...csuite].filter((r) => r.t && !seen.has(r.t) && seen.add(r.t)).slice(0, 11);
+  }, [teaser, t]);
+  if (!rows.length) return <p className="muted">{t('common.na')}</p>;
+  const day = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '');
   return (
-    <section className="home-section">
-      <div className="home-section-head">
-        <div>
-          <h2>{t('landing.ins.title')}</h2>
-          <p>{t('landing.ins.sub')}</p>
-        </div>
-        {/* when the data was built and the newest filing day in it */}
-        <UpdatedLine updatedAt={teaser.updatedAt} dataDay={teaser.lastDay} />
-      </div>
-
-      <div className="ins-grid">
-        <div className="card">
-          <div className="pulse-head">
-            <div className="ico"><Ico icon={TrendingUp} size={18} /></div>
-            <b>{t('landing.ins.pulse')}</b>
-          </div>
-          <InsiderDaySummary summary={pulse} big />
-
-          {hl && (
-            <>
-              <div className="hl-kicker">{t('landing.ins.highlight')}</div>
-              <Link to={`/stock/${hl.t}`} className="hl-card" style={{ display: 'block', color: 'inherit', textDecoration: 'none' }}>
-                <div className="row" style={{ gap: 10, flexWrap: 'nowrap' }}>
-                  <span className="tick"><TickerLogo ticker={hl.t} size={18} /> {hl.t}</span>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="who" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {niceName(hl.n)}
-                    </div>
-                    <div className="role">
-                      {t('landing.ins.insiderBuy')} · {ROLE_LABEL[hl.r] || hl.r}
-                    </div>
-                  </div>
-                  <span className="dot" />
-                </div>
-                <div className="amt">{fmtMoney(hl.v)}</div>
-                {hl.fx?.cu && hl.fx.cu !== 'USD' && <div className="muted small">{t('ins.fxConverted').replace('{cu}', hl.fx.cu)}</div>}
-              </Link>
-            </>
-          )}
-        </div>
-
-        <div className="card">
-          <div className="sig-head">
-            <b><Ico icon={Zap} /> {t('landing.ins.curated')}</b>
-            <div className="seg">
-              {['cluster', 'csuite', 'penny'].map((k) => (
-                <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>
-                  <Ico icon={k === 'cluster' ? Flame : k === 'csuite' ? Briefcase : Gem} size={14} />
-                  {t(`landing.ins.tab.${k}`)}
-                </button>
-              ))}
+    <section aria-label={t('home.tab.insiders')} data-home-insiders>
+      <p className="home-lead">{t('home.ins.lead')}</p>
+      {/* the same day summary /insiders prints, from the same numbers */}
+      {pulse && <div className="card home-pulse"><InsiderDaySummary summary={pulse} /></div>}
+      <div className="inv-grid">
+        {rows.map((r) => (
+          <Link key={r.t} to={`/stock/${r.t}`} className="inv-card pick-card">
+            <div className="pick-head">
+              <TickerLogo ticker={r.t} size={44} />
+              <div style={{ minWidth: 0 }}>
+                <b>{r.t}</b>
+                <div className="muted small ellipsis"><CompanyName name={r.c} /></div>
+              </div>
             </div>
-          </div>
-          {(tab === 'cluster' || tab === 'csuite') && (
-            <p className="card-desc">{t(`explain.ins.${tab}`)}</p>
-          )}
-          <div className="table-wrap">
-            <table className="data sig">
-              <thead>
-                <tr>
-                  <th className="l">{t('landing.ins.th.ticker')}</th>
-                  <th className="l">{t('landing.ins.th.signal')}</th>
-                  <th className="l">{t('landing.ins.th.window')}</th>
-                  <th>{t('landing.ins.th.value')}</th>
-                  <th>{t('landing.ins.th.action')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {!list.length && (
-                  <tr>
-                    <td className="l muted" colSpan={5}>{t('landing.ins.empty')}</td>
-                  </tr>
-                )}
-                {list.slice(0, 5).map((r) =>
-                  tab === 'cluster' ? (
-                    <tr key={r.t}>
-                      <td className="l">
-                        <div className="sig-tick"><TickerLogo ticker={r.t} size={18} /> {r.t}</div>
-                        <div className="sig-co"><CompanyName name={r.c} /></div>
-                      </td>
-                      <td className="l">
-                        <div>
-                          {r.insiders} {t('landing.ins.insiders')}
-                        </div>
-                        <div>
-                          {(r.roles || []).map((x) => (
-                            <span key={x} className={`role-badge ${x}`}>{ROLE_LABEL[x]}</span>
-                          ))}
-                          {r.fpi && (
-                            <span className="badge sm plain" title={t('ins.fpi.tip')} data-fpi>
-                              {t('ins.fpi.badge')}
-                            </span>
-                          )}
-                        </div>
-                        {r.own != null && (
-                          <div className="muted small" title={t('ins.cluster.ownTip')}>
-                            {t('ins.cluster.own')}: {r.own === 'new' ? t('ins.cluster.newPosition') : `${r.own > 0 ? '+' : ''}${r.own}%`}
-                          </div>
-                        )}
-                      </td>
-                      <td className="l">
-                        <div>{shortDate(r.last || r.to, locale)}</div>
-                        <div className="muted small">
-                          {Math.max(1, (daysBetween(r.from, r.to) ?? 0) + 1)} {t('landing.ins.days')}
-                        </div>
-                      </td>
-                      <td className="sig-val">{fmtMoney(r.v)}</td>
-                      <td>
-                        <Link to={`/stock/${r.t}`} className="btn outline">
-                          {t('landing.ins.details')} ›
-                        </Link>
-                      </td>
-                    </tr>
-                  ) : (
-                    <tr key={`${r.t}-${r.n}`}>
-                      <td className="l">
-                        <div className="sig-tick"><TickerLogo ticker={r.t} size={18} /> {r.t}</div>
-                        <div className="sig-co"><CompanyName name={r.c} /></div>
-                      </td>
-                      <td className="l">
-                        <div>
-                          <span className={`role-badge ${r.r}`}>{ROLE_LABEL[r.r] || r.r}</span>
-                        </div>
-                        <div className="muted small" style={{ maxWidth: 180, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {niceName(r.n)}
-                        </div>
-                      </td>
-                      <td className="l">
-                        <div>{shortDate(r.d, locale)}</div>
-                        <div className="muted small">@ ${Number(r.p).toFixed(2)}</div>
-                      </td>
-                      <td className="sig-val">{fmtMoney(r.v)}</td>
-                      <td>
-                        <Link to={`/stock/${r.t}`} className="btn outline">
-                          {t('landing.ins.details')} ›
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                )}
-              </tbody>
-            </table>
-          </div>
-          {teaser.lastDay && (
-            <div className="muted small" style={{ marginTop: 10 }}>
-              {t('landing.ins.asOf')}: {teaser.lastDay}
+            <div className="pick-stat">
+              <span className={`badge ${r.kind === 'cluster' ? 'pos' : 'plain'}`}>{r.kind === 'cluster' ? t('home.ins.cluster') : t('home.ins.csuite')}</span>
+              <b className="delta-pos">+{money(r.v)}</b>
             </div>
-          )}
-        </div>
-      </div>
-
-      <div className="ins-cta">
-        <Link to="/insiders" className="btn">
-          {t('landing.ins.cta')} →
+            <div className="muted small">{r.who}{r.sub ? ` · ${r.sub}` : ''} · {day(r.d)}</div>
+          </Link>
+        ))}
+        <Link to="/insiders" className="inv-card pick-card more-card">
+          <Ico icon={UserSearch} size={28} />
+          <b>{t('home.ins.all')}</b>
+          <span className="muted small">{t('home.ins.allSub')}</span>
         </Link>
       </div>
     </section>
   );
 }
 
-// ---- guru conviction ------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Stock picks — what the superinvestors hold most, and who leads each
 
-function ConvictionCard({ icon, title, desc, rows, value, sub }) {
+function PicksGrid({ consensus, returns }) {
   const { t } = useI18n();
+  const rows = (consensus?.mostHeld || []).filter((r) => r.ticker).slice(0, 11);
+  const tracked = consensus?.coverage?.tracked;
+  if (!rows.length) return <p className="muted">{t('common.na')}</p>;
   return (
-    <div className="card conv-card">
-      <h3>
-        <span className="ico"><Ico icon={icon} size={18} /></span>
-        {title}
-      </h3>
-      {desc && <p className="card-desc">{desc}</p>}
-      {rows.map((r) => (
-        <div className="pos-row" key={r.cusip}>
-          <div style={{ minWidth: 0 }}>
-            {r.ticker ? (
-              <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="tick"><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link>
-            ) : (
-              <span className="tick" title={r.cusip}>{securityLabel(r).text}</span>
-            )}
-            <div className="issuer"><CompanyName name={r.coName || r.issuer} /></div>
-          </div>
-          <div className="right">
-            <div className="w">{value(r)}</div>
-            <div className="d muted">{sub(r)}</div>
-          </div>
-        </div>
-      ))}
-      <div className="foot">
-        <Link to="/consensus">{t('landing.guru.full')}</Link>
-      </div>
-    </div>
-  );
-}
-
-function GuruConviction({ mostHeld, coverage }) {
-  const { t } = useI18n();
-  const lists = useMemo(() => {
-    const rows = (mostHeld || []).map((r) => ({
-      ...r,
-      maxWeight: Math.max(0, ...(r.holders || []).map((h) => h.weight || 0)),
-    }));
-    const gurus = (r) => `${r.holderCount} ${t('landing.guru.gurus')}`;
-    return {
-      owned: [...rows].sort((a, b) => b.holderCount - a.holderCount || b.totalValue - a.totalValue).slice(0, 5),
-      byPct: [...rows].sort((a, b) => b.maxWeight - a.maxWeight).slice(0, 5),
-      conviction: rows
-        .filter((r) => r.holderCount >= 3)
-        .sort((a, b) => b.avgWeight - a.avgWeight)
-        .slice(0, 5),
-      gurus,
-    };
-  }, [mostHeld, t]);
-  if (!mostHeld?.length) return null;
-
-  return (
-    <section className="home-section">
-      <div className="home-section-head center">
-        <h2>{t('landing.guru.title')}</h2>
-        {/* the gurus tracked: the number the coverage line below states */}
-        <p>{Number.isFinite(coverage?.tracked) ? t('landing.guru.sub').replace('{n}', coverage.tracked) : t('landing.guru.sub.noCount')}</p>
-      </div>
-      <div className="grid grid-3">
-        <ConvictionCard
-          icon={Trophy}
-          title={t('landing.guru.mostOwned')}
-          desc={t('explain.guru.mostOwned')}
-          rows={lists.owned}
-          value={lists.gurus}
-          sub={(r) => fmtMoney(r.totalValue)}
-        />
-        <ConvictionCard
-          icon={Plus}
-          title={t('landing.guru.byPct')}
-          desc={t('explain.guru.byPct')}
-          rows={lists.byPct}
-          value={(r) => fmtPct(r.maxWeight, { sign: false, digits: 2 })}
-          sub={lists.gurus}
-        />
-        <ConvictionCard
-          icon={Flame}
-          title={t('landing.guru.conviction')}
-          desc={t('explain.guru.conviction')}
-          rows={lists.conviction}
-          value={(r) => fmtPct(r.avgWeight, { sign: false, digits: 2 })}
-          sub={lists.gurus}
-        />
-      </div>
-    </section>
-  );
-}
-
-// ---- guru portfolio updates -----------------------------------------------
-
-const UPDATE_ROWS = [
-  ['newBuys', 'new', '▲'],
-  ['adds', 'add', '▲'],
-  ['reduces', 'reduce', '▼'],
-  ['exits', 'exit', '▼'],
-];
-
-function Chip({ r, kind }) {
-  // Four sections of three chips each fit one line per section — and every
-  // card is then the same height — only if a chip stays narrow. Two decimals
-  // on a +1082.53% move and a two-word issuer name are what pushed rows onto
-  // a second line and left the shorter cards with a gap at the bottom.
-  const label = r.ticker || niceName(r.issuer).split(' ')[0].slice(0, 12);
-  const delta =
-    (kind === 'add' || kind === 'reduce') && r.change != null
-      ? fmtPct(r.change, { digits: Math.abs(r.change) >= 100 ? 0 : Math.abs(r.change) >= 10 ? 1 : 2 })
-      : null;
-  const inner = (
-    <>
-      {label}
-      {delta && <small>{delta}</small>}
-    </>
-  );
-  return r.ticker ? (
-    <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} className={`tk ${kind}`}><TickerLogo ticker={r.ticker} size={14} />{inner}</Link>
-  ) : (
-    <span className={`tk ${kind}`}>{inner}</span>
-  );
-}
-
-function PortfolioUpdates({ updates }) {
-  const { t, lang } = useI18n();
-  const [all, setAll] = useState(false);
-  if (!updates?.length) return null;
-  const locale = lang === 'tr' ? 'tr-TR' : 'en-US';
-  const shown = all ? updates : updates.slice(0, 6);
-
-  return (
-    <section className="home-section">
-      <div className="home-section-head center">
-        <h2>{t('landing.upd.title')}</h2>
-        <p>{t('landing.upd.sub')}</p>
-      </div>
-      <div className="upd-grid">
-        {shown.map((u) => (
-          <div className="card upd-card" key={u.cik}>
-            <div className="head">
-              <div className="avatar">{initials(u.manager)}</div>
-              <div className="who">
-                <Link to={managerPath(u.cik, u.path)} style={{ color: 'inherit' }}>
-                  <b>{u.manager}</b>
-                </Link>
-                {/* what kind of fund and how big — not its registry number */}
-                <span>
-                  {[
-                    managerStyle(u.cik) ? t(`style.${managerStyle(u.cik)}`) : null,
-                    u.aum ? fmtMoney(u.aum) : null,
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')}
-                </span>
-              </div>
-              <div className="when">
-                <b>{quarterLabel(u.reportDate)}</b>
-                <span>{u.filed ? new Date(`${u.filed}T00:00:00Z`).toLocaleDateString(locale, { timeZone: 'UTC' }) : ''}</span>
-              </div>
-              <FavoriteButton cik={u.cik} name={u.manager} small />
-            </div>
-            {UPDATE_ROWS.map(([key, kind, mark]) => (
-              <div className={`upd-row ${kind}`} key={key}>
-                <div className="lbl">
-                  <i>{mark}</i> {t(`landing.upd.${kind}`)}
-                </div>
-                <div className="tks">
-                  {u[key]?.length ? (
-                    <>
-                      {u[key].map((r) => <Chip key={r.cusip} r={r} kind={kind} />)}
-                      {u.counts?.[key] > u[key].length && <span className={`tk ${kind}`} title={`${u.counts[key]} ${t(`landing.upd.${kind}`)}`}>+{u.counts[key] - u[key].length}</span>}
-                    </>
-                  ) : (
-                    <span className="muted small">{t('landing.upd.none')}</span>
-                  )}
+    <section aria-label={t('home.tab.picks')} data-home-picks>
+      <p className="home-lead">{t('home.picks.lead').replace('{n}', tracked ?? '')}</p>
+      <div className="inv-grid">
+        {rows.map((r) => {
+          const ret = returns?.[r.ticker]?.retYtd;
+          const lead = r.holders?.[0];
+          return (
+            <Link key={r.cusip} to={`/stock/${r.ticker}?cusip=${r.cusip}`} className="inv-card pick-card">
+              <div className="pick-head">
+                <TickerLogo ticker={r.ticker} size={44} />
+                <div style={{ minWidth: 0 }}>
+                  <b>{r.ticker}</b>
+                  <div className="muted small ellipsis"><CompanyName name={r.coName || r.issuer} /></div>
                 </div>
               </div>
-            ))}
-          </div>
-        ))}
-      </div>
-      {updates.length > 6 && (
-        <div className="upd-more">
-          <button className="btn navy" onClick={() => setAll((v) => !v)}>
-            {all ? t('landing.upd.less') : t('landing.upd.more')}
-          </button>
-        </div>
-      )}
-    </section>
-  );
-}
-
-// ---- quarterly market activity --------------------------------------------
-
-// The quarter's biggest net buys and sells. The rows are the build's own
-// `activity` lists — the head of the same table /rankings/most-bought and
-// /rankings/most-sold rank — so the number here is the number there. The
-// page used to filter the thirty most-held names by sign instead, which
-// was a different list computed in the browser.
-function MarketActivity({ activity, mostHeld, managers, coverage, returns, updatedAt }) {
-  const { t } = useI18n();
-  const [side, setSide] = useState('buys');
-  const rows = useMemo(() => {
-    if (activity?.[side]?.length) return activity[side].slice(0, 5);
-    // a consensus file from before `activity` existed: the old fallback
-    const src = mostHeld || [];
-    return side === 'buys'
-      ? src.filter((r) => r.netValue > 0).sort((a, b) => b.netValue - a.netValue).slice(0, 5)
-      : src.filter((r) => r.netValue < 0).sort((a, b) => a.netValue - b.netValue).slice(0, 5);
-  }, [activity, mostHeld, side]);
-  if (!rows.length) return null;
-
-  const latest = coverage?.quarter || (managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
-  const q = latest ? quarterLabel(latest) : '';
-
-  return (
-    <section className="home-section">
-      <div className="home-section-head center">
-        <h2>
-          {q} {t('landing.act.title')}
-        </h2>
-        <p>{t('landing.act.sub')}</p>
-        <UpdatedLine updatedAt={updatedAt} quarter={latest} quarterText={q} />
-      </div>
-      <div className="card act-card">
-        <div className="act-tools">
-          <div className="seg">
-            {['buys', 'sells'].map((s) => (
-              <button key={s} className={side === s ? 'on' : ''} onClick={() => setSide(s)}>
-                {t(`landing.act.${s}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th className="l">{t('table.symbol')}</th>
-                <th className="l">{t('table.company')}</th>
-                <th>{side === 'buys' ? t('landing.act.netBuy') : t('landing.act.netSell')}</th>
-                <th>{t('landing.act.gurus')}</th>
-                <th>{t('landing.act.ytd')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => {
-                const ret = r.ticker ? returns?.[r.ticker]?.retYtd : null;
-                return (
-                  <tr key={r.cusip}>
-                    <td className="l">
-                      {r.ticker ? (
-                        <Link to={`/stock/${r.ticker}?cusip=${r.cusip}`} style={{ fontWeight: 800 }}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link>
-                      ) : (
-                        <span className="muted small" title={r.cusip}>{securityLabel(r).text}</span>
-                      )}
-                    </td>
-                    <td className="l"><CompanyName name={r.coName || r.issuer} /></td>
-                    <td className={`num ${side === 'buys' ? 'delta-pos' : 'delta-neg'}`}>
-                      {fmtMoney(Math.abs(r.netValue))}
-                    </td>
-                    <td className="num">{side === 'buys' ? r.buyers : r.sellers}</td>
-                    <td className={`num ${deltaClass(ret)}`}>{ret != null ? fmtPct(ret) : '—'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div className="upd-more">
-          <Link to={`/rankings/${side === 'buys' ? 'most-bought' : 'most-sold'}`} className="btn navy" style={{ textDecoration: 'none' }}>
-            {t('landing.act.more')}
-          </Link>
-        </div>
-        <p className="muted small note">{t('landing.act.note')}</p>
-        <CoverageLine coverage={coverage} className="muted small note" />
+              <div className="pick-stat">
+                <span><Ico icon={Users} size={14} /> {t('home.picks.holders').replace('{n}', r.holderCount)}</span>
+                {ret != null && <b className={deltaClass(ret)}>{fmtPct(ret)} <span className="muted small">YTD</span></b>}
+              </div>
+              {lead && <div className="muted small ellipsis">{t('home.picks.top')}: {lead.name} ({fmtPct(lead.weight, { sign: false })})</div>}
+            </Link>
+          );
+        })}
+        <Link to="/consensus" className="inv-card pick-card more-card">
+          <Ico icon={Users} size={28} />
+          <b>{t('home.picks.all')}</b>
+          <span className="muted small">{t('home.picks.allSub')}</span>
+        </Link>
       </div>
     </section>
   );
@@ -701,81 +268,34 @@ function MarketActivity({ activity, mostHeld, managers, coverage, returns, updat
 
 export default function Home() {
   const { t, lang } = useI18n();
-  const { favorites } = useFavorites();
-  const qc = useQueryClient();
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState(TABS.includes(params.get('tab')) ? params.get('tab') : 'gurus');
   useSeo(useMemo(() => homeSeo({ lang }), [lang]));
 
+  const cards = useStaticJson('guru-cards', '/guru-cards.json');
+  const teaser = useStaticJson('insiders-teaser', '/insiders-teaser.json');
   const consensus = useConsensusStatic();
   const returns = useStaticReturns();
-  const teaser = useStaticJson('insiders-teaser', '/insiders-teaser.json');
-  const summary = useStaticJson('universe-summary', '/universe-summary.json');
-
-  // warm the cache while the cursor is still over the chip
-  const prefetch = (cik) =>
-    qc.prefetchQuery({
-      queryKey: ['manager', cik],
-      queryFn: () => api.manager(cik),
-      staleTime: 30 * 60 * 1000,
-    });
+  const funds = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
 
   return (
     <div className="home">
-      <PromoBanner />
-      <Hero summary={summary.data} />
-      <MarketStrip returns={returns.data} />
+      <section className="home-hero">
+        <h1>{t('home.h1')}</h1>
+        <p className="lead">{funds ? t('home.sub').replace('{n}', funds) : t('home.sub.noCount')}</p>
+        <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} placeholder={t('home.search')} />
+      </section>
 
-      {favorites.length > 0 && (
-        <>
-          <div className="section-title"><Ico icon={Star} /> {t('search.favorites')}</div>
-          <div className="chip-grid">
-            {favorites.map((f) => (
-              <Link key={f.cik} to={managerPath(f.cik)} className="chip">
-                {f.name}
-              </Link>
-            ))}
-          </div>
-        </>
-      )}
+      <Tabs tab={tab} setTab={setTab} />
 
-      <div className="section-title">{t('search.popular')}</div>
-      {/* the registry by category: the first 24 chips, closed funds behind a
-          switch, the rest on /gurus */}
-      <GuruBrowser limit={24} onPrefetch={prefetch} />
+      {tab === 'gurus' && <GuruGrid cards={cards.data} />}
+      {tab === 'insiders' && <InsiderGrid teaser={teaser.data} />}
+      {tab === 'picks' && <PicksGrid consensus={consensus.data} returns={returns.data} />}
 
-      <InsiderSignals teaser={teaser.data} />
-      <GuruConviction mostHeld={consensus.data?.mostHeld} coverage={consensus.data?.coverage} />
-      <PortfolioUpdates updates={consensus.data?.updates} />
-      <MarketActivity activity={consensus.data?.activity} mostHeld={consensus.data?.mostHeld} managers={consensus.data?.managers} coverage={consensus.data?.coverage} returns={returns.data} updatedAt={consensus.data?.updatedAt} />
-
-      <div className="section-title">{t('landing.features')}</div>
-      <div className="grid grid-3 mt16">
-        {FEATURES.map(([icon, key, to]) => (
-          <Link key={key} to={to} className="card feature-card">
-            <div className="feature-icon"><Ico icon={icon} size={28} /></div>
-            <h3>{t(`landing.${key}.t`)}</h3>
-            <p className="muted small">{t(`landing.${key}.d`)}</p>
-          </Link>
-        ))}
-      </div>
-
-      <div className="section-title">{t('landing.why')}</div>
-      <div className="grid grid-3 mt16">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="card why-card">
-            <h3>{t(`landing.why${n}.t`)}</h3>
-            <p className="muted small">{t(`landing.why${n}.d`)}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className="section-title">{t('landing.how')}</div>
-      <div className="grid grid-3 mt16">
-        {[1, 2, 3].map((n) => (
-          <div key={n} className="card how-card">
-            <div className="how-num">{n}</div>
-            <p className="muted">{t(`landing.how${n}`)}</p>
-          </div>
-        ))}
+      <div className="home-source">
+        <UpdatedLine updatedAt={consensus.data?.updatedAt} />
+        <p className="muted small">{t('home.source')} <Link to={t('home.methodology.path')}>{t('home.methodology')}</Link></p>
       </div>
     </div>
   );

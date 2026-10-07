@@ -20,6 +20,12 @@ export const GUIDES = [
     summary: { en: 'the 45-day lag, long-only, missing asset classes', tr: '45 günlük gecikme, yalnız uzun pozisyonlar, eksik varlık sınıfları' },
   },
   {
+    id: 'data-sources',
+    paths: { en: '/guides/data-sources-and-methodology', tr: '/rehber/veri-kaynaklari-ve-yontem' },
+    title: { en: 'Data sources & methodology', tr: 'Veri kaynakları ve yöntem' },
+    summary: { en: 'where every number comes from and how it is computed', tr: 'her rakamın kaynağı ve nasıl hesaplandığı' },
+  },
+  {
     id: 'best-13f-trackers',
     paths: { en: '/guides/best-13f-trackers', tr: '/rehber/en-iyi-13f-takip-araclari' },
     title: { en: 'Best 13F trackers compared', tr: 'En iyi 13F takip araçları karşılaştırması' },

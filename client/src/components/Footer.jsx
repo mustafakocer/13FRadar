@@ -21,6 +21,7 @@ const LEARN = [
   ['/guides/how-to-read-form-4', '/rehber/form-4-nasil-okunur', 'guide.form4'],
   ['/guides/13f-limitations', '/rehber/13f-sinirlari', 'guide.limits'],
   ['/guides/best-13f-trackers', '/rehber/en-iyi-13f-takip-araclari', 'guide.best'],
+  ['/guides/data-sources-and-methodology', '/rehber/veri-kaynaklari-ve-yontem', 'home.methodology'],
 ];
 const RANKINGS = [
   ['/rankings/most-bought', 'rank.mostBought'],

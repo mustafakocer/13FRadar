@@ -54,21 +54,13 @@ test('the seven section explanations exist in both languages', () => {
   assert.ok(EXPLANATIONS.en['explain.ins.intro'].includes('2 business days'));
 });
 
-test('home: card explanations are in the server HTML, in both languages', async () => {
+test('home: the three tabs, the FAQ card and no CIK, in both languages', async () => {
   for (const lang of ['tr', 'en']) {
     const { status, html } = await ssr(`/${lang}`);
     assert.equal(status, 200);
     const text = visible(html);
-    for (const k of ['explain.guru.mostOwned', 'explain.guru.byPct', 'explain.guru.conviction', 'explain.ins.cluster']) {
-      assert.ok(text.includes(EXPLANATIONS[lang][k]), `${lang}: ${k} on the home page`);
-    }
-    // the three plain-language entry points under the hero
-    assert.ok(html.includes('hero-quick'), 'hero quick row rendered');
-    const QUICK = {
-      tr: ['Buffett bu çeyrek ne aldı?', 'Bugün hangi yöneticiler alım yaptı?', 'Bir hisseyi kim tutuyor?'],
-      en: ['What did Buffett buy this quarter?', 'Which executives bought today?', 'Who owns a stock?'],
-    };
-    for (const q of QUICK[lang]) assert.ok(text.includes(q), `${lang}: "${q}"`);
+    assert.equal((html.match(/data-home-tab="/g) || []).length, 3, `${lang}: three tabs`);
+    assert.ok(html.includes('data-home-faq'), `${lang}: FAQ card`);
     assert.ok(!/\bCIK\s+\d/.test(text), `${lang}: no CIK in the visible home text`);
   }
 });

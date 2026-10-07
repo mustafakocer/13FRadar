@@ -198,7 +198,7 @@ jobs:
           GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
           GURU_HISTORY_FORCE: ${{ inputs.force_history == true && '1' || '0' }}
       - name: Build guru-history.json (10 years, curated gurus) & splits.json
-        run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs && node scripts/build-guru-performance.mjs
+        run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs && node scripts/build-guru-performance.mjs && node scripts/build-guru-cards.mjs
         env:
           SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
           SEC_RPS: '6'

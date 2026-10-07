@@ -1,7 +1,27 @@
 {
- "updatedAt": "2026-10-06T02:41:42.014Z",
+ "updatedAt": "2026-10-07T02:41:17.382Z",
  "count": 442,
  "corrections": [
+  {
+   "cik": "0000071210",
+   "name": "NEVILLE RODIE & SHAW INC",
+   "period": "2026-09-30",
+   "acc": "0000071210-26-000006",
+   "filed": "2026-10-05",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001297731",
+   "name": "Pensionfund PDN",
+   "period": "2026-09-30",
+   "acc": "0001297731-26-000005",
+   "filed": "2026-10-05",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
   {
    "cik": "0001601622",
    "name": "LBJ Family Wealth Advisors, Ltd.",
@@ -9,7 +29,17 @@
    "acc": "0001601622-26-000005",
    "filed": "2026-10-01",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 7 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001637246",
+   "name": "Pensionfund Sabic",
+   "period": "2026-09-30",
+   "acc": "0001637246-26-000013",
+   "filed": "2026-10-05",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -63,16 +93,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0000071210",
-   "name": "NEVILLE RODIE & SHAW INC",
-   "period": "2026-06-30",
-   "acc": "0000071210-26-000003",
-   "filed": "2026-07-06",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0000074260",
    "name": "OLD REPUBLIC INTERNATIONAL CORP",
    "period": "2026-06-30",
@@ -99,7 +119,7 @@
    "acc": "0001628280-26-057130",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 5 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -179,7 +199,7 @@
    "acc": "0000897101-26-000352",
    "filed": "2026-08-12",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 11 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 12 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -299,7 +319,7 @@
    "acc": "0000904793-26-000005",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 7 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -609,7 +629,7 @@
    "acc": "0001063571-26-000004",
    "filed": "2026-08-11",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -759,7 +779,7 @@
    "acc": "0001094584-26-000003",
    "filed": "2026-08-11",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.000996 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00101 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -809,7 +829,7 @@
    "acc": "0001114739-26-000004",
    "filed": "2026-07-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 16 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -849,7 +869,7 @@
    "acc": "0001132699-26-000004",
    "filed": "2026-07-28",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00137 over 9 priced rows (78% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00172 over 10 priced rows (80% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -949,7 +969,7 @@
    "acc": "0001276460-26-000005",
    "filed": "2026-07-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -959,7 +979,7 @@
    "acc": "0001278678-26-000006",
    "filed": "2026-07-27",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -979,7 +999,7 @@
    "acc": "0001193125-26-350257",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -990,16 +1010,6 @@
    "filed": "2026-08-06",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001297731",
-   "name": "Pensionfund PDN",
-   "period": "2026-06-30",
-   "acc": "0001297731-26-000004",
-   "filed": "2026-07-01",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (96% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1029,7 +1039,7 @@
    "acc": "0001314273-26-000007",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (96% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (96% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1079,7 +1089,7 @@
    "acc": "0001361974-26-000009",
    "filed": "2026-08-12",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1089,7 +1099,7 @@
    "acc": "0001362033-26-000006",
    "filed": "2026-08-06",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1139,7 +1149,7 @@
    "acc": "0001381954-26-000003",
    "filed": "2026-08-10",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 14 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1159,7 +1169,7 @@
    "acc": "0001999371-26-017572",
    "filed": "2026-08-11",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1209,7 +1219,7 @@
    "acc": "0001413303-26-000003",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.000999 over 14 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 16 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1269,7 +1279,7 @@
    "acc": "0001178913-26-003625",
    "filed": "2026-07-29",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1379,7 +1389,7 @@
    "acc": "0001492162-26-000003",
    "filed": "2026-07-22",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1409,7 +1419,7 @@
    "acc": "0001511291-26-000003",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1429,7 +1439,7 @@
    "acc": "0001512162-26-000021",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1439,7 +1449,7 @@
    "acc": "0001512858-26-000003",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1519,7 +1529,7 @@
    "acc": "0001538846-26-000004",
    "filed": "2026-08-11",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1539,7 +1549,7 @@
    "acc": "0000929638-26-003007",
    "filed": "2026-08-12",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1579,7 +1589,7 @@
    "acc": "0001569102-26-000004",
    "filed": "2026-07-15",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1669,7 +1679,7 @@
    "acc": "0001596076-26-000003",
    "filed": "2026-08-11",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1759,7 +1769,7 @@
    "acc": "0001609251-26-000005",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1819,7 +1829,7 @@
    "acc": "0001629869-26-000004",
    "filed": "2026-07-15",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00103 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00103 over 10 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1883,23 +1893,13 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001637246",
-   "name": "Pensionfund Sabic",
-   "period": "2026-06-30",
-   "acc": "0001637246-26-000012",
-   "filed": "2026-07-01",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (95% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001642044",
    "name": "TradeLink Capital LLC",
    "period": "2026-06-30",
    "acc": "0001642044-26-000007",
    "filed": "2026-08-05",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1919,7 +1919,7 @@
    "acc": "0001642274-26-000006",
    "filed": "2026-07-20",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1939,7 +1939,7 @@
    "acc": "0001653926-26-000003",
    "filed": "2026-07-15",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 12 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2029,7 +2029,7 @@
    "acc": "0001681662-26-000005",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 14 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2109,7 +2109,7 @@
    "acc": "0001698055-26-000006",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2179,7 +2179,7 @@
    "acc": "0001718570-26-000005",
    "filed": "2026-08-11",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2329,7 +2329,7 @@
    "acc": "0001735513-26-000003",
    "filed": "2026-07-27",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2419,7 +2419,7 @@
    "acc": "0001768375-26-000005",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2629,7 +2629,7 @@
    "acc": "0001808919-26-000003",
    "filed": "2026-07-16",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2669,7 +2669,7 @@
    "acc": "0001813784-26-000006",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 11 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2699,7 +2699,7 @@
    "acc": "0001831003-26-000004",
    "filed": "2026-08-10",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00105 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00102 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2819,7 +2819,7 @@
    "acc": "0001863523-26-000003",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2849,7 +2849,7 @@
    "acc": "0001897612-26-000578",
    "filed": "2026-08-14",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2889,7 +2889,7 @@
    "acc": "0001908380-26-000003",
    "filed": "2026-07-31",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.000999 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.000999 over 9 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2899,7 +2899,7 @@
    "acc": "0001909846-26-000008",
    "filed": "2026-08-07",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2949,7 +2949,7 @@
    "acc": "0001940660-26-000004",
    "filed": "2026-07-30",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3089,7 +3089,7 @@
    "acc": "0002041065-26-000003",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.000999 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.000999 over 9 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3259,7 +3259,7 @@
    "acc": "0002114319-26-000007",
    "filed": "2026-09-03",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

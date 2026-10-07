@@ -108,7 +108,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4707
+        "tickers": 4713
       },
       "findings": []
     },
@@ -116,7 +116,7 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4687,
+        "series": 4693,
         "coveragePct": 97.8
       },
       "findings": []

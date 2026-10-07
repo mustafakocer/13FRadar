@@ -82,7 +82,7 @@ async function main() {
   if (!all.length) { console.log('::warning::domains: no tickers found in the data files'); return; }
   const prior = refresh ? null : readJson(outPath);
   // prior hosts re-normalised: an older manifest may hold ir./corporate. hosts
-  const domains = Object.fromEntries(Object.entries(prior?.domains || {}).map(([t, h]) => [t, rootDomain(h) || h]));
+  const domains = Object.fromEntries(Object.entries(prior?.domains || {}).map(([t, h]) => [t, rootDomain(h)]).filter(([, h]) => h));
   // the hand-kept list wins over every source and is never looked up
   const overrides = Object.entries(readJson(overridesPath) || {}).filter(([k, v]) => !k.startsWith('_') && hostOf(v));
   for (const [t, h] of overrides) domains[t.toUpperCase()] = rootDomain(h);

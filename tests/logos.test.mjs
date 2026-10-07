@@ -87,3 +87,10 @@ test('symbolOf: the company behind a convertible / preferred / flagged line', ()
   assert.equal(symbolOf(' brk.b '), 'BRK.B');
   assert.equal(symbolOf(''), '');
 });
+
+test('rootDomain: an investor-relations host is not a brand', () => {
+  assert.equal(rootDomain('https://ir.gcs-web.com/x'), null);
+  assert.equal(rootDomain('investors.q4ir.com'), null);
+  assert.equal(rootDomain('abc.xyz'), null);
+  assert.equal(rootDomain('ir.draftkings.com'), 'draftkings.com');
+});

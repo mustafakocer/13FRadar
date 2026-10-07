@@ -99,6 +99,13 @@ const SPONSORS = [
   [/\bAVANTIS\b|\bAMERICAN CENT(?:URY|Y) ETF\b/, 'avantisinvestors.com'],
   [/\bBLACKROCK ETF\b|\bBLACKROCK FDS\b/, 'blackrock.com'],
 ];
+// The symbol behind a security-master line: a convertible or preferred is
+// written "GPN 1.5 03-01-31" / "BAC 7.25 PERP L", a flagged line "EA*" — the
+// company is the first token.
+export function symbolOf(ticker) {
+  return String(ticker || '').trim().toUpperCase().split(/\s+/)[0].replace(/\*+$/, '');
+}
+
 // A warrant, unit, right or preferred line ("HTZWW", "FLYX-WS", "AAC-U",
 // "BAC-PL", "CORZW") is the same company as its common stock: the base
 // ticker it derives from, or null for a plain common ticker.

@@ -28,13 +28,14 @@ import { fileURLToPath } from 'node:url';
 import axios from 'axios';
 import { tickerMap } from '../api/_lib/tickers.js';
 import { getSubmissions } from '../api/_lib/sec.js';
-import { hostOf, rootDomain, sponsorDomain, baseTicker } from '../api/_lib/logoScrape.js';
+import { hostOf, rootDomain, sponsorDomain, baseTicker, symbolOf } from '../api/_lib/logoScrape.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(here, '..');
 const pub = path.join(root, 'client', 'public');
 const data = path.join(root, 'api', '_data');
 const outPath = path.join(pub, 'domains.json');
+const overridesPath = path.join(root, 'config', 'logo-domains.json');
 const refresh = process.argv.includes('--refresh');
 const BATCH = Number(process.env.DOMAINS_BATCH) || 1500;
 const RETRY_DAYS = 30;
@@ -46,7 +47,13 @@ const TICKER = /^[A-Z][A-Z0-9.-]{0,6}$/;
 // ---------- the universe: [ticker, issuer name], most visible first ----------
 function universe() {
   const seen = new Map();
-  const add = (t, name) => { const sym = String(t || '').trim().toUpperCase(); if (TICKER.test(sym) && !seen.has(sym)) seen.set(sym, String(name || '')); };
+  // "GPN 1.5 03-01-31" and "EA*" are GPN and EA; the raw line is kept too so
+  // a page that shows it verbatim finds the same domain under its own key
+  const add = (t, name) => {
+    for (const sym of new Set([symbolOf(t), String(t || '').trim().toUpperCase()])) {
+      if (TICKER.test(sym) && !seen.has(sym)) seen.set(sym, String(name || ''));
+    }
+  };
   const insiders = readJson(path.join(data, 'insiders.json'));
   const names = insiders?.companies || {};
   for (const r of readJson(path.join(pub, 'stocks.json'))?.rows || []) add(r.ticker, r.issuer);
@@ -76,6 +83,9 @@ async function main() {
   const prior = refresh ? null : readJson(outPath);
   // prior hosts re-normalised: an older manifest may hold ir./corporate. hosts
   const domains = Object.fromEntries(Object.entries(prior?.domains || {}).map(([t, h]) => [t, rootDomain(h) || h]));
+  // the hand-kept list wins over every source and is never looked up
+  const overrides = Object.entries(readJson(overridesPath) || {}).filter(([k, v]) => !k.startsWith('_') && hostOf(v));
+  for (const [t, h] of overrides) domains[t.toUpperCase()] = rootDomain(h);
   const tried = { ...(prior?.tried || {}) };
   const stale = (t) => !tried[t] || (Date.now() - Date.parse(tried[t])) / 86400000 >= RETRY_DAYS;
   const todo = all.filter(([t]) => !domains[t] && stale(t)).slice(0, BATCH);
@@ -88,6 +98,7 @@ async function main() {
   for (const [i, [t, name]] of todo.entries()) {
     let host = sponsorDomain(name);
     if (host) sponsor++;
+    else if (symbolOf(t) !== t && domains[symbolOf(t)]) { host = domains[symbolOf(t)]; }
     else if (sameFiler(t)) { host = domains[baseTicker(t)]; }
     else {
       host = rootDomain(await fromSec(t, ciks));
@@ -105,7 +116,10 @@ async function main() {
   // warrants, units, rights, preferreds: the common stock's domain, no lookup
   let derived = 0;
   for (const [t] of all) {
-    if (!domains[t] && sameFiler(t)) { domains[t] = domains[baseTicker(t)]; delete tried[t]; derived++; }
+    if (domains[t]) continue;
+    const sym = symbolOf(t);
+    if (sym !== t && domains[sym]) { domains[t] = domains[sym]; delete tried[t]; derived++; }
+    else if (sameFiler(t)) { domains[t] = domains[baseTicker(t)]; delete tried[t]; derived++; }
   }
   const ok = Object.keys(domains).length;
   const left = all.filter(([t]) => !domains[t] && stale(t)).length;

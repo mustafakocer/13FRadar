@@ -959,3 +959,12 @@ table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
 .fund-tabs a.home-tab { color: var(--text-2); }
 .fund-tabs a.home-tab:hover { color: var(--text); text-decoration: none; }
 @media (max-width: 840px) { .stock-title h1 { font-size: 22px; } .stock .price-big { font-size: 24px; } .stock-title .tlogo { width: 44px; height: 44px; } }
+
+/* consensus: the same header; without the strip the tab row sits right under the title */
+.consensus .fund-title h1 { display: flex; align-items: center; gap: 10px; }
+.fund-tabs-top { margin-top: 14px; }
+.fund-stat b.tk-cell { gap: 8px; }
+.fund-stat .s a { font-weight: 600; }
+
+/* the coverage sentence under the fund count wraps rather than clips */
+.consensus .fund-stat .s { white-space: normal; }

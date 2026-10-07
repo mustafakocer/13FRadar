@@ -947,3 +947,15 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 }
 /* the positions table breathes like the cards: a logo-height row */
 table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
+
+/* ---------- stock page: the same profile header as a fund ---------- */
+.stock-title { display: flex; align-items: center; gap: 16px; min-width: 0; }
+.stock-title h1 { font-size: 30px; letter-spacing: -0.03em; line-height: 1.15; margin: 0; }
+.stock-title .tlogo { border-radius: 14px; flex: none; }
+.stock .price-big { font-size: 30px; }
+.stock .fund-id { align-items: center; }
+.stock .perf-strip { margin-top: 0; }
+.stock-section { scroll-margin-top: 80px; }
+.fund-tabs a.home-tab { color: var(--text-2); }
+.fund-tabs a.home-tab:hover { color: var(--text); text-decoration: none; }
+@media (max-width: 840px) { .stock-title h1 { font-size: 22px; } .stock .price-big { font-size: 24px; } .stock-title .tlogo { width: 44px; height: 44px; } }

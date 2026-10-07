@@ -62,6 +62,7 @@ const staticTeaser = () => json('../../../client/public/insiders-teaser.json');
 const staticReturns = () => json('../../../client/public/returns.json');
 const staticSummary = () => json('../../../client/public/universe-summary.json');
 const staticStocks = () => json('../../../client/public/stocks.json');
+const staticGuruCards = () => json('../../../client/public/guru-cards.json');
 // FILINGS_FILE points the offline tests at a fixture feed; production reads
 // the file the daily Action writes, and renders nothing when it is absent.
 const staticFilings = () => {
@@ -93,6 +94,8 @@ async function loadHome() {
   if (r) seeds.push([['static-returns'], r.returns || {}]);
   const s = staticSummary();
   if (s) seeds.push([['universe-summary'], s]);
+  const g = staticGuruCards();
+  if (g) seeds.push([['guru-cards'], g]);
   return seeds;
 }
 

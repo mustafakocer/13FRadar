@@ -37,19 +37,13 @@ test('a chip carries at most 32 characters and the full name in its title', () =
   assert.equal(chipName('Himalaya Capital (Li Lu)'), 'Himalaya Capital (Li Lu)');
 });
 
-test('SSR /tr: the popular block shows at most 24 chips, the category tabs and "Tümünü gör (98)"; /tr/gurus has the same tabs over cards', async () => {
-  const { html } = await ssr('/tr');
-  const block = html.slice(html.indexOf('data-guru-chips'));
-  // fund chips carry the full name in a title; the "see all" chip does not
-  const chips = count(block.slice(0, block.indexOf('</div>')), /class="chip(?: muted)?" title=/g);
-  assert.ok(chips <= 24 && chips >= 20, `first-load chips (${chips})`);
-  assert.match(html, /data-see-all/);
-  assert.match(html, new RegExp(`Tümünü gör \\(${activeGurus().length}\\)`));
-  assert.equal(count(html, /role="tab"/g), 7, 'seven category tabs');
-  assert.match(html, /Kapananları göster \(\d+\)/);
-  assert.ok(!/\(kapandı\)/.test(block.slice(0, block.indexOf('</div>'))), 'closed funds hidden by default');
+test('SSR /tr/gurus: the seven category tabs over every active fund as a card; /tr shows investor cards, not chips', async () => {
   const gurus = await ssr('/tr/gurus');
-  assert.equal(count(gurus.html, /role="tab"/g), 7);
+  assert.equal(count(gurus.html, /role="tab"/g), 7, 'seven category tabs');
+  assert.match(gurus.html, /Kapananları göster \(\d+\)/);
   assert.ok(count(gurus.html, /class="card feature-card"/g) >= activeGurus().length - 5, 'all active funds as cards');
-  assert.ok(/title="Berkshire Hathaway \(Warren Buffett\)"/.test(html), 'the full name in the chip title');
+  assert.ok(/title="Berkshire Hathaway \(Warren Buffett\)"/.test(gurus.html), 'the full name in the card title');
+  const home = await ssr('/tr');
+  assert.ok(!home.html.includes('data-guru-chips'), 'no chip block on the home page');
+  assert.equal(count(home.html, /data-guru-card="/g), 11, 'eleven investor cards');
 });

@@ -140,7 +140,7 @@ test('SSR: the fund page frames the quarter in four numbers, then one table', as
 test('SSR: home page renders content and site JSON-LD', async () => {
   const { status, html } = await ssr('/tr');
   assert.equal(status, 200);
-  assert.ok(count(html, /<table/g) >= 1);
+  assert.ok(count(html, /data-guru-card="/g) >= 9, 'the investor cards');
   const types = jsonLd(html).map((b) => b['@type']);
   assert.ok(types.includes('Organization') && types.includes('WebSite'));
   const site = jsonLd(html).find((b) => b['@type'] === 'WebSite');

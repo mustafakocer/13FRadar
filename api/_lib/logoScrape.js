@@ -19,9 +19,13 @@ export function hostOf(site) {
 // "ir.kkr.com" → "kkr.com", "bp.co.uk" stays — the logo CDN knows brands by
 // their root, not by the investor-relations host a filing happens to list.
 const TWO_LEVEL = /\.(co|com|org|net|ac|gov|edu|or|ne)\.[a-z]{2}$/;
+// investor-relations hosting providers a filing may list instead of the
+// company's own site — never a brand
+const IR_HOSTS = /(^|\.)(gcs-web\.com|q4ir\.com|q4cdn\.com|snl\.com|investorroom\.com|irdirect\.net|irpass\.com|edgar-online\.com|sec\.gov|proxyvote\.com|computershare\.com|globenewswire\.com|businesswire\.com|prnewswire\.com|abc\.xyz)$/;
+export const isIrHost = (host) => IR_HOSTS.test(hostOf(host) || '');
 export function rootDomain(host) {
   const h = hostOf(host);
-  if (!h) return null;
+  if (!h || isIrHost(h)) return null;
   const parts = h.split('.');
   const keep = TWO_LEVEL.test(h) ? 3 : 2;
   return parts.slice(-keep).join('.');
@@ -99,6 +103,13 @@ const SPONSORS = [
   [/\bAVANTIS\b|\bAMERICAN CENT(?:URY|Y) ETF\b/, 'avantisinvestors.com'],
   [/\bBLACKROCK ETF\b|\bBLACKROCK FDS\b/, 'blackrock.com'],
 ];
+// The symbol behind a security-master line: a convertible or preferred is
+// written "GPN 1.5 03-01-31" / "BAC 7.25 PERP L", a flagged line "EA*" — the
+// company is the first token.
+export function symbolOf(ticker) {
+  return String(ticker || '').trim().toUpperCase().split(/\s+/)[0].replace(/\*+$/, '');
+}
+
 // A warrant, unit, right or preferred line ("HTZWW", "FLYX-WS", "AAC-U",
 // "BAC-PL", "CORZW") is the same company as its common stock: the base
 // ticker it derives from, or null for a plain common ticker.

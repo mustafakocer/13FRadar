@@ -2,7 +2,7 @@
 // only images with a 64px shorter side count, favicon-size icons do not.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseRobots, robotsAllows, imageInfo, usable, hostOf, rootDomain, sponsorDomain, baseTicker } from '../api/_lib/logoScrape.js';
+import { parseRobots, robotsAllows, imageInfo, usable, hostOf, rootDomain, sponsorDomain, baseTicker, symbolOf } from '../api/_lib/logoScrape.js';
 
 const png = (w, h) => { const b = Buffer.alloc(33); b.write('\x89PNG\r\n\x1a\n', 0, 'binary'); b.writeUInt32BE(13, 8); b.write('IHDR', 12); b.writeUInt32BE(w, 16); b.writeUInt32BE(h, 20); return b; };
 const gif = (w, h) => { const b = Buffer.alloc(16); b.write('GIF89a', 0); b.writeUInt16LE(w, 6); b.writeUInt16LE(h, 8); return b; };
@@ -77,4 +77,20 @@ test('baseTicker: warrants, units, rights, preferreds → the common ticker', ()
   assert.equal(baseTicker('AAPL'), null);
   assert.equal(baseTicker('BRK-B'), null, 'a share class is not a derivative');
   assert.equal(baseTicker('DOW'), 'DO', 'ambiguous: the caller checks the filer');
+});
+
+test('symbolOf: the company behind a convertible / preferred / flagged line', () => {
+  assert.equal(symbolOf('GPN 1.5 03-01-31'), 'GPN');
+  assert.equal(symbolOf('BAC 7.25 PERP L'), 'BAC');
+  assert.equal(symbolOf('GOOGL 6.25 05-15-29 B'), 'GOOGL');
+  assert.equal(symbolOf('EA*'), 'EA');
+  assert.equal(symbolOf(' brk.b '), 'BRK.B');
+  assert.equal(symbolOf(''), '');
+});
+
+test('rootDomain: an investor-relations host is not a brand', () => {
+  assert.equal(rootDomain('https://ir.gcs-web.com/x'), null);
+  assert.equal(rootDomain('investors.q4ir.com'), null);
+  assert.equal(rootDomain('abc.xyz'), null);
+  assert.equal(rootDomain('ir.draftkings.com'), 'draftkings.com');
 });

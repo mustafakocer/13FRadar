@@ -28,7 +28,8 @@ export default function TickerLogo({ ticker, size = 20 }) {
   const domains = useDomains();
   // which sources have failed for this ticker: the CDN first, then the file
   const [broken, setBroken] = useState({});
-  const sym = String(ticker || '').trim().toUpperCase();
+  // "GPN 1.5 03-01-31" (a convertible) and "EA*" are GPN and EA
+  const sym = String(ticker || '').trim().toUpperCase().split(/\s+/)[0].replace(/\*+$/, '');
   if (!sym) return null;
   const alt = sym.replace(/\./g, '-');
   const domain = CLIENT_ID ? domains[sym] || domains[alt] : null;

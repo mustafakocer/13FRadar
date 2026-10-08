@@ -109,3 +109,14 @@ test('a trade dated years before its report is a typo and is dropped', () => {
   assert.equal(out.rows.length, 1);
   assert.equal(out.rows[0].d, '2025-05-08');
 });
+
+test('committees: the members who sit on one, their trades, the index', async () => {
+  const { committeeIndex, committeeView } = await import('../api/_lib/congressModel.js');
+  const idx2 = committeeIndex(db);
+  assert.deepEqual(idx2.map((c) => [c.slug, c.ch, c.members, c.trades]), [['committee-on-agriculture', 'S', 1, 1]]);
+  const v = committeeView(db, 'committee-on-agriculture');
+  assert.equal(v.members[0].n, 'Mitch McConnell');
+  assert.equal(v.topBought[0].t, 'JPM');
+  assert.equal(v.rows.length, 1);
+  assert.equal(committeeView(db, 'no-such-committee'), null);
+});

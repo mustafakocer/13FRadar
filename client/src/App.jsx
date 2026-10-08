@@ -14,7 +14,7 @@ import Footer from './components/Footer.jsx';
 import TopBar from './components/TopBar.jsx';
 import { LAZY_PAGES } from './pages/lazyPages.js';
 
-const { Insiders, PennyStocks, Screen, StockScreen, Compare, Report, Watchlist, Pricing, Checkout, Account, Filers, GuruTicker, Calendar, Filings, Emerging, ReportPage, ContentPage, Congress, CongressMember } = Object.fromEntries(
+const { Insiders, PennyStocks, Screen, StockScreen, Compare, Report, Watchlist, Pricing, Checkout, Account, Filers, GuruTicker, Calendar, Filings, Emerging, ReportPage, ContentPage, Congress, CongressMember, CongressCommittee } = Object.fromEntries(
   Object.entries(LAZY_PAGES).map(([k, v]) => [k, v.component])
 );
 // Split pages get their own boundary: entity pages hydrate synchronously with
@@ -87,6 +87,7 @@ export default function App() {
           <Route path="/reports/:id" element={<Lazy><ReportPage /></Lazy>} />
           <Route path="/emerging-managers" element={<Lazy><Emerging /></Lazy>} />
           <Route path="/congress" element={<Lazy><Congress /></Lazy>} />
+          <Route path="/congress/committee/:slug" element={<Lazy><CongressCommittee /></Lazy>} />
           <Route path="/congress/:slug" element={<Lazy><CongressMember /></Lazy>} />
           <Route path="/stock/:ticker" element={<Stock />} />
           <Route path="/consensus" element={<Consensus />} />

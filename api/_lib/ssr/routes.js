@@ -15,7 +15,7 @@ import reportHandler from '../../_handlers/report.js';
 import relatedHandler from '../../_handlers/related.js';
 import insiderFeedHandler from '../../_handlers/insider-feed.js';
 import plansHandler from '../../_handlers/plans.js';
-import { congressMember as congressMemberHandler, congressOverview as congressHandler } from '../../_handlers/congress.js';
+import { congressCommittee as congressCommitteeHandler, congressMember as congressMemberHandler, congressOverview as congressHandler } from '../../_handlers/congress.js';
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
@@ -279,6 +279,12 @@ async function loadCongressMember({ slug }) {
   return { seeds: [[['congress-member', slug], r.body]] };
 }
 
+async function loadCongressCommittee({ slug }) {
+  const r = await invoke(congressCommitteeHandler, { slug });
+  if (r.status !== 200) return { seeds: [], status: 404 };
+  return { seeds: [[['congress-committee', slug], r.body]] };
+}
+
 async function loadReports({ id }) {
   if (!id) {
     const r = await invoke(reportHandler, {});
@@ -355,6 +361,7 @@ export const ROUTES = [
   { kind: 'stock-screen', re: /^\/screen\/stocks$/, load: loadStockScreen, cache: 'hour' },
   { kind: 'emerging', re: /^\/emerging-managers$/, load: loadEmerging, cache: 'day' },
   { kind: 'congress', re: /^\/congress$/, load: loadCongress, cache: 'hour' },
+  { kind: 'congress-committee', re: /^\/congress\/committee\/([a-z0-9-]{1,160})$/, params: (m) => ({ slug: m[1] }), load: loadCongressCommittee, cache: 'hour' },
   { kind: 'congress-member', re: /^\/congress\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1] }), load: loadCongressMember, cache: 'hour' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },

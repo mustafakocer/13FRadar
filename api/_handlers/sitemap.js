@@ -6,7 +6,7 @@ import { guruStockTable } from '../_lib/guruStocks.js';
 import { reportIndex } from './report.js';
 import { GUIDES, COMPARES, LEGAL } from '../../client/src/content/registry.js';
 import { readServed as readCongress } from '../_lib/congressStore.js';
-import { membersList } from '../_lib/congressModel.js';
+import { committeeIndex, membersList } from '../_lib/congressModel.js';
 
 // Sitemap index + per-entity sitemaps + robots.txt.
 //   /sitemap.xml            → index (type=index)
@@ -17,7 +17,7 @@ import { membersList } from '../_lib/congressModel.js';
 //                             universe's most-held names
 //   /sitemap-guides.xml     → guides and comparisons (language-specific slugs)
 //   /sitemap-insider.xml    → insider signal pages, lastmod = teaser build
-//   /sitemap-congress.xml   → the Congress trades page and every member with a trade
+//   /sitemap-congress.xml   → the Congress trades page, every member with a trade, every committee
 //   /robots.txt
 // Every URL is emitted once per language with xhtml:link alternates. A
 // family that would exceed the protocol's 50,000-URL limit is split into
@@ -139,6 +139,7 @@ export function entriesFor(type, ctx = context()) {
     return [
       { path: '/congress', lastmod, changefreq: 'daily', priority: '0.8' },
       ...membersList(db).map((m) => ({ path: `/congress/${m.slug}`, lastmod: m.last || lastmod, changefreq: 'weekly', priority: '0.6' })),
+      ...committeeIndex(db).map((c) => ({ path: `/congress/committee/${c.slug}`, lastmod: c.last || lastmod, changefreq: 'weekly', priority: '0.6' })),
     ];
   }
   if (type === 'pages') {

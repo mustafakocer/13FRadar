@@ -76,7 +76,14 @@ export default function CongressMember() {
           <h1><Ico icon={Gavel} size={22} /> {m.n}</h1>
           <div className="sub">
             {m.p ? <b className={partyClass(m.p)}>{t(`cg.party.${m.p}`)}</b> : t('cg.partyUnknown')} · {seat}
-            {m.committees?.length > 0 && <> · {m.committees.map((c) => c.name).join(', ')}</>}
+            {m.committees?.length > 0 && (
+              <>
+                {' · '}
+                {m.committees.map((c, i) => (
+                  <span key={c.id}>{i > 0 && ', '}<Link to={`/congress/committee/${c.slug}`}>{c.name}</Link></span>
+                ))}
+              </>
+            )}
           </div>
         </div>
       </div>

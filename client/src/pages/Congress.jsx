@@ -5,92 +5,16 @@ import { Gavel } from 'lucide-react';
 import { api } from '../lib/api.js';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
-import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
+import { fmtNum } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import { dataset, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
-import CongressTable, { CongressDisclaimer, MemberTag } from '../components/CongressTable.jsx';
+import CongressTable, { CommitteeBoard, CongressDisclaimer, MemberBoard, TickerBoard } from '../components/CongressTable.jsx';
 
-const TABS = ['latest', 'bought', 'sold', 'active', 'largest'];
+const TABS = ['latest', 'bought', 'sold', 'active', 'largest', 'committees'];
 const HOUR = 60 * 60 * 1000;
-
-function TickerBoard({ rows }) {
-  const { t } = useI18n();
-  if (!rows?.length) return <p className="muted">{t('cg.none')}</p>;
-  return (
-    <div className="table-wrap">
-      <table className="data">
-        <thead>
-          <tr>
-            <th className="l">#</th>
-            <th className="l">{t('cg.asset')}</th>
-            <th>{t('cg.members')}</th>
-            <th>{t('cg.trades')}</th>
-            <th title={t('cg.volumeTip')}>{t('cg.volume')}</th>
-            <th>{t('cg.price')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.t}>
-              <td className="l muted">{i + 1}</td>
-              <td className="l">
-                <Link to={`/stock/${r.t}`} className="tk-cell"><TickerLogo ticker={r.t} size={24} /> <b>{r.t}</b></Link>
-                <div className="muted small" style={{ maxWidth: 320 }}>{r.a}</div>
-              </td>
-              <td className="num">{fmtNum(r.members)}</td>
-              <td className="num">{fmtNum(r.trades)}</td>
-              <td className="num">~{fmtMoney(r.volume)}</td>
-              <td className="num muted">{r.cur != null ? fmtNum(r.cur, 2) : '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-export function MemberBoard({ rows }) {
-  const { t } = useI18n();
-  if (!rows?.length) return <p className="muted">{t('cg.none')}</p>;
-  return (
-    <div className="table-wrap">
-      <table className="data">
-        <thead>
-          <tr>
-            <th className="l">#</th>
-            <th className="l">{t('cg.member')}</th>
-            <th>{t('cg.trades')}</th>
-            <th>{t('cg.buys')}</th>
-            <th>{t('cg.sells')}</th>
-            <th title={t('cg.volumeTip')}>{t('cg.volume')}</th>
-            <th title={t('cg.avgRetTip')}>{t('cg.avgRet')}</th>
-            <th>{t('cg.lastFiled')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((m, i) => (
-            <tr key={m.key}>
-              <td className="l muted">{i + 1}</td>
-              <td className="l">
-                <Link to={`/congress/${m.slug}`} style={{ fontWeight: 700 }}>{m.n}</Link>
-                <div><MemberTag r={m} /></div>
-              </td>
-              <td className="num">{fmtNum(m.trades)}</td>
-              <td className="num">{fmtNum(m.buys)}</td>
-              <td className="num">{fmtNum(m.sells)}</td>
-              <td className="num">~{fmtMoney(m.volume)}</td>
-              <td className="num">{m.avgBuyRet != null ? <span className={m.avgBuyRet >= 0 ? 'delta-pos' : 'delta-neg'}>{fmtPct(m.avgBuyRet * 100)}</span> : '—'}</td>
-              <td className="num muted">{m.last || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
 
 // /congress — trades by members of the US Congress, from their STOCK Act
 // periodic transaction reports (House Clerk, Senate eFD).
@@ -244,7 +168,8 @@ export default function Congress() {
         {tab === 'sold' && <TickerBoard rows={d.topSold} />}
         {tab === 'active' && <MemberBoard rows={d.active} />}
         {tab === 'largest' && <CongressTable rows={d.largest} />}
-        {tab !== 'latest' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
+        {tab === 'committees' && <CommitteeBoard rows={d.committees} />}
+        {tab !== 'latest' && tab !== 'committees' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
       </div>
 
       <div className="card mt16">

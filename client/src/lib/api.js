@@ -99,6 +99,7 @@ export const api = {
     return get(`/api/congress-feed?${qs}`);
   },
   congressMember: (slug) => get(`/api/congress-member/${encodeURIComponent(slug)}`),
+  congressCommittee: (slug) => get(`/api/congress-committee/${encodeURIComponent(slug)}`),
   congressTicker: (ticker) => get(`/api/congress-ticker/${encodeURIComponent(ticker)}`),
   guruHistory: (cik) => get(`/api/guru-history/${cik}`),
   guruForm4: (cik) => get(`/api/guru-form4/${cik}`),

@@ -49,6 +49,12 @@ for (const p of ['/tr', '/tr/insiders', '/tr/insiders/cluster', '/tr/insiders/pe
       const m = await get(`/en/congress/${slug}`);
       check(m.status === 200 && /<table/.test(m.text), `/en/congress/${slug} → HTTP ${m.status}`);
     }
+    const cm = j.committees?.[0]?.slug;
+    check(Boolean(cm), `/api/congress lists ${j.committees?.length ?? 0} committees`);
+    if (cm) {
+      const c = await get(`/tr/congress/committee/${cm}`);
+      check(c.status === 200 && /<table/.test(c.text), `/tr/congress/committee/${cm} → HTTP ${c.status}`);
+    }
   }
 }
 

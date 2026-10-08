@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
-import { fmtNum, fmtPct } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
+import TickerLogo from './TickerLogo.jsx';
 
 // Congress trades are disclosed as ranges ("$15,001 – $50,000"), never as
 // an exact amount: show the range as filed.
@@ -98,4 +99,127 @@ export default function CongressTable({ rows, showMember = true, showTicker = tr
 export function CongressDisclaimer() {
   const { t } = useI18n();
   return <p className="muted small mt8">{t('cg.disclaimer')}</p>;
+}
+
+export function TickerBoard({ rows }) {
+  const { t } = useI18n();
+  if (!rows?.length) return <p className="muted">{t('cg.none')}</p>;
+  return (
+    <div className="table-wrap">
+      <table className="data">
+        <thead>
+          <tr>
+            <th className="l">#</th>
+            <th className="l">{t('cg.asset')}</th>
+            <th>{t('cg.members')}</th>
+            <th>{t('cg.trades')}</th>
+            <th title={t('cg.volumeTip')}>{t('cg.volume')}</th>
+            <th>{t('cg.price')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={r.t}>
+              <td className="l muted">{i + 1}</td>
+              <td className="l">
+                <Link to={`/stock/${r.t}`} className="tk-cell"><TickerLogo ticker={r.t} size={24} /> <b>{r.t}</b></Link>
+                <div className="muted small" style={{ maxWidth: 320 }}>{r.a}</div>
+              </td>
+              <td className="num">{fmtNum(r.members)}</td>
+              <td className="num">{fmtNum(r.trades)}</td>
+              <td className="num">~{fmtMoney(r.volume)}</td>
+              <td className="num muted">{r.cur != null ? fmtNum(r.cur, 2) : '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function MemberBoard({ rows }) {
+  const { t } = useI18n();
+  if (!rows?.length) return <p className="muted">{t('cg.none')}</p>;
+  return (
+    <div className="table-wrap">
+      <table className="data">
+        <thead>
+          <tr>
+            <th className="l">#</th>
+            <th className="l">{t('cg.member')}</th>
+            <th>{t('cg.trades')}</th>
+            <th>{t('cg.buys')}</th>
+            <th>{t('cg.sells')}</th>
+            <th title={t('cg.volumeTip')}>{t('cg.volume')}</th>
+            <th title={t('cg.avgRetTip')}>{t('cg.avgRet')}</th>
+            <th>{t('cg.lastFiled')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((m, i) => (
+            <tr key={m.key}>
+              <td className="l muted">{i + 1}</td>
+              <td className="l">
+                <Link to={`/congress/${m.slug}`} style={{ fontWeight: 700 }}>{m.n}</Link>
+                <div><MemberTag r={m} /></div>
+              </td>
+              <td className="num">{fmtNum(m.trades)}</td>
+              <td className="num">{fmtNum(m.buys)}</td>
+              <td className="num">{fmtNum(m.sells)}</td>
+              <td className="num">~{fmtMoney(m.volume)}</td>
+              <td className="num">{m.avgBuyRet != null ? <span className={m.avgBuyRet >= 0 ? 'delta-pos' : 'delta-neg'}>{fmtPct(m.avgBuyRet * 100)}</span> : '—'}</td>
+              <td className="num muted">{m.last || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+
+const CHAMBER = { H: 'cg.house', S: 'cg.senate', J: 'cg.joint' };
+
+// Committees with members on file, busiest first.
+export function CommitteeBoard({ rows }) {
+  const { t } = useI18n();
+  if (!rows?.length) return <p className="muted">{t('cg.none')}</p>;
+  return (
+    <>
+      <div className="table-wrap">
+        <table className="data">
+          <thead>
+            <tr>
+              <th className="l">#</th>
+              <th className="l">{t('cg.committee')}</th>
+              <th>{t('cg.members')}</th>
+              <th>{t('cg.trades')}</th>
+              <th>{t('cg.buys')}</th>
+              <th>{t('cg.sells')}</th>
+              <th title={t('cg.volumeTip')}>{t('cg.volume')}</th>
+              <th>{t('cg.lastFiled')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((c, i) => (
+              <tr key={c.id}>
+                <td className="l muted">{i + 1}</td>
+                <td className="l" style={{ whiteSpace: 'normal', minWidth: 220 }}>
+                  <Link to={`/congress/committee/${c.slug}`} style={{ fontWeight: 700 }}>{c.name}</Link>
+                  <div className="muted small">{t(CHAMBER[c.ch])}</div>
+                </td>
+                <td className="num">{fmtNum(c.members)}</td>
+                <td className="num">{fmtNum(c.trades)}</td>
+                <td className="num">{fmtNum(c.buys)}</td>
+                <td className="num">{fmtNum(c.sells)}</td>
+                <td className="num">~{fmtMoney(c.volume)}</td>
+                <td className="num muted">{c.last || '—'}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="muted small mt8">{t('cg.committeesNote')}</p>
+    </>
+  );
 }

@@ -8,16 +8,26 @@
 // (amount range in dollars; hi null for "Over $X"), src (filing URL), pt
 // (close on the trade day, when priced) }.
 import { closeOnOrAfter } from './insiderOutcome.js';
-import { amountMid } from './congressParse.js';
+import { amountMid, cleanTicker } from './congressParse.js';
 import { assignSlugs, filerName, matchHouse, matchSenate, normName } from './congressMembers.js';
 import { slugify } from '../../client/src/lib/slugify.js';
 
 const DAY = 86400000;
 const isoDay = (t) => new Date(t).toISOString().slice(0, 10);
+// the oldest trade a report can plausibly disclose: three years back
+const floor = (filed) => `${Number(String(filed).slice(0, 4)) - 3}${String(filed).slice(4)}`;
 export const isBuy = (k) => k === 'buy';
 export const isSell = (k) => k === 'sell' || k === 'sell_partial';
 
 // ------------------------------------------------------------ build time
+
+// A stock line filed without a ticker often carries it in the name:
+// "Electronic Arts Inc. (EA)", "EA - Electronic Arts Inc", "SDZNY- Sandoz Group AG ADR".
+export function tickerFromName(a) {
+  const s = String(a || '');
+  const m = /\(([A-Z][A-Z0-9]{0,5}(?:[./][A-Z])?)\)/.exec(s) || /^([A-Z][A-Z0-9]{0,5}(?:[./][A-Z])?)\s*-\s/.exec(s);
+  return m ? cleanTicker(m[1]) : null;
+}
 
 // filings: { key: { ch, id, filed, first, last, stateDst, url, status, tx } }
 export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, since, now = Date.now() }) {
@@ -49,12 +59,15 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
     }
     f.tx.forEach((tx, i) => {
       // no date, or one after the report that discloses it: a typo on the form
-      if (!tx.d || tx.d > f.filed || tx.d < '2012-01-01') return;
+      // no date, a date after the report that discloses it, or one years
+      // before it (2015 on a 2025 report): a typo on the form
+      if (!tx.d || tx.d > f.filed || tx.d < floor(f.filed)) return;
       // an amended report repeats the original's lines: one row per trade
       const dup = [key, tx.d, tx.t || normName(tx.a), tx.k, tx.o, tx.lo, tx.hi].join('|');
       if (seen.has(dup)) return;
       seen.add(dup);
-      const row = { id: `${f.ch}:${f.id}:${i}`, m: key, d: tx.d, f: f.filed, t: tx.t || null, a: tx.a, at: tx.at, k: tx.k, o: tx.o, lo: tx.lo, hi: tx.hi, src: f.url };
+      const t = tx.t || (tx.at === 'stock' || tx.at === 'etf' ? tickerFromName(tx.a) : null);
+      const row = { id: `${f.ch}:${f.id}:${i}`, m: key, d: tx.d, f: f.filed, t, a: tx.a, at: tx.at, k: tx.k, o: tx.o, lo: tx.lo, hi: tx.hi, src: f.url };
       const s = priceOf(row.t);
       if (s) {
         const bar = closeOnOrAfter(s.prices, row.d);

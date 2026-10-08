@@ -95,3 +95,17 @@ test('views', () => {
   assert.equal(t.total, 2);
   assert.equal(t.members, 2);
 });
+
+test('a stock filed without a ticker gets the one written in its name', async () => {
+  const { tickerFromName } = await import('../api/_lib/congressModel.js');
+  assert.equal(tickerFromName('Electronic Arts Inc. (EA)'), 'EA');
+  assert.equal(tickerFromName('EA - Electronic Arts Inc'), 'EA');
+  assert.equal(tickerFromName('SDZNY- Sandoz Group AG ADR'), 'SDZNY');
+  assert.equal(tickerFromName('GS Managed Structured Note Strategy S&P 500 Linked Note'), null);
+});
+
+test('a trade dated years before its report is a typo and is dropped', () => {
+  const out = buildServed({ 'H:x': { ch: 'H', id: 'x', filed: '2025-06-01', first: 'Roger', last: 'Williams', stateDst: 'TX25', url: 'u', status: 'ok', tx: [{ d: '2015-05-08', t: 'CVX', a: 'Chevron', at: 'stock', k: 'buy', o: 'self', lo: 1001, hi: 15000 }, { d: '2025-05-08', t: 'CVX', a: 'Chevron', at: 'stock', k: 'buy', o: 'self', lo: 1001, hi: 15000 }] } }, { legislators: idx, since: '2025-01-01' });
+  assert.equal(out.rows.length, 1);
+  assert.equal(out.rows[0].d, '2025-05-08');
+});

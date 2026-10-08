@@ -1,9 +1,9 @@
 {
  "dataset": "finnhub",
  "kind": "provider",
- "run_id": "37584950761",
- "last_run_at": "2026-10-07T08:51:11.763Z",
- "last_success_at": "2026-10-07T08:51:11.763Z",
+ "run_id": "37719159608",
+ "last_run_at": "2026-10-08T04:25:30.365Z",
+ "last_success_at": "2026-10-08T04:25:30.365Z",
  "last_error": null,
  "last_error_at": "2026-10-02T15:21:26.392Z",
  "calls_ok": 2400,

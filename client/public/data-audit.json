@@ -71,6 +71,18 @@
       "findings": []
     },
     {
+      "key": "congress",
+      "path": "api/_data/congress.json",
+      "metrics": {
+        "rows": 13170,
+        "members": 167,
+        "futureDated": 0,
+        "orphanRows": 0,
+        "duplicateIds": 0
+      },
+      "findings": []
+    },
+    {
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {

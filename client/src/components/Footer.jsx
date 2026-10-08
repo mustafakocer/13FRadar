@@ -14,6 +14,7 @@ const EXPLORE = [
   ['/insiders/cluster', 'landing.ins.tab.cluster'],
   ['/insiders/csuite', 'landing.ins.tab.csuite'],
   ['/insiders/penny', 'landing.ins.tab.penny'],
+  ['/congress', 'cg.title'],
   ['/filings', 'filings.title'],
 ];
 const LEARN = [

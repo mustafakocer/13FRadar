@@ -1,15 +1,19 @@
 name: Congress probe
 
-# Temporary: runs the Congress build against the live sources into a scratch
-# directory and uploads the result, while the feature is written. Writes
-# nothing to the repo; removed before merge.
+# Temporary, removed before merge: runs the Congress build on this branch
+# against the live sources, prints a summary of what it read, and commits
+# the first data set to this branch so the pull request ships with it.
 on:
   push:
     branches: ['claude/practical-brahmagupta-ivlhmo']
     paths: ['scripts/build-congress.mjs', 'api/_lib/congress*.js', '.github/workflows/congress-probe.yml']
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: congress-probe
+  cancel-in-progress: false
 
 jobs:
   probe:
@@ -20,11 +24,38 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm ci
-      - run: mkdir -p /tmp/congress && node scripts/build-congress.mjs 2>&1 | tee /tmp/congress/build.log
+      - run: node scripts/build-congress.mjs
         env:
-          CONGRESS_DATA_DIR: /tmp/congress
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: congress
-          path: /tmp/congress
+          CONGRESS_UA: 'Fundocap congress bot (https://www.fundocap.co)'
+      - name: Summary
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const d = JSON.parse(fs.readFileSync('api/_data/congress.json', 'utf8'));
+            const c = (xs, f) => xs.reduce((m, x) => { const k = f(x); m[k] = (m[k] || 0) + 1; return m; }, {});
+            console.log('counts', d.counts, 'lastFiled', d.lastFiled, 'unmatched', d.unmatched);
+            console.log('kinds', c(d.rows, (r) => r.k));
+            console.log('types', c(d.rows, (r) => r.at));
+            console.log('owners', c(d.rows, (r) => r.o));
+            console.log('stock without ticker', d.rows.filter((r) => r.at === 'stock' && !r.t).length, d.rows.filter((r) => r.at === 'stock' && !r.t).slice(0, 15).map((r) => r.a));
+            console.log('no amount', d.rows.filter((r) => r.lo == null).length);
+            console.log('trade dates', d.rows.reduce((m, r) => r.d < m ? r.d : m, '9'), '…', d.rows.reduce((m, r) => r.d > m ? r.d : m, ''));
+            console.log('parties', c(Object.values(d.members), (m) => m.p), 'chambers', c(Object.values(d.members), (m) => m.ch));
+            const by = c(d.rows, (r) => r.m);
+            console.log('most rows', Object.entries(by).sort((a, b) => b[1] - a[1]).slice(0, 12).map(([k, n]) => d.members[k].n + ' ' + n));
+            const tk = c(d.rows.filter((r) => r.t), (r) => r.t);
+            console.log('top tickers', Object.entries(tk).sort((a, b) => b[1] - a[1]).slice(0, 15));
+            console.log('sample', JSON.stringify(d.rows.filter((_, i) => i % 1500 === 0)));
+            console.log('slugs', Object.values(d.members).slice(0, 20).map((m) => m.slug));
+            const f = JSON.parse(fs.readFileSync('api/_data/congress-filings.json', 'utf8')).filings;
+            const empty = Object.entries(f).filter(([, x]) => x.status === 'empty').map(([k]) => k);
+            console.log('empty reports', empty.length, empty.slice(0, 10));
+          "
+      - run: node scripts/audit-data.mjs --only=congress
+      - name: Commit the data to this branch
+        run: |
+          git config user.name 'congress-bot'
+          git config user.email 'actions@github.com'
+          git add api/_data/congress.json api/_data/congress-filings.json api/_data/freshness/congress.json
+          git commit -m 'chore: first Congress trading data' || exit 0
+          git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && git push

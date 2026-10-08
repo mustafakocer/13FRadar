@@ -48,7 +48,8 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
       if (!who) unmatched.add(`${f.ch} ${filerName(f.first, f.last)}${f.stateDst ? ` (${f.stateDst})` : ''}`);
     }
     f.tx.forEach((tx, i) => {
-      if (!tx.d) return;
+      // no date, or one after the report that discloses it: a typo on the form
+      if (!tx.d || tx.d > f.filed || tx.d < '2012-01-01') return;
       // an amended report repeats the original's lines: one row per trade
       const dup = [key, tx.d, tx.t || normName(tx.a), tx.k, tx.o, tx.lo, tx.hi].join('|');
       if (seen.has(dup)) return;

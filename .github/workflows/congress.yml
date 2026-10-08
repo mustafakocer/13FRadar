@@ -1,0 +1,126 @@
+name: Build Congress trading data
+
+on:
+  workflow_dispatch:
+    inputs:
+      trigger:
+        description: 'Who started this run (leave as manual)'
+        type: string
+        default: 'manual'
+      allow_drift:
+        description: 'Treat a large jump as expected (a real change, not a bad upstream day)'
+        type: boolean
+        default: false
+  schedule:
+    # The House Clerk and the Senate eFD publish reports through the US
+    # business day. 14:17 UTC picks up the morning's reports, 22:43 UTC the
+    # afternoon's. Each run reads both indexes and fetches only the reports
+    # it has not read yet (api/_data/congress-filings.json), so a late or
+    # skipped run loses nothing. Odd minutes: GitHub queues :00 and :30.
+    - cron: '17 14 * * *'
+    - cron: '43 22 * * *'
+  push:
+    branches:
+      - main
+    paths:
+      - 'scripts/build-congress.mjs'
+      - 'api/_lib/congressParse.js'
+      - 'api/_lib/congressMembers.js'
+      - 'api/_lib/congressModel.js'
+      - 'api/_lib/congressStore.js'
+      - '.github/workflows/congress.yml'
+
+permissions:
+  contents: write
+  actions: write # a stale-code retry starts the workflow again (scripts/rerun-workflow.mjs)
+  issues: write # the alarm issue (scripts/notify.mjs)
+
+concurrency:
+  group: congress-data
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # a normal run reads a few dozen new reports (~2 min); the first run read
+    # ~1,200 in under five minutes
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      # The build writes everything it collected, THEN exits non-zero when an
+      # index could not be read, too many reports failed, or nothing could be
+      # served. The commit below runs whenever the audit passes; the last
+      # step turns the run red and sends the alert.
+      - name: Build congress.json
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/build-congress.mjs 2>&1 | tee congress-build.log
+        env:
+          CONGRESS_UA: 'Fundocap congress bot (https://www.fundocap.co)'
+          CONGRESS_SINCE: '2025-01-01'
+          CONGRESS_MAX_FETCH: '1500'
+
+      - name: Audit the rebuilt data
+        id: audit
+        run: node scripts/audit-data.mjs --only=congress
+        env:
+          AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
+
+      - name: Commit if changed
+        id: commit
+        if: steps.audit.outcome == 'success'
+        run: |
+          git config user.name 'congress-bot'
+          git config user.email 'actions@github.com'
+          for f in api/_data/congress.json api/_data/congress-filings.json api/_data/freshness/congress.json client/public/data-audit.json; do
+            if [ -e "$f" ]; then git add --all "$f"; fi
+          done
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m 'chore: refresh Congress trading data'
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::warning::left uncommitted, set aside before the rebase:"
+            git status --porcelain
+            git stash push --include-untracked --quiet
+          fi
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1
+
+      - name: Fail the run if the build failed
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "::error::the Congress build reported problems — see the 'Build congress.json' step"
+          exit 1
+
+      - name: Start again on the current code (once)
+        if: ${{ failure() && steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry' }}
+        run: node scripts/rerun-workflow.mjs congress.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Alert
+        if: ${{ failure() && !(steps.commit.outputs.stale == 'true' && inputs.trigger != 'stale-retry') }}
+        run: node scripts/notify.mjs --title "Congress ingest failed" --log congress-build.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+
+      - name: Close the alarm on recovery
+        if: success()
+        run: node scripts/notify.mjs --title "Congress ingest failed" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

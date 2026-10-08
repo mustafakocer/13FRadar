@@ -5,6 +5,8 @@ import { historyTable } from '../_lib/history.js';
 import { guruStockTable } from '../_lib/guruStocks.js';
 import { reportIndex } from './report.js';
 import { GUIDES, COMPARES, LEGAL } from '../../client/src/content/registry.js';
+import { readServed as readCongress } from '../_lib/congressStore.js';
+import { membersList } from '../_lib/congressModel.js';
 
 // Sitemap index + per-entity sitemaps + robots.txt.
 //   /sitemap.xml            → index (type=index)
@@ -15,6 +17,7 @@ import { GUIDES, COMPARES, LEGAL } from '../../client/src/content/registry.js';
 //                             universe's most-held names
 //   /sitemap-guides.xml     → guides and comparisons (language-specific slugs)
 //   /sitemap-insider.xml    → insider signal pages, lastmod = teaser build
+//   /sitemap-congress.xml   → the Congress trades page and every member with a trade
 //   /robots.txt
 // Every URL is emitted once per language with xhtml:link alternates. A
 // family that would exceed the protocol's 50,000-URL limit is split into
@@ -32,7 +35,7 @@ const load = (f) => {
 };
 const LANGS = ['en', 'tr'];
 export const URL_LIMIT = 50000;
-export const TYPES = ['pages', 'gurus', 'filers', 'stocks', 'guides', 'insider'];
+export const TYPES = ['pages', 'gurus', 'filers', 'stocks', 'guides', 'insider', 'congress'];
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 function urlset(site, entries) {
@@ -129,6 +132,14 @@ export function entriesFor(type, ctx = context()) {
     const entries = ['cluster', 'csuite', 'penny'].map((k) => ({ path: `/insiders/${k}`, lastmod, changefreq: 'daily', priority: '0.8' }));
     entries.push({ path: '/insiders', lastmod, changefreq: 'daily', priority: '0.7' });
     return entries;
+  }
+  if (type === 'congress') {
+    const db = readCongress();
+    const lastmod = day(db.updatedAt);
+    return [
+      { path: '/congress', lastmod, changefreq: 'daily', priority: '0.8' },
+      ...membersList(db).map((m) => ({ path: `/congress/${m.slug}`, lastmod: m.last || lastmod, changefreq: 'weekly', priority: '0.6' })),
+    ];
   }
   if (type === 'pages') {
     const consensus = load('../../client/public/consensus.json');

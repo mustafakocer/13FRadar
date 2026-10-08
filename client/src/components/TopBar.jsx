@@ -6,7 +6,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Ico from './Ico.jsx';
 import Logo from './Logo.jsx';
-import { Search, Landmark, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
+import { Search, Landmark, Gavel, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
 
 // Top navigation: brand · tabs (one of them a drop-down group) · search
 // (opens the ⌘K palette) · theme · TR/EN · account. Below 900px the tabs
@@ -99,6 +99,7 @@ export default function TopBar({ theme, onToggleTheme }) {
     { to: '/', label: t('nav.search'), icon: Search, end: true },
     { group: true, label: t('topnav.funds'), icon: Landmark, items: funds, active: fundsActive },
     { to: '/insiders', label: t('nav.insiders'), icon: UserSearch },
+    { to: '/congress', label: t('nav.congress'), icon: Gavel },
     { to: '/watchlist', label: t('nav.watchlist'), icon: Star },
     { to: '/pricing', label: t('nav.pricing'), icon: Gem },
   ];

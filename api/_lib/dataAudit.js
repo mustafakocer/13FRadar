@@ -156,6 +156,30 @@ export const DATASETS = [
     ceilings: { futureDated: 0, duplicateIds: 0 },
   },
   {
+    key: 'congress',
+    path: 'api/_data/congress.json',
+    require: ['updatedAt', 'rows', 'members'],
+    metrics: (d) => ({
+      rows: size(d.rows),
+      members: size(d.members),
+      // a trade dated after the report that discloses it is a misread date
+      futureDated: count(d.rows, (r) => r?.d && r?.f && String(r.d) > String(r.f)),
+      // a row whose member is not in the member table would render nameless
+      orphanRows: count(d.rows, (r) => !d.members?.[r?.m]),
+      duplicateIds: (() => {
+        const seen = new Set();
+        let n = 0;
+        for (const r of Array.isArray(d.rows) ? d.rows : []) {
+          if (seen.has(r?.id)) n++;
+          seen.add(r?.id);
+        }
+        return n;
+      })(),
+    }),
+    floors: { rows: 3000, members: 50 },
+    ceilings: { futureDated: 0, orphanRows: 0, duplicateIds: 0 },
+  },
+  {
     key: 'insiders-teaser',
     path: 'client/public/insiders-teaser.json',
     require: ['updatedAt'],

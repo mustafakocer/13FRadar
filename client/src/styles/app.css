@@ -989,3 +989,10 @@ table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
 .insiders .ins-toolbar { margin-top: 0; }
 .ins-table .ins-tick a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
 .insiders .ins-table td { padding-top: 10px; padding-bottom: 10px; }
+
+/* Congress trades: party marks (D blue, R red, I neutral) */
+.party-d { color: #3B82F6; }
+.party-r { color: #EF4444; }
+.party-i { color: var(--text-2); }
+.cg-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.cg-filters .search-input { min-width: 200px; flex: 1 1 200px; }

@@ -145,7 +145,11 @@ else {
     check(file.count === def.count && file.quarter === def.quarter && file.inTotal === def.inTotal, `universe-summary.json counts ${file.count} funds, ${file.inTotal} in ${file.quarter}; the definition ${def.count}, ${def.inTotal} in ${def.quarter}`);
     const shown = `$${Math.floor(def.totalAum / 1e12)}T+`;
     const count = def.count.toLocaleString('tr-TR');
-    check(homeR.status === 200 && homeR.text.includes(shown), `home page server HTML shows ${shown}`);
+    // the redesigned home page (PR #91) no longer prints the total; when a
+    // "$NT+" figure is on it, it must be the definition's
+    const onHome = homeR.text.match(/\$(\d+)T\+/)?.[0] || null;
+    if (onHome) check(onHome === shown, `home page server HTML shows ${onHome} (the definition ${shown})`);
+    else out.push(`- home page shows no total (the definition is ${shown})`);
     check(homeR.status === 200 && homeR.text.includes(count) && !/9\.000\+/.test(homeR.text), `home page server HTML shows ${count} funds (not a fixed "9.000+")`);
     // the pricing page states the same count ("Tam evren tarayıcı (8.909 fon)")
     const priced = priceR.text.match(/Tam evren tarayıcı \(([^)]*?) fon\)/)?.[1];
@@ -154,20 +158,25 @@ else {
 }
 
 // C: the home page copy, as the server sends it, with the counts filled in
-// from the data (the fund count, the gurus tracked).
+// from the data: the lead names the fund count of the definition, and the
+// "all superinvestors (N)" link carries the tracked count (home redesign,
+// PR #91: no sign-up button, no "Why Fundocap?" block, no consensus line).
 {
+  const { universeSummaryFile } = await import('../api/_lib/universeSummary.js');
+  const uni = await get('/universe.json');
+  const def = uni.status === 200 ? universeSummaryFile(JSON.parse(uni.text)) : null;
   const plain = (h) => h.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ');
-  for (const [lang, lead, cta, guru, why] of [
-    ['tr', /ABD'deki ([\d.]+) fonun portföyünü[^.]*\. Her gün güncel, sade ve Türkçe\./, 'Ücretsiz hesap aç', /Takip ettiğimiz (\d+) ünlü yatırımcının[^.]*\./, 'Neden Fundocap?'],
-    ['en', /We compile the portfolios of ([\d,]+) US funds[^.]*\. Updated daily, in plain language\./, 'Create a free account', /What the (\d+) famous investors[^.]*\./, 'Why Fundocap?'],
+  for (const [lang, lead, all, locale] of [
+    ['tr', /ABD'deki ([\d.]+) fonun portföyünü[^.]*\. Her gün güncel, sade ve Türkçe\./, /Tüm usta yatırımcılar \((\d+)\)/, 'tr-TR'],
+    ['en', /We compile the portfolios of ([\d,]+) US funds[^.]*\. Updated daily, in plain language\./, /All superinvestors \((\d+)\)/, 'en-US'],
   ]) {
     const r = await get(`/${lang}`);
     const t = plain(r.text || '');
     const l = t.match(lead);
-    const g = t.match(guru);
-    check(r.status === 200 && l && g && t.includes(cta) && t.includes(why), `/${lang} copy: lead ${l?.[1] ?? '(missing)'} funds · "${cta}" · consensus ${g?.[1] ?? '(missing)'} gurus · "${why}"`);
+    const g = t.match(all);
+    const want = def ? def.count.toLocaleString(locale) : null;
+    check(r.status === 200 && l && (!want || l[1] === want) && g && Number(g[1]) > 0, `/${lang} copy: lead ${l?.[1] ?? '(missing)'} funds${want ? ` (the definition ${want})` : ''} · all superinvestors ${g?.[1] ?? '(missing)'}`);
     if (l) out.push(`- /${lang} lead: ${l[0]}`);
-    if (g) out.push(`- /${lang} consensus: ${g[0]}`);
   }
 }
 

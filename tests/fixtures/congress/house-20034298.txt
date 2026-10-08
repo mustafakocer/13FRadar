@@ -1,0 +1,9 @@
+594| 22:Name: 99:Hon. Rudy C. Yakym III
+563| 22:State/District: 99:IN02
+503| 25:ID 65:Owner 104:Asset 261:Transaction 325:Date 382:Notification 446:Amount 525:Cap.
+492| 261:Type 382:Date 525:Gains >
+481| 525:$200?
+459| 104:Treasury Bill (3-Month, Matures 261:P 325:04/06/2026 381:04/06/2026 446:$15,001 -
+449| 104:7/9/2026) [GS] 446:$50,000
+431| 104:F␀␀␀␀␀ S␀␀␀␀␀: New
+395| 25:* For the complete list of asset type abbreviations, please visit 251:https://fd.house.gov/reference/asset-type-codes.aspx.

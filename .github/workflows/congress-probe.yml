@@ -1,11 +1,12 @@
 name: Congress probe
 
-# Temporary: shows the shape of the House Clerk and Senate eFD data in the
-# log while the Congress parsers are written. Reads only; removed before merge.
+# Temporary: runs the Congress build against the live sources into a scratch
+# directory and uploads the result, while the feature is written. Writes
+# nothing to the repo; removed before merge.
 on:
   push:
     branches: ['claude/practical-brahmagupta-ivlhmo']
-    paths: ['scripts/probe-congress.mjs', '.github/workflows/congress-probe.yml']
+    paths: ['scripts/build-congress.mjs', 'api/_lib/congress*.js', '.github/workflows/congress-probe.yml']
 
 permissions:
   contents: read
@@ -13,12 +14,17 @@ permissions:
 jobs:
   probe:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with: { node-version: 22 }
-      - run: npm i --no-save pdfjs-dist@4
-      - run: node scripts/probe-congress.mjs
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: mkdir -p /tmp/congress && node scripts/build-congress.mjs 2>&1 | tee /tmp/congress/build.log
         env:
-          SEC_USER_AGENT: 'Fundocap congress bot (https://www.fundocap.co)'
+          CONGRESS_DATA_DIR: /tmp/congress
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: congress
+          path: /tmp/congress

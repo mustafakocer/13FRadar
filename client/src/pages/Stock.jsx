@@ -28,9 +28,10 @@ import { useGuruStock } from '../hooks/useGuruStock.js';
 import InfoTip from '../components/InfoTip.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
-import { TriangleAlert, UserRound, Waves, Users, ArrowLeftRight } from 'lucide-react';
+import { TriangleAlert, UserRound, Waves, Users, ArrowLeftRight, Gavel } from 'lucide-react';
 import TickerLogo from '../components/TickerLogo.jsx';
 import PerfStrip from '../components/PerfStrip.jsx';
+import CongressTable from '../components/CongressTable.jsx';
 
 function KV({ k, v, cls = '', tip, src = null, title = null }) {
   return (
@@ -121,6 +122,14 @@ export default function Stock() {
     enabled: isPro,
     staleTime: 6 * 60 * 60 * 1000,
     retry: 1,
+  });
+
+  // trades by members of Congress in this stock (free: STOCK Act disclosures)
+  const congress = useQuery({
+    queryKey: ['congress-ticker', ticker],
+    queryFn: () => api.congressTicker(ticker),
+    staleTime: 60 * 60 * 1000,
+    retry: false,
   });
 
   // WhaleWisdom-style aggregate ownership (needs exact CUSIP)
@@ -428,6 +437,17 @@ export default function Stock() {
             </table>
           </div>
           <p className="muted small mt8">{t('stock.insidersNote')}</p>
+        </div>
+      )}
+
+      {congress.data?.total > 0 && (
+        <div className="card mt16" id="congress">
+          <h3><Ico icon={Gavel} /> {t('cg.stockTitle')}</h3>
+          <p className="muted small">
+            {t('cg.stockLine').replace('{n}', congress.data.total).replace('{m}', congress.data.members).replace('{b}', congress.data.buys).replace('{s}', congress.data.sells)}
+          </p>
+          <CongressTable rows={congress.data.rows.slice(0, 10)} showTicker={false} />
+          <p className="muted small mt8"><Link to="/congress">{t('cg.seeAll')}</Link></p>
         </div>
       )}
 

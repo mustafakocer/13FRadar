@@ -1,0 +1,30 @@
+712| 484:Filing ID #20033783
+686| 117:P␀␀␀␀␀␀␀ T␀␀␀␀␀␀␀␀␀␀ R␀␀␀␀␀
+647| 69:Clerk of the House of Representatives • Legislative Resource Center • B81 Cannon Building • Washington, DC 20515
+612| 22:F␀␀␀␀ I␀␀␀␀␀␀␀␀␀␀
+594| 22:Name: 99:Hon. Roger Williams
+578| 22:Status: 99:Member
+563| 22:State/District: 99:TX25
+527| 22:T␀␀␀␀␀␀␀␀␀␀␀
+503| 25:ID 65:Owner 104:Asset 262:Transaction 327:Date 382:Notification 446:Amount 525:Cap.
+492| 262:Type 382:Date 525:Gains >
+481| 525:$200?
+459| 104:Chevron Corporation Common Stock 262:S (partial) 327:12/22/2025 381:12/22/2025 446:$15,001 -
+449| 104:(CVX) [ST] 446:$50,000
+431| 104:F␀␀␀␀␀ S␀␀␀␀␀: New
+419| 104:S␀␀␀␀␀␀␀␀␀ O␀: Charles Schwab 4067
+392| 104:Diamondback Energy, Inc. - Common 262:S (partial) 327:12/22/2025 381:12/22/2025 446:$1,001 - $15,000
+382| 104:Stock (FANG) [ST]
+365| 104:F␀␀␀␀␀ S␀␀␀␀␀: New
+352| 104:S␀␀␀␀␀␀␀␀␀ O␀: Charles Schwab 4067
+326| 65:SP 104:JP Morgan Chase & Co. Common 262:P 327:12/22/2025 381:12/22/2025 446:$1,001 - $15,000
+315| 104:Stock (JPM) [ST]
+298| 104:F␀␀␀␀␀ S␀␀␀␀␀: New
+285| 104:S␀␀␀␀␀␀␀␀␀ O␀: Charles Schwab 4067
+259| 104:RTX Corporation Common Stock 262:P 327:12/22/2025 381:12/22/2025 446:$1,001 - $15,000
+248| 104:(RTX) [ST]
+231| 104:F␀␀␀␀␀ S␀␀␀␀␀: New
+218| 104:S␀␀␀␀␀␀␀␀␀ O␀: Charles Schwab 4067
+194| 25:* For the complete list of asset type abbreviations, please visit 251:https://fd.house.gov/reference/asset-type-codes.aspx.
+164| 22:I␀␀␀␀␀␀␀␀␀ V␀␀␀␀␀␀ D␀␀␀␀␀␀
+140| 43:Charles Schwab 4067

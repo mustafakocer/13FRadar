@@ -102,6 +102,7 @@ function sections(lang, full) {
   L.push(link(lang, '/insiders/csuite', t ? 'CEO / CFO alımları' : 'CEO / CFO buys'));
   L.push(link(lang, '/insiders/penny', t ? 'Kuruş hisse alımları' : 'Penny-stock buys', t ? "5 $ altı hisselerde, son 30 günde 10 bin $ üzeri açık piyasa alımları" : 'open-market buys above $10,000 in stocks under $5, last 30 days'));
   L.push(link(lang, '/insiders', t ? 'Form 4 akışı' : 'Form 4 feed', teaser?.lastDay ? (t ? `son dosyalama günü ${teaser.lastDay}` : `latest filing day ${teaser.lastDay}`) : ''));
+  L.push(link(lang, '/congress', t ? 'Kongre hisse işlemleri' : 'Congress stock trades', t ? 'ABD senatör ve temsilcilerinin STOCK Act bildirimleri' : 'STOCK Act disclosures by US senators and representatives'));
   L.push('');
   H('Calendar', 'Takvim');
   L.push(link(lang, '/calendar', t ? '13F bildirim takvimi' : '13F filing calendar', t ? 'son tarihler, kim bildirdi, son 7 günün bildirimleri' : 'deadlines, who has filed, filings in the last 7 days'));
@@ -128,7 +129,7 @@ function document(full) {
   const L = [];
   L.push('# Fundocap');
   L.push('');
-  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, with curated pages for well-known superinvestors, consensus rankings and insider trade pages. Pages are available in English (/en) and Turkish (/tr).`);
+  L.push(`> Fundocap tracks the quarterly portfolios of ${funds} institutional investors from SEC Form 13F-HR filings and open-market insider trades from SEC Form 4, plus stock trades disclosed by members of the US Congress (STOCK Act), with curated pages for well-known superinvestors, consensus rankings and insider trade pages. Pages are available in English (/en) and Turkish (/tr).`);
   L.push('');
   L.push(`Data: SEC EDGAR 13F-HR (quarter-end long positions in US-listed securities, filed up to 45 days after quarter end — positions are always at least that stale and never include shorts, most derivatives or non-US holdings) and SEC Form 4 (insider transactions). Refresh cadence: insider data daily; guru/consensus/rankings daily from the latest filings; the full filer universe weekly. Last data refresh: ${updatedAt}.`);
   L.push('');

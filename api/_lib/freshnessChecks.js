@@ -71,6 +71,13 @@ export const CHECKS = [
       return { ok: f.live, detail: `newest filing ${f.lastDay ?? '—'} (${f.behind ?? '?'} business day(s) behind, limit 1)` };
     },
   },
+  {
+    label: 'congress trades',
+    file: 'api/_data/congress.json',
+    // members file within 45 days of a trade and the chambers publish every
+    // business day; a week with no new report means the build is stuck
+    judge: (j, now) => businessDate('newest disclosure', j?.lastFiled, 5, now),
+  },
   { label: 'consensus (public)', file: 'client/public/consensus.json', judge: (j, now) => quarterDate('quarter', j?.quarter, now) },
   { label: 'consensus (pro)', file: 'api/_data/consensus-pro.json', judge: (j, now) => quarterDate('quarter', j?.quarter, now) },
   {

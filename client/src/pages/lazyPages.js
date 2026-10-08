@@ -21,6 +21,8 @@ export const LAZY_PAGES = {
   Calendar: { load: () => import('./Calendar.jsx'), match: /^\/calendar$/ },
   Filings: { load: () => import('./Filings.jsx'), match: /^\/filings$/ },
   Emerging: { load: () => import('./Emerging.jsx'), match: /^\/emerging-managers$/ },
+  Congress: { load: () => import('./Congress.jsx'), match: /^\/congress$/ },
+  CongressMember: { load: () => import('./CongressMember.jsx'), match: /^\/congress\/[a-z0-9-]+$/ },
   GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/(?!(?:changes|mix|history|backtest)$)[^/]+$/ },
 };
 

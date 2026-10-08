@@ -92,6 +92,14 @@ export const api = {
   related: (cik) => get(`/api/related/${cik}`),
   report: (id) => get(`/api/report-id/${encodeURIComponent(id)}`),
   emerging: () => get('/api/emerging'),
+  congress: () => get('/api/congress'),
+  congressFeed: (f = {}) => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(f)) if (v !== '' && v != null) qs.set(k, v);
+    return get(`/api/congress-feed?${qs}`);
+  },
+  congressMember: (slug) => get(`/api/congress-member/${encodeURIComponent(slug)}`),
+  congressTicker: (ticker) => get(`/api/congress-ticker/${encodeURIComponent(ticker)}`),
   guruHistory: (cik) => get(`/api/guru-history/${cik}`),
   guruForm4: (cik) => get(`/api/guru-form4/${cik}`),
   guruPerformance: (cik) => get(`/api/guru-performance-of/${cik}`),

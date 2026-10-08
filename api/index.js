@@ -37,7 +37,7 @@ import emerging from './_handlers/emerging.js';
 import report from './_handlers/report.js';
 import related from './_handlers/related.js';
 import guruStocks from './_handlers/guru-stocks.js';
-import { congressFeed, congressMember, congressMembers, congressOverview, congressTicker } from './_handlers/congress.js';
+import { congressCommittee, congressFeed, congressMember, congressMembers, congressOverview, congressTicker } from './_handlers/congress.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
 const ROUTES = {
@@ -67,6 +67,7 @@ const ROUTES = {
   'congress-members': [congressMembers],
   'congress-member': [congressMember, 'slug'],
   'congress-ticker': [congressTicker, 'ticker'],
+  'congress-committee': [congressCommittee, 'slug'],
   'report-id': [report, 'id'],
   'slug-of': [slug, 'slug'],
   search: [search],

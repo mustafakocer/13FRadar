@@ -201,6 +201,7 @@ export function overview(db, { days = 90, now = Date.now() } = {}) {
     active,
     largest,
     latest: db.rows.slice(0, 50).map((r) => present(db, r)),
+    committees: committeeIndex(db),
   };
 }
 
@@ -247,7 +248,7 @@ export function memberView(db, slug) {
     .slice(0, 30);
   return {
     updatedAt: db.updatedAt,
-    member: { ...card, committees: (m.cm || []).filter((c) => db.committees?.[c]).map((id) => ({ id, name: db.committees[id] })) },
+    member: { ...card, committees: (m.cm || []).filter((c) => db.committees?.[c]).map((id) => ({ id, name: db.committees[id], slug: committeeSlug(db.committees[id]) })) },
     tickers,
     rows: mine.map((r) => present(db, r)),
   };
@@ -275,4 +276,69 @@ export function membersList(db) {
     .map(([key, list]) => memberCard(db, key, list))
     .filter(Boolean)
     .sort((a, b) => (b.last || '').localeCompare(a.last || '') || b.trades - a.trades);
+}
+
+// ------------------------------------------------------------ committees
+
+// "Senate Committee on Banking, Housing, and Urban Affairs" →
+// senate-committee-on-banking-housing-and-urban-affairs. The names carry the
+// chamber, so they are unique.
+export const committeeSlug = (name) => slugify(String(name || ''));
+const committeeChamber = (id) => (id[0] === 'H' ? 'H' : id[0] === 'J' ? 'J' : 'S');
+
+// Members sitting on each committee, by committee id.
+function seatsOf(db) {
+  const out = {};
+  for (const [key, m] of Object.entries(db.members)) for (const c of m.cm || []) if (db.committees?.[c]) (out[c] ||= []).push(key);
+  return out;
+}
+
+// Every committee with at least one member on file, busiest first.
+export function committeeIndex(db) {
+  const seats = seatsOf(db);
+  const byMember = groupBy(db.rows, (r) => r.m);
+  return Object.entries(seats)
+    .map(([id, all]) => {
+      // members with at least one trade on file
+      const keys = all.filter((k) => byMember.has(k));
+      const rows = keys.flatMap((k) => byMember.get(k));
+      return {
+        id,
+        slug: committeeSlug(db.committees[id]),
+        name: db.committees[id],
+        ch: committeeChamber(id),
+        members: keys.length,
+        trades: rows.length,
+        buys: rows.filter((r) => isBuy(r.k)).length,
+        sells: rows.filter((r) => isSell(r.k)).length,
+        volume: rows.reduce((s, r) => s + (amountMid(r) || 0), 0),
+        last: rows.reduce((d, r) => (r.f > d ? r.f : d), '') || null,
+      };
+    })
+    .filter((c) => c.trades > 0)
+    .sort((a, b) => b.trades - a.trades || a.name.localeCompare(b.name));
+}
+
+// One committee: who on it trades, what they trade, their latest trades.
+export function committeeView(db, slug) {
+  const id = Object.keys(db.committees || {}).find((c) => committeeSlug(db.committees[c]) === slug);
+  if (!id) return null;
+  const mine = new Set(seatsOf(db)[id] || []);
+  const rows = db.rows.filter((r) => mine.has(r.m));
+  const byMember = groupBy(rows, (r) => r.m);
+  const members = [...byMember.keys()]
+    .map((k) => memberCard(db, k, byMember.get(k)))
+    .filter(Boolean)
+    .sort((a, b) => b.trades - a.trades || a.n.localeCompare(b.n));
+  const tickers = tickerBoard(db, rows, 'buy');
+  const sold = tickerBoard(db, rows, 'sell');
+  return {
+    updatedAt: db.updatedAt,
+    committee: committeeIndex(db).find((c) => c.id === id) || { id, slug, name: db.committees[id], ch: committeeChamber(id), members: 0, trades: 0, buys: 0, sells: 0, volume: 0, last: null },
+    members,
+    topBought: tickers,
+    topSold: sold,
+    rows: rows.slice(0, 100).map((r) => present(db, r)),
+    total: rows.length,
+  };
 }

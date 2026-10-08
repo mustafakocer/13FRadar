@@ -22,6 +22,7 @@ export const LAZY_PAGES = {
   Filings: { load: () => import('./Filings.jsx'), match: /^\/filings$/ },
   Emerging: { load: () => import('./Emerging.jsx'), match: /^\/emerging-managers$/ },
   Congress: { load: () => import('./Congress.jsx'), match: /^\/congress$/ },
+  CongressCommittee: { load: () => import('./CongressCommittee.jsx'), match: /^\/congress\/committee\/[a-z0-9-]+$/ },
   CongressMember: { load: () => import('./CongressMember.jsx'), match: /^\/congress\/[a-z0-9-]+$/ },
   GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/(?!(?:changes|mix|history|backtest)$)[^/]+$/ },
 };

@@ -36,3 +36,16 @@ test('the Congress sitemap lists the page and every member', () => {
   assert.ok(body.includes(`/en/congress/${member.slug}<`));
   assert.ok(db.counts.members > 50);
 });
+
+test('a committee page renders its members and trades; an unknown committee is a 404', async () => {
+  const { committeeIndex } = await import('../api/_lib/congressModel.js');
+  const c = committeeIndex(db)[0];
+  for (const lang of ['en', 'tr']) {
+    const { status, html } = await ssr(`/${lang}/congress/committee/${c.slug}`);
+    assert.equal(status, 200);
+    assert.ok((html.match(/<table/g) || []).length >= 2);
+    assert.deepEqual(validateHtmlJsonLd(html).problems, []);
+  }
+  assert.equal((await ssr('/en/congress/committee/no-such-committee')).status, 404);
+  assert.ok(buildSitemap('congress', 'https://example.test').body.includes(`/en/congress/committee/${c.slug}<`));
+});

@@ -1,5 +1,5 @@
 import { readServed } from '../_lib/congressStore.js';
-import { feed, memberView, membersList, overview, tickerView } from '../_lib/congressModel.js';
+import { committeeView, feed, memberView, membersList, overview, tickerView } from '../_lib/congressModel.js';
 
 // Congress trades (STOCK Act periodic transaction reports), free to read.
 //   GET /api/congress                 the overview: latest, most bought/sold, most active, largest
@@ -7,6 +7,7 @@ import { feed, memberView, membersList, overview, tickerView } from '../_lib/con
 //   GET /api/congress-members         every member with a trade on file
 //   GET /api/congress-member/:slug    one member's trades
 //   GET /api/congress-ticker/:ticker  trades in one stock
+//   GET /api/congress-committee/:slug a committee's members and their trades
 // The file changes only with a data commit (a deploy), so an hour at the CDN
 // is safe.
 const CACHE = 's-maxage=3600, stale-while-revalidate=86400';
@@ -55,4 +56,9 @@ export function congressMember(req, res) {
 export function congressTicker(req, res) {
   const t = String(one(req.query?.ticker) || '').toUpperCase();
   return send(res, /^[A-Z0-9.\-]{1,12}$/.test(t) ? tickerView(readServed(), t) : null);
+}
+
+export function congressCommittee(req, res) {
+  const slug = String(one(req.query?.slug) || '').toLowerCase();
+  return send(res, /^[a-z0-9-]{1,160}$/.test(slug) ? committeeView(readServed(), slug) : null);
 }

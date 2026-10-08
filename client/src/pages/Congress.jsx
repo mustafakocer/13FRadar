@@ -9,10 +9,9 @@ import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import { dataset, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
-import { Disclaimer } from '../components/Faq.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
-import CongressTable, { MemberTag } from '../components/CongressTable.jsx';
+import CongressTable, { CongressDisclaimer, MemberTag } from '../components/CongressTable.jsx';
 
 const TABS = ['latest', 'bought', 'sold', 'active', 'largest'];
 const HOUR = 60 * 60 * 1000;
@@ -144,7 +143,7 @@ export default function Congress() {
                 path: '/congress',
                 isBasedOn: 'https://disclosures-clerk.house.gov/FinancialDisclosure',
                 dateModified: d.updatedAt,
-                temporalCoverage: `${d.since}/..`,
+                temporalCoverage: `${d.since}/${d.lastFiled}`,
                 keywords: ['STOCK Act', 'congress trading', 'periodic transaction report'],
               }),
               itemList({ name: lang === 'tr' ? 'En aktif Kongre üyeleri' : 'Most active members of Congress', lang, items: (d.active || []).slice(0, 20).map((m) => ({ name: m.n, path: `/congress/${m.slug}` })) }),
@@ -253,7 +252,7 @@ export default function Congress() {
         <p className="muted small">{t('cg.how1')}</p>
         <p className="muted small">{t('cg.how2')}</p>
         <p className="muted small">{t('cg.how3')}</p>
-        <Disclaimer />
+        <CongressDisclaimer />
       </div>
     </div>
   );

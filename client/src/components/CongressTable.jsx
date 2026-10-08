@@ -1,13 +1,22 @@
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
-import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
+import { fmtNum, fmtPct } from '../lib/format.js';
 
 // Congress trades are disclosed as ranges ("$15,001 – $50,000"), never as
 // an exact amount: show the range as filed.
+// The brackets the forms use ($1,001 – $15,000, Over $50,000,000), in the
+// round numbers people read them as: $1K – $15K, > $50M.
+const short = (n) => {
+  const v = n % 1000 === 1 ? n - 1 : n;
+  const trim = (x) => String(Number(x.toFixed(1)));
+  if (v >= 1e6) return `$${trim(v / 1e6)}M`;
+  if (v >= 1e3) return `$${trim(v / 1e3)}K`;
+  return `$${v}`;
+};
 export function fmtRange(lo, hi) {
   if (lo == null) return '—';
-  if (hi == null) return `> ${fmtMoney(lo - 1)}`;
-  return `${fmtMoney(lo)} – ${fmtMoney(hi)}`;
+  if (hi == null) return `> ${short(lo - 1)}`;
+  return `${short(lo)} – ${short(hi)}`;
 }
 
 export const partyClass = (p) => (p === 'D' ? 'party-d' : p === 'R' ? 'party-r' : 'party-i');
@@ -83,4 +92,10 @@ export default function CongressTable({ rows, showMember = true, showTicker = tr
       </table>
     </div>
   );
+}
+
+// Not the 13F caveat: what a reader of these disclosures should know.
+export function CongressDisclaimer() {
+  const { t } = useI18n();
+  return <p className="muted small mt8">{t('cg.disclaimer')}</p>;
 }

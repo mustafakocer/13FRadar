@@ -9,10 +9,9 @@ import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import { webPage } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
-import { Disclaimer } from '../components/Faq.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
-import CongressTable, { partyClass } from '../components/CongressTable.jsx';
+import CongressTable, { CongressDisclaimer, partyClass } from '../components/CongressTable.jsx';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -145,7 +144,7 @@ export default function CongressMember() {
         <h3>{t('cg.allTrades')}</h3>
         <CongressTable rows={d.rows} showMember={false} />
         <p className="muted small mt8">{t('cg.memberNote')}</p>
-        <Disclaimer />
+        <CongressDisclaimer />
       </div>
     </div>
   );

@@ -34,6 +34,24 @@ for (const p of ['/tr', '/tr/insiders', '/tr/insiders/cluster', '/tr/insiders/pe
   if (r.status === 200 && /Güçlü sinyal/.test(r.text)) check(false, `${p} still says "Güçlü sinyal"`);
 }
 
+// Congress trades: the page renders its table on the server, the API has
+// rows, and the busiest member's page answers
+{
+  const page = await get('/tr/congress');
+  check(page.status === 200 && /Kongre Hisse İşlemleri/.test(page.text) && /<table/.test(page.text), `/tr/congress → HTTP ${page.status}, title and table in the server HTML`);
+  const api = await get('/api/congress');
+  if (api.status !== 200) check(false, `/api/congress → HTTP ${api.status}`);
+  else {
+    const j = JSON.parse(api.text);
+    check(j.counts?.rows > 3000 && j.latest?.length > 0, `/api/congress: ${j.counts?.rows} trades, ${j.counts?.members} members, latest disclosure ${j.lastFiled}`);
+    const slug = j.active?.[0]?.slug;
+    if (slug) {
+      const m = await get(`/en/congress/${slug}`);
+      check(m.status === 200 && /<table/.test(m.text), `/en/congress/${slug} → HTTP ${m.status}`);
+    }
+  }
+}
+
 let feedClusters = null;
 let feedStats = null;
 const feed = await get('/api/insider-feed?tab=latest');

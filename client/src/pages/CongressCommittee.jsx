@@ -95,6 +95,18 @@ export default function CongressCommittee() {
       </div>
 
       <div className="card mt16">
+        <h3>⚑ {t('cg.committeeField')}{d.hasJurisdiction ? ` (${fmtNum(c.inField)})` : ''}</h3>
+        {d.hasJurisdiction ? (
+          <>
+            <p className="muted small">{t('cg.fieldTip')}</p>
+            <CongressTable rows={d.inField} />
+          </>
+        ) : (
+          <p className="muted small">{t('cg.committeeNoField')}</p>
+        )}
+      </div>
+
+      <div className="card mt16">
         <h3>{t('cg.committeeMembers')}</h3>
         <MemberBoard rows={active} />
       </div>

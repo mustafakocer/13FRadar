@@ -13,7 +13,7 @@ import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import CongressTable, { CommitteeBoard, CongressDisclaimer, MemberBoard, TickerBoard } from '../components/CongressTable.jsx';
 
-const TABS = ['latest', 'bought', 'sold', 'active', 'largest', 'committees'];
+const TABS = ['latest', 'field', 'bought', 'sold', 'active', 'largest', 'committees'];
 const HOUR = 60 * 60 * 1000;
 
 // /congress — trades by members of the US Congress, from their STOCK Act
@@ -21,10 +21,10 @@ const HOUR = 60 * 60 * 1000;
 export default function Congress() {
   const { t, lang } = useI18n();
   const [tab, setTab] = useState('latest');
-  const [f, setF] = useState({ ch: '', p: '', kind: '', q: '' });
+  const [f, setF] = useState({ ch: '', p: '', kind: '', q: '', field: '' });
   const [page, setPage] = useState(0);
   const o = useQuery({ queryKey: ['congress'], queryFn: api.congress, staleTime: HOUR });
-  const filtered = !!(f.ch || f.p || f.kind || f.q.trim() || page);
+  const filtered = !!(f.ch || f.p || f.kind || f.q.trim() || f.field || page);
   const fq = useQuery({
     queryKey: ['congress-feed', f, page],
     queryFn: () => api.congressFeed({ ...f, q: f.q.trim(), offset: page * 100, limit: 100 }),
@@ -151,6 +151,9 @@ export default function Congress() {
                 <option value="buy">{t('cg.kind.buy')}</option>
                 <option value="sell">{t('cg.kind.sell')}</option>
               </select>
+              <label className="small" style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
+                <input type="checkbox" checked={f.field === '1'} onChange={(e) => set('field', e.target.checked ? '1' : '')} /> {t('cg.onlyField')}
+              </label>
               {total != null && <span className="muted small">{t('cg.found').replace('{n}', fmtNum(total))}</span>}
             </div>
             {filtered && fq.isLoading ? <div className="loading"><div className="spinner" /></div> : <CongressTable rows={latest} />}
@@ -168,8 +171,15 @@ export default function Congress() {
         {tab === 'sold' && <TickerBoard rows={d.topSold} />}
         {tab === 'active' && <MemberBoard rows={d.active} />}
         {tab === 'largest' && <CongressTable rows={d.largest} />}
+        {tab === 'field' && (
+          <>
+            <p className="muted small" style={{ marginBottom: 10 }}>{t('cg.fieldIntro').replace('{n}', fmtNum(d.inFieldCount)).replace('{recent}', fmtNum(d.inFieldRecent))}</p>
+            <CongressTable rows={d.inField} />
+            <p className="muted small mt8">{t('cg.fieldNote')}</p>
+          </>
+        )}
         {tab === 'committees' && <CommitteeBoard rows={d.committees} />}
-        {tab !== 'latest' && tab !== 'committees' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
+        {tab !== 'latest' && tab !== 'committees' && tab !== 'field' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
       </div>
 
       <div className="card mt16">

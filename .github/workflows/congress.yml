@@ -28,6 +28,7 @@ on:
       - 'api/_lib/congressMembers.js'
       - 'api/_lib/congressModel.js'
       - 'api/_lib/congressStore.js'
+      - 'api/_lib/congressJurisdiction.js'
       - '.github/workflows/congress.yml'
 
 permissions:
@@ -80,7 +81,7 @@ jobs:
         run: |
           git config user.name 'congress-bot'
           git config user.email 'actions@github.com'
-          for f in api/_data/congress.json api/_data/congress-filings.json api/_data/freshness/congress.json client/public/data-audit.json; do
+          for f in api/_data/congress.json api/_data/congress-filings.json api/_data/congress-sic.json api/_data/freshness/congress.json client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

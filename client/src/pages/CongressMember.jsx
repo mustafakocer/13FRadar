@@ -112,6 +112,14 @@ export default function CongressMember() {
         </div>
       </div>
 
+      {m.inField > 0 && (
+        <div className="card mt16" data-in-field={m.inField}>
+          <h3>⚑ {t('cg.fieldSection')} ({fmtNum(m.inField)})</h3>
+          <p className="muted small">{t('cg.fieldTip')}</p>
+          <CongressTable rows={d.rows.filter((r) => r.field)} showMember={false} />
+        </div>
+      )}
+
       {d.tickers?.length > 0 && (
         <div className="card mt16">
           <h3>{t('cg.topTickers')}</h3>

@@ -36,7 +36,7 @@
         "managers": 72,
         "stocks": 1920,
         "options": 57,
-        "withTicker": 1901,
+        "withTicker": 1914,
         "withSector": 1737,
         "withCap": 1510
       },
@@ -120,7 +120,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4745
+        "tickers": 4712
       },
       "findings": []
     },
@@ -128,8 +128,8 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4744,
-        "coveragePct": 97.9
+        "series": 4787,
+        "coveragePct": 98
       },
       "findings": []
     },
@@ -145,8 +145,8 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6171,
-        "unresolved": 111
+        "resolved": 6201,
+        "unresolved": 81
       },
       "findings": []
     },
@@ -171,7 +171,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 377
+        "rows": 463
       },
       "findings": []
     },
@@ -179,7 +179,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 234
+        "filers": 316
       },
       "findings": []
     },

@@ -1,0 +1,52 @@
+name: Congress probe
+
+# Temporary, removed before merge: runs the Congress build on this branch
+# (SEC industry codes for the committee-field flag) and commits the data to
+# this branch so the pull request ships with it.
+on:
+  push:
+    branches: ['claude/practical-brahmagupta-ivlhmo']
+    paths: ['api/_lib/congressJurisdiction.js', '.github/workflows/congress-probe.yml']
+
+permissions:
+  contents: write
+
+concurrency:
+  group: congress-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: node scripts/build-congress.mjs
+        env:
+          CONGRESS_UA: 'Fundocap congress bot (https://www.fundocap.co)'
+      - name: Summary
+        run: |
+          node --input-type=module -e "
+            import fs from 'node:fs';
+            const d = JSON.parse(fs.readFileSync('api/_data/congress.json', 'utf8'));
+            const s = JSON.parse(fs.readFileSync('api/_data/congress-sic.json', 'utf8')).byTicker;
+            const all = Object.keys(s), with_ = all.filter((t) => s[t].sic);
+            console.log('tickers', all.length, 'with SIC', with_.length);
+            console.log('counts', d.counts);
+            const by = {};
+            for (const r of d.rows.filter((r) => r.jx)) for (const c of r.jx) by[c] = (by[c] || 0) + 1;
+            console.log('in field by committee', by);
+            const ex = d.rows.filter((r) => r.jx).slice(0, 25).map((r) => d.members[r.m].n + ' | ' + r.t + ' ' + s[r.t]?.d + ' | ' + r.jx.join(',') + ' | ' + r.k + ' ' + r.d);
+            console.log(ex.join('\n'));
+          "
+      - run: node scripts/audit-data.mjs --only=congress
+      - name: Commit the data to this branch
+        run: |
+          git config user.name 'congress-bot'
+          git config user.email 'actions@github.com'
+          git add api/_data/congress.json api/_data/congress-filings.json api/_data/congress-sic.json api/_data/freshness/congress.json
+          git commit -m 'chore: Congress data with SEC industry codes' || exit 0
+          git push

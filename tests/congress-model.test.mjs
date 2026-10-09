@@ -120,3 +120,25 @@ test('committees: the members who sit on one, their trades, the index', async ()
   assert.equal(v.rows.length, 1);
   assert.equal(committeeView(db, 'no-such-committee'), null);
 });
+
+test('committee field: an industry code inside a seat the member holds flags the trade', async () => {
+  const { jurisdictionLabel, matchingCommittees } = await import('../api/_lib/congressJurisdiction.js');
+  assert.equal(jurisdictionLabel('HSAS', '3721'), 'aircraft & parts');
+  assert.equal(jurisdictionLabel('HSAS', '6022'), null);
+  assert.equal(jurisdictionLabel('HSBA', 6022), 'banks, lenders & brokers');
+  assert.equal(jurisdictionLabel('HSAP', '3721'), null, 'appropriations covers everything, so it flags nothing');
+  assert.deepEqual(matchingCommittees(['SSAF', 'HSBA'], '6211'), ['SSAF', 'HSBA'], 'brokers: CFTC markets and securities');
+  assert.deepEqual(matchingCommittees(['SSAF'], null), []);
+
+  const sicFor = (t) => ({ JPM: '6021', CVX: '2911' })[t] || null;
+  const out = buildServed(FILINGS, { legislators: idx, seats: { M000355: ['SSBK'] }, committeeNames: { SSBK: 'Senate Committee on Banking' }, seriesFor, sicFor, since: '2025-01-01' });
+  const jpm = out.rows.find((r) => r.m === 'M000355' && r.t === 'JPM');
+  assert.deepEqual(jpm.jx, ['SSBK']);
+  assert.equal(out.rows.filter((r) => r.jx).length, 1, 'Williams sits on no committee here, so his JPM sale is not flagged');
+  assert.equal(out.counts.inField, 1);
+  const d2 = { ...out, bySlug: Object.fromEntries(Object.entries(out.members).map(([k, m]) => [m.slug, k])) };
+  assert.equal(feed(d2, { field: true }).total, 1);
+  const shown = feed(d2, { field: true }).rows[0];
+  assert.deepEqual(shown.field, [{ id: 'SSBK', name: 'Senate Committee on Banking', slug: 'senate-committee-on-banking', label: 'banks, lenders & brokers' }]);
+  assert.equal(overview(d2, { days: 400, now: Date.parse('2026-10-08') }).inFieldCount, 1);
+});

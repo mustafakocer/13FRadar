@@ -3,7 +3,7 @@ import { committeeView, feed, memberView, membersList, overview, tickerView } fr
 
 // Congress trades (STOCK Act periodic transaction reports), free to read.
 //   GET /api/congress                 the overview: latest, most bought/sold, most active, largest
-//   GET /api/congress-feed?ch=&p=&kind=&ticker=&q=&offset=&limit=   the filterable list
+//   GET /api/congress-feed?ch=&p=&kind=&ticker=&q=&field=1&offset=&limit=   the filterable list
 //   GET /api/congress-members         every member with a trade on file
 //   GET /api/congress-member/:slug    one member's trades
 //   GET /api/congress-ticker/:ticker  trades in one stock
@@ -37,6 +37,7 @@ export function congressFeed(req, res) {
       ticker: one(q.ticker) ? String(one(q.ticker)).slice(0, 12) : undefined,
       member: one(q.member) ? String(one(q.member)).slice(0, 120) : undefined,
       q: one(q.q) ? String(one(q.q)).slice(0, 80) : undefined,
+      field: one(q.field) === '1',
       offset: one(q.offset),
       limit: one(q.limit),
     }),

@@ -6,11 +6,13 @@
 // or null), a (asset as filed), at (asset type), k (buy | sell |
 // sell_partial | exchange), o (self | spouse | joint | child), lo, hi
 // (amount range in dollars; hi null for "Over $X"), src (filing URL), pt
-// (close on the trade day, when priced) }.
+// (close on the trade day, when priced), jx (the member's committees whose
+// field the company is in, api/_lib/congressJurisdiction.js) }.
 import { closeOnOrAfter } from './insiderOutcome.js';
 import { amountMid, cleanTicker } from './congressParse.js';
 import { assignSlugs, filerName, matchHouse, matchSenate, normName } from './congressMembers.js';
 import { slugify } from '../../client/src/lib/slugify.js';
+import { JURISDICTION, jurisdictionLabel, matchingCommittees } from './congressJurisdiction.js';
 
 const DAY = 86400000;
 const isoDay = (t) => new Date(t).toISOString().slice(0, 10);
@@ -30,12 +32,13 @@ export function tickerFromName(a) {
 }
 
 // filings: { key: { ch, id, filed, first, last, stateDst, url, status, tx } }
-export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, since, now = Date.now() }) {
+export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, sicFor = () => null, since, now = Date.now() }) {
   const members = {};
   const rows = [];
   const unmatched = new Set();
   const seen = new Set();
   const px = {};
+  const sics = {};
   const priceOf = (t) => {
     if (!t) return null;
     if (px[t] !== undefined) return px[t] ? seriesFor(t) : null;
@@ -73,6 +76,12 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
         const bar = closeOnOrAfter(s.prices, row.d);
         if (bar && Date.parse(bar.date) - Date.parse(row.d) <= 7 * DAY) row.pt = bar.close;
       }
+      const sic = row.t ? sicFor(row.t) : null;
+      if (sic) {
+        sics[row.t] = sic;
+        const jx = matchingCommittees(members[key].cm, sic);
+        if (jx.length) row.jx = jx;
+      }
       rows.push(row);
     });
   }
@@ -90,11 +99,13 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
       house: rows.filter((r) => r.id.startsWith('H:')).length,
       senate: rows.filter((r) => r.id.startsWith('S:')).length,
       priced: rows.filter((r) => r.pt).length,
+      inField: rows.filter((r) => r.jx).length,
     },
     lastFiled: rows[0]?.f || null,
     members,
     committees: usedCommittees,
     px,
+    sic: sics,
     rows,
     unmatched: [...unmatched].sort(),
   };
@@ -111,7 +122,8 @@ export const rowReturn = (r, px) => {
 // What a row looks like on the wire: the member's name and slug ride along.
 export function present(db, r) {
   const m = db.members[r.m] || {};
-  return { ...r, mid: amountMid(r), ret: rowReturn(r, db.px), cur: r.t ? db.px?.[r.t]?.c ?? null : null, n: m.n, slug: m.slug, ch: m.ch, p: m.p, st: m.st };
+  const field = r.jx?.length ? r.jx.map((c) => ({ id: c, name: db.committees?.[c] || c, slug: committeeSlug(db.committees?.[c] || c), label: jurisdictionLabel(c, db.sic?.[r.t]) })) : undefined;
+  return { ...r, field, mid: amountMid(r), ret: rowReturn(r, db.px), cur: r.t ? db.px?.[r.t]?.c ?? null : null, n: m.n, slug: m.slug, ch: m.ch, p: m.p, st: m.st };
 }
 
 export function memberCard(db, key, rows) {
@@ -132,6 +144,7 @@ export function memberCard(db, key, rows) {
     trades: mine.length,
     buys: buys.length,
     sells: mine.filter((r) => isSell(r.k)).length,
+    inField: mine.filter((r) => r.jx).length,
     volume: mine.reduce((s, r) => s + (amountMid(r) || 0), 0),
     last: mine.reduce((d, r) => (r.f > d ? r.f : d), '') || null,
     lastTrade: mine.reduce((d, r) => (r.d > d ? r.d : d), '') || null,
@@ -201,13 +214,17 @@ export function overview(db, { days = 90, now = Date.now() } = {}) {
     active,
     largest,
     latest: db.rows.slice(0, 50).map((r) => present(db, r)),
+    // trades in the field of a committee the member sits on, newest first
+    inField: db.rows.filter((r) => r.jx).slice(0, 100).map((r) => present(db, r)),
+    inFieldCount: db.rows.filter((r) => r.jx).length,
+    inFieldRecent: recent.filter((r) => r.jx).length,
     committees: committeeIndex(db),
   };
 }
 
 // The filterable trade list. Filters: chamber H|S, party D|R|I, kind
 // buy|sell, ticker, member slug, q (asset or member name).
-export function feed(db, { ch, p, kind, ticker, member, q, offset = 0, limit = 100 } = {}) {
+export function feed(db, { ch, p, kind, ticker, member, q, field, offset = 0, limit = 100 } = {}) {
   const key = member ? db.bySlug?.[member] : null;
   if (member && !key) return { total: 0, offset: 0, rows: [] };
   const want = q ? normName(q) : '';
@@ -220,6 +237,7 @@ export function feed(db, { ch, p, kind, ticker, member, q, offset = 0, limit = 1
     if (kind === 'buy' && !isBuy(r.k)) return false;
     if (kind === 'sell' && !isSell(r.k)) return false;
     if (T && r.t !== T) return false;
+    if (field && !r.jx) return false;
     if (want && !normName(`${r.a} ${r.t || ''} ${m.n}`).includes(want)) return false;
     return true;
   });
@@ -311,6 +329,7 @@ export function committeeIndex(db) {
         trades: rows.length,
         buys: rows.filter((r) => isBuy(r.k)).length,
         sells: rows.filter((r) => isSell(r.k)).length,
+        inField: rows.filter((r) => r.jx?.includes(id)).length,
         volume: rows.reduce((s, r) => s + (amountMid(r) || 0), 0),
         last: rows.reduce((d, r) => (r.f > d ? r.f : d), '') || null,
       };
@@ -340,5 +359,8 @@ export function committeeView(db, slug) {
     topSold: sold,
     rows: rows.slice(0, 100).map((r) => present(db, r)),
     total: rows.length,
+    // trades in this committee's own field
+    inField: rows.filter((r) => r.jx?.includes(id)).slice(0, 100).map((r) => present(db, r)),
+    hasJurisdiction: Boolean(JURISDICTION[id]),
   };
 }

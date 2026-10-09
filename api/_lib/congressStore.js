@@ -5,6 +5,7 @@
 //   api/_data/congress.json           what the site serves: members, rows,
 //                                     last closes (bundled with the API)
 //   api/_data/freshness/congress.json the dataset's health record
+//   api/_data/congress-sic.json       the traded companies' SEC industry codes
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
@@ -16,6 +17,8 @@ export const files = {
   filings: () => path.join(dataDir(), 'congress-filings.json'),
   data: () => path.join(dataDir(), 'congress.json'),
   freshness: () => path.join(dataDir(), 'freshness', 'congress.json'),
+  // ticker → SEC SIC code, for the committee-field flag (build only)
+  sic: () => path.join(dataDir(), 'congress-sic.json'),
 };
 
 const EMPTY = { updatedAt: null, since: null, counts: {}, members: {}, committees: {}, px: {}, rows: [] };

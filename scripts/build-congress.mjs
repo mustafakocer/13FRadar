@@ -35,6 +35,7 @@ import { buildServed } from '../api/_lib/congressModel.js';
 import { files, readJson, writeJson } from '../api/_lib/congressStore.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { mapLimit } from '../api/_lib/mapLimit.js';
+import { fetchSecTickers, fetchSectors } from '../api/_lib/marketData.js';
 
 const DRY = process.argv.includes('--dry-run');
 const SINCE = process.env.CONGRESS_SINCE || '2025-01-01';
@@ -303,11 +304,45 @@ if (DRY) {
 
 writeJson(files.filings(), { updatedAt: new Date(now).toISOString(), since: SINCE, filings });
 
+// The traded companies' SEC industry (SIC) codes, for the committee-field
+// flag. Kept between runs; a ticker is looked up once and again after half
+// a year. EDGAR being down costs only the new tickers' flags, never the run.
+const sicCache = readJson(files.sic(), { byTicker: {} });
+const SIC_MAX_AGE = 180 * 86400000;
+try {
+  const traded = new Set();
+  for (const f of Object.values(filings)) for (const tx of f.tx || []) if (tx.t) traded.add(tx.t);
+  const stale = [...traded].filter((t) => {
+    const e = sicCache.byTicker[t];
+    return !e || now - Date.parse(e.at || 0) > SIC_MAX_AGE;
+  });
+  if (stale.length && !DRY) {
+    const index = await fetchSecTickers();
+    const cikOf = (t) => index.get(t)?.cik || index.get(t.replace('.', '-'))?.cik || null;
+    const ciks = [...new Set(stale.map(cikOf).filter(Boolean))];
+    const bySic = await fetchSectors(ciks);
+    const at = new Date(now).toISOString();
+    let found = 0;
+    for (const t of stale) {
+      const hit = cikOf(t) ? bySic.get(cikOf(t)) : null;
+      // a lookup that failed this run is retried next run, not stored as "no code"
+      if (cikOf(t) && !hit) continue;
+      sicCache.byTicker[t] = { sic: hit?.sic || null, d: hit?.sicDescription || null, at };
+      if (hit?.sic) found++;
+    }
+    console.log(`SEC industry codes: ${stale.length} tickers looked up, ${found} with a code`);
+    writeJson(files.sic(), { updatedAt: at, byTicker: sicCache.byTicker });
+  }
+} catch (e) {
+  console.log(`::warning::SEC industry codes not refreshed (${e.message}); the committee-field flag uses the codes on file`);
+}
+const sicFor = (t) => sicCache.byTicker[t]?.sic || null;
+
 if (legislators.length) {
-  const served = buildServed(filings, { legislators, seats, committeeNames, seriesFor: readSeries, since: SINCE, now });
+  const served = buildServed(filings, { legislators, seats, committeeNames, seriesFor: readSeries, sicFor, since: SINCE, now });
   if (!served.rows.length) problems.push('no trades to serve');
   else writeJson(files.data(), served);
-  console.log(`served: ${served.counts.rows} trades (House ${served.counts.house}, Senate ${served.counts.senate}), ${served.counts.members} members, ${served.counts.priced} priced; newest disclosure ${served.lastFiled}`);
+  console.log(`served: ${served.counts.rows} trades (House ${served.counts.house}, Senate ${served.counts.senate}), ${served.counts.members} members, ${served.counts.priced} priced, ${served.counts.inField} in a committee's field; newest disclosure ${served.lastFiled}`);
   if (served.unmatched.length) console.log(`unmatched filers (${served.unmatched.length}): ${served.unmatched.join('; ')}`);
 }
 

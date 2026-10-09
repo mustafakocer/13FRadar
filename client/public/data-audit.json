@@ -95,7 +95,7 @@
       "key": "universe",
       "path": "client/public/universe.json",
       "metrics": {
-        "rows": 8913
+        "rows": 8915
       },
       "findings": []
     },
@@ -103,8 +103,8 @@
       "key": "latest-holdings",
       "path": "api/_data/latest-holdings.json",
       "metrics": {
-        "filers": 8913,
-        "withRows": 8913
+        "filers": 8915,
+        "withRows": 8915
       },
       "findings": []
     },

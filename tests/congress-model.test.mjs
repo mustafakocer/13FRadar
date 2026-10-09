@@ -142,3 +142,10 @@ test('committee field: an industry code inside a seat the member holds flags the
   assert.deepEqual(shown.field, [{ id: 'SSBK', name: 'Senate Committee on Banking', slug: 'senate-committee-on-banking', label: 'banks, lenders & brokers' }]);
   assert.equal(overview(d2, { days: 400, now: Date.parse('2026-10-08') }).inFieldCount, 1);
 });
+
+test('a health insurer is in the health committees field, not banking', async () => {
+  const { jurisdictionLabel } = await import('../api/_lib/congressJurisdiction.js');
+  assert.equal(jurisdictionLabel('HSBA', '6324'), null);
+  assert.equal(jurisdictionLabel('SSHR', '6324'), 'health insurance');
+  assert.equal(jurisdictionLabel('HSBA', '6331'), 'insurance');
+});

@@ -23,7 +23,9 @@ const DEFENSE = [
 const DEFENSE_IT = [[7373, 7373, 'government IT & systems integration']];
 const BANKING = [
   [6000, 6299, 'banks, lenders & brokers'],
-  [6300, 6411, 'insurance'],
+  // health insurers (6324) are health care's, not the banking committees'
+  [6300, 6323, 'insurance'],
+  [6325, 6411, 'insurance'],
   [6700, 6799, 'investment vehicles'],
 ];
 const HEALTH = [

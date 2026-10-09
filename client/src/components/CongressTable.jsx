@@ -35,10 +35,13 @@ export function MemberTag({ r }) {
 // The trade is in the field of a committee the member sits on: the
 // company's SEC industry code falls inside that committee's jurisdiction
 // (api/_lib/congressJurisdiction.js). A mechanical match, not a finding.
+// an industry label from congressJurisdiction.js, in the page's language
+export const indLabel = (t, label) => t(`cg.ind.${label}`).replace(/^cg\.ind\./, '');
+
 export function FieldBadge({ field }) {
   const { t } = useI18n();
   if (!field?.length) return null;
-  const tip = field.map((c) => `${c.name} — ${c.label}`).join('\n');
+  const tip = field.map((c) => `${c.name} — ${indLabel(t, c.label)}`).join('\n');
   return (
     <span className="badge warn sm cg-field" title={`${t('cg.fieldTip')}\n${tip}`} data-field={field.map((c) => c.id).join(',')}>
       ⚑ {t('cg.fieldBadge')}
@@ -83,7 +86,7 @@ export default function CongressTable({ rows, showMember = true, showTicker = tr
                 <td className="l">
                   {r.t ? <Link to={`/stock/${r.t}`} style={{ fontWeight: 700 }}>{r.t}</Link> : null}
                   <div className="muted small" style={{ maxWidth: 320 }}>{r.a}</div>
-                  {r.field && <div><FieldBadge field={r.field} /> <span className="muted small">{r.field.map((c) => c.label).join(', ')}</span></div>}
+                  {r.field && <div style={{ whiteSpace: 'normal' }}><FieldBadge field={r.field} /> <span className="muted small">{[...new Set(r.field.map((c) => indLabel(t, c.label)))].join(', ')}</span></div>}
                 </td>
               )}
               <td>

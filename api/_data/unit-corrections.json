@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-10-09T02:45:02.044Z",
- "count": 442,
+ "updatedAt": "2026-10-10T02:45:12.498Z",
+ "count": 441,
  "corrections": [
   {
    "cik": "0000071210",
@@ -8,6 +8,16 @@
    "period": "2026-09-30",
    "acc": "0000071210-26-000006",
    "filed": "2026-10-05",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0000894205",
+   "name": "PROFESSIONAL ADVISORY SERVICES INC",
+   "period": "2026-09-30",
+   "acc": "0000894205-26-000012",
+   "filed": "2026-10-08",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
@@ -50,6 +60,46 @@
    "filed": "2026-10-05",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001642216",
+   "name": "Ayalon Insurance Comp Ltd.",
+   "period": "2026-09-30",
+   "acc": "0001178913-26-004736",
+   "filed": "2026-10-08",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001666940",
+   "name": "Mn Services Vermogensbeheer B.V.",
+   "period": "2026-09-30",
+   "acc": "0001666940-26-000004",
+   "filed": "2026-10-08",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001727862",
+   "name": "Neumann Advisory Hong Kong Ltd",
+   "period": "2026-09-30",
+   "acc": "0001727862-26-000006",
+   "filed": "2026-10-08",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001729269",
+   "name": "Westwind Capital",
+   "period": "2026-09-30",
+   "acc": "0001729269-26-000008",
+   "filed": "2026-10-08",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -330,16 +380,6 @@
    "filed": "2026-07-16",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0000894205",
-   "name": "PROFESSIONAL ADVISORY SERVICES INC",
-   "period": "2026-06-30",
-   "acc": "0000894205-26-000007",
-   "filed": "2026-07-08",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -629,7 +669,7 @@
    "acc": "0001058022-26-000005",
    "filed": "2026-07-21",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -709,7 +749,7 @@
    "acc": "0001076809-26-000096",
    "filed": "2026-08-17",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -990,16 +1030,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001276460",
-   "name": "CHICKASAW CAPITAL MANAGEMENT LLC",
-   "period": "2026-06-30",
-   "acc": "0001276460-26-000005",
-   "filed": "2026-07-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1859,7 +1889,7 @@
    "acc": "0001629869-26-000004",
    "filed": "2026-07-15",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00103 over 11 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00103 over 12 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1930,16 +1960,6 @@
    "filed": "2026-08-05",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001642216",
-   "name": "Ayalon Insurance Comp Ltd.",
-   "period": "2026-06-30",
-   "acc": "0001178913-26-003460",
-   "filed": "2026-07-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 16 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2030,16 +2050,6 @@
    "filed": "2026-08-18",
    "factor": 1000,
    "reason": "median implied share price outside any traded price: thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001666940",
-   "name": "Mn Services Vermogensbeheer B.V.",
-   "period": "2026-06-30",
-   "acc": "0001666940-26-000003",
-   "filed": "2026-07-31",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2253,16 +2263,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001727862",
-   "name": "Neumann Advisory Hong Kong Ltd",
-   "period": "2026-06-30",
-   "acc": "0001727862-26-000004",
-   "filed": "2026-07-08",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 4 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001728681",
    "name": "SYCOMORE ASSET MANAGEMENT",
    "period": "2026-06-30",
@@ -2278,16 +2278,6 @@
    "period": "2026-06-30",
    "acc": "0001729048-26-000005",
    "filed": "2026-08-05",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001729269",
-   "name": "Westwind Capital",
-   "period": "2026-06-30",
-   "acc": "0001729269-26-000007",
-   "filed": "2026-07-15",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"

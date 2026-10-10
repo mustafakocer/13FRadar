@@ -664,7 +664,11 @@ th.sortable { cursor: pointer; user-select: none; }
   padding: 16px; box-sizing: border-box;
 }
 .picker-card > * { width: 100%; min-width: 0; }
-.picker-card b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the fund name keeps its row with the sample badge / close button while it
+   fits, wraps above it when it does not, and past the card width ellipsises
+   inside its own link box, so the link never reaches past the card */
+.picker-card b { flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.picker-card b a { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ---- insider trading -------------------------------------------------- */
 .ins-stat h3 { display: flex; align-items: center; gap: 4px; }

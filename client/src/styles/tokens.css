@@ -20,7 +20,7 @@
   --text-body: #383F4F;
   --text-600: #4C5469;
   --text-500: #5E6984;
-  --text-400: #6B7389;
+  --text-400: #697187; /* spec #6B7389 reached only 4.42:1 on --surface-alt */
   --icon-muted: #8392A6; /* icons only — never text */
   --disabled: #CBCFDA;
 
@@ -41,8 +41,8 @@
   --logo-tile: #FFFFFF;
 
   /* data only */
-  --gain: #0F8A5F;
-  --loss: #D93A3A;
+  --gain: #0E7D56; /* spec #0F8A5F: 4.36:1 on white, 3.88:1 on --gain-bg */
+  --loss: #D02828; /* spec #D93A3A: 3.95:1 on --loss-bg */
   --gain-bg: #E7F5EF;
   --loss-bg: #FCEBEB;
 

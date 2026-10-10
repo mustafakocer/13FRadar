@@ -267,7 +267,7 @@ a.badge.pro:hover { text-decoration: none; }
    first half regular, second half bold, ink text */
 .hl-band {
   background-image: linear-gradient(100deg, transparent 5px, var(--accent) 5px, var(--accent) calc(100% - 5px), transparent calc(100% - 5px));
-  padding: 0 8px; font-size: 20px; line-height: 30px; font-weight: 400; color: var(--ink);
+  padding: 0 8px; font-size: 20px; line-height: 30px; font-weight: 400; color: var(--on-accent);
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
 .hl-band b, .hl-band strong { font-weight: 700; }

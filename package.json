@@ -8,7 +8,7 @@
     "dev": "node server.js",
     "check-env": "node scripts/check-env.mjs",
     "dev:client": "npm run dev --prefix client",
-    "build": "npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
+    "build": "node scripts/build-insiders-served.mjs && npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
     "check:jsonld": "node scripts/check-jsonld.mjs",
     "check:freshness": "node scripts/check-freshness.mjs",
     "activity": "node scripts/build-guru-activity.mjs",

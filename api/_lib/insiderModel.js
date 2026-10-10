@@ -75,15 +75,19 @@ export function filingLagDays(transDate, filedDate) {
   return days >= 0 && days < 400 ? days : null;
 }
 
+// Weekdays in (transDate, filedDate]: whole weeks count five each, and only
+// the remainder (under seven days) is walked. Called for every row and every
+// pair of lines in a cluster window, where a day-by-day loop over a long gap
+// was the feed's largest single cost on a cold instance.
 export function businessDaysBetween(transDate, filedDate) {
-  const a = new Date(`${transDate}T00:00:00Z`);
-  const b = new Date(`${filedDate}T00:00:00Z`);
+  const a = Date.parse(`${transDate}T00:00:00Z`);
+  const b = Date.parse(`${filedDate}T00:00:00Z`);
   if (!(a <= b)) return null;
-  let n = 0;
-  const cur = new Date(a);
-  while (cur < b) {
-    cur.setUTCDate(cur.getUTCDate() + 1);
-    const d = cur.getUTCDay();
+  const days = Math.round((b - a) / 86400000);
+  let n = Math.floor(days / 7) * 5;
+  let d = new Date(a).getUTCDay();
+  for (let i = days % 7; i > 0; i--) {
+    d = (d + 1) % 7;
     if (d !== 0 && d !== 6) n++;
   }
   return n;

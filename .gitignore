@@ -9,3 +9,5 @@ client/dist/
 geo-monitor/*.json
 geo-monitor/results.csv
 .cache/
+# build artefact: scripts/build-insiders-served.mjs
+api/_data/insiders-served.json

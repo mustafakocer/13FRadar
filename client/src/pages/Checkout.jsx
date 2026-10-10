@@ -49,7 +49,7 @@ export default function Checkout() {
   const active = plan === 'pro';
   return (
     <div className="card" style={{ maxWidth: 520, margin: '40px auto', textAlign: 'center' }} data-checkout={active ? 'active' : 'pending'}>
-      <div className="paywall-lock" style={{ color: active ? 'var(--gain)' : 'var(--text-500)' }}><Ico icon={CircleCheck} size={36} /></div>
+      <div className="paywall-lock" style={{ color: active ? 'var(--primary)' : 'var(--text-500)' }}><Ico icon={CircleCheck} size={36} /></div>
       <h2 style={{ marginTop: 4 }}>{active ? t('checkout.successTitle') : t('checkout.activating')}</h2>
       <p className="muted">{active ? t('checkout.successText') : configured && user ? t('checkout.activatingText') : t('checkout.signInText')}</p>
       {!active && tries >= 12 && <p className="muted small">{t('checkout.slow')}</p>}

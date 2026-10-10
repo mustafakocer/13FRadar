@@ -20,8 +20,6 @@ export const cdnEnabled = () => Boolean(CLIENT_ID);
 const cdnPx = (size) => (size <= 20 ? 64 : size <= 40 ? 128 : 256);
 export const cdnSrc = (domain, size) => CDN_URL.replace('{domain}', domain).replace(/\{px\}/g, String(cdnPx(size))).replace('{id}', CLIENT_ID);
 
-const HUES = [212, 338, 158, 28, 268, 2, 98, 190, 48, 310];
-const hueOf = (s) => HUES[[...String(s)].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length];
 
 export default function TickerLogo({ ticker, size = 20 }) {
   const logos = useLogos();
@@ -51,7 +49,6 @@ export default function TickerLogo({ ticker, size = 20 }) {
       />
     );
   }
-  const h = hueOf(sym);
   // the letters come from CSS (attr), not text: screen readers, search
   // engines and copy-paste read the ticker once, from the label next to it
   return (
@@ -63,8 +60,6 @@ export default function TickerLogo({ ticker, size = 20 }) {
         width: size,
         height: size,
         fontSize: Math.round(size * 0.42),
-        background: `hsl(${h} 55% 45% / 0.16)`,
-        color: `hsl(${h} 55% 38%)`,
       }}
     />
   );

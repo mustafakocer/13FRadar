@@ -653,7 +653,9 @@ th.sortable { cursor: pointer; user-select: none; }
 .cmp-sector .bar span { font-variant-numeric: tabular-nums; min-width: 38px; }
 .cmp-sector .bar.a span { text-align: right; }
 .dir-up { color: var(--gain); font-weight: 700; }
+.dir-up::before { content: "▲"; font-size: .72em; margin-right: .3em; }
 .dir-down { color: var(--loss); font-weight: 700; }
+.dir-down::before { content: "▼"; font-size: .72em; margin-right: .3em; }
 .dir-new { color: var(--primary); font-weight: 700; }
 .dir-flat { color: var(--text-500); }
 
@@ -820,7 +822,7 @@ th.sortable { cursor: pointer; user-select: none; }
 .hl-card .who { font-weight: 700; }
 .hl-card .role { color: var(--text-600); font-size: 12px; font-weight: 600; }
 .hl-card .amt { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-top: 8px; }
-.hl-card .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); margin-left: auto; }
+.hl-card .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--primary); margin-left: auto; }
 
 .sig-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .sig-head b { font-size: 16px; display: flex; align-items: center; gap: 8px; }
@@ -1057,9 +1059,9 @@ table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
 .ins-table .ins-tick a { display: inline-flex; align-items: center; gap: 8px; text-decoration: none; }
 .insiders .ins-table td { padding-top: 10px; padding-bottom: 10px; }
 
-/* Congress trades: party marks (D blue, R red, I neutral) */
-.party-d { color: #3B82F6; }
-.party-r { color: #EF4444; }
+/* Congress trades: party marks — data tokens, always next to the D / R letter */
+.party-d { color: var(--party-d); }
+.party-r { color: var(--party-r); }
 .party-i { color: var(--text-500); }
 .cg-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
 .cg-filters .search-input { min-width: 200px; flex: 1 1 200px; }

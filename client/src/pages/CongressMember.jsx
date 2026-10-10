@@ -93,7 +93,7 @@ export default function CongressMember() {
         <div className="fund-stat">
           <span className="k">{t('cg.trades')}</span>
           <b>{fmtNum(m.trades)}</b>
-          <span className="s"><span className="text-gain">{fmtNum(m.buys)} {t('cg.buys').toLowerCase()}</span> · <span className="text-loss">{fmtNum(m.sells)} {t('cg.sells').toLowerCase()}</span></span>
+          <span className="s"><span className="delta-pos">{fmtNum(m.buys)} {t('cg.buys').toLowerCase()}</span> · <span className="delta-neg">{fmtNum(m.sells)} {t('cg.sells').toLowerCase()}</span></span>
         </div>
         <div className="fund-stat">
           <span className="k">{t('cg.volume')}</span>

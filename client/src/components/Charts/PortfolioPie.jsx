@@ -24,7 +24,7 @@ export default function PortfolioPie({ positions }) {
           innerRadius="55%"
           outerRadius="85%"
           paddingAngle={2}
-          stroke={getVar('--card')}
+          stroke={getVar('--bg')}
           strokeWidth={2}
         >
           {data.map((d, i) => (
@@ -34,8 +34,8 @@ export default function PortfolioPie({ positions }) {
         <Tooltip contentStyle={tooltipStyle()} formatter={(v) => fmtPct(v, { sign: false })} />
         <Legend
           formatter={(value, entry) => (
-            <span style={{ color: getVar('--text'), fontSize: 13 }}>
-              {value} <span style={{ color: getVar('--text-2') }}>{fmtPct(entry.payload.value, { sign: false })}</span>
+            <span style={{ color: getVar('--ink'), fontSize: 13 }}>
+              {value} <span style={{ color: getVar('--text-500') }}>{fmtPct(entry.payload.value, { sign: false })}</span>
             </span>
           )}
         />

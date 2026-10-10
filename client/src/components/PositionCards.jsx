@@ -77,7 +77,7 @@ export default function PositionCards({ positions, changes }) {
         ))}
       </div>
       <div className="card pos-col">
-        <h3><Ico icon={TrendingUp} className="text-buy" /> {t('manager.increased')}</h3>
+        <h3><Ico icon={TrendingUp} className="text-gain" /> {t('manager.increased')}</h3>
         {hasPrev && <div className="muted small" style={{ marginTop: -6, marginBottom: 8 }} data-counts="inc">{t('changes.counts.inc').replace('{n}', fmtNum(c.new || 0)).replace('{m}', fmtNum(c.added || 0))}</div>}
         {!hasPrev && <div className="muted small">{t('manager.noPrev')}</div>}
         {increased.map((p) => (
@@ -91,7 +91,7 @@ export default function PositionCards({ positions, changes }) {
         {moreNote(hiddenInc)}
       </div>
       <div className="card pos-col">
-        <h3><Ico icon={TrendingDown} className="text-sell" /> {t('manager.decreased')}</h3>
+        <h3><Ico icon={TrendingDown} className="text-loss" /> {t('manager.decreased')}</h3>
         {hasPrev && <div className="muted small" style={{ marginTop: -6, marginBottom: 8 }} data-counts="dec">{t('changes.counts.dec').replace('{n}', fmtNum(c.reduced || 0)).replace('{m}', fmtNum(c.exited || 0))}</div>}
         {!hasPrev && <div className="muted small">{t('manager.noPrev')}</div>}
         {decreased.map((p) => (

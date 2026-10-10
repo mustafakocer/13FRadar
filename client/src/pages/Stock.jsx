@@ -242,7 +242,7 @@ export default function Stock() {
           missing the page says so here and carries on: the ownership block,
           the FAQ and the links below do not depend on it. */}
       {(quoteMissing || quoteStale) && (
-        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }} role="status">
+        <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }} role="status">
           <span className="small">
             <Ico icon={TriangleAlert} size={14} />{' '}
             {quoteMissing ? t('stock.priceUnavailable') : t('stock.priceStale')}

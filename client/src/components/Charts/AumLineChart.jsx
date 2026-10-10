@@ -19,13 +19,13 @@ export default function AumLineChart({ history }) {
         <CartesianGrid stroke={getVar('--border')} vertical={false} />
         <XAxis
           dataKey="q"
-          tick={{ fill: getVar('--text-2'), fontSize: 12 }}
+          tick={{ fill: getVar('--text-500'), fontSize: 12 }}
           axisLine={{ stroke: getVar('--border') }}
           tickLine={false}
         />
         <YAxis
           tickFormatter={(v) => fmtMoney(v)}
-          tick={{ fill: getVar('--text-2'), fontSize: 12 }}
+          tick={{ fill: getVar('--text-500'), fontSize: 12 }}
           axisLine={false}
           tickLine={false}
           width={62}
@@ -34,7 +34,7 @@ export default function AumLineChart({ history }) {
         <Tooltip
           contentStyle={tooltipStyle()}
           formatter={(v) => [fmtMoney(v), 'AUM']}
-          cursor={{ stroke: getVar('--text-2'), strokeDasharray: '3 3' }}
+          cursor={{ stroke: getVar('--text-500'), strokeDasharray: '3 3' }}
         />
         <Area
           type="monotone"

@@ -101,7 +101,7 @@ export default function Congress() {
         </div>
         <div className="fund-stat">
           <span className="k">{t('cg.stat.split')}</span>
-          <b><span className="text-buy">{fmtNum(d.buys)}</span> / <span className="text-sell">{fmtNum(d.sells)}</span></b>
+          <b><span className="text-gain">{fmtNum(d.buys)}</span> / <span className="text-loss">{fmtNum(d.sells)}</span></b>
           <span className="s">{t('cg.stat.splitNote')}</span>
         </div>
         <div className="fund-stat">

@@ -29,7 +29,7 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
   const first = prices[0]?.close;
   const last = prices[prices.length - 1]?.close;
   const up = first != null && last != null ? last >= first : true;
-  const c = getVar(up ? '--buy' : '--sell');
+  const c = getVar(up ? '--gain' : '--loss');
   const changePct = first ? ((last - first) / first) * 100 : null;
 
   return (
@@ -60,14 +60,14 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
             <CartesianGrid stroke={getVar('--border')} vertical={false} />
             <XAxis
               dataKey="date"
-              tick={{ fill: getVar('--text-2'), fontSize: 11 }}
+              tick={{ fill: getVar('--text-500'), fontSize: 11 }}
               axisLine={{ stroke: getVar('--border') }}
               tickLine={false}
               minTickGap={48}
             />
             <YAxis
               domain={['auto', 'auto']}
-              tick={{ fill: getVar('--text-2'), fontSize: 11 }}
+              tick={{ fill: getVar('--text-500'), fontSize: 11 }}
               tickFormatter={(v) => fmtNum(v, 0)}
               axisLine={false}
               tickLine={false}
@@ -76,7 +76,7 @@ export default function PriceChart({ ticker, lang = 'tr' }) {
             <Tooltip
               contentStyle={tooltipStyle()}
               formatter={(v) => [fmtNum(v, 2), ticker]}
-              cursor={{ stroke: getVar('--text-2'), strokeDasharray: '3 3' }}
+              cursor={{ stroke: getVar('--text-500'), strokeDasharray: '3 3' }}
             />
             <Area
               type="monotone"

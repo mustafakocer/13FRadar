@@ -39,7 +39,7 @@ export default function GuruActivityBars({ series = [], quarters = [], label }) 
               width={W}
               height={h}
               rx="1"
-              fill={v >= 0 ? 'var(--buy)' : 'var(--sell)'}
+              fill={v >= 0 ? 'var(--gain)' : 'var(--loss)'}
             />
             <title>
               {q ? `${quarterLabel(q)}: ` : ''}

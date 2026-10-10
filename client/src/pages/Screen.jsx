@@ -376,7 +376,7 @@ export default function Screen() {
                         <Link to={managerPath(r.cik)} style={{ fontWeight: 700 }}>
                           {r.name}
                         </Link>
-                        {GURU_CIKS.has(r.cik) && <> <Ico icon={Star} size={14} className="text-accent" fill="currentColor" /></>}
+                        {GURU_CIKS.has(r.cik) && <> <Ico icon={Star} size={14} className="text-primary" fill="currentColor" /></>}
                       </td>
                       <td className="l">
                         <span className="badge plain" style={{ fontSize: 11 }}>

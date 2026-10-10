@@ -20,7 +20,7 @@ export default function BacktestChart({ points, labels, benchmark = 'SPY' }) {
         <CartesianGrid stroke={getVar('--border')} vertical={false} />
         <XAxis
           dataKey="date"
-          tick={{ fill: getVar('--text-2'), fontSize: 11 }}
+          tick={{ fill: getVar('--text-500'), fontSize: 11 }}
           axisLine={{ stroke: getVar('--border') }}
           tickLine={false}
           minTickGap={40}
@@ -28,7 +28,7 @@ export default function BacktestChart({ points, labels, benchmark = 'SPY' }) {
         <YAxis
           domain={['auto', 'auto']}
           tickFormatter={(v) => `${v}x`}
-          tick={{ fill: getVar('--text-2'), fontSize: 11 }}
+          tick={{ fill: getVar('--text-500'), fontSize: 11 }}
           axisLine={false}
           tickLine={false}
           width={44}
@@ -36,9 +36,9 @@ export default function BacktestChart({ points, labels, benchmark = 'SPY' }) {
         <Tooltip
           contentStyle={tooltipStyle()}
           formatter={(v) => `${Number(v).toFixed(3)}x`}
-          cursor={{ stroke: getVar('--text-2'), strokeDasharray: '3 3' }}
+          cursor={{ stroke: getVar('--text-500'), strokeDasharray: '3 3' }}
         />
-        <Legend formatter={(v) => <span style={{ color: getVar('--text'), fontSize: 13 }}>{v}</span>} />
+        <Legend formatter={(v) => <span style={{ color: getVar('--ink'), fontSize: 13 }}>{v}</span>} />
         <Line type="monotone" dataKey="port" name={labels.port} stroke={c1} strokeWidth={2} dot={{ r: 3 }} />
         {benchmark && <Line type="monotone" dataKey="spy" name={benchmark} stroke={c2} strokeWidth={2} dot={{ r: 3 }} />}
       </LineChart>

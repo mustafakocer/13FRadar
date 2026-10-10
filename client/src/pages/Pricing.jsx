@@ -118,7 +118,7 @@ export default function Pricing() {
             <div key={k} className="kv"><span className="k"><Ico icon={Check} /> {t(`pricing.${k}`)}</span></div>
           ))}
         </div>
-        <div className="card" style={{ borderColor: 'var(--pro)', borderWidth: 2 }}>
+        <div className="card" style={{ borderColor: 'var(--primary)', borderWidth: 2 }}>
           <h3>
             {t('pricing.pro')} <span className="badge pro">{t('pricing.popular')}</span>
           </h3>

@@ -81,7 +81,7 @@ export default function CongressCommittee() {
         <div className="fund-stat">
           <span className="k">{t('cg.trades')}</span>
           <b>{fmtNum(c.trades)}</b>
-          <span className="s"><span className="text-buy">{fmtNum(c.buys)} {t('cg.buys').toLowerCase()}</span> · <span className="text-sell">{fmtNum(c.sells)} {t('cg.sells').toLowerCase()}</span></span>
+          <span className="s"><span className="text-gain">{fmtNum(c.buys)} {t('cg.buys').toLowerCase()}</span> · <span className="text-loss">{fmtNum(c.sells)} {t('cg.sells').toLowerCase()}</span></span>
         </div>
         <div className="fund-stat">
           <span className="k">{t('cg.volume')}</span>

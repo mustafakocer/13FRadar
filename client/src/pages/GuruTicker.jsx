@@ -128,7 +128,7 @@ export default function GuruTicker() {
                   <td className="l"><b>{quarterLabel(r.reportDate)}</b></td>
                   <td className="l muted">{r.filed}</td>
                   <td className="l">
-                    <span className={`tk ${r.activity === 'new' ? 'new' : r.activity === 'add' ? 'add' : r.activity === 'reduce' ? 'reduce' : r.activity === 'exit' ? 'exit' : ''}`} style={r.activity === 'hold' || r.activity === 'none' ? { color: 'var(--text-2)' } : {}}>
+                    <span className={`tk ${r.activity === 'new' ? 'new' : r.activity === 'add' ? 'add' : r.activity === 'reduce' ? 'reduce' : r.activity === 'exit' ? 'exit' : ''}`} style={r.activity === 'hold' || r.activity === 'none' ? { color: 'var(--text-500)' } : {}}>
                       {t(`pair.act.${r.activity}`)}
                     </span>
                   </td>

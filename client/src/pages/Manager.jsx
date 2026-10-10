@@ -402,7 +402,7 @@ export default function Manager({ segment = 'portfolio' }) {
       </div>
 
       {dormant && (
-        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
+        <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
           <span className="small">
             <Ico icon={TriangleAlert} size={14} />{' '}
             {t('manager.dormant').replace('{q}', quarterLabel(filings[0].reportDate)).replace('{d}', filings[0].filingDate)}
@@ -411,7 +411,7 @@ export default function Manager({ segment = 'portfolio' }) {
       )}
 
       {fallback && acc !== fallback.misfiled.acc && (
-        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }} data-fallback={fallback.misfiled.acc}>
+        <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }} data-fallback={fallback.misfiled.acc}>
           <span className="small">
             <Ico icon={TriangleAlert} size={14} />{' '}
             {t('manager.fallback')
@@ -423,7 +423,7 @@ export default function Manager({ segment = 'portfolio' }) {
       )}
 
       {mgr.data?.misfiled && (!mgr.data.misfiled.acc || mgr.data.misfiled.acc === acc) && (
-        <div className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
+        <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
           <span className="small">
             <Ico icon={TriangleAlert} size={14} />{' '}
             {t('manager.misfiled')
@@ -436,7 +436,7 @@ export default function Manager({ segment = 'portfolio' }) {
       {(mgr.data?.notes || [])
         .filter((n) => n.kind === 'cover-total' && (!n.acc || n.acc === acc))
         .map((n) => (
-          <div key={`${n.kind}-${n.acc}`} className="card" style={{ background: 'var(--popover)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
+          <div key={`${n.kind}-${n.acc}`} className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
             <span className="small">
               <Ico icon={TriangleAlert} size={14} />{' '}
               {t('manager.coverTotal').replace('{declared}', fmtMoney(n.declared)).replace('{table}', fmtMoney(n.table))}

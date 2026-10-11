@@ -149,3 +149,43 @@ test('a health insurer is in the health committees field, not banking', async ()
   assert.equal(jurisdictionLabel('SSHR', '6324'), 'health insurance');
   assert.equal(jurisdictionLabel('HSBA', '6331'), 'insurance');
 });
+
+test('YTD: trades replayed as positions, each measured against SPY over the same days', async () => {
+  const { annotateYtd, memberYtd, ytdBoard } = await import('../api/_lib/congressModel.js');
+  const S = {
+    SPY: [{ date: '2025-12-31', close: 100 }, { date: '2026-02-02', close: 105 }, { date: '2026-03-02', close: 110 }, { date: '2026-10-07', close: 120 }],
+    AAA: [{ date: '2025-06-02', close: 40 }, { date: '2025-12-31', close: 50 }, { date: '2026-10-07', close: 75 }],
+    BBB: [{ date: '2025-12-31', close: 20 }, { date: '2026-02-02', close: 25 }, { date: '2026-03-02', close: 30 }, { date: '2026-10-07', close: 10 }],
+    CCC: [{ date: '2025-12-31', close: 10 }, { date: '2026-03-02', close: 12 }, { date: '2026-10-07', close: 15 }],
+  };
+  const sf = (t) => (S[t] ? { prices: S[t] } : null);
+  const tx = (d, t, k, lo = 15001, hi = 50000, at = 'stock') => ({ d, t, a: t, at, k, o: 'self', lo, hi });
+  const out = buildServed({
+    'H:y': { ch: 'H', id: 'y', filed: '2026-03-10', first: 'Roger', last: 'Williams', stateDst: 'TX25', url: 'u', status: 'ok', tx: [
+      tx('2025-06-02', 'AAA', 'buy'), // held into the year: from the year-start close, still open
+      tx('2026-02-02', 'BBB', 'buy'), // bought this year, closed by a full sale
+      tx('2026-03-02', 'BBB', 'sell'),
+      tx('2026-03-02', 'CCC', 'sell_partial'), // sold this year, no buy on file: held since Jan 1
+      tx('2026-02-02', 'AAA', 'buy', 15001, 50000, 'option'), // options are left out
+    ] },
+  }, { legislators: idx, seriesFor: sf, since: '2025-01-01', now: Date.parse('2026-10-08') });
+  assert.equal(out.px.AAA.y, 50);
+  assert.deepEqual(out.bench, { t: 'SPY', y: 100, c: 120, d: '2026-10-07' });
+  assert.equal(out.rows.find((r) => r.t === 'AAA' && r.d === '2025-06-02').ps, undefined, 'last year: no SPY stamp needed');
+  const db2 = { ...out, bySlug: { 'roger-williams': 'W000816' } };
+  const y = memberYtd(db2, out.rows);
+  // AAA 50→75 +50% (SPY +20%), BBB 25→30 +20% (SPY 105→110), CCC 10→12 +20% (SPY 100→110), equal weights
+  assert.equal(y.positions, 3);
+  assert.equal(y.open, 1);
+  assert.ok(Math.abs(y.ret - 0.3) < 1e-9);
+  assert.ok(Math.abs(y.spy - (0.2 + 5 / 105 + 0.1) / 3) < 1e-9);
+  assert.equal(y.best.t, 'AAA');
+  const b = ytdBoard(db2, { minPositions: 3 });
+  assert.equal(b.members.length, 1);
+  assert.ok(Math.abs(b.spy - 0.2) < 1e-9);
+  assert.equal(b.summary.R.n, 1);
+  assert.equal(b.summary.D.n, 0);
+  assert.equal(ytdBoard({ ...db2, bench: null }), null);
+  // idempotent: a second stamp changes nothing
+  assert.deepEqual(annotateYtd(structuredClone(out), sf, Date.parse('2026-10-08')), out);
+});

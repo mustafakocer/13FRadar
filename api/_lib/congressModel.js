@@ -90,7 +90,7 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
   const usedCommittees = {};
   for (const m of Object.values(members)) for (const c of m.cm) if (committeeNames[c]) usedCommittees[c] = committeeNames[c];
   rows.sort((a, b) => b.f.localeCompare(a.f) || b.d.localeCompare(a.d) || a.id.localeCompare(b.id));
-  return {
+  return annotateYtd({
     updatedAt: new Date(now).toISOString(),
     since: since || null,
     counts: {
@@ -108,7 +108,48 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
     sic: sics,
     rows,
     unmatched: [...unmatched].sort(),
-  };
+  }, seriesFor, now);
+}
+
+// ------------------------------------------------------------ year to date
+
+export const BENCH = 'SPY';
+
+// The last close before `day`, when it is within ten days of it (else the
+// stock was not trading at the turn of the year, or the series has a hole).
+function closeBefore(prices, day) {
+  if (!prices?.length) return null;
+  const at = closeOnOrAfter(prices, day);
+  const i = at ? prices.indexOf(at) - 1 : prices.length - 1;
+  const bar = prices[i];
+  return bar && bar.close > 0 && Date.parse(day) - Date.parse(bar.date) <= 10 * DAY ? bar.close : null;
+}
+
+// What the YTD board needs at request time, stamped at build time: each
+// priced ticker's close at the turn of the year (px[t].y), SPY's then and
+// now (bench), and SPY's close on the day of every priced trade this year
+// (row.ps), so each position is measured against SPY over the same days.
+// Idempotent: a re-run for a new year replaces the old stamps.
+export function annotateYtd(served, seriesFor, now = Date.now()) {
+  const year = new Date(now).getUTCFullYear();
+  const from = `${year}-01-01`;
+  for (const t of Object.keys(served.px || {})) {
+    const y = closeBefore(seriesFor(t)?.prices, from);
+    if (y) served.px[t].y = y;
+    else delete served.px[t].y;
+  }
+  const spy = seriesFor(BENCH)?.prices;
+  const last = spy?.[spy.length - 1];
+  const y = closeBefore(spy, from);
+  served.bench = last && y ? { t: BENCH, y, c: last.close, d: last.date } : null;
+  for (const r of served.rows) {
+    delete r.ps;
+    if (!(r.pt > 0) || r.d < from || !spy) continue;
+    const bar = closeOnOrAfter(spy, r.d);
+    if (bar && Date.parse(bar.date) - Date.parse(r.d) <= 7 * DAY) r.ps = bar.close;
+  }
+  served.ytd = { year, from };
+  return served;
 }
 
 // ------------------------------------------------------------ request time
@@ -152,6 +193,129 @@ export function memberCard(db, key, rows) {
     // return: amounts are ranges and holdings are not disclosed
     avgBuyRet: rets.length ? rets.reduce((s, v) => s + v, 0) / rets.length : null,
     pricedBuys: rets.length,
+  };
+}
+
+// A member's disclosed positions, year to date. Holdings are not disclosed
+// and amounts are ranges, so this replays the trades on file as positions
+// weighted by the range's midpoint:
+//   - a buy opens a position: this year's at the trade-day close, an older
+//     one (on file since the data starts) at the year-start close;
+//   - a full sale this year closes every open position in that stock at the
+//     sale-day close; a full sale before the year drops them; a partial
+//     sale leaves them open (how much was sold is a range);
+//   - a sale this year with no buy on file was held since at least Jan 1:
+//     a position from the year-start close to the sale;
+//   - what is still open is marked at the latest close;
+//   - options are left out: the underlying's move is not the option's.
+// The return is the amount-weighted average of the positions' returns over
+// the days each was held this year; `spy` is SPY's over the very same days,
+// so `excess` is skill, not timing of when the year started.
+export function memberYtd(db, rows) {
+  const Y = db.ytd;
+  const B = db.bench;
+  if (!Y || !B) return null;
+  const from = Y.from;
+  // a position marked at a close weeks older than SPY's (delisted, acquired)
+  // cannot be compared over the same days
+  const fresh = (t) => db.px?.[t]?.c > 0 && Date.parse(B.d) - Date.parse(db.px[t].d) <= 10 * DAY;
+  const open = new Map();
+  const lots = [];
+  const sorted = rows.filter((r) => r.t && r.at !== 'option' && db.px?.[r.t]).sort((a, b) => a.d.localeCompare(b.d) || a.id.localeCompare(b.id));
+  for (const r of sorted) {
+    const px = db.px[r.t];
+    const w = amountMid(r) || 0;
+    if (isBuy(r.k)) {
+      const inYear = r.d >= from;
+      const s = inYear ? r.pt : px.y;
+      const sp = inYear ? r.ps : B.y;
+      if (w > 0 && s > 0 && sp > 0) {
+        if (!open.has(r.t)) open.set(r.t, []);
+        open.get(r.t).push({ t: r.t, w, s, sp, d: inYear ? r.d : from });
+      }
+      continue;
+    }
+    if (!isSell(r.k)) continue;
+    const held = open.get(r.t);
+    if (r.d < from) {
+      if (r.k === 'sell') open.delete(r.t);
+      continue;
+    }
+    if (held?.length) {
+      if (r.k !== 'sell') continue;
+      // an unpriced sale closes the positions at a price we do not know
+      if (r.pt > 0 && r.ps > 0) for (const l of held) lots.push({ ...l, e: r.pt, ep: r.ps, closed: r.d });
+      open.delete(r.t);
+      continue;
+    }
+    if (w > 0 && px.y > 0 && r.pt > 0 && r.ps > 0) lots.push({ t: r.t, w, s: px.y, sp: B.y, d: from, e: r.pt, ep: r.ps, closed: r.d });
+  }
+  for (const held of open.values()) for (const l of held) if (fresh(l.t)) lots.push({ ...l, e: db.px[l.t].c, ep: B.c, closed: null });
+  if (!lots.length) return null;
+  let w = 0;
+  let ret = 0;
+  let spy = 0;
+  const byTicker = new Map();
+  for (const l of lots) {
+    const r = l.e / l.s - 1;
+    w += l.w;
+    ret += l.w * r;
+    spy += l.w * (l.ep / l.sp - 1);
+    const b = byTicker.get(l.t) || { t: l.t, w: 0, x: 0 };
+    b.w += l.w;
+    b.x += l.w * r;
+    byTicker.set(l.t, b);
+  }
+  const picks = [...byTicker.values()].map((b) => ({ t: b.t, r: b.x / b.w })).sort((a, b) => b.r - a.r);
+  return {
+    ret: ret / w,
+    spy: spy / w,
+    excess: (ret - spy) / w,
+    positions: lots.length,
+    open: lots.filter((l) => !l.closed).length,
+    tickers: byTicker.size,
+    weight: w,
+    best: picks[0],
+    worst: picks.length > 1 ? picks[picks.length - 1] : null,
+  };
+}
+
+const median = (xs) => {
+  if (!xs.length) return null;
+  const s = xs.slice().sort((a, b) => a - b);
+  const i = s.length >> 1;
+  return s.length % 2 ? s[i] : (s[i - 1] + s[i]) / 2;
+};
+
+// Every member with a position this year, best first, and how Congress did
+// against SPY. The summary counts only members with at least `minPositions`
+// positions: one lucky stock is not a record.
+export function ytdBoard(db, { minPositions = 3 } = {}) {
+  if (!db.ytd || !db.bench) return null;
+  const members = [];
+  for (const [key, list] of groupBy(db.rows, (r) => r.m)) {
+    const y = memberYtd(db, list);
+    const m = db.members[key];
+    if (!y || !m) continue;
+    members.push({ key, slug: m.slug, n: m.n, ch: m.ch, p: m.p, st: m.st, ...y });
+  }
+  members.sort((a, b) => b.ret - a.ret || a.n.localeCompare(b.n));
+  const q = members.filter((m) => m.positions >= minPositions);
+  const group = (list) => ({ n: list.length, median: median(list.map((m) => m.ret)), beat: list.length ? list.filter((m) => m.excess > 0).length / list.length : null });
+  return {
+    year: db.ytd.year,
+    from: db.ytd.from,
+    asOf: db.bench.d,
+    spy: db.bench.c / db.bench.y - 1,
+    minPositions,
+    summary: {
+      all: group(q),
+      D: group(q.filter((m) => m.p === 'D')),
+      R: group(q.filter((m) => m.p === 'R')),
+      H: group(q.filter((m) => m.ch === 'H')),
+      S: group(q.filter((m) => m.ch === 'S')),
+    },
+    members,
   };
 }
 
@@ -219,6 +383,7 @@ export function overview(db, { days = 90, now = Date.now() } = {}) {
     inFieldCount: db.rows.filter((r) => r.jx).length,
     inFieldRecent: recent.filter((r) => r.jx).length,
     committees: committeeIndex(db),
+    ytd: ytdBoard(db),
   };
 }
 
@@ -266,7 +431,7 @@ export function memberView(db, slug) {
     .slice(0, 30);
   return {
     updatedAt: db.updatedAt,
-    member: { ...card, committees: (m.cm || []).filter((c) => db.committees?.[c]).map((id) => ({ id, name: db.committees[id], slug: committeeSlug(db.committees[id]) })) },
+    member: { ...card, ytd: memberYtd(db, mine), committees: (m.cm || []).filter((c) => db.committees?.[c]).map((id) => ({ id, name: db.committees[id], slug: committeeSlug(db.committees[id]) })) },
     tickers,
     rows: mine.map((r) => present(db, r)),
   };

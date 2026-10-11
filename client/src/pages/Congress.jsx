@@ -11,9 +11,9 @@ import { dataset, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
-import CongressTable, { CommitteeBoard, CongressDisclaimer, MemberBoard, TickerBoard } from '../components/CongressTable.jsx';
+import CongressTable, { CommitteeBoard, CongressDisclaimer, MemberBoard, TickerBoard, YtdBoard } from '../components/CongressTable.jsx';
 
-const TABS = ['latest', 'field', 'bought', 'sold', 'active', 'largest', 'committees'];
+const TABS = ['latest', 'ytd', 'field', 'bought', 'sold', 'active', 'largest', 'committees'];
 const HOUR = 60 * 60 * 1000;
 
 // /congress — trades by members of the US Congress, from their STOCK Act
@@ -179,7 +179,8 @@ export default function Congress() {
           </>
         )}
         {tab === 'committees' && <CommitteeBoard rows={d.committees} />}
-        {tab !== 'latest' && tab !== 'committees' && tab !== 'field' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
+        {tab === 'ytd' && <YtdBoard data={d.ytd} />}
+        {tab !== 'latest' && tab !== 'committees' && tab !== 'field' && tab !== 'ytd' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
       </div>
 
       <div className="card mt16">

@@ -1,6 +1,6 @@
 import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
 import { fundCountLabel } from '../lib/fundCount.js';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
@@ -9,8 +9,35 @@ import Logo from './Logo.jsx';
 import { Search, Landmark, Gavel, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
 
 // Top navigation: brand · tabs (one of them a drop-down group) · search
-// (opens the ⌘K palette) · theme · TR/EN · account. Below 900px the tabs
-// collapse behind a hamburger that opens and closes a stacked panel.
+// (opens the ⌘K palette) · theme · TR/EN · account. When the row is too
+// narrow the tabs collapse behind a hamburger that opens a stacked panel.
+// useLayoutEffect warns during the server render; there it does nothing anyway
+const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
+// How much the header row has to shed to fit, measured rather than guessed:
+// the CSS breakpoints set a starting point for the first paint, but the
+// row's real width depends on the language, the account button (signed out,
+// signed in, PRO), the browser's zoom and its font rendering. Each step is
+// cumulative — 1: the search box folds to its icon, 2: the tabs move into
+// the burger menu — and the row takes the first step at which nothing
+// overlaps.
+const FIT_STEPS = 2;
+function overflows(inner) {
+  const tabs = inner.querySelector('.nav-tabs');
+  const tools = inner.querySelector('.topbar-tools');
+  if (inner.scrollWidth > inner.clientWidth + 1) return true;
+  if (!tabs || !tools || getComputedStyle(tabs).display === 'none') return false;
+  const last = tabs.lastElementChild;
+  return !!last && last.getBoundingClientRect().right > tools.getBoundingClientRect().left - 8;
+}
+function fitHeader(inner) {
+  if (!inner) return;
+  for (let step = 0; step <= FIT_STEPS; step++) {
+    inner.dataset.fit = String(step);
+    if (!overflows(inner)) return;
+  }
+}
+
 const openPalette = () =>
   window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true }));
 
@@ -81,6 +108,20 @@ export default function TopBar({ theme, onToggleTheme }) {
   const { configured, user, plan } = useAuth();
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const innerRef = useRef(null);
+
+  // re-fit on every width change, once the web fonts have loaded, and
+  // whenever what the row holds changes (language, account state)
+  useIsoLayoutEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return undefined;
+    const run = () => fitHeader(inner);
+    run();
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(run);
+    ro?.observe(inner);
+    document.fonts?.ready?.then(run).catch(() => {});
+    return () => ro?.disconnect();
+  }, [lang, configured, user, plan]);
 
   // any navigation closes the mobile panel
   useEffect(() => {
@@ -119,7 +160,7 @@ export default function TopBar({ theme, onToggleTheme }) {
 
   return (
     <header className="topbar no-print">
-      <div className="topbar-inner">
+      <div className="topbar-inner" ref={innerRef}>
         <Link to="/" className="brand">
           {/* .brand renders this lowercase; the capital stays so the link's
               accessible name and a copy-paste keep the canonical spelling */}

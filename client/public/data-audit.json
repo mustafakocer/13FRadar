@@ -145,7 +145,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6202,
+        "resolved": 6204,
         "unresolved": 81
       },
       "findings": []

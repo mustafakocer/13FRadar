@@ -128,6 +128,27 @@ test('no cover count (a multi-class filer) or a stale / off-scale one: the dilut
   assert.equal(sharesOutstanding(good, null, { asOf: '2026-10-02' }).value, 12_050_000_000);
 });
 
+test('cover and income-statement counts disagree: net income ÷ EPS decides, and neither fitting gives no count', () => {
+  const quarters = (vals) => [e('2025-07-01', '2025-09-30', vals[0]), e('2025-10-01', '2025-12-31', vals[1]), e('2026-01-01', '2026-03-31', vals[2]), e('2026-04-01', '2026-06-30', vals[3])];
+  const cover = (val) => ({ EntityCommonStockSharesOutstanding: { units: { shares: [{ end: '2026-07-31', val, accn: 'c', filed: '2026-08-07', form: '10-Q' }] } } });
+  const book = (wa, cov) => ({
+    'us-gaap': {
+      EarningsPerShareDiluted: { units: { 'USD/shares': quarters([3, 3, 3, 3]) } },
+      NetIncomeLoss: { units: { USD: quarters([2.13e9, 2.13e9, 2.13e9, 2.13e9]) } },
+      WeightedAverageNumberOfDilutedSharesOutstanding: { units: { shares: [e('2026-04-01', '2026-06-30', wa)] } },
+    },
+    dei: cover(cov),
+  });
+  // McDonald's: the diluted count tagged "in millions" (711); NI/EPS ≈ 710M
+  assert.equal(sharesOutstanding(book(711, 713_000_000), null, { asOf: '2026-10-02' }).value, 713_000_000);
+  // Waters: the diluted count a thousand times too big; the cover count fits
+  assert.equal(sharesOutstanding(book(710_000_000_000, 709_000_000), null, { asOf: '2026-10-02' }).value, 709_000_000);
+  // the cover count is the slip: the diluted count fits
+  assert.equal(sharesOutstanding(book(709_000_000, 709_000), null, { asOf: '2026-10-02' }).basis, 'weighted-average');
+  // neither within 2x of what the income statement implies: no count
+  assert.equal(sharesOutstanding(book(50_000_000, 4_000_000_000), null, { asOf: '2026-10-02' }), null);
+});
+
 test('no EPS concept (Berkshire): net income over the diluted shares, then the class rule', () => {
   const q = (s0, e0, v) => e(s0, e0, v);
   const facts = {

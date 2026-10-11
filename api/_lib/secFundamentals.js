@@ -169,14 +169,44 @@ export function weightedShares(facts) {
 // facts tagged per share class, so a multi-class filer (Alphabet, Meta) has
 // no cover count at all, and a stale or oddly scaled one (Sony's from 2019,
 // Alibaba's a tenth of its ordinary shares) is not used.
+//
+// When the two disagree, one of them is mis-scaled more often than not — a
+// filer tags a count "in millions" as plain shares (McDonald's: 711; Waters:
+// 98 billion) — so the count the income statement implies, trailing net
+// income ÷ trailing EPS, decides between them. Neither within a factor of two
+// of it: no count at all, so the page shows no market cap rather than one
+// off by a thousand. With no referee (no EPS or net income), a gap of 100×
+// or more is a scaling slip and the cover page, which states the count
+// outright, wins.
+export function impliedShares(facts, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
+  const eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
+  const ni = trailingOf(facts, NET_INCOME_CONCEPTS, { asOf, unit: (u) => (/^[A-Z]{3}$/.test(u) ? u : null) });
+  if (!eps || !ni || eps.currency !== ni.currency || eps.end !== ni.end || eps.basis !== ni.basis) return null;
+  if (!(Math.abs(eps.value) >= 0.05) || !ni.value) return null;
+  const n = ni.value / eps.value;
+  return n > 0 ? n : null;
+}
+
 export function sharesOutstanding(facts, classRule = null, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
   const cover = coverShares(facts, classRule);
   const w = weightedShares(facts);
   const wv = w ? unitShares(w.value, classRule) : null;
   const recent = (end) => days(end, asOf) <= 550;
-  if (cover && recent(cover.asOf) && (!wv || (cover.value / wv > 0.5 && cover.value / wv < 2))) return cover;
-  if (w && recent(w.end)) return { value: Math.round(wv), classes: 1, asOf: w.end, form: w.form, filed: w.filed, accn: w.accn, basis: 'weighted-average' };
-  return cover && recent(cover.asOf) ? cover : null;
+  const near = (a, b) => a > 0 && b > 0 && a / b > 0.5 && a / b < 2;
+  const coverOk = cover && recent(cover.asOf);
+  const weighted = w && recent(w.end) ? { value: Math.round(wv), classes: 1, asOf: w.end, form: w.form, filed: w.filed, accn: w.accn, basis: 'weighted-average' } : null;
+  if (coverOk && (!wv || near(cover.value, wv))) return cover;
+  // the class rules restate counts in the listed share's units; EPS is in
+  // the filer's own, so the referee only applies without one
+  const ref = classRule ? null : impliedShares(facts, { asOf });
+  if (ref) {
+    if (coverOk && near(cover.value, ref)) return cover;
+    if (weighted && near(weighted.value, ref)) return weighted;
+    return null;
+  }
+  if (coverOk && wv && (cover.value / wv >= 100 || wv / cover.value >= 100)) return cover;
+  if (weighted) return weighted;
+  return coverOk ? cover : null;
 }
 
 const unitShares = (v, classRule) => {

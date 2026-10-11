@@ -146,7 +146,7 @@ for (const [cik, list] of byCik) {
     noFacts += list.length;
     continue;
   }
-  const recOf = (t) => fundamentalsOf(cf, { cik, classRule: classRules[t] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
+  const recOf = (t) => fundamentalsOf(cf, { cik, classRule: classRules[t] || classRules[t.replace('.', '-')] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
   // the filing's own document fills what companyfacts leaves out
   if (list.some((t) => important.has(t) && (recOf(t).eps?.value == null || !recOf(t).shares))) {
     const doc = await fromDocument(cik);

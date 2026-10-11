@@ -14,6 +14,7 @@
 import { guruHistory } from './history.js';
 import { getSubmissions, list13F, getEffectiveHoldings } from './sec.js';
 import { portfolioChanges } from '../../client/src/lib/portfolioChanges.js';
+import { splitAdjustPrev } from './splitAdjust.js';
 
 // The two books of one guru quarter and the one before, from the history.
 export function historyBooks(g, reportDate) {
@@ -58,7 +59,8 @@ export async function changesFromEdgar(cik, acc) {
   const i = filings.findIndex((f) => f.acc === acc || (f.amendments || []).some((a) => a.acc === acc));
   if (i < 0 || !filings[i + 1]) return null;
   const [cur, prev] = await Promise.all([getEffectiveHoldings(cik, filings[i]), getEffectiveHoldings(cik, filings[i + 1])]);
-  return { ...portfolioChanges(cur.positions, prev.positions), reportDate: filings[i].reportDate, prevReportDate: filings[i + 1].reportDate, source: 'edgar' };
+  const prevAdj = splitAdjustPrev(prev, filings[i + 1].reportDate, filings[i].reportDate);
+  return { ...portfolioChanges(cur.positions, prevAdj.positions), reportDate: filings[i].reportDate, prevReportDate: filings[i + 1].reportDate, source: 'edgar' };
 }
 
 // reportDate lets a guru answer from the history without asking EDGAR which

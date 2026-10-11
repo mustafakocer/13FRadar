@@ -39,7 +39,11 @@ export const CATEGORIES = ['value', 'growth', 'quant', 'activist', 'macro', 'mul
 export const GURUS = [
   G('0001067983', 'Berkshire Hathaway (Warren Buffett)', 'value'),
   G('0001350694', 'Bridgewater Associates (Ray Dalio)', 'macro', { consensus: false }),
-  G('0001336528', 'Pershing Square (Bill Ackman)', 'activist'),
+  // Ackman's 13Fs moved from Pershing Square Capital Management, L.P. to
+  // Pershing Square Inc. with the 2026 Q2 report (filed 2026-08-14). The old
+  // CIK keeps its page and history; the new one carries the current book.
+  G('0002026053', 'Pershing Square (Bill Ackman)', 'activist', { activeFrom: '2026-06-30' }),
+  G('0001336528', 'Pershing Square Capital Management (Bill Ackman, to Q1 2026)', 'activist', { activeTo: '2026-03-31', successor: '0002026053' }),
   // Deregistered as an adviser after the 2025 Q3 report; no further 13Fs.
   G('0001649339', 'Scion Asset Management (Michael Burry)', 'value', { activeTo: '2025-09-30' }),
   G('0001037389', 'Renaissance Technologies', 'quant', { consensus: false }),

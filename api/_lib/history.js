@@ -73,3 +73,67 @@ export function splitAdjust(shares, reportDate, splits = [], until = null) {
   for (const s of splits) if (s.date > reportDate && (!until || s.date <= until) && isShareSplit(s.ratio)) factor *= s.ratio;
   return shares * factor;
 }
+
+// Which splits a stored position's share counts already carry. The nightly
+// build keeps the quarter rows it read on earlier nights, so "is this
+// position split-adjusted?" is not a yes/no: a row adjusted in March does not
+// know about a 4-for-1 in July (CRWD 2026-07-02). Each position records the
+// splits its rows carry (`splitsApplied`, one key per split) and every run
+// applies only what is missing — and takes back a split splits.json no longer
+// lists — so running the build twice never adjusts a row twice.
+export const splitKey = (s) => `${s.date}:${s.ratio}`;
+const parseSplitKey = (k) => {
+  const i = String(k).indexOf(':');
+  return { date: String(k).slice(0, i), ratio: Number(String(k).slice(i + 1)) };
+};
+
+// series: [[reportDate, shares, value, weight], …]; applied: the keys the
+// stored rows carry (null for a position never adjusted); splits: the
+// ticker's current splits.json entries; fresh: report dates read this run
+// (raw shares, no split applied yet). Returns the rows in today's shares and
+// the keys they now carry. Spin-off price factors are never applied.
+export function reconcileSplits(series, applied, splits = [], fresh = new Set()) {
+  const want = (splits || []).filter((s) => isShareSplit(s.ratio));
+  const wantKeys = new Set(want.map(splitKey));
+  const had = new Set(applied || []);
+  const missing = want.filter((s) => !had.has(splitKey(s)));
+  const stale = [...had].filter((k) => !wantKeys.has(k)).map(parseSplitKey).filter((s) => s.ratio > 0);
+  const out = (series || []).map((r) => {
+    const [d, sh, ...rest] = r;
+    let f = 1;
+    if (fresh.has(d)) {
+      for (const s of want) if (s.date > d) f *= s.ratio;
+    } else {
+      for (const s of missing) if (s.date > d) f *= s.ratio;
+      for (const s of stale) if (s.date > d) f /= s.ratio;
+    }
+    return f === 1 ? r : [d, Math.round(sh * f), ...rest];
+  });
+  return { series: out, applied: [...wantKeys].sort() };
+}
+
+// Which of a ticker's adjustment factors a stored row already carries, read
+// off the row itself: value / shares is the price per stored share, `close`
+// the report date's close adjusted for every factor (the price cache), so
+// their ratio is the product of the factors the row is missing. Returns the
+// product of the subset that explains it, or null when the price cannot
+// decide — nothing within 3%, or two subsets within 1% of each other.
+// `after`: the factors dated after the row, [{ date, ratio }].
+export function factorsCarried(row, after, close) {
+  const [, sh, v] = row || [];
+  if (!(close > 0) || !(sh > 0) || !(v > 0) || !after?.length || after.length > 8) return null;
+  const all = after.reduce((f, s) => f * s.ratio, 1);
+  const carried = all / (v / sh / close);
+  const cands = [];
+  for (let m = 0; m < 1 << after.length; m++) {
+    let p = 1;
+    for (let i = 0; i < after.length; i++) if ((m >> i) & 1) p *= after[i].ratio;
+    cands.push({ d: Math.abs(Math.log(carried / p)), p });
+  }
+  cands.sort((a, b) => a.d - b.d);
+  const best = cands[0];
+  const next = cands.find((c) => Math.abs(Math.log(c.p / best.p)) > 1e-9);
+  if (best.d > 0.03) return null;
+  if (next && next.d - best.d < 0.01) return null;
+  return best.p;
+}

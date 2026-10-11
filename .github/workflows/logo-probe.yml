@@ -1,0 +1,33 @@
+name: Logo probe
+
+# One-off, work branch only: is VITE_BRANDFETCH_CLIENT_ID baked into the
+# live bundle, and does the logo CDN answer for a few big tickers with it?
+on:
+  push:
+    branches: [claude/relaxed-dirac-nms1hm]
+    paths: ['.github/workflows/logo-probe.yml']
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - run: |
+          SITE=https://www.fundocap.co
+          curl -sS -m 30 "$SITE/" -o home.html
+          echo "=== entry scripts ==="; grep -oE '/assets/[^"]+\.js' home.html | sort -u
+          echo "=== preconnect in HTML: $(grep -c 'cdn.brandfetch.io' home.html) ==="
+          for js in $(grep -oE '/assets/[^"]+\.js' home.html | sort -u); do curl -sS -m 30 "$SITE$js" >> bundle.js; echo >> bundle.js; done
+          for js in $(grep -oE 'assets/[A-Za-z0-9_.-]+\.js' bundle.js | sort -u); do curl -sS -m 30 "$SITE/$js" >> bundle.js; echo >> bundle.js; done
+          echo "bundle bytes: $(wc -c < bundle.js)"
+          echo "=== CDN template context (id masked) ==="
+          grep -o '.\{300\}fallback/404?c={id}.\{60\}' bundle.js | head -2 | sed -E 's/"([A-Za-z0-9_-]{4})[A-Za-z0-9_-]{8,}"/"\1…"/g'
+          echo "=== Brandfetch attribution in bundle: $(grep -c 'brandfetch.com' bundle.js) ==="
+          ID=$(grep -o '.\{300\}fallback/404?c={id}' bundle.js | grep -oE '"[A-Za-z0-9_-]{10,}"' | tr -d '"' | grep -v -E '^(cdn|https)' | head -1)
+          echo "client id in bundle: ${ID:+yes (${ID:0:4}…, ${#ID} chars)}${ID:-NOT FOUND}"
+          for d in nvidia.com intel.com amazon.com apple.com; do
+            echo "$d -> $(curl -sS -m 20 -o /tmp/l -w '%{http_code} %{content_type} %{size_download}B' -H "Referer: $SITE/" "https://cdn.brandfetch.io/$d/w/128/h/128/fallback/404?c=${ID}")"
+          done
+          echo "=== live manifests ==="
+          curl -sS -m 30 "$SITE/domains.json" | jq -c '{n: (.domains|length), NVDA: .domains.NVDA, INTC: .domains.INTC}'
+          curl -sS -m 30 "$SITE/logos.json" | jq -c '{ok, pct, bfBacklog, NVDA: .logos.NVDA}'

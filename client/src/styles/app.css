@@ -67,9 +67,9 @@ body { overflow-x: clip; }
 }
 .brand .dot { color: var(--primary); }
 
-.nav-tabs { display: flex; align-items: center; gap: 2px; height: 100%; }
+.nav-tabs { display: flex; align-items: center; gap: 2px; height: 100%; min-width: 0; }
 .nav-tab {
-  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 13px;
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 10px;
   border: 0; background: transparent; border-radius: var(--radius-pill); cursor: pointer;
   color: var(--ink-900); font: inherit; font-weight: 500; font-size: 16px; white-space: nowrap;
   text-decoration: none !important;
@@ -103,10 +103,10 @@ body { overflow-x: clip; }
 .topbar-search {
   display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px 0 12px;
   border-radius: var(--radius-pill); border: 1px solid var(--border); background: var(--bg);
-  color: var(--text-500); font: inherit; font-size: 14px; cursor: pointer; min-width: 240px;
+  color: var(--text-500); font: inherit; font-size: 14px; cursor: pointer; min-width: 160px;
 }
 .topbar-search:hover { border-color: var(--primary); color: var(--ink); }
-.topbar-search .ph { flex: 1; text-align: left; }
+.topbar-search .ph { flex: 1; min-width: 0; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .topbar-search kbd { font-family: var(--font-mono); font-size: 11px; padding: 1px 6px; border-radius: var(--radius-md); background: var(--bg); border: 1px solid var(--border); }
 .topbar .toggle-btn { flex: none; background: var(--bg); border-color: var(--border); color: var(--ink); height: 38px; padding: 0 12px; }
 .topbar .toggle-btn:hover { border-color: var(--ink); }
@@ -138,11 +138,24 @@ body { overflow-x: clip; }
 
 .main { width: 100%; max-width: calc(var(--container) + 2 * var(--gutter)); margin: 0 auto; min-width: 0; padding: 32px var(--gutter) 64px; }
 
-@media (max-width: 1100px) { .topbar-search { min-width: 0; } .topbar-search .ph, .topbar-search kbd { display: none; } .topbar-search { padding: 0 11px; } }
-@media (max-width: 900px) {
+/* The header holds the wordmark, six tabs and four tools on one 64px row.
+   Inter at 15px needs ~1,140px for all of it, so the row sheds weight in
+   steps: the tab icons go below the 1280px container, the search box folds
+   to its icon below 1200px, and below 1024px — where six Turkish labels alone no longer fit
+   beside the tools — the tabs move into the burger menu. */
+@media (max-width: 1279px) {
+  .nav-tab .ico { display: none; }
+}
+@media (max-width: 1199px) {
+  .topbar-search { min-width: 0; padding: 0 11px; }
+  .topbar-search .ph, .topbar-search kbd { display: none; }
+}
+@media (max-width: 1023px) {
   .nav-tabs, .topbar .toggle-btn, .topbar-account { display: none; }
   .burger { display: flex; }
   .topbar-inner { gap: 8px; }
+}
+@media (max-width: 767px) {
   .main { padding-top: 24px; }
 }
 
@@ -203,8 +216,8 @@ img.tlogo { background: var(--logo-tile); border: 1px solid var(--border); paddi
 .grid-2 { grid-template-columns: repeat(2, 1fr); }
 /* the four-number strip at the top of a page: two-up on a tablet, stacked on a phone */
 .grid-4 { grid-template-columns: repeat(4, 1fr); }
-@media (max-width: 1000px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } .grid-4 { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 560px) { .grid-4 { grid-template-columns: 1fr; } }
+@media (max-width: 1023px) { .grid-3 { grid-template-columns: 1fr; } .grid-2 { grid-template-columns: 1fr; } .grid-4 { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 479px) { .grid-4 { grid-template-columns: 1fr; } }
 
 /* ---------- stat cards ---------- */
 /* stat / proof cards: the only cards that carry --shadow-card */
@@ -376,7 +389,7 @@ a.badge.pro:hover { text-decoration: none; }
    value, weight and change columns scroll under it. Chosen over collapsing
    columns behind an expand: every column stays sortable and comparable,
    and nothing is hidden behind a tap. */
-@media (max-width: 720px) {
+@media (max-width: 767px) {
   .table-wrap table.data th:first-child, .table-wrap table.data td:first-child {
     position: sticky; left: 0; z-index: 1; background: var(--bg);
     box-shadow: 1px 0 0 var(--border);
@@ -576,7 +589,7 @@ th.sortable { cursor: pointer; user-select: none; }
 }
 .palette-results { max-height: 340px; overflow-y: auto; margin-top: 8px; }
 .kbd-hint { padding: 8px 12px; }
-@media (max-width: 840px) { .kbd-hint { display: none; } }
+@media (max-width: 767px) { .kbd-hint { display: none; } }
 
 /* ---------- print / PDF ---------- */
 @media print {
@@ -638,8 +651,8 @@ th.sortable { cursor: pointer; user-select: none; }
 .picker-row { align-items: stretch; }
 /* compare page: the metric strip and the two-sided sector bars */
 .cmp-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
-@media (max-width: 1000px) { .cmp-strip { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 560px) { .cmp-strip { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 1023px) { .cmp-strip { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 479px) { .cmp-strip { grid-template-columns: repeat(2, 1fr); } }
 .cmp-strip .k { font-size: 12px; color: var(--text-500); display: flex; align-items: center; gap: 4px; }
 .cmp-strip .v { font-weight: 700; font-size: 16px; margin-top: 2px; }
 .cmp-strip .ab { font-size: 12px; color: var(--text-500); }
@@ -704,13 +717,13 @@ th.sortable { cursor: pointer; user-select: none; }
 .modal-cols .select { width: 100%; }
 .check-row { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; margin-top: 14px; cursor: pointer; }
 .check-row input { margin-top: 3px; }
-@media (max-width: 720px) { .modal-cols { grid-template-columns: 1fr; } }
+@media (max-width: 767px) { .modal-cols { grid-template-columns: 1fr; } }
 
 /* ======================================================================
    Landing page (Home.jsx)
    ====================================================================== */
 .home { --bleed-x: calc(50vw - 50%); --bleed-y: 32px; }
-@media (max-width: 900px) { .home { --bleed-y: 24px; } }
+@media (max-width: 767px) { .home { --bleed-y: 24px; } }
 
 /* promo banner — full-bleed above the hero */
 .promo-banner {
@@ -768,7 +781,7 @@ th.sortable { cursor: pointer; user-select: none; }
   box-shadow: var(--shadow-pop); opacity: 0; pointer-events: none; transition: opacity 0.12s; z-index: 20;
 }
 .hero-stat .stat-tip:hover::after, .hero-stat .stat-tip:focus::after { opacity: 1; }
-@media (max-width: 840px) {
+@media (max-width: 767px) {
   .hero-band h1 { font-size: 32px; }
   .hero-band .lead { font-size: 16px; }
   .hero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -813,7 +826,7 @@ th.sortable { cursor: pointer; user-select: none; }
 
 /* insider block */
 .ins-grid { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 20px; align-items: start; }
-@media (max-width: 1000px) { .ins-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1023px) { .ins-grid { grid-template-columns: 1fr; } }
 .pulse-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .pulse-head .ico { width: 40px; height: 40px; border-radius: 50%; background: var(--surface-alt); display: flex; align-items: center; justify-content: center; color: var(--text-500); }
 .pulse-head b { font-size: 16px; }
@@ -831,7 +844,7 @@ th.sortable { cursor: pointer; user-select: none; }
 .sig-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
 .sig-head b { font-size: 16px; display: flex; align-items: center; gap: 8px; }
 .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border-radius: var(--radius-pill); background: var(--surface-alt); max-width: 100%; }
-@media (max-width: 720px) { .seg { border-radius: var(--radius-sm); } }
+@media (max-width: 767px) { .seg { border-radius: var(--radius-sm); } }
 .seg button {
   border: 0; background: transparent; color: var(--text-500); font-weight: 700; font-size: 14px;
   padding: 7px 14px; border-radius: var(--radius-pill); cursor: pointer; font-family: inherit; white-space: nowrap;
@@ -908,7 +921,7 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 /* ---------- directories & FAQ ---------- */
 .filer-list { list-style: none; columns: 2; column-gap: 32px; }
 .filer-list li { padding: 5px 0; break-inside: avoid; border-bottom: 1px solid var(--border); font-size: 14px; }
-@media (max-width: 840px) { .filer-list { columns: 1; } }
+@media (max-width: 767px) { .filer-list { columns: 1; } }
 .faq details { border-bottom: 1px solid var(--border); padding: 10px 0; }
 .faq summary { cursor: pointer; font-weight: 700; font-size: 16px; }
 .faq p { color: var(--text-500); font-size: 14px; margin-top: 8px; line-height: 1.6; }
@@ -1009,7 +1022,7 @@ table.data.sig td { padding: 12px 10px; vertical-align: middle; }
 .fund-stat .s { color: var(--text-500); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .fund-tabs { margin: 0 -24px; border-top: 1px solid var(--border); border-bottom: 0; padding: 0 12px; }
 .fund-tabs .home-tab { text-decoration: none !important; }
-@media (max-width: 840px) {
+@media (max-width: 767px) {
   .fund-head { padding: 18px 16px 0; }
   .fund-title h1 { font-size: 24px; line-height: 28.8px; }
   .fund-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 14px -16px 0; }
@@ -1031,7 +1044,7 @@ table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
 .stock-section { scroll-margin-top: 80px; }
 .fund-tabs a.home-tab { color: var(--text-500); }
 .fund-tabs a.home-tab:hover { color: var(--ink); text-decoration: none; }
-@media (max-width: 840px) { .stock-title h1 { font-size: 24px; line-height: 28.8px; } .stock .price-big { font-size: 24px; } .stock-title .tlogo { width: 44px; height: 44px; } }
+@media (max-width: 767px) { .stock-title h1 { font-size: 24px; line-height: 28.8px; } .stock .price-big { font-size: 24px; } .stock-title .tlogo { width: 44px; height: 44px; } }
 
 /* consensus: the same header; without the strip the tab row sits right under the title */
 .consensus .fund-title h1 { display: flex; align-items: center; gap: 10px; }
@@ -1050,7 +1063,7 @@ table.data.positions td { padding-top: 10px; padding-bottom: 10px; }
 .ins-strip { grid-template-columns: 2fr 1fr 1fr; }
 .ins-strip .fund-stat.wide .ins-day { margin-top: 2px; }
 .ins-strip .fund-stat.wide .ins-day > .muted.small:first-child { margin-bottom: 6px; }
-@media (max-width: 840px) {
+@media (max-width: 767px) {
   .ins-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ins-strip .fund-stat.wide { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid var(--border); }
   .ins-strip .fund-stat:nth-child(2) { border-right: 1px solid var(--border); }

@@ -138,23 +138,35 @@ body { overflow-x: clip; }
 
 .main { width: 100%; max-width: calc(var(--container) + 2 * var(--gutter)); margin: 0 auto; min-width: 0; padding: 32px var(--gutter) 64px; }
 
-/* The header holds the wordmark, six tabs and four tools on one 64px row.
-   Inter at 15px needs ~1,140px for all of it, so the row sheds weight in
-   steps: the tab icons go below the 1280px container, the search box folds
-   to its icon below 1200px, and below 1024px — where six Turkish labels alone no longer fit
-   beside the tools — the tabs move into the burger menu. */
+/* The header holds the wordmark, six tabs and five tools (search, theme,
+   language, account, burger) on one 64px row. The row's real width depends
+   on the language, the account label, the browser's zoom and its fonts, so
+   TopBar.jsx measures it (fitHeader) and steps down until nothing overlaps:
+   data-fit 1 folds the search box to its icon, 2 moves the tabs into the
+   burger menu. The media queries below are the same steps at the widths
+   where the signed-out Turkish row needs them, so the server-rendered first
+   paint already fits. Tab icons appear in the burger panel only: beside the
+   account button they never fit the 1,280px container. */
+.nav-tabs .nav-tab .ico { display: none; }
 @media (max-width: 1279px) {
-  .nav-tab .ico { display: none; }
-}
-@media (max-width: 1199px) {
   .topbar-search { min-width: 0; padding: 0 11px; }
   .topbar-search .ph, .topbar-search kbd { display: none; }
 }
 @media (max-width: 1023px) {
-  .nav-tabs, .topbar .toggle-btn, .topbar-account { display: none; }
+  /* .topbar-inner: outranks the .btn display the account link also carries */
+  .nav-tabs, .topbar .toggle-btn, .topbar-inner .topbar-account { display: none; }
   .burger { display: flex; }
   .topbar-inner { gap: 8px; }
 }
+.topbar-inner[data-fit='1'] .topbar-search,
+.topbar-inner[data-fit='2'] .topbar-search { min-width: 0; padding: 0 11px; }
+.topbar-inner[data-fit='1'] .topbar-search .ph, .topbar-inner[data-fit='1'] .topbar-search kbd,
+.topbar-inner[data-fit='2'] .topbar-search .ph, .topbar-inner[data-fit='2'] .topbar-search kbd { display: none; }
+.topbar-inner[data-fit='2'] .nav-tabs,
+.topbar-inner[data-fit='2'] .toggle-btn,
+.topbar-inner[data-fit='2'] .topbar-account { display: none; }
+.topbar-inner[data-fit='2'] .burger { display: flex; }
+.topbar-inner[data-fit='2'] { gap: 8px; }
 @media (max-width: 767px) {
   .main { padding-top: 24px; }
 }

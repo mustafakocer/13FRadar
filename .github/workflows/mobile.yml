@@ -37,6 +37,11 @@ jobs:
       - run: npm ci
       - run: npm ci --prefix client
       - run: npm run build
+        env:
+          # a placeholder project, so the header renders its account button
+          # as production does (the row's widest state); nothing signs in
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder
       - name: Install Chromium for playwright-core
         run: npx playwright-core install --with-deps chromium
       - name: Serve the built site on fixtures

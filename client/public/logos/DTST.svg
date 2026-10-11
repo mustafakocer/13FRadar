@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg data-bbox="0 0 39.711 33.298" viewBox="0 0 39.711 33.298" height="33.298" width="39.711" xmlns="http://www.w3.org/2000/svg" data-type="color">
+    <g>
+        <g style="isolation:isolate">
+            <path fill="#0079b8" d="M10.591 12.334v6.831H0v-6.831z" data-color="1"/>
+            <path fill="#004a83" d="M22.244 0H10.568v12.329h6.224V5.206h5.115c6.852 0 11.386 3.986 11.386 11.4 0 7.5-4.439 11.49-11.386 11.49h-5.115v-8.935h-6.224v14.137h11.676c10.567 0 17.467-6.191 17.467-16.694S32.811 0 22.244 0" data-color="2"/>
+            <path fill="#ffffff" d="M16.792 19.161h.496" data-color="3"/>
+            <path fill="#ffffff" d="M17.288 12.329h-.496" data-color="3"/>
+        </g>
+    </g>
+</svg>

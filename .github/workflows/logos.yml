@@ -71,7 +71,7 @@ jobs:
           LOGOS_BATCH: '400'
           # Brandfetch first (either one turns it on; the API key wins)
           BRANDFETCH_API_KEY: ${{ secrets.BRANDFETCH_API_KEY }}
-          BRANDFETCH_CLIENT_ID: ${{ secrets.BRANDFETCH_CLIENT_ID || vars.VITE_BRANDFETCH_CLIENT_ID }}
+          BRANDFETCH_CLIENT_ID: ${{ secrets.BRANDFETCH_CLIENT_ID }}
           BRANDFETCH_BATCH: '2000'
       - name: Commit if changed
         run: |

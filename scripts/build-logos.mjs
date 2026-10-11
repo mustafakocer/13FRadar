@@ -157,6 +157,9 @@ async function bfGet(url, opts, retried = false) {
   const r = await bfHttp.get(url, opts);
   if (r.status === 429 && !retried) { await sleep(60000); return bfGet(url, opts, true); }
   if (r.status === 401 || r.status === 403 || r.status === 429) throw new BfOff(`HTTP ${r.status}`);
+  // the Logo Link CDN answers a non-browser caller with a 302 to its
+  // hotlinking guidelines: it serves readers' browsers only
+  if (r.status >= 300 && r.status < 400) throw new BfOff(`HTTP ${r.status} → ${r.headers?.location || 'redirect'}`);
   return r;
 }
 const bfImage = (r) => {
@@ -177,7 +180,7 @@ async function brandfetchApi(domain) {
   return null;
 }
 async function brandfetchCdn(domain) {
-  return bfImage(await bfGet(`https://cdn.brandfetch.io/${encodeURIComponent(domain)}/w/256/h/256/fallback/404?c=${encodeURIComponent(BF_ID)}`));
+  return bfImage(await bfGet(`https://cdn.brandfetch.io/${encodeURIComponent(domain)}/w/256/h/256/fallback/404?c=${encodeURIComponent(BF_ID)}`, { maxRedirects: 0 }));
 }
 async function brandfetchFor(domain) {
   for (const [name, fn] of [['api', brandfetchApi], ['cdn', brandfetchCdn]]) {

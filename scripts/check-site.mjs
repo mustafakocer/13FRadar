@@ -173,7 +173,7 @@ else {
   const def = uni.status === 200 ? universeSummaryFile(JSON.parse(uni.text)) : null;
   const plain = (h) => h.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/&#x27;|&#39;/g, "'").replace(/\s+/g, ' ');
   for (const [lang, lead, all, locale] of [
-    ['tr', /ABD'deki ([\d.]+) fonun portföyünü[^.]*\. Her gün güncel, sade ve Türkçe\./, /Tüm usta yatırımcılar \((\d+)\)/, 'tr-TR'],
+    ['tr', /Akıllı paranın peşinden gidin: ([\d.]+) fonun portföyü, yönetici ve kongre üyelerinin alım-satımları tek ekranda!/, /Tüm usta yatırımcılar \((\d+)\)/, 'tr-TR'],
     ['en', /We compile the portfolios of ([\d,]+) US funds[^.]*\. Updated daily, in plain language\./, /All superinvestors \((\d+)\)/, 'en-US'],
   ]) {
     const r = await get(`/${lang}`);

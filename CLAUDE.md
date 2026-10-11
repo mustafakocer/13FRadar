@@ -22,6 +22,10 @@ Bu yüzden:
 4. **Deneme dalı açıp push etme.** Geçici dallar da preview build üretir.
 5. **Yeni zamanlanmış iş (workflow) main'e commit atacaksa** maliyeti düşün: mevcut işlerle
    aynı commit'te birleştirmeyi ya da günlük tek toplu commit'i tercih et.
+   `scripts/vercel-ignore.mjs` (vercel.json → `ignoreCommand`) logo, şirket domain'i ve
+   Kongre veri commit'lerini tek başına yayınlamaz; bir sonraki yayın (insider ~03:00/~11:00
+   UTC, gece konsensüsü, merge) onları da taşır, son yayın 12 saati geçtiyse yine build eder.
+   Acil olmayan yeni bir veri işi eklersen commit mesajını oradaki `DEFERRABLE` listesine ekle.
 6. Maliyet kontrolü: Vercel bağlayıcısında `list_billing_charges` (team
    `team_HX08q8PKoWadRHegEBiw5E9O`) ve `list_deployments`; kullanıcı panelde
    Settings → Billing → Spend Management ile harcama sınırı/uyarısı tutuyor.

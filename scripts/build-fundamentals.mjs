@@ -59,6 +59,8 @@ const predecessors = read('config/predecessors.json', {})?.byTicker || {};
 const sectorOf = read('api/_data/sector-map.json', {})?.bySymbol || {};
 // is the US security an ADS, and of how many shares (api/_lib/adrResolve.js)
 const adrOf = adrResolver(root);
+const splitTable = read('api/_data/splits.json', {})?.byTicker || {};
+const splitsOf = (t) => splitTable[t] || splitTable[t.replace('.', '-')] || splitTable[t.replace('-', '.')] || null;
 // The reporting currency at today's rate, else the newest one within three
 // weeks: the H.10-only currencies (TWD, LKR) are published weekly with a
 // lag, so a 7-day window left TSM's EPS without a rate every few days.
@@ -143,7 +145,7 @@ for (const [cik, list] of byCik) {
   }
   const recOf = (t) => {
     const adr = adrOf(t, padCik(cik));
-    const rec = fundamentalsOf(cf, { cik, classRule: classRules[t] || classRules[t.replace('.', '-')] || null, fx: usd, adrRatio: adr.ratio, asOf: today });
+    const rec = fundamentalsOf(cf, { cik, classRule: classRules[t] || classRules[t.replace('.', '-')] || null, fx: usd, adrRatio: adr.ratio, asOf: today, splits: splitsOf(t) });
     return adr.unknown ? withoutPerShare(rec) : rec;
   };
   // the filing's own document fills what companyfacts leaves out

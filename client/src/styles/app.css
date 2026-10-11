@@ -138,19 +138,21 @@ body { overflow-x: clip; }
 
 .main { width: 100%; max-width: calc(var(--container) + 2 * var(--gutter)); margin: 0 auto; min-width: 0; padding: 32px var(--gutter) 64px; }
 
-/* The header holds the wordmark, six tabs and five tools (search, theme,
-   language, account, burger) on one 64px row. The row's real width depends
-   on the language, the account label, the browser's zoom and its fonts, so
-   TopBar.jsx measures it (fitHeader) and steps down until nothing overlaps:
-   data-fit 1 folds the search box to its icon, 2 moves the tabs into the
-   burger menu. The media queries below are the same steps at the widths
-   where the signed-out Turkish row needs them, so the server-rendered first
-   paint already fits. Tab icons appear in the burger panel only: beside the
-   account button they never fit the 1,280px container. */
-.nav-tabs .nav-tab .ico { display: none; }
-@media (max-width: 1279px) {
-  .topbar-search { min-width: 0; padding: 0 11px; }
-  .topbar-search .ph, .topbar-search kbd { display: none; }
+/* The header holds the wordmark, six tabs with their icons and five tools
+   (search, theme, language, account, burger) on one 64px row. On desktop
+   the search is its icon (⌘K opens the palette; the home page has the full
+   box): beside the account button the labelled box and the tab icons do not
+   both fit the 1,280px container, and the icons were the ones kept.
+   The row's real width depends on the language, the account label, the
+   browser's zoom and its fonts, so TopBar.jsx measures it (fitHeader) and
+   steps down until nothing overlaps: data-fit 1 drops the tab icons, 2
+   moves the tabs into the burger menu. The media queries are the same steps
+   at the widths where the signed-out Turkish row needs them, so the
+   server-rendered first paint already fits. */
+.topbar-search { min-width: 0; padding: 0 11px; }
+.topbar-search .ph, .topbar-search kbd { display: none; }
+@media (max-width: 1199px) {
+  .nav-tabs .nav-tab .ico { display: none; }
 }
 @media (max-width: 1023px) {
   /* .topbar-inner: outranks the .btn display the account link also carries */
@@ -158,10 +160,8 @@ body { overflow-x: clip; }
   .burger { display: flex; }
   .topbar-inner { gap: 8px; }
 }
-.topbar-inner[data-fit='1'] .topbar-search,
-.topbar-inner[data-fit='2'] .topbar-search { min-width: 0; padding: 0 11px; }
-.topbar-inner[data-fit='1'] .topbar-search .ph, .topbar-inner[data-fit='1'] .topbar-search kbd,
-.topbar-inner[data-fit='2'] .topbar-search .ph, .topbar-inner[data-fit='2'] .topbar-search kbd { display: none; }
+.topbar-inner[data-fit='1'] .nav-tab .ico,
+.topbar-inner[data-fit='2'] .nav-tab .ico { display: none; }
 .topbar-inner[data-fit='2'] .nav-tabs,
 .topbar-inner[data-fit='2'] .toggle-btn,
 .topbar-inner[data-fit='2'] .topbar-account { display: none; }

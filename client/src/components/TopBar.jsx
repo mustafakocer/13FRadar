@@ -18,9 +18,8 @@ const useIsoLayoutEffect = typeof window === 'undefined' ? useEffect : useLayout
 // the CSS breakpoints set a starting point for the first paint, but the
 // row's real width depends on the language, the account button (signed out,
 // signed in, PRO), the browser's zoom and its font rendering. Each step is
-// cumulative — 1: the search box folds to its icon, 2: the tabs move into
-// the burger menu — and the row takes the first step at which nothing
-// overlaps.
+// cumulative — 1: the tab icons go, 2: the tabs move into the burger menu —
+// and the row takes the first step at which nothing overlaps.
 const FIT_STEPS = 2;
 function overflows(inner) {
   const tabs = inner.querySelector('.nav-tabs');

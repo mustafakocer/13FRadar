@@ -183,3 +183,32 @@ export function imageInfo(buf) {
 export const usable = (info, { square = false } = {}) =>
   info && Math.min(info.w, info.h) >= MIN_SIDE && (!square || Math.max(info.w, info.h) / Math.min(info.w, info.h) <= 1.3);
 
+
+// ---------- Brandfetch Brand API → the logo files worth trying ----------
+// The Brand API answers { logos: [{ type, theme, formats: [{ src, format,
+// width, height }] }] }. A square brand mark reads best at 20–40px, so
+// icon > symbol > logo; within a type the light theme first (our cards are
+// light by default), raster only — an SVG served from our origin could
+// carry script — and the largest file at or above the 64px floor first.
+const BF_TYPES = { icon: 0, symbol: 1, logo: 2 };
+const BF_RASTER = new Set(['png', 'jpeg', 'jpg', 'webp']);
+export function brandfetchCandidates(brand) {
+  const out = [];
+  for (const l of Array.isArray(brand?.logos) ? brand.logos : []) {
+    const rank = BF_TYPES[String(l?.type || '').toLowerCase()];
+    if (rank === undefined) continue;
+    const theme = l?.theme === 'dark' ? 1 : 0;
+    for (const f of Array.isArray(l?.formats) ? l.formats : []) {
+      const fmt = String(f?.format || '').toLowerCase();
+      if (!BF_RASTER.has(fmt) || !/^https:\/\//i.test(String(f?.src || ''))) continue;
+      const side = Math.min(Number(f.width) || 0, Number(f.height) || 0);
+      // unknown dimensions are allowed through: the image sniff decides
+      if (side && side < MIN_SIDE) continue;
+      out.push({ url: f.src, rank, theme, side });
+    }
+  }
+  return out
+    .sort((a, b) => a.rank - b.rank || a.theme - b.theme || b.side - a.side)
+    .map((c) => c.url)
+    .filter((u, i, a) => a.indexOf(u) === i);
+}

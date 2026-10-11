@@ -1,7 +1,9 @@
 name: Stock logos
 
-# Daily logo harvest (scripts/build-logos.mjs), LOGOS_BATCH tickers per run
-# over every ticker with a known domain (client/public/domains.json): that
+# Daily logo harvest (scripts/build-logos.mjs). First Brandfetch, by domain,
+# for every ticker without a logo (BRANDFETCH_BATCH per run; needs the
+# BRANDFETCH_API_KEY or BRANDFETCH_CLIENT_ID secret). Then LOGOS_BATCH tickers
+# per run over every ticker with a known domain (client/public/domains.json): that
 # site's apple-touch-icon / icon / og:image (≥ 64px, robots.txt obeyed),
 # else the public favicon caches — cached in the repo so readers' browsers
 # never call a company's site. The self-hosted fallback behind the logo CDN.
@@ -67,6 +69,10 @@ jobs:
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           LOGOS_BATCH: '400'
+          # Brandfetch first (either one turns it on; the API key wins)
+          BRANDFETCH_API_KEY: ${{ secrets.BRANDFETCH_API_KEY }}
+          BRANDFETCH_CLIENT_ID: ${{ secrets.BRANDFETCH_CLIENT_ID || vars.VITE_BRANDFETCH_CLIENT_ID }}
+          BRANDFETCH_BATCH: '2000'
       - name: Commit if changed
         run: |
           git config user.name 'logos-bot'

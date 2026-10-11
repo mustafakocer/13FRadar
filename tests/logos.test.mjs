@@ -94,3 +94,24 @@ test('rootDomain: an investor-relations host is not a brand', () => {
   assert.equal(rootDomain('abc.xyz'), null);
   assert.equal(rootDomain('ir.draftkings.com'), 'draftkings.com');
 });
+
+test('brandfetchCandidates: icon before logo, light before dark, raster only, ≥64px', async () => {
+  const { brandfetchCandidates } = await import('../api/_lib/logoScrape.js');
+  const brand = {
+    logos: [
+      { type: 'logo', theme: 'light', formats: [{ src: 'https://a/logo.png', format: 'png', width: 800, height: 200 }] },
+      { type: 'icon', theme: 'dark', formats: [{ src: 'https://a/icon-dark.png', format: 'png', width: 400, height: 400 }] },
+      { type: 'icon', theme: 'light', formats: [
+        { src: 'https://a/icon.svg', format: 'svg' },
+        { src: 'https://a/icon-small.png', format: 'png', width: 32, height: 32 },
+        { src: 'https://a/icon.png', format: 'png', width: 400, height: 400 },
+        { src: 'https://a/icon.jpeg', format: 'jpeg', width: 128, height: 128 },
+      ] },
+      { type: 'other', theme: 'light', formats: [{ src: 'https://a/banner.png', format: 'png', width: 1500, height: 500 }] },
+      { type: 'symbol', formats: [{ src: 'http://a/insecure.png', format: 'png', width: 200, height: 200 }] },
+    ],
+  };
+  assert.deepEqual(brandfetchCandidates(brand), ['https://a/icon.png', 'https://a/icon.jpeg', 'https://a/icon-dark.png', 'https://a/logo.png']);
+  assert.deepEqual(brandfetchCandidates(null), []);
+  assert.deepEqual(brandfetchCandidates({ logos: 'nope' }), []);
+});

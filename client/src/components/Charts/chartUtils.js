@@ -9,10 +9,10 @@ export const seriesColors = () =>
   ['--chart-1', '--chart-2', '--chart-3', '--chart-4', '--chart-5', '--chart-6'].map(getVar);
 
 export const tooltipStyle = () => ({
-  background: getVar('--popover'),
+  background: getVar('--surface-alt'),
   border: `1px solid ${getVar('--border')}`,
   borderRadius: 10,
   fontSize: 13,
   fontFamily: 'inherit',
-  color: getVar('--text'),
+  color: getVar('--ink'),
 });

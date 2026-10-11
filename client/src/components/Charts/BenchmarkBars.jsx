@@ -26,13 +26,13 @@ export default function BenchmarkBars({ series }) {
         <CartesianGrid stroke={getVar('--border')} vertical={false} />
         <XAxis
           dataKey="period"
-          tick={{ fill: getVar('--text-2'), fontSize: 12 }}
+          tick={{ fill: getVar('--text-500'), fontSize: 12 }}
           axisLine={{ stroke: getVar('--border') }}
           tickLine={false}
         />
         <YAxis
           tickFormatter={(v) => fmtPct(v, { sign: false, digits: 0 })}
-          tick={{ fill: getVar('--text-2'), fontSize: 12 }}
+          tick={{ fill: getVar('--text-500'), fontSize: 12 }}
           axisLine={false}
           tickLine={false}
           width={48}
@@ -41,11 +41,11 @@ export default function BenchmarkBars({ series }) {
         <Tooltip
           contentStyle={tooltipStyle()}
           formatter={(v) => fmtPct(v)}
-          cursor={{ fill: getVar('--popover') }}
+          cursor={{ fill: getVar('--surface-alt') }}
         />
         <Legend
           formatter={(value) => (
-            <span style={{ color: getVar('--text'), fontSize: 13 }}>{value}</span>
+            <span style={{ color: getVar('--ink'), fontSize: 13 }}>{value}</span>
           )}
         />
         {series.map((s, i) => (

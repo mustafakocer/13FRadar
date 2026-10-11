@@ -87,7 +87,7 @@ export default function Watchlist() {
               <Link to={managerPath(f.cik)} style={{ fontWeight: 700, fontSize: 16 }}>
                 {f.name}
               </Link>
-              {isNew && <span className="badge info"><Ico icon={Bell} size={14} /> {t('watchlist.newFiling')}</span>}
+              {isNew && <span className="badge new"><Ico icon={Bell} size={14} /> {t('watchlist.newFiling')}</span>}
               {latest && (
                 <span className="muted small">
                   {quarterLabel(latest.reportDate)} · {latest.filingDate}

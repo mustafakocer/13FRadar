@@ -27,7 +27,7 @@ export default function HoldersPanel({ ticker, cusip, holders: inline = [], hold
 
   return (
     <tr className="row-expand">
-      <td colSpan={colSpan} style={{ background: 'var(--popover)', padding: '10px 14px' }}>
+      <td colSpan={colSpan} style={{ background: 'var(--surface-alt)', padding: '10px 14px' }}>
         {rows.length === 0 ? (
           <span className="muted small">{t('consensus.noHolders')}</span>
         ) : (

@@ -27,7 +27,7 @@ export default function Logo({ size = 22, className = '' }) {
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx="16.6" cy="9.2" r="2.3" fill="var(--accent)" />
+      <circle cx="16.6" cy="9.2" r="2.3" fill="var(--primary)" />
     </svg>
   );
 }

@@ -282,6 +282,8 @@ export default function Home() {
   return (
     <div className="home">
       <section className="home-hero">
+        {/* the page's one highlight band */}
+        <p className="home-band"><span className="hl-band">{t('home.band.lead')} <b>{t('home.band.strong')}</b></span></p>
         <h1>{t('home.h1')}</h1>
         <p className="lead">{funds ? t('home.sub').replace('{n}', funds) : t('home.sub.noCount')}</p>
         <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} placeholder={t('home.search')} />

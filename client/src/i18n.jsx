@@ -90,6 +90,8 @@ const dict = {
     // ---- landing (home) ------------------------------------------------
     // ---- ana sayfa (stockcircle tarzı: başlık, arama, üç sekme, kartlar) ----
     'home.h1': 'En iyi yatırımcılar nasıl yatırım yapıyor?',
+    'home.band.lead': 'Bu çeyrek büyük fonlar ne aldı? —',
+    'home.band.strong': 'Ve neden önemli.',
     'home.sub': "ABD'deki {n} fonun portföyünü ve şirket yöneticilerinin kendi hisselerindeki alım-satımlarını SEC kayıtlarından derliyoruz. Her gün güncel, sade ve Türkçe.",
     'home.sub.noCount': "ABD'deki fonların portföyünü ve şirket yöneticilerinin kendi hisselerindeki alım-satımlarını SEC kayıtlarından derliyoruz. Her gün güncel, sade ve Türkçe.",
     'home.search': 'Fon, yatırımcı veya hisse ara…',
@@ -1487,6 +1489,8 @@ const dict = {
     // ---- landing (home) ------------------------------------------------
     // ---- home (stockcircle-style: headline, search, three tabs, cards) ----
     'home.h1': 'See how the best investors invest.',
+    'home.band.lead': 'What did the big funds buy this quarter? —',
+    'home.band.strong': 'And why it matters.',
     'home.sub': "We compile the portfolios of {n} US funds and the trades executives make in their own companies' shares, straight from SEC filings. Updated daily, in plain language.",
     'home.sub.noCount': "We compile the portfolios of US funds and the trades executives make in their own companies' shares, straight from SEC filings. Updated daily, in plain language.",
     'home.search': 'Search funds, investors or stocks…',

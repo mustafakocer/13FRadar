@@ -28,7 +28,7 @@ export default function GuruSignal({ ticker, cusip }) {
 
   const tone = buyers > sellers ? 'pos' : sellers > buyers ? 'neg' : 'plain';
   const Icon = buyers > sellers ? TrendingUp : sellers > buyers ? TrendingDown : Minus;
-  const iconCls = tone === 'pos' ? 'text-buy' : tone === 'neg' ? 'text-sell' : 'text-text-2';
+  const iconCls = tone === 'pos' ? 'text-gain' : tone === 'neg' ? 'text-loss' : 'text-text-500';
 
   return (
     <div className="card" style={{ marginBottom: 16, borderColor: 'var(--border-strong)' }}>

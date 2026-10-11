@@ -18,17 +18,17 @@ export default function SectorPie({ positions, sectors, loading = false }) {
             after its data arrives and is re-parented once the page hydrates,
             and Recharts' animation state does not survive that — the legend
             rendered while every arc stayed at radius zero. */}
-        <Pie data={data} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="85%" paddingAngle={2} stroke={getVar('--card')} strokeWidth={2} isAnimationActive={false}>
+        <Pie data={data} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="85%" paddingAngle={2} stroke={getVar('--bg')} strokeWidth={2} isAnimationActive={false}>
           {data.map((d, i) => (
-            <Cell key={d.name} fill={d.unclassified ? getVar('--text-2') : colors[i % colors.length]} />
+            <Cell key={d.name} fill={d.unclassified ? getVar('--text-500') : colors[i % colors.length]} />
           ))}
         </Pie>
         <Tooltip contentStyle={tooltipStyle()} formatter={(v) => fmtPct(v, { sign: false })} />
         <Legend
           formatter={(value, entry) => (
-            <span style={{ color: getVar('--text'), fontSize: 13 }}>
+            <span style={{ color: getVar('--ink'), fontSize: 13 }}>
               {value}{' '}
-              <span style={{ color: getVar('--text-2') }}>{fmtPct(entry.payload.value, { sign: false })}</span>
+              <span style={{ color: getVar('--text-500') }}>{fmtPct(entry.payload.value, { sign: false })}</span>
             </span>
           )}
         />

@@ -1,4 +1,4 @@
-// Horizontal-overflow check at phone widths: every page in PAGES at every
+// Horizontal-overflow check at phone, tablet and narrow-desktop widths: every page in PAGES at every
 // viewport in VIEWPORTS must not scroll sideways (document.scrollWidth ≤
 // window.innerWidth) after hydration. Prints one row per page × viewport
 // and exits 1 on any overflow — the CI gate in .github/workflows/mobile.yml.
@@ -17,6 +17,10 @@ const SHOTS = process.env.SHOTS || '';
 export const VIEWPORTS = [
   { name: '390x844', width: 390, height: 844 },
   { name: '360x800', width: 360, height: 800 },
+  // the header's tightest widths: the first with the full tab row (1024) and
+  // the first with the full search box (1200)
+  { name: '1024x768', width: 1024, height: 768 },
+  { name: '1200x800', width: 1200, height: 800 },
 ];
 export const PAGES = (process.env.MOBILE_PAGES ? process.env.MOBILE_PAGES.split(',') : [
   '/tr',

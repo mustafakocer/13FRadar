@@ -300,7 +300,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                 </tr>,
                 cik && expanded === rowKey ? (
                   <tr key={`${rowKey}-hist`}>
-                    <td colSpan={cols.length} className="l" style={{ background: 'var(--popover)' }}>
+                    <td colSpan={cols.length} className="l" style={{ background: 'var(--surface-alt)' }}>
                       <HistoryPanel cik={cik} cusip={p.cusip} t={t} />
                     </td>
                   </tr>

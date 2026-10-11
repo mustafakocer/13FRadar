@@ -74,7 +74,7 @@ export default function ChangeStory({ changes }) {
     );
 
   return (
-    <div className="card" style={{ marginBottom: 16, background: 'var(--popover)', borderColor: 'var(--border-strong)' }}>
+    <div className="card" style={{ marginBottom: 16, background: 'var(--surface-alt)', borderColor: 'var(--border-strong)' }}>
       <h3><Ico icon={BookOpen} /> {t('story.title')}</h3>
       {lines.length ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 14 }}>{lines}</div>

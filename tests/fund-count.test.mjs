@@ -10,7 +10,7 @@ const text = (html) => html.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').re
 const summary = JSON.parse(fs.readFileSync(new URL('../client/public/universe-summary.json', import.meta.url), 'utf8'));
 
 for (const [lang, locale, home, pricing] of [
-  ['tr', 'tr-TR', /ABD'deki ([\d.]+) fonun/, /Tam evren tarayıcı \(([^)]*) fon\)/],
+  ['tr', 'tr-TR', /peşinden gidin: ([\d.]+) fonun/, /Tam evren tarayıcı \(([^)]*) fon\)/],
   ['en', 'en-US', /portfolios of ([\d,]+) US funds/, /Full-universe screener \(([^)]*) funds\)/],
 ]) {
   test(`${lang}: home and pricing state the same number of funds`, async () => {

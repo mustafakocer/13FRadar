@@ -89,11 +89,11 @@ const dict = {
 
     // ---- landing (home) ------------------------------------------------
     // ---- ana sayfa (stockcircle tarzı: başlık, arama, üç sekme, kartlar) ----
-    'home.h1': 'En iyi yatırımcılar nasıl yatırım yapıyor?',
+    'home.h1': 'Akıllı parayı takip et! Wall Street Kurtları Neler Alıyor?',
     'home.band.lead': 'Bu çeyrek büyük fonlar ne aldı? —',
     'home.band.strong': 'Ve neden önemli.',
-    'home.sub': "ABD'deki {n} fonun portföyünü ve şirket yöneticilerinin kendi hisselerindeki alım-satımlarını SEC kayıtlarından derliyoruz. Her gün güncel, sade ve Türkçe.",
-    'home.sub.noCount': "ABD'deki fonların portföyünü ve şirket yöneticilerinin kendi hisselerindeki alım-satımlarını SEC kayıtlarından derliyoruz. Her gün güncel, sade ve Türkçe.",
+    'home.sub': 'Akıllı paranın peşinden gidin: {n} fonun portföyü, yönetici ve kongre üyelerinin alım-satımları tek ekranda!',
+    'home.sub.noCount': 'Akıllı paranın peşinden gidin: fonların portföyü, yönetici ve kongre üyelerinin alım-satımları tek ekranda!',
     'home.search': 'Fon, yatırımcı veya hisse ara…',
     'home.tab.gurus': 'Usta Yatırımcılar',
     'home.tab.insiders': 'Insider Alımları',

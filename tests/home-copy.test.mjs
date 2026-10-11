@@ -15,8 +15,8 @@ const cards = read('guru-cards.json');
 const COPY = {
   tr: {
     locale: 'tr-TR',
-    h1: 'En iyi yatırımcılar nasıl yatırım yapıyor?',
-    lead: (n) => `ABD'deki ${n} fonun portföyünü ve şirket yöneticilerinin kendi hisselerindeki alım-satımlarını SEC kayıtlarından derliyoruz. Her gün güncel, sade ve Türkçe.`,
+    h1: 'Akıllı parayı takip et! Wall Street Kurtları Neler Alıyor?',
+    lead: (n) => `Akıllı paranın peşinden gidin: ${n} fonun portföyü, yönetici ve kongre üyelerinin alım-satımları tek ekranda!`,
     tabs: ['Usta Yatırımcılar', 'Insider Alımları', 'Hisse Seçimleri'],
     faq: ['Bu veriler nereden geliyor?', 'Performans nasıl hesaplanıyor?', 'Ücretsiz mi?'],
     method: ['/tr/rehber/veri-kaynaklari-ve-yontem', 'Veri kaynakları ve yöntem'],

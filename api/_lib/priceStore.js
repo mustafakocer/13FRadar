@@ -57,13 +57,30 @@ export function encodeSeries(prices) {
   return { from: rows.length ? rows[0].date : null, asOf: prev, d, c };
 }
 
+// Every series walks the same few thousand calendar days, so the date string
+// for a day is formatted once per process rather than once per row: decoding
+// the ~1,900 series the insider feed reads on a cold start spent most of its
+// CPU in Date#toISOString. Keyed by the day number (UTC midnight / DAY), so
+// the cache is bounded by the calendar, not by the number of rows.
+const dayStrings = new Map();
+const isoDayAt = (t) => {
+  const n = Math.round(t / DAY);
+  let s = dayStrings.get(n);
+  if (s === undefined) {
+    s = isoDay(n * DAY);
+    dayStrings.set(n, s);
+  }
+  return s;
+};
+
 export function decodeSeries(file) {
   if (!file?.from || !Array.isArray(file.d) || !Array.isArray(file.c)) return [];
-  const out = [];
+  const n = file.d.length;
+  const out = new Array(n);
   let t = parseDay(file.from);
-  for (let i = 0; i < file.d.length; i++) {
+  for (let i = 0; i < n; i++) {
     t += file.d[i] * DAY;
-    out.push({ date: isoDay(t), close: file.c[i] });
+    out[i] = { date: isoDayAt(t), close: file.c[i] };
   }
   return out;
 }

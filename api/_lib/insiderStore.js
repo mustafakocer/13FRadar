@@ -32,9 +32,58 @@ export const files = {
 
 // ------------------------------------------------------------ read (API)
 // The literal require path is what lets Vercel's tracer bundle the file.
-let served = null;
-export function readServed() {
-  if (served) return served;
+//
+// Serving the rows means normalising every foreign issuer's line against the
+// price cache (fpiNormalize.js) — several seconds of CPU on a cold function
+// instance, paid again by every instance. The inputs are files fixed at
+// deploy, so the build does it once (scripts/build-insiders-served.mjs →
+// api/_data/insiders-served.json) and an instance only parses the result.
+// The file carries the sizes of the inputs it was built from; a file built
+// from other inputs (a local checkout that pulled new data) is ignored and
+// the rows are computed here as before.
+export const servedFile = () => path.join(dataDir(), 'insiders-served.json');
+const SERVED_INPUTS = [
+  () => files.data(),
+  () => files.raw(),
+  () => files.rawBackfill(),
+  () => path.join(dataDir(), 'fpi.json'),
+  () => path.join(dataDir(), 'ticker-meta.json'),
+  () => path.join(root, 'config', 'adr-overrides.json'),
+];
+export function servedFingerprint() {
+  return SERVED_INPUTS.map((f) => {
+    try {
+      return fs.statSync(f()).size;
+    } catch {
+      return null;
+    }
+  }).join(':');
+}
+
+function readPrebuilt() {
+  // tests and dry runs point the store elsewhere; they always compute
+  if (process.env.INSIDER_DATA_DIR || process.env.INSIDER_SERVED_OFF) return null;
+  let file;
+  try {
+    file = require('../_data/insiders-served.json');
+  } catch {
+    return null;
+  }
+  return acceptPrebuilt(file, servedFingerprint());
+}
+
+// The prebuilt dataset when it was built from these inputs, else null.
+export function acceptPrebuilt(file, fingerprint) {
+  if (!file?.served?.rows) return null;
+  if (file.fingerprint !== fingerprint) {
+    console.warn(`insiders-served.json was built from other inputs (${file.fingerprint} ≠ ${fingerprint}) — computing the rows`);
+    return null;
+  }
+  return file.served;
+}
+
+// The served dataset computed from the stored rows (what the build writes).
+export function computeServed() {
   let db;
   try {
     db = process.env.INSIDER_DATA_DIR ? readJson(files.data(), null) : require('../_data/insiders.json');
@@ -48,7 +97,13 @@ export function readServed() {
   // buy (insiderNotes.markCompensation)
   const raw = readRawServed();
   const rows = markCompensation(normalizeRows(currentRows(db.rows || []), fpiContext({ raw })), (r) => raw[`${r.a}:${r.li}`] || null);
-  served = { ...db, rows, lastFilingDay: lastFilingDay(rows) };
+  return { ...db, rows, lastFilingDay: lastFilingDay(rows) };
+}
+
+let served = null;
+export function readServed() {
+  if (served) return served;
+  served = readPrebuilt() || computeServed();
   return served;
 }
 export const resetServedCache = () => {

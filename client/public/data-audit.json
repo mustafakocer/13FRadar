@@ -63,8 +63,8 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 81090,
-        "companies": 4245,
+        "rows": 80459,
+        "companies": 4239,
         "futureDated": 0,
         "duplicateIds": 0
       },
@@ -86,7 +86,7 @@
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {
-        "total": 16628,
+        "total": 16583,
         "penny": 9
       },
       "findings": []
@@ -120,7 +120,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4335
+        "tickers": 4346
       },
       "findings": []
     },
@@ -128,8 +128,8 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4803,
-        "coveragePct": 98.2
+        "series": 4811,
+        "coveragePct": 98.1
       },
       "findings": []
     },
@@ -145,7 +145,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6202,
+        "resolved": 6204,
         "unresolved": 81
       },
       "findings": []
@@ -162,8 +162,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 9031,
-        "byCik": 9031
+        "bySlug": 9032,
+        "byCik": 9032
       },
       "findings": []
     },

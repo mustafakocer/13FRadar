@@ -105,6 +105,13 @@ export default function CongressMember() {
           <b>{m.avgBuyRet != null ? <span className={m.avgBuyRet >= 0 ? 'delta-pos' : 'delta-neg'}>{fmtPct(m.avgBuyRet * 100)}</span> : '—'}</b>
           <span className="s">{t('cg.avgRetNote').replace('{n}', fmtNum(m.pricedBuys))}</span>
         </div>
+        {m.ytd && (
+          <div className="fund-stat">
+            <span className="k">{t('cg.ytd.memberStat')}</span>
+            <b><span className={m.ytd.ret >= 0 ? 'delta-pos' : 'delta-neg'}>{fmtPct(m.ytd.ret * 100)}</span></b>
+            <span className="s">{t('cg.ytd.memberNote').replace('{spy}', fmtPct(m.ytd.spy * 100)).replace('{n}', fmtNum(m.ytd.positions))}</span>
+          </div>
+        )}
         <div className="fund-stat">
           <span className="k">{t('cg.lastFiled')}</span>
           <b>{m.last || '—'}</b>

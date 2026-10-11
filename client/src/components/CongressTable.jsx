@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
@@ -196,6 +197,119 @@ export function MemberBoard({ rows }) {
   );
 }
 
+const pctCell = (v, digits = 1) => (v == null ? <span className="muted">—</span> : <span className={v >= 0 ? 'delta-pos' : 'delta-neg'}>{fmtPct(v * 100, { digits })}</span>);
+
+// two figures in one tile: smaller, on one line
+const SPLIT = { fontSize: '1.05rem', whiteSpace: 'nowrap' };
+
+// Members of Congress against SPY, year to date (api/_lib/congressModel.js
+// memberYtd): the summary tiles, then every member, filterable.
+export function YtdBoard({ data }) {
+  const { t } = useI18n();
+  const [f, setF] = useState({ ch: '', p: '', min: String(data?.minPositions || 3), sort: 'ret' });
+  const set = (k, v) => setF((s) => ({ ...s, [k]: v }));
+  const rows = useMemo(() => {
+    if (!data?.members) return [];
+    const min = Number(f.min) || 1;
+    const key = f.sort === 'excess' ? 'excess' : 'ret';
+    return data.members
+      .filter((m) => m.positions >= min && (!f.ch || m.ch === f.ch) && (!f.p || m.p === f.p))
+      .sort((a, b) => b[key] - a[key] || a.n.localeCompare(b.n));
+  }, [data, f]);
+  if (!data) return <p className="muted">{t('cg.ytd.none')}</p>;
+  const s = data.summary || {};
+  const beat = (g) => (g?.beat == null ? '—' : Math.round(g.beat * 100));
+  return (
+    <>
+      <h3 style={{ marginTop: 0 }}>{t('cg.ytd.title').replace('{year}', data.year)}</h3>
+      <div className="fund-stats">
+        <div className="fund-stat">
+          <span className="k">{t('cg.ytd.spy')}</span>
+          <b>{pctCell(data.spy)}</b>
+          <span className="s">{t('cg.ytd.spyNote').replace('{from}', data.from).replace('{asOf}', data.asOf)}</span>
+        </div>
+        <div className="fund-stat">
+          <span className="k">{t('cg.ytd.median')}</span>
+          <b>{pctCell(s.all?.median)}</b>
+          <span className="s">{t('cg.ytd.medianNote').replace('{n}', fmtNum(s.all?.n)).replace('{beat}', beat(s.all))}</span>
+        </div>
+        <div className="fund-stat">
+          <span className="k">{t('cg.ytd.party')}</span>
+          <b style={SPLIT}><span className="party-d">D</span> {pctCell(s.D?.median)} · <span className="party-r">R</span> {pctCell(s.R?.median)}</b>
+          <span className="s">D {fmtNum(s.D?.n)} · R {fmtNum(s.R?.n)}</span>
+        </div>
+        <div className="fund-stat">
+          <span className="k">{t('cg.ytd.chamber')}</span>
+          <b style={SPLIT}>H {pctCell(s.H?.median)} · S {pctCell(s.S?.median)}</b>
+          <span className="s">{t('cg.house')} {fmtNum(s.H?.n)} · {t('cg.senate')} {fmtNum(s.S?.n)}</span>
+        </div>
+      </div>
+
+      <div className="cg-filters mt16">
+        <select className="select" value={f.ch} onChange={(e) => set('ch', e.target.value)} aria-label={t('cg.chamber')}>
+          <option value="">{t('cg.allChambers')}</option>
+          <option value="H">{t('cg.house')}</option>
+          <option value="S">{t('cg.senate')}</option>
+        </select>
+        <select className="select" value={f.p} onChange={(e) => set('p', e.target.value)} aria-label={t('cg.party')}>
+          <option value="">{t('cg.allParties')}</option>
+          <option value="D">{t('cg.party.D')}</option>
+          <option value="R">{t('cg.party.R')}</option>
+          <option value="I">{t('cg.party.I')}</option>
+        </select>
+        <select className="select" value={f.min} onChange={(e) => set('min', e.target.value)} aria-label={t('cg.ytd.positions')}>
+          {['1', '3', '5', '10'].map((n) => <option key={n} value={n}>{t('cg.ytd.min').replace('{n}', n)}</option>)}
+        </select>
+        <select className="select" value={f.sort} onChange={(e) => set('sort', e.target.value)} aria-label={t('cg.ytd.sortRet')}>
+          <option value="ret">{t('cg.ytd.sortRet')}</option>
+          <option value="excess">{t('cg.ytd.sortExcess')}</option>
+        </select>
+        <span className="muted small">{t('cg.found').replace('{n}', fmtNum(rows.length))}</span>
+      </div>
+
+      {rows.length ? (
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th className="l">#</th>
+                <th className="l">{t('cg.member')}</th>
+                <th title={t('cg.ytd.retTip')}>{t('cg.ytd.ret')}</th>
+                <th title={t('cg.ytd.vsSpyTip')}>{t('cg.ytd.vsSpy')}</th>
+                <th title={t('cg.ytd.excessTip')}>{t('cg.ytd.excess')}</th>
+                <th title={t('cg.ytd.positionsTip')}>{t('cg.ytd.positions')}</th>
+                <th className="l">{t('cg.ytd.best')}</th>
+                <th className="l">{t('cg.ytd.worst')}</th>
+                <th title={t('cg.volumeTip')}>{t('cg.ytd.weight')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((m, i) => (
+                <tr key={m.key}>
+                  <td className="l muted">{i + 1}</td>
+                  <td className="l">
+                    <Link to={`/congress/${m.slug}`} style={{ fontWeight: 700 }}>{m.n}</Link>
+                    <div><MemberTag r={m} /></div>
+                  </td>
+                  <td className="num"><b>{pctCell(m.ret)}</b></td>
+                  <td className="num muted">{fmtPct(m.spy * 100)}</td>
+                  <td className="num">{m.excess == null ? '—' : <span className={m.excess >= 0 ? 'delta-pos' : 'delta-neg'}>{`${m.excess >= 0 ? '+' : ''}${(m.excess * 100).toFixed(1)} pp`}</span>}</td>
+                  <td className="num">{fmtNum(m.open)} / {fmtNum(m.positions)}</td>
+                  <td className="l">{m.best ? <><Link to={`/stock/${m.best.t}`}>{m.best.t}</Link> <span className="small">{pctCell(m.best.r, 0)}</span></> : '—'}</td>
+                  <td className="l">{m.worst ? <><Link to={`/stock/${m.worst.t}`}>{m.worst.t}</Link> <span className="small">{pctCell(m.worst.r, 0)}</span></> : '—'}</td>
+                  <td className="num">~{fmtMoney(m.weight)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="muted">{t('cg.none')}</p>
+      )}
+      <p className="muted small mt8">{t('cg.ytd.note').replace('{min}', data.minPositions)}</p>
+    </>
+  );
+}
 
 const CHAMBER = { H: 'cg.house', S: 'cg.senate', J: 'cg.joint' };
 

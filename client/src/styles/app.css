@@ -177,6 +177,17 @@ body { overflow-x: clip; }
    staggered. Matching any grid container keeps the next one from repeating it. */
 .grid > .card + .card, .row > .card + .card, [class*='grid'] > .card + .card { margin-top: 0; }
 .card h3 { font-size: 16px; line-height: 22.4px; font-weight: 700; margin-bottom: 12px; color: var(--ink); }
+/* A panel's opening title is the section heading of what it lists: 19px
+   black italic caps over an ink rule — under the one-line explanation when
+   the panel has one (.card-desc), else under the title itself. Feature
+   cards (.inv-card) and stat cards keep their own titles. */
+.card > h3:first-child {
+  font-size: 19px; line-height: 23.75px; font-weight: 900; font-style: italic;
+  text-transform: uppercase; letter-spacing: 0;
+  padding-bottom: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--ink);
+}
+.card > h3:first-child:has(+ .card-desc) { padding-bottom: 0; margin-bottom: 4px; border-bottom: 0; }
+.card > h3:first-child + .card-desc { margin: 0 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--ink); }
 /* the one-sentence explanation under a section or card heading */
 .card-desc { color: var(--text-500); font-size: 14px; line-height: 19.6px; margin: -6px 0 12px; }
 .conv-card .card-desc { margin-top: -8px; }
@@ -284,6 +295,8 @@ a.badge.pro:hover { text-decoration: none; }
   -webkit-box-decoration-break: clone; box-decoration-break: clone;
 }
 .hl-band b, .hl-band strong { font-weight: 700; }
+.home-band { margin: 0 auto 16px; }
+@media (max-width: 767px) { .hl-band { font-size: 16px; line-height: 26px; } }
 
 .search-wrap { position: relative; max-width: 640px; margin: 24px auto 0; }
 /* inside a card the box fills its column and brings no hero spacing */

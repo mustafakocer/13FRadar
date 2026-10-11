@@ -40,19 +40,93 @@ export function classifyTransaction(code, { sameFilingSale = false } = {}) {
 }
 export const rowClass = (r) => r.cl || classifyTransaction(r.k);
 
-const CEO_RE = /\b(chief executive|ceo|president and chief executive|pres(ident)? & ceo)\b/i;
-const CFO_RE = /\b(chief financial|cfo|principal financial officer|treasurer)\b/i;
+const CEO_RE = /\b(chief executive|ceo|c\.\s?e\.\s?o|president and chief executive|pres(ident)? & ceo)\b/i;
+// "Treasurer" on its own is not the CFO: 129 open-market lines titled "VP &
+// Treasurer", "Assistant Treasurer", "SVP, Treasurer & Tax"… sat on the CFO
+// tab and took the top-executive "Güçlü" rule. A treasurer who IS the CFO
+// says so ("CFO and Treasurer", "Treasurer and PFO") and matches anyway.
+const CFO_RE = /\b(chief financial|cfo|c\.\s?f\.\s?o|principal financial officer|pfo)\b/i;
+
+// A CEO or CFO of something other than the issuer: a subsidiary, a division,
+// a region, a business unit or the bank under a bank holding company. Real
+// titles from the data: "CEO of Merchants Capital" (MBIN), "PRESIDENT/CEO OF
+// AMPLEX" (OMCC), "KFC Division CEO" (YUM), "EVP & CEO of Hawaiian Airlines"
+// (ALK), "President & CEO, subsidiary" (TDS), "Centennial Bank CEO" (HOMB).
+// Such a person is an officer of the issuer, not its chief executive.
+const SUBSIDIARY_RE = /\b(subsidiar(y|ies)|division|divisional|region|regional|segment|business (group|unit))\b/i;
+// "CEO of X" / "CFO of X": X is read up to the next separator
+const EXEC_OF_RE = /\b(?:chief executive officer|chief financial officer|chief executive|chief financial|ceo|cfo)\.?\s*,?\s+of\s+(.+)$/i;
+// …and X that is the issuer itself by another name: the board, the company,
+// the fund or trust that files ("Chairman of the Board and CEO" never gets
+// here — the "of" must follow the CEO/CFO words)
+const OWN_ENTITY_RE = /^(the\s+)?(board|bod|bd|company|corporation|issuer|registrant)\b|^the\s+(fund|trust|partnership|reit)\b/i;
+const BANK_RE = /\bbank\b/i;
+const LEGAL_WORDS = new Set(['INC', 'INCORPORATED', 'CORP', 'CORPORATION', 'CO', 'COMPANY', 'LTD', 'LIMITED', 'PLC', 'LLC', 'LP', 'NV', 'SA', 'AG', 'THE']);
+const words = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim().split(' ').filter(Boolean);
+const core = (s) => words(s).filter((w) => !LEGAL_WORDS.has(w));
+
+// Does `text` name the issuer — its ticker, its name (without "Inc", "Corp"…)
+// or the initials of its name ("UCC" for Uwharrie Capital Corp)? A shared
+// first word is not enough: "Merchants Capital" is not Merchants Bancorp.
+export function namesIssuer(text, issuer = {}) {
+  const t = words(text);
+  if (!t.length) return false;
+  const tx = ` ${t.join(' ')} `;
+  if (issuer.ticker && tx.includes(` ${String(issuer.ticker).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim()} `)) return true;
+  const name = core(issuer.name);
+  if (name.length && tx.includes(` ${name.join(' ')} `)) return true;
+  const initials = [words(issuer.name), name].map((ws) => ws.map((w) => w[0]).join('')).filter((x) => x.length >= 2);
+  return initials.some((x) => t.includes(x));
+}
+
+// Is this CEO/CFO title about another entity than the issuer?
+//   issuer  { ticker, name } of the filing; without it any "CEO of X" that
+//           is not the board/company counts as another entity
+export function isSubsidiaryTitle(title, issuer = {}) {
+  const t = String(title || '');
+  if (!t) return false;
+  if (SUBSIDIARY_RE.test(t)) return true;
+  const of = EXEC_OF_RE.exec(t);
+  if (of) {
+    // X is read up to the next separator: "CEO of Merchants Capital, EVP" → "Merchants Capital"
+    const x = of[1].split(/\s*(?:[,;/(]|\s&\s|\band\b)\s*/i)[0].trim();
+    if (x && !OWN_ENTITY_RE.test(x) && !namesIssuer(x, issuer)) return true;
+  }
+  // "Chief Executive Officer, Bank", "EVP, CFO - Bank": the bank under a
+  // holding company, unless the title also names the issuer ("President &
+  // CEO ASRV & Bank", "Pres/CEO/Dir of Company & Bank")
+  if (BANK_RE.test(t) && !/\b(company|corp|corporation|holding|holdings|bancorp)\b/i.test(t) && !namesIssuer(t, issuer)) return true;
+  return false;
+}
 
 // Officer title strings are free text on Form 4; classify them once at build
-// time so the API can filter on a stable value.
-export function classifyRole({ title = '', isDirector, isOfficer, isTenPercentOwner }) {
+// time so the API can filter on a stable value. `issuer` ({ ticker, name })
+// lets a "CEO of <the issuer>" stay CEO while a subsidiary's CEO does not.
+export function classifyRole({ title = '', isDirector, isOfficer, isTenPercentOwner }, issuer = {}) {
   const t = String(title || '');
-  if (CEO_RE.test(t)) return 'ceo';
-  if (CFO_RE.test(t)) return 'cfo';
+  const top = !isSubsidiaryTitle(t, issuer);
+  if (top && CEO_RE.test(t)) return 'ceo';
+  if (top && CFO_RE.test(t)) return 'cfo';
   if (isOfficer) return 'officer';
   if (isDirector) return 'director';
   if (isTenPercentOwner) return 'owner10';
   return 'officer';
+}
+
+// A stored row's role under the current title rules. Rows keep the role the
+// build gave them, so a rule change reaches old rows only through this:
+// a 'ceo'/'cfo' whose title no longer qualifies falls back to what the form's
+// relationship boxes say (`flags`: { dr, of, tp } from the raw fields), or
+// 'officer' — it had a title, and only officers have titles. Other roles are
+// left alone unless the title now makes them CEO/CFO.
+export function refreshRole(r, flags = null, issuer = {}) {
+  if (!r?.ti) return r?.r;
+  const truthy = (x) => x === 1 || x === true || x === '1';
+  const o = { title: r.ti, isOfficer: flags ? truthy(flags.of) : true, isDirector: flags ? truthy(flags.dr) : false, isTenPercentOwner: flags ? truthy(flags.tp) : false };
+  const next = classifyRole(o, issuer);
+  if (next === 'ceo' || next === 'cfo') return next;
+  if (r.r === 'ceo' || r.r === 'cfo') return next;
+  return r.r;
 }
 
 export const isBuy = (r) => r.k === 'P';

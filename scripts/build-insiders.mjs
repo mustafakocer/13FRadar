@@ -54,7 +54,7 @@ import {
   loadErrors,
   loadRaw,
   loadRawBackfill,
-  markSuperseded,
+  markRows,
   mergeFilings,
   readJson,
   rowId,
@@ -575,7 +575,16 @@ for (const r of rows) {
   all.push(r);
 }
 assignLineIndexes(all);
-const superseded = markSuperseded(all);
+// every stored Form 4 field: nightly, backfilled, and what this run read
+const rawAll = { ...loadRawBackfill(), ...loadRaw().rows, ...rawAdd };
+// roles under the current title rules, 4/A amendments, duplicate filings,
+// mirror P/S pairs — one function, also run offline by
+// scripts/build-insiders-marks.mjs (insiderStore.markRows)
+const issuerNames = { ...(db.companies || {}) };
+for (const r of [...rows, ...freshRows]) if (r.t && r.c) issuerNames[r.t] = r.c;
+const marks = markRows(all, { rawOf: (r) => rawAll[rowId(r)] || null, companies: issuerNames });
+const superseded = marks.superseded;
+console.log(`Marks: ${marks.roles} role(s) re-read from titles, ${marks.superseded} superseded by 4/A, ${marks.duplicates} duplicate line(s) of an earlier filing, ${marks.mirrors} mirror P/S line(s).`);
 // Ascending by filing date: new rows append at the end and only a small slice
 // falls off the front each day, which keeps the daily git delta small.
 all.sort((a, b) => (a.f === b.f ? (a.a === b.a ? a.li - b.li : a.a < b.a ? -1 : 1) : a.f < b.f ? -1 : 1));
@@ -609,7 +618,6 @@ if (!NO_ENRICH) {
 
 // A footnote that says "10b5-1" or "trading plan" marks a planned trade even
 // when the filing's checkbox is empty (`pn`; the classifier reads p5 || pn).
-const rawAll = { ...loadRawBackfill(), ...loadRaw().rows, ...rawAdd };
 let planNotes = 0;
 for (const r of all) {
   const fn = rawAll[rowId(r)]?.fn;
@@ -674,7 +682,7 @@ saveFreshness({
 });
 
 console.log(
-  `insiders.json: ${all.length} rows (${current.length} current, ${superseded} superseded by 4/A), ` +
+  `insiders.json: ${all.length} rows (${current.length} current, ${superseded} superseded by 4/A, ${marks.duplicates} duplicate filing line(s)), ` +
     `${current.filter((r) => r.k === 'P').length} buys, ${live.size} tickers, newest filing ${newest}, checkpoint ${checkpoint} → ${newCheckpoint}` +
     (newErrors.length ? `, ${newErrors.length} unreadable filing(s) logged` : '')
 );

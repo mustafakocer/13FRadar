@@ -17,6 +17,7 @@ import { createRequire } from 'node:module';
 import { normalizeRows } from './fpiNormalize.js';
 import { markCompensation } from './insiderNotes.js';
 import { fpiContext, loadFpi, resetFpiCache } from './fpiContext.js';
+import { refreshRole } from './insiderModel.js';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
@@ -235,7 +236,11 @@ export function mergeFilings(rows, freshRows, freshAccessions) {
 // does not match, and both rows stay current — the known limit of this rule.
 // Recomputed from scratch on every build, so it is idempotent.
 export function markSuperseded(rows) {
-  for (const r of rows) delete r.sb;
+  // `dp` marks a duplicate's `sb` (markDuplicates): cleared with it
+  for (const r of rows) {
+    delete r.sb;
+    delete r.dp;
+  }
   const keys = (r) => {
     const base = `${r.ci}|${r.d}|${r.k}|${r.s}`;
     const out = [`name:${String(r.n || '').trim().toUpperCase()}|${base}`];
@@ -264,6 +269,126 @@ export function markSuperseded(rows) {
     }
   }
   return marked;
+}
+
+// The same open-market trade filed twice. Run after markSuperseded: an
+// amendment is matched first, and what is left are plain duplicates — the
+// same Form 4 submitted twice the same day (FANG: SGF FANG Holdings' $1.86B
+// sale under …-037009 and …-037010), or refiled months later as a plain "4"
+// (AVR: L1 Capital's $28.75M buy, February and again in July). Counted
+// twice, they added $2.97B of sales and $155M of buys to every total.
+//
+// A current open-market line (P or S with a price) is a duplicate of a line
+// in an EARLIER filing (filed earlier, or the same day with a lower
+// accession) when all of these match:
+//   · issuer          — issuer CIK (`ci`), else the ticker
+//   · reporting owner — owner CIK when both rows have it (two different CIKs
+//     never match), otherwise the owner name, upper-cased, punctuation dropped
+//   · transaction date, code, share count and price — exactly
+// The earliest filing keeps its lines; a later one is marked `sb` with the
+// keeper's accession and `dp: 1`, so every reader that already drops 4/A
+// originals (currentRows, daySummary, buildClusters) drops it too.
+// Conservative by construction:
+//   · lines of one accession never mark each other — a filing may list two
+//     identical lots
+//   · a later filing loses at most as many lines per key as the keeper has:
+//     two identical lots in the copy against one in the original marks one
+//   · grants, withholding, gifts (no open-market price) are left alone: two
+//     identical $0 awards on one day can be genuinely separate grants
+// Recomputed from scratch on every build (markSuperseded clears `sb` first;
+// this clears `dp`), so it is idempotent. → the number of lines marked
+export const ownerName = (n) => String(n || '').toUpperCase().replace(/[^A-Z0-9]+/g, ' ').trim();
+const filedOrder = (a, b) => (a.f === b.f ? (a.a < b.a ? -1 : a.a > b.a ? 1 : 0) : a.f < b.f ? -1 : 1);
+export function markDuplicates(rows) {
+  for (const r of rows) {
+    if (r.dp) {
+      delete r.sb;
+      delete r.dp;
+    }
+  }
+  const groups = new Map();
+  for (const r of rows) {
+    if (r.sb || !(r.k === 'P' || r.k === 'S') || !(r.p > 0) || !r.d) continue;
+    const k = `${r.ci || r.t}|${ownerName(r.n)}|${r.d}|${r.k}|${r.s}|${r.p}`;
+    if (!groups.has(k)) groups.set(k, []);
+    groups.get(k).push(r);
+  }
+  let marked = 0;
+  for (const lines of groups.values()) {
+    if (lines.length < 2) continue;
+    // the same name under two owner CIKs is two people: split by CIK, and a
+    // line without one joins the (single) CIK group, if any
+    const ciks = new Set(lines.map((r) => r.ow).filter(Boolean));
+    const sets = ciks.size > 1 ? [...ciks].map((c) => lines.filter((r) => r.ow === c)) : [lines];
+    for (const set of sets) {
+      const byAcc = new Map();
+      for (const r of [...set].sort(filedOrder)) {
+        if (!byAcc.has(r.a)) byAcc.set(r.a, []);
+        byAcc.get(r.a).push(r);
+      }
+      if (byAcc.size < 2) continue;
+      const [keeper, ...later] = [...byAcc.values()];
+      for (const copy of later) {
+        for (const r of copy.slice(0, keeper.length)) {
+          r.sb = keeper[0].a;
+          r.dp = 1;
+          marked++;
+        }
+      }
+    }
+  }
+  return marked;
+}
+
+// Mirror pairs: one filing, one owner, one day, a P and an S of the same
+// share count at the same price (PAMT: Moroun, 3,268,000 shares at $9.555
+// bought and sold under one accession). That is a transfer between the
+// owner's accounts or entities, not a purchase and a sale on the market, and
+// counted both ways it added the same $31M to the buy AND the sell totals.
+// Both lines stay in the data (and in the feed with "other types" on),
+// marked `mx: 1`; insiderClassify.categorize reads them as 'other', so no
+// open-market total, signal or cluster counts them. Pairs are matched one P
+// to one S; a third identical line stays unmarked. → lines marked
+export function markMirrors(rows) {
+  for (const r of rows) delete r.mx;
+  const groups = new Map();
+  for (const r of rows) {
+    if (r.sb || !(r.k === 'P' || r.k === 'S') || !(r.p > 0)) continue;
+    const k = `${r.a}|${r.ow || ownerName(r.n)}|${r.d}|${r.s}|${r.p}`;
+    if (!groups.has(k)) groups.set(k, { P: [], S: [] });
+    groups.get(k)[r.k].push(r);
+  }
+  let marked = 0;
+  for (const { P, S } of groups.values()) {
+    const n = Math.min(P.length, S.length);
+    for (let i = 0; i < n; i++) {
+      P[i].mx = 1;
+      S[i].mx = 1;
+      marked += 2;
+    }
+  }
+  return marked;
+}
+
+// Every derived mark on the stored rows, in the one order that is correct:
+// roles under the current title rules, 4/A amendments, then duplicates of
+// what is left, then mirror pairs among the current lines. Called by the
+// nightly build and by scripts/build-insiders-marks.mjs (offline).
+//   rawOf      r → raw Form 4 fields ({ dr, of, tp } relationship boxes)
+//   companies  ticker → issuer name
+export function markRows(rows, { rawOf = () => null, companies = {} } = {}) {
+  let roles = 0;
+  for (const r of rows) {
+    const next = refreshRole(r, rawOf(r), { ticker: r.t, name: companies[r.t] || r.c || '' });
+    if (next && next !== r.r) {
+      r.r = next;
+      roles++;
+    }
+  }
+  const superseded = markSuperseded(rows);
+  const duplicates = markDuplicates(rows);
+  const mirrors = markMirrors(rows);
+  return { roles, superseded, duplicates, mirrors };
 }
 
 export const currentRows = (rows) => rows.filter((r) => !r.sb);

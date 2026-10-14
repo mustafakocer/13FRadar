@@ -4,14 +4,15 @@
 //   2. near-identical books (api/_data/copy-books.json, written by the build).
 // Exits 3 when either finds something the previous night did not: the
 // workflow then opens an alarm issue (scripts/notify.mjs). The state is kept
-// in api/_data/universe-audit.json; nothing is ever added to
+// in api/_data/universe-audit.json, and every deviation of the night, new or
+// not, is listed for a human in reports/kaynak-sapmalari.md; nothing is ever added to
 // config/misfiled-books.json here — that list is reviewed by hand.
 //
 //   node scripts/check-universe-audit.mjs
 import fs from 'node:fs';
 import path from 'node:path';
 import { completeQuarter } from '../api/_lib/universeSummary.js';
-import { totalDeviations, newFindings, pairKey, copyAdvice, adviceLine, NIGHTLY_TOP, NIGHTLY_TOLERANCE } from '../api/_lib/universeAudit.js';
+import { totalDeviations, newFindings, pairKey, copyAdvice, adviceLine, deviationReport, filingUrl, NIGHTLY_TOLERANCE } from '../api/_lib/universeAudit.js';
 import { getSubmissions, list13FAll } from '../api/_lib/sec.js';
 import { misfiledBooks } from '../api/_lib/misfiledBooks.js';
 
@@ -32,6 +33,9 @@ const known = read(stateFile, null);
 const quarter = completeQuarter(U.updatedAt || new Date().toISOString());
 const byCik = new Map(U.rows.map((r) => [r.cik, r]));
 const $ = (v) => `$${(v / 1e9).toFixed(2)}B`;
+const reportPath = 'reports/kaynak-sapmalari.md';
+const { GITHUB_SERVER_URL, GITHUB_REPOSITORY, GITHUB_REF_NAME } = process.env;
+const reportUrl = GITHUB_REPOSITORY ? `${GITHUB_SERVER_URL || 'https://github.com'}/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME || 'main'}/${reportPath}` : reportPath;
 
 const reviewed = new Set([
   ...misfiledBooks.filter((m) => m.copyOf).map((m) => pairKey(m.cik, m.copyOf)),
@@ -49,7 +53,7 @@ const deviations = totalDeviations(U.rows, { quarter });
 const pairs = copy.pairs || [];
 const fresh = known ? newFindings({ deviations, pairs }, known, reviewed) : { deviations: [], pairs: [] };
 
-console.log(`Universe check (${quarter}): ${withDeclared} filers with a declared total; ${deviations.length} of the ${NIGHTLY_TOP} largest off by more than ±${NIGHTLY_TOLERANCE * 100}%; ${pairs.length} near-identical book pair(s).`);
+console.log(`Universe check (${quarter}): ${withDeclared} filers with a declared total; ${deviations.length} current fund(s) off by more than ±${NIGHTLY_TOLERANCE * 100}%; ${pairs.length} near-identical book pair(s).`);
 if (!known) console.log('No previous state: this run is the baseline, nothing is raised.');
 for (const d of deviations) console.log(`${fresh.deviations.includes(d) ? 'NEW ' : '    '}#${d.rank} ${d.name} (${d.cik}) ours ${$(d.aum)} vs declared ${$(d.declared)} (${d.diffPct > 0 ? '+' : ''}${d.diffPct}%) ${d.acc}`);
 for (const p of pairs) {
@@ -58,7 +62,8 @@ for (const p of pairs) {
   const tag = fresh.pairs.includes(p) ? 'NEW ' : reviewed.has(pairKey(p.a, p.b)) ? 'OK  ' : '    ';
   console.log(`${tag}pair ${a?.name || p.a} (${p.a}) ${a ? $(a.aum) : ''} / ${b?.name || p.b} (${p.b}) ${b ? $(b.aum) : ''}: ${p.matched} lines, ${(p.shareA * 100).toFixed(1)}% / ${(p.shareB * 100).toFixed(1)}%`);
 }
-for (const d of fresh.deviations) console.log(`::error::New total deviation: #${d.rank} ${d.name} (${d.cik}): ours ${$(d.aum)}, declared ${$(d.declared)} (${d.diffPct}%), filing ${d.acc}`);
+for (const d of fresh.deviations) console.log(`::error::Yeni toplam sapması: #${d.rank} ${d.name} (${d.cik}): bizim ${$(d.aum)}, SEC beyanı ${$(d.declared)} (${d.diffPct > 0 ? '+' : ''}${d.diffPct}%) — ${filingUrl(d.cik, d.acc)}`);
+if (fresh.deviations.length) console.log(`::error::Tüm liste: ${reportUrl}`);
 // For a new pair, what each side filed for the same quarter: an alternative
 // original is suggested, never applied; none means the copy is misfiled.
 for (const p of fresh.pairs) {
@@ -78,6 +83,9 @@ for (const p of fresh.pairs) {
   console.log(`::error::New near-identical books: ${byCik.get(p.a)?.name || p.a} (${p.a}) and ${byCik.get(p.b)?.name || p.b} (${p.b}), ${p.matched} lines. Review; config/misfiled-books.json or config/duplicate-books.json if it is a copy. ${advice.map((a, k) => adviceLine(a, sides[k].acc, sides[k].filed)).join(' ')}`);
 }
 
+fs.mkdirSync(file('reports'), { recursive: true });
+fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations }));
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations }));
 fs.writeFileSync(
   stateFile,
   `${JSON.stringify({ quarter, deviations: deviations.map((d) => `${d.cik}|${d.acc}`).sort(), pairs: pairs.map((p) => pairKey(p.a, p.b)).sort() }, null, 1)}\n`

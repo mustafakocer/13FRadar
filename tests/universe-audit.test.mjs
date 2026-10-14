@@ -127,7 +127,7 @@ test('declaredCandidates: the chain, the original and each amendment\'s own tota
   assert.deepEqual(declaredCandidates(null, [{ type: 'RESTATEMENT', total: 90 }]), [90]);
 });
 
-test('totalDeviations: the 500 largest current funds, any reading and unit, misfiled left out', async () => {
+test('totalDeviations: every current fund at ±1%, any reading and unit, misfiled left out', async () => {
   const { totalDeviations, newFindings, pairKey } = await import('../api/_lib/universeAudit.js');
   const q = '2026-06-30';
   const rows = [
@@ -142,6 +142,10 @@ test('totalDeviations: the 500 largest current funds, any reading and unit, misf
   const d = totalDeviations(rows, { quarter: q });
   assert.deepEqual(d.map((x) => x.cik), ['0000000004']);
   assert.equal(totalDeviations(rows, { quarter: q, top: 3 }).length, 0);
+  // 1.5% off: outside the nightly ±1%, inside a looser tolerance
+  const off = [{ cik: '0000000012', acc: 'a12', name: 'Slightly off', aum: 1015, declared: 1000, reportDate: q }];
+  assert.equal(totalDeviations(off, { quarter: q }).length, 1);
+  assert.equal(totalDeviations(off, { quarter: q, tolerance: 0.02 }).length, 0);
   // only what the previous night did not have
   const pairs = [{ a: '0000000009', b: '0000000008', matched: 50, shareA: 1, shareB: 1 }, { a: '0000000010', b: '0000000011', matched: 40, shareA: 0.95, shareB: 0.99 }];
   const fresh = newFindings({ deviations: d, pairs }, { deviations: ['0000000004|a4'], pairs: [pairKey('0000000008', '0000000009')] }, new Set([pairKey('0000000011', '0000000010')]));
@@ -161,6 +165,8 @@ test('check-universe-audit: a fresh deviation exits 3 and is written to the stat
   assert.match(wf, /notify\.mjs --title "13F denetimi/);
   assert.match(wf, /issues: write/);
   assert.match(wf, /api\/_data\/universe-audit\.json/);
+  assert.match(wf, /reports\/kaynak-sapmalari\.md/); // the readable list is committed
+  assert.match(src, /reports\/kaynak-sapmalari\.md/);
   assert.match(wf, /api\/_data\/copy-books\.json/);
 });
 
@@ -188,4 +194,24 @@ test('copy advice: an other original of the same quarter is suggested; none mean
   const [a] = copyAdvice([withAlt]);
   assert.deepEqual([a.kind, a.acc], ['alternative', '0001104659-26-100800']);
   assert.match(adviceLine(a, withAlt.acc, withAlt.filed), /^Öneri: .*0001104659-26-100800/);
+});
+
+test('deviation report: every deviation, largest dollar gap first, new ones marked, SEC link', async () => {
+  const { deviationReport, likelyCause, filingUrl } = await import('../api/_lib/universeAudit.js');
+  const devs = [
+    { cik: '0000000001', acc: '0000000001-26-000001', name: 'Small | Co', rank: 9, aum: 2e6, declared: 1e6, diffPct: 100 },
+    { cik: '0001777271', acc: '0001777271-26-000007', name: 'Big', rank: 1, aum: 21.6e9, declared: 216e9, diffPct: -90 },
+  ];
+  const md = deviationReport(devs, { quarter: '2026-06-30', fresh: [devs[0]] });
+  assert.match(md, /Toplam: 2 fon/);
+  assert.ok(md.indexOf('Big') < md.indexOf('Small'));
+  assert.match(md, /\| 🆕 \| Small \/ Co/); // a pipe in a name does not break the table
+  assert.match(md, /\|  \| Big/);
+  assert.match(md, /https:\/\/www\.sec\.gov\/Archives\/edgar\/data\/1777271\/000177727126000007\//);
+  assert.doesNotMatch(md, /\d{4}-\d{2}-\d{2}T/); // no timestamp: a quiet nightly commit
+  assert.match(deviationReport([], { quarter: '2026-06-30' }), /Sapma yok/);
+  assert.equal(filingUrl('0000713676', '0001193125-26-339298'), 'https://www.sec.gov/Archives/edgar/data/713676/000119312526339298/');
+  assert.match(likelyCause({ aum: 100, declared: 1000 }), /×10/);
+  assert.match(likelyCause({ aum: 120, declared: 100 }), /yüksek/);
+  assert.match(likelyCause({ aum: 60, declared: 100 }), /düşük/);
 });

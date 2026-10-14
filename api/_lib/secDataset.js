@@ -45,13 +45,15 @@ const lineKey = (cusip, putCall) => `${String(cusip || '').trim().toUpperCase()}
 
 // The running reading of one accession from INFOTABLE rows.
 export function newReading() {
-  return { rows: 0, value: 0, keys: new Map() };
+  return { rows: 0, value: 0, shares: 0, keys: new Map(), values: new Map() };
 }
 export function addRow(reading, { cusip, putCall, value, shares }) {
   const k = lineKey(cusip, putCall);
   reading.rows += 1;
   reading.value += Number(value) || 0;
+  reading.shares += Number(shares) || 0;
   reading.keys.set(k, (reading.keys.get(k) || 0) + (Number(shares) || 0));
+  reading.values.set(k, (reading.values.get(k) || 0) + (Number(value) || 0));
   return reading;
 }
 
@@ -70,6 +72,14 @@ export function compareFiling(ours, sec, { tolerance = VALUE_TOLERANCE } = {}) {
     return { cusip: p.cusip, putCall: p.putCall || '', issuer: p.issuer, ours: p.shares, sec: s ?? null, ok: s != null && Math.abs(s - p.shares) <= 0.5 };
   });
   const linesOk = lines.every((l) => l.ok);
+  // a filer that wrote the value and share columns the other way round
+  // (CalSTRS 2026-Q2): the build swaps them back, the data set keeps them
+  // as filed. Our total is then the SEC's share column and our share counts
+  // its value column.
+  if (!(valueOk && linesOk) && countOk && sec.shares > 0 && Math.abs(ours.aum / sec.shares - 1) <= tolerance) {
+    const swapped = (ours.top || []).every((p) => Math.abs((sec.values.get(lineKey(p.cusip, p.putCall)) ?? NaN) - p.shares) <= 0.5);
+    if (swapped) return { status: 'match', swapped: true, factor, secValue: sec.shares, valueDiff: ours.aum / sec.shares - 1, valueOk: true, count: { ours: ours.count, sec: sec.keys.size, ok: true }, lines: lines.map((l) => ({ ...l, ok: true })), linesOk: true, rows: sec.rows };
+  }
   return { status: valueOk && countOk && linesOk ? 'match' : 'differs', factor, secValue, valueDiff, valueOk, count: { ours: ours.count, sec: sec.keys.size, ok: countOk }, lines, linesOk, rows: sec.rows };
 }
 
@@ -91,6 +101,7 @@ export function datasetIssue({ dataset, results, skipped = {}, mention }) {
     '',
     `Karşılaştırılan: toplam değer (±%${VALUE_TOLERANCE * 100}, bizim birim düzeltmemiz uygulanarak), pozisyon sayısı, sitede gösterilen ilk 10 pozisyonun adetleri. Bu veriyi SEC kendi sistemiyle okuyor; bizim kodumuzdan tamamen bağımsız.`,
     '',
+    ...(compared.some((r) => r.check.swapped) ? [`Değer ve adet sütunlarını ters yazan ${compared.filter((r) => r.check.swapped).length} fon tuttu sayıldı: SEC verisi bildirimi olduğu gibi tutuyor, biz sütunları düzeltip gösteriyoruz (${compared.filter((r) => r.check.swapped).map((r) => cell(r.fund.name)).join(', ')}).`, ''] : []),
     `Karşılaştırılmayan: düzeltme bildirimi olan ${skipped.amended || 0} fon (SEC verisinde her bildirim ayrı durur), bu veri setinde olmayan ${skipped.missing || 0} bildirim (başka bir dönemde verilmiş).`,
     '',
   ];

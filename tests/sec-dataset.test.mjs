@@ -83,3 +83,22 @@ test('sec-dataset workflow: weekly, outside the night window, no email in the us
   assert.match(src, /anyWithLabel/);
   assert.match(src, /not raised twice/);
 });
+
+test('compareFiling: a filer that swapped the value and share columns matches once swapped back (CalSTRS)', () => {
+  // as filed: value column holds shares, share column holds dollars
+  const sec = reading([
+    { cusip: 'NVDA', value: 35021490, shares: 7007449934 },
+    { cusip: 'AAPL', value: 22278223, shares: 6446426607 },
+  ]);
+  const ours = { aum: 7007449934 + 6446426607, count: 2, top: [{ cusip: 'NVDA', shares: 35021490 }, { cusip: 'AAPL', shares: 22278223 }] };
+  const c = compareFiling(ours, sec);
+  assert.equal(c.status, 'match');
+  assert.equal(c.swapped, true);
+  // not every line swapped: still a difference
+  const half = compareFiling({ ...ours, top: [{ cusip: 'NVDA', shares: 35021490 }, { cusip: 'AAPL', shares: 1 }] }, sec);
+  assert.equal(half.status, 'differs');
+  const ds = { name: 'n', from: 'a', to: 'b' };
+  const body = datasetIssue({ dataset: ds, results: [{ fund: { cik: '1081019', name: 'CALSTRS', acc: 'x', aum: ours.aum }, check: c }] }).body;
+  assert.match(body, /hepsi birebir tuttu/);
+  assert.match(body, /ters yazan 1 fon tuttu sayıldı.*CALSTRS/);
+});

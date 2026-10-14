@@ -84,7 +84,8 @@ jobs:
       # the headline numbers recomputed from the result.
       - name: Check value units
         run: node scripts/repair-units.mjs
-      # Our totals against the filers' declared ones (500 largest, ±5%) and
+      # Our totals against the filers' declared ones (every fund, ±1%; the
+      # full list in reports/kaynak-sapmalari.md) and
       # near-identical books. A finding the previous night did not have is
       # raised as an alarm after the data is committed; it never stops the
       # data, and nothing is added to config/misfiled-books.json.
@@ -117,7 +118,7 @@ jobs:
           # sector-map.json is written only when the sector lookup found
           # something. An hour of crawling should not be thrown away because
           # one optional file was not written.
-          for f in api/_data/unit-corrections.json client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/universe-audit.json api/_data/copy-books.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
+          for f in api/_data/unit-corrections.json client/public/universe.json client/public/universe-summary.json client/public/stocks.json api/_data/universe-audit.json reports/kaynak-sapmalari.md api/_data/copy-books.json api/_data/cusip-tickers.json api/_data/security-master.json api/_data/latest-holdings.json api/_data/slugs.json client/src/data/guru-slugs.js client/public/data-audit.json; do
             if [ -e "$f" ]; then git add --all "$f"; fi
           done
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi

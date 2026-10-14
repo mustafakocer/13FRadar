@@ -100,12 +100,14 @@ export function storedUnitSlip(stored, fresh) {
 }
 
 // ---- the nightly check (scripts/check-universe-audit.mjs) -----------------
-export const NIGHTLY_TOP = 500;
-export const NIGHTLY_TOLERANCE = 0.05;
+// Every current fund, ±1% (the same tolerance as the full EDGAR audit).
+export const NIGHTLY_TOP = Infinity;
+export const NIGHTLY_TOLERANCE = 0.01;
 const pad = (cik) => String(cik || '').replace(/\D/g, '').padStart(10, '0');
 export const pairKey = (a, b) => [pad(a), pad(b)].sort().join('|');
 
 // Our total against the declared one among the `top` largest current funds
+// (all of them by default)
 // (a filing that carries another filer's table is not ranked). A filer that
 // wrote the table and the cover in different units matches at ×1000 or
 // ÷1000: the unit is checked elsewhere, not here.
@@ -161,4 +163,41 @@ export function adviceLine(a, usedAcc, filed) {
     return `Öneri: ${a.name} (${a.cik}) ${a.reportDate} için başka bir orijinal bildirim de vermiş (${a.acc}, ${a.filingDate}). Kopya bu fonunsa ${usedAcc} bildirimini config/misfiled-books.json'a ekleyin ve ${a.acc} kullanılsın.`;
   }
   return `${a.name} (${a.cik}): ${a.reportDate} için başka orijinal bildirim yok (kullanılan ${usedAcc}, ${filed}). Kopya bu fonunsa yanlış dosyalanmış olarak işaretlenmeli; başka bir çeyreğin bildirimi yerine konmaz.`;
+}
+
+// ---- the readable list (reports/kaynak-sapmalari.md) ----------------------
+const usd = (v) => (Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(2)} mlr` : `$${(v / 1e6).toFixed(1)} mn`);
+const near = (x, t) => Math.abs(x / t - 1) <= 0.05;
+export const filingUrl = (cik, acc) => `https://www.sec.gov/Archives/edgar/data/${Number(String(cik).replace(/\D/g, ''))}/${String(acc).replace(/-/g, '')}/`;
+
+// A hint, not a verdict: which side to look at first.
+export function likelyCause({ aum, declared }) {
+  const r = aum / declared;
+  if (near(r, 10) || near(r, 0.1)) return '×10 birim kayması olabilir';
+  return r > 1 ? 'Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır' : 'Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir';
+}
+
+// Every deviation of the night, the largest dollar gap first. No date in the
+// page: it changes only when the list changes, so the nightly commit is quiet.
+export function deviationReport(deviations, { quarter, fresh = [] } = {}) {
+  const isNew = new Set(fresh.map((d) => `${d.cik}|${d.acc}`));
+  const rows = [...deviations].sort((a, b) => Math.abs(b.aum - b.declared) - Math.abs(a.aum - a.declared));
+  const lines = [
+    `# Kaynakla uyuşmayan fonlar — ${quarter}`,
+    '',
+    `Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız toplamı, fonun SEC'e kendi beyan ettiği toplamla ("table value total") karşılaştırılır. Farkı ±%${NIGHTLY_TOLERANCE * 100}'i aşanlar burada listelenir. Yeni çıkan bir sapma ayrıca alarm issue'su açar (e-posta gelir); listede zaten olanlar her gece tekrar alarm vermez.`,
+    '',
+    `"Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.`,
+    '',
+    `**Toplam: ${rows.length} fon.**`,
+    '',
+  ];
+  if (!rows.length) return `${lines.join('\n')}Sapma yok.\n`;
+  lines.push('| | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |', '|---|---|---|---|---|---|---|---|');
+  for (const d of rows) {
+    const diff = `${d.diffPct > 0 ? '+' : ''}${Math.abs(d.diffPct) >= 1e4 ? Math.round(d.diffPct).toLocaleString('en-US') : d.diffPct}%`;
+    const name = String(d.name || d.cik).replace(/\|/g, '/');
+    lines.push(`| ${isNew.has(`${d.cik}|${d.acc}`) ? '🆕' : ''} | ${name} (${d.cik}) | ${d.rank} | ${usd(d.aum)} | ${usd(d.declared)} | ${diff} | ${likelyCause(d)} | [SEC](${filingUrl(d.cik, d.acc)}) |`);
+  }
+  return `${lines.join('\n')}\n`;
 }

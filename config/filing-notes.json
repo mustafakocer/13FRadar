@@ -152,6 +152,86 @@
       "declared": 16515697,
       "table": 36993272,
       "reason": "2026-06-30: the cover page declares $16.52M; the 19-row table sums to $36.99M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 9 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0000713676",
+      "acc": "0001193125-26-339298",
+      "kind": "cover-total",
+      "declared": 184289613248,
+      "table": 201763781278,
+      "reason": "2026-06-30: the cover page declares $184.29B over 17,255 lines; the 17,255-row table sums to $201.76B and 2829 of its 2832 priced lines sit at the period-end close (implied price ÷ close within 0.5–2): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001965334",
+      "acc": "0001965334-26-000004",
+      "kind": "cover-total",
+      "declared": 3306251012,
+      "table": 3667677535,
+      "reason": "2026-06-30: the cover page declares $3.31B over 815 lines; the 853-row table sums to $3.67B and 411 of its 414 priced lines sit at the period-end close (implied price ÷ close within 0.5–2): the cover total is the filer's error."
+    },
+    {
+      "cik": "0000036966",
+      "acc": "0000036966-26-000144",
+      "kind": "cover-total",
+      "declared": 1696669754,
+      "table": 2598297542,
+      "reason": "2026-06-30: the cover page declares $1.70B over 2,120 lines; the 2,120-row table sums to $2.60B and 1220 of its 1223 priced lines sit at the period-end close (implied price ÷ close within 0.5–2): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001077583",
+      "acc": "0001077583-26-000004",
+      "kind": "cover-total",
+      "declared": 4796866,
+      "table": 4106441528,
+      "reason": "2026-06-30: the cover page declares $4.80M over 148 lines; the 151-row table sums to $4.11B and 137 of its 139 priced lines sit at the period-end close (implied price ÷ close within 0.5–2): the cover total is the filer's error."
+    },
+    {
+      "cik": "0002055134",
+      "acc": "0002055134-26-000003",
+      "kind": "cover-total",
+      "declared": 129141068,
+      "table": 117761667,
+      "reason": "2026-06-30: the cover page declares $129.14M over 104 lines; the 104-row table sums to $117.76M and 56 of its 56 priced lines sit at the period-end close (implied price ÷ close within 0.5–2): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001639943",
+      "acc": "0001639943-26-000004",
+      "kind": "incomplete-table",
+      "declared": 2549470591,
+      "table": 523038271,
+      "declaredLines": 787,
+      "tableLines": 264,
+      "reason": "2026-06-30: the cover page declares 787 lines worth $2.55B; the filed table has 264 rows summing to $523.04M, 113 of 114 priced lines at the period-end close: the filer's table is incomplete."
+    },
+    {
+      "cik": "0001894188",
+      "acc": "0001894188-26-000009",
+      "kind": "incomplete-table",
+      "declared": 669718863,
+      "table": 250851673,
+      "declaredLines": 265,
+      "tableLines": 19,
+      "reason": "2026-06-30: the cover page declares 265 lines worth $669.72M; the filed table has 19 rows summing to $250.85M, 18 of 18 priced lines at the period-end close: the filer's table is incomplete."
+    },
+    {
+      "cik": "0001438258",
+      "acc": "0001438258-26-000002",
+      "kind": "incomplete-table",
+      "declared": 117962924,
+      "table": 77930844,
+      "declaredLines": 43,
+      "tableLines": 29,
+      "reason": "2026-06-30: the cover page declares 43 lines worth $117.96M; the filed table has 29 rows summing to $77.93M, 19 of 19 priced lines at the period-end close: the filer's table is incomplete."
+    },
+    {
+      "cik": "0001769302",
+      "acc": "0001769302-26-000003",
+      "kind": "incomplete-table",
+      "declared": 911672066,
+      "table": 800422162,
+      "declaredLines": 300,
+      "tableLines": 268,
+      "reason": "2026-06-30: the cover page declares 300 lines worth $911.67M; the filed table has 268 rows summing to $800.42M, 121 of 128 priced lines at the period-end close: the filer's table is incomplete."
     }
   ]
 }

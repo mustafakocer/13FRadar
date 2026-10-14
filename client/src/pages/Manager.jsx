@@ -434,12 +434,18 @@ export default function Manager({ segment = 'portfolio' }) {
       )}
 
       {(mgr.data?.notes || [])
-        .filter((n) => n.kind === 'cover-total' && (!n.acc || n.acc === acc))
+        .filter((n) => (n.kind === 'cover-total' || n.kind === 'incomplete-table') && (!n.acc || n.acc === acc))
         .map((n) => (
           <div key={`${n.kind}-${n.acc}`} className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }}>
             <span className="small">
               <Ico icon={TriangleAlert} size={14} />{' '}
-              {t('manager.coverTotal').replace('{declared}', fmtMoney(n.declared)).replace('{table}', fmtMoney(n.table))}
+              {n.kind === 'incomplete-table'
+                ? t('manager.incompleteTable')
+                    .replace('{declaredLines}', Number(n.declaredLines).toLocaleString())
+                    .replace('{tableLines}', Number(n.tableLines).toLocaleString())
+                    .replace('{declared}', fmtMoney(n.declared))
+                    .replace('{table}', fmtMoney(n.table))
+                : t('manager.coverTotal').replace('{declared}', fmtMoney(n.declared)).replace('{table}', fmtMoney(n.table))}
             </span>
           </div>
         ))}

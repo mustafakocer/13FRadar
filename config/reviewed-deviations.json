@@ -1,0 +1,119 @@
+{
+  "_readme": "Deviations from the nightly list (reports/kaynak-sapmalari.md) checked by hand and closed without a note on the fund's page: the table is complete and priced at the period-end close, and the gap to the cover total is small (≤5%) — the filer's software summed its cover apart from its table. Each entry is for one filing (acc); a new filing of the same filer is checked again.",
+  "deviations": [
+    {
+      "cik": "0001606588",
+      "acc": "0001606588-26-000004",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $3.60B vs cover $3.64B (-1.21%); 523 rows vs 532 cover lines; 270 of 284 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001512991",
+      "acc": "0001512991-26-000004",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $2.54B vs cover $2.49B (+1.86%); 1893 rows vs 1893 cover lines; 1608 of 1611 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001290162",
+      "acc": "0001193125-26-351939",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $1.70B vs cover $1.66B (+2.35%); 81 rows vs 81 cover lines; 59 of 60 priced lines at the period-end close."
+    },
+    {
+      "cik": "0002081278",
+      "acc": "0002081278-26-000005",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $1.21B vs cover $1.24B (-2.78%); 396 rows vs 394 cover lines; 193 of 194 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001470766",
+      "acc": "0001193125-26-348168",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $1.20B vs cover $1.24B (-3.70%); 26 rows vs 27 cover lines; 9 of 9 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001653199",
+      "acc": "0001653199-26-000004",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $638.25M vs cover $627.28M (+1.75%); 100 rows vs 95 cover lines; 54 of 55 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001774343",
+      "acc": "0001986152-26-000122",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $627.58M vs cover $638.89M (-1.77%); 100 rows vs 100 cover lines; 54 of 54 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001935795",
+      "acc": "0001935795-26-000003",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $593.66M vs cover $613.14M (-3.18%); 108 rows vs 108 cover lines; 75 of 76 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001873372",
+      "acc": "0001986152-26-000111",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $356.49M vs cover $352.27M (+1.20%); 105 rows vs 95 cover lines; 84 of 84 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001387723",
+      "acc": "0001387723-26-000006",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $356.28M vs cover $363.24M (-1.92%); 137 rows vs 137 cover lines; 110 of 110 priced lines at the period-end close."
+    },
+    {
+      "cik": "0002059579",
+      "acc": "0002059579-26-000005",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $274.75M vs cover $265.35M (+3.54%); 82 rows vs 75 cover lines; 67 of 67 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001843309",
+      "acc": "0001843309-26-000008",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $241.51M vs cover $245.95M (-1.81%); 78 rows vs 78 cover lines; 58 of 58 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001509550",
+      "acc": "0001509550-26-000005",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $237.11M vs cover $241.94M (-2.00%); 90 rows vs 99 cover lines; 36 of 36 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001965201",
+      "acc": "0001965201-26-000003",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $227.05M vs cover $236.20M (-3.87%); 190 rows vs 196 cover lines; 111 of 111 priced lines at the period-end close."
+    },
+    {
+      "cik": "0002071183",
+      "acc": "0001986152-26-000127",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $217.66M vs cover $215.04M (+1.22%); 80 rows vs 80 cover lines; 48 of 48 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001841857",
+      "acc": "0001841857-26-000003",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $157.45M vs cover $150.12M (+4.88%); 71 rows vs 71 cover lines; 53 of 53 priced lines at the period-end close."
+    },
+    {
+      "cik": "0002011201",
+      "acc": "0002011201-26-000005",
+      "kind": "small-gap",
+      "reason": "2026-09-30: table $149.90M vs cover $152.76M (-1.88%); 150 rows vs 148 cover lines; 69 of 69 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001730532",
+      "acc": "0000919574-26-005107",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $134.76M vs cover $137.48M (-1.98%); 11 rows vs 21 cover lines; 10 of 10 priced lines at the period-end close."
+    },
+    {
+      "cik": "0002112239",
+      "acc": "0002112239-26-000003",
+      "kind": "small-gap",
+      "reason": "2026-06-30: table $131.70M vs cover $130.21M (+1.15%); 96 rows vs 40 cover lines; 75 of 76 priced lines at the period-end close."
+    }
+  ]
+}

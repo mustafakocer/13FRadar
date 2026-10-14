@@ -1,6 +1,7 @@
 name: Weekly sample check
 # Ten funds a week: what the site shows next to the SEC filing itself, as an
-# issue with a box per fund for a human to tick (scripts/weekly-sample.mjs).
+# issue with a box per fund for a human to tick, then the same check on every
+# fund, the ones that differ listed in the same issue (scripts/weekly-sample.mjs).
 # Mondays 09:07 UTC: after the night's data, outside the 01:00–03:30 window.
 # Commits nothing.
 on:
@@ -21,7 +22,7 @@ concurrency:
 jobs:
   sample:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,9 +31,10 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
-      # on a pull request: the issue printed to the summary, not opened
-      - name: Compare ten funds with EDGAR
-        run: node scripts/weekly-sample.mjs ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}
+      # on a pull request: the issue printed to the summary, not opened, and
+      # the whole-universe scan cut to the 300 largest funds
+      - name: Compare ten funds, then every fund, with EDGAR
+        run: node scripts/weekly-sample.mjs ${{ github.event_name == 'pull_request' && '--dry-run --scan-limit=300' || '' }}
         env:
           SEC_USER_AGENT: 'Fundocap sample bot (https://www.fundocap.co)'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -4,6 +4,11 @@
 //
 //   node scripts/weekly-sample.mjs            → opens the issue (GITHUB_TOKEN)
 //   node scripts/weekly-sample.mjs --dry-run  → prints the issue instead
+//   --scan-limit=N  scan only the N largest funds (a pull request's run)
+//
+// After the ten, every current fund without an amendment is checked the
+// same way (about an hour at the EDGAR clock's pace); the funds that differ
+// are listed under the sample.
 //
 // A week whose issue is already open is not opened twice. Exits 1 only when
 // the issue could not be opened: a difference is for the human to look at,
@@ -45,7 +50,36 @@ for (const fund of sample) {
   }
 }
 
-const issue = sampleIssue({ week, results, mention: mentionOf() });
+// the whole universe, the same check
+const limitArg = process.argv.find((a) => a.startsWith('--scan-limit='));
+const scanLimit = limitArg ? Number(limitArg.split('=')[1]) : Infinity;
+const done = new Set(results.map((r) => r.fund.cik));
+const eligible = funds.filter((f) => f.aum > 0 && !f.misfiled && !f.amended && (!quarter || f.reportDate >= quarter));
+const toScan = eligible.filter((f) => !done.has(f.cik)).sort((a, b) => b.aum - a.aum).slice(0, scanLimit);
+const scan = { checked: results.filter((r) => !r.error).length, unreadable: 0, skipped: funds.length - eligible.length, differs: results.filter((r) => !r.error && !r.check.ok) };
+let next = 0;
+let progress = 0;
+await Promise.all(
+  Array.from({ length: 4 }, async () => {
+    while (next < toScan.length) {
+      const fund = toScan[next++];
+      try {
+        const check = compareSample(L[fund.cik], rawLines(await fetchInfoTableXml(fund.cik, fund.acc)));
+        scan.checked++;
+        if (!check.ok) {
+          scan.differs.push({ fund, check });
+          console.log(`SCAN DIFF ${fund.name} (${fund.cik}) lines ${check.lines.filter((l) => l.ok).length}/${check.lines.length}, count ${check.count.ours}/${check.count.sec}`);
+        }
+      } catch (e) {
+        scan.unreadable++;
+      }
+      if (++progress % 500 === 0) console.log(`  scanned ${progress}/${toScan.length}`);
+    }
+  })
+);
+console.log(`scan: ${scan.checked} checked, ${scan.differs.length} differ, ${scan.unreadable} unreadable, ${scan.skipped} skipped`);
+
+const issue = sampleIssue({ week, results, mention: mentionOf(), scan });
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `# ${issue.title}\n\n${issue.body}\n`);
 if (dry) {
   console.log(`\n# ${issue.title}\n\n${issue.body}`);

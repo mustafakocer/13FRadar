@@ -84,8 +84,9 @@ export function rawLines(xml) {
     const cusip = tag(b, 'cusip').toUpperCase();
     const putCall = tag(b, 'putCall');
     const key = `${cusip}|${putCall}`;
-    const cur = out.get(key) || { cusip, putCall, issuer: tag(b, 'nameOfIssuer'), shares: 0, lines: 0 };
+    const cur = out.get(key) || { cusip, putCall, issuer: tag(b, 'nameOfIssuer'), shares: 0, value: 0, lines: 0 };
     cur.shares += Number(tag(b, 'sshPrnamt').replace(/,/g, '')) || 0;
+    cur.value += Number(tag(b, 'value').replace(/,/g, '')) || 0;
     cur.lines += 1;
     out.set(key, cur);
   }
@@ -101,6 +102,16 @@ export function compareSample(ours, raw) {
     return { cusip: p.cusip, putCall: p.putCall || '', issuer: p.issuer, value: p.value, ours: p.shares, sec, ok: sec != null && Math.abs(sec - p.shares) <= 0.5 };
   });
   const countOk = ours.count === raw.size;
+  // a filer that wrote the value and share columns the other way round
+  // (CalSTRS 2026-Q2): the build swaps them back, so our share counts are
+  // the table's value column
+  if (countOk && lines.length && !lines.every((l) => l.ok)) {
+    const swapped = (ours.top || []).every((p) => {
+      const r = raw.get(`${String(p.cusip || '').toUpperCase()}|${p.putCall || ''}`);
+      return r && Math.abs(r.value - p.shares) <= 0.5;
+    });
+    if (swapped) return { lines: lines.map((l) => ({ ...l, ok: true })), count: { ours: ours.count, sec: raw.size, ok: true }, ok: true, swapped: true };
+  }
   return { lines, count: { ours: ours.count, sec: raw.size, ok: countOk }, ok: lines.length > 0 && lines.every((l) => l.ok) && countOk };
 }
 
@@ -111,10 +122,39 @@ export const fundUrl = (f) => `${SITE}/${f.kind === 'guru' ? 'guru' : 'filer'}/$
 export const filingIndexUrl = (cik, acc) => `https://www.sec.gov/Archives/edgar/data/${Number(String(cik).replace(/\D/g, ''))}/${String(acc).replace(/-/g, '')}/`;
 
 // results: [{ fund, check } | { fund, error }]
-export function sampleIssue({ week, results, mention }) {
+// The whole-universe pass of the same check (every current fund without an
+// amendment), the funds that differ listed largest first.
+//   scan: { checked, unreadable, skipped, differs: [{ fund, check }] }
+export const SCAN_LIST_MAX = 150;
+export function scanSection(scan) {
+  if (!scan) return [];
+  const differs = [...scan.differs].sort((a, b) => b.fund.aum - a.fund.aum);
+  const lines = [
+    '## Tüm fon taraması',
+    '',
+    differs.length
+      ? `**${scan.checked} fon tarandı: ${scan.checked - differs.length} tanesi SEC ile birebir tuttu, ${differs.length} tanesinde fark var.**`
+      : `**${scan.checked} fon tarandı: hepsi SEC ile birebir tuttu.**`,
+    '',
+    `Her fonun sitede gösterilen ilk 10 pozisyonunun adedi ve pozisyon sayısı, SEC bildiriminin kendisiyle karşılaştırıldı (yukarıdaki örnek kontrolle aynı yöntem). Taranmayan: düzeltme bildirimi olan ya da başka bir dönemin bildirimini kullanan ${scan.skipped || 0} fon; SEC'ten okunamayan ${scan.unreadable || 0} bildirim (bir sonraki hafta yeniden denenir).`,
+    '',
+  ];
+  if (differs.length) {
+    lines.push('| Fon | Toplam | Pozisyon (site / SEC) | İlk 10 adet | Bildirim |', '|---|---|---|---|---|');
+    for (const r of differs.slice(0, SCAN_LIST_MAX)) {
+      const c = r.check;
+      lines.push(`| ${cell(r.fund.name)} (${r.fund.cik}) | ${usd(r.fund.aum)} | ${c.count.ok ? '✅' : '❌'} ${c.count.ours} / ${c.count.sec} | ${c.lines.every((l) => l.ok) ? '✅' : `❌ ${c.lines.filter((l) => !l.ok).length} satır`} | [SEC](${filingIndexUrl(r.fund.cik, r.fund.acc)}) |`);
+    }
+    if (differs.length > SCAN_LIST_MAX) lines.push('', `… ve ${differs.length - SCAN_LIST_MAX} fon daha (tam liste çalışmanın özet sayfasında).`);
+    lines.push('');
+  }
+  return lines;
+}
+
+export function sampleIssue({ week, results, mention, scan = null }) {
   const failed = results.filter((r) => r.error || !r.check.ok);
   const lines = [
-    `${mention ? `${mention} ` : ''}Bu haftanın örnek kontrolü: ${results.length} fon.`,
+    `${mention ? `${mention} ` : ''}Bu haftanın örnek kontrolü: ${results.length} fon.${scan ? ` Ayrıca ${scan.checked} fonun tamamı otomatik tarandı: ${scan.differs.length ? `**${scan.differs.length} fonda fark var** (en altta).` : 'hepsi tuttu.'}` : ''}`,
     '',
     failed.length
       ? `**Otomatik ön kontrol: ${results.length - failed.length} fon tam uyuştu, ${failed.length} fonda fark var** (❌ işaretli satırlara bakın).`
@@ -140,5 +180,6 @@ export function sampleIssue({ week, results, mention }) {
     }
     lines.push(`- [ ] Siteyi açtım, ${cell(f.name)} SEC ile uyuşuyor`, '');
   });
-  return { title: `Haftalık örnek kontrol — ${week}`, body: lines.join('\n').slice(0, 60000), failed: failed.length };
+  lines.push(...scanSection(scan));
+  return { title: `Haftalık örnek kontrol — ${week}`, body: lines.join('\n').slice(0, 60000), failed: failed.length, scanDiffers: scan ? scan.differs.length : 0 };
 }

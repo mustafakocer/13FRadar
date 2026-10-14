@@ -416,7 +416,7 @@ export default function Manager({ segment = 'portfolio' }) {
             <Ico icon={TriangleAlert} size={14} />{' '}
             {t('manager.fallback')
               .replace('{q}', quarterLabel(fallback.reportDate))
-              .replace('{mq}', quarterLabel(fallback.misfiled.reportDate))
+              .replaceAll('{mq}', quarterLabel(fallback.misfiled.reportDate))
               .replace('{other}', fallback.misfiled.copyOfName || fallback.misfiled.copyOf)}
           </span>
         </div>

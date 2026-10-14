@@ -1,7 +1,7 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-10-13T20:15:33.696Z",
- "last_success_at": "2026-10-13T20:15:42.954Z",
+ "last_run_at": "2026-10-14T01:23:19.196Z",
+ "last_success_at": "2026-10-14T01:23:26.643Z",
  "last_filing_date": "2026-10-12",
  "row_count": 13240,
  "member_count": 167,
@@ -16,8 +16,8 @@
  "run": {
   "house": {
    "indexed": 936,
-   "fetched": 3,
-   "ok": 3,
+   "fetched": 0,
+   "ok": 0,
    "scan": 0,
    "empty": 0,
    "error": 0

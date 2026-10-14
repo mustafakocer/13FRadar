@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - id: ask
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[audit\]'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [audit] in the head commit: skipped"; fi
+          if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[audit'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [audit] in the head commit: skipped"; fi
       - if: steps.ask.outputs.run == 'true'
         uses: actions/setup-node@v4
         with:
@@ -34,6 +34,8 @@ jobs:
         run: npm ci
       - if: steps.ask.outputs.run == 'true'
         name: Compare with EDGAR
-        run: node scripts/audit-universe.mjs
+        # [audit-deviations] in the head commit: only the nightly list, minutes not an hour
+        run: |
+          if git log -1 --format=%B | grep -q '\[audit-deviations\]'; then node scripts/audit-universe.mjs --deviations; else node scripts/audit-universe.mjs; fi
         env:
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'

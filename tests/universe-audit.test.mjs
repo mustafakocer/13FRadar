@@ -215,3 +215,13 @@ test('deviation report: every deviation, largest dollar gap first, new ones mark
   assert.match(likelyCause({ aum: 120, declared: 100 }), /yüksek/);
   assert.match(likelyCause({ aum: 60, declared: 100 }), /düşük/);
 });
+
+test('audit-universe: a deviations-only run for the nightly list, started by [audit-deviations]', () => {
+
+  const src = fs.readFileSync(new URL('../scripts/audit-universe.mjs', import.meta.url), 'utf8');
+  assert.match(src, /--deviations/);
+  assert.match(src, /universe-audit\.json/);
+  const wf = fs.readFileSync(new URL('../.github/workflows/audit-universe.yml', import.meta.url), 'utf8');
+  assert.match(wf, /\\\[audit-deviations\\\]/);
+  assert.doesNotMatch(wf, /@[a-z0-9-]+\.[a-z]+/i); // no email in the user agent
+});

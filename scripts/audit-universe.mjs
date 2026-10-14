@@ -8,9 +8,13 @@
 // read; "stored" is universe.json. A stored total off by exactly ×1000 from
 // the fresh one is a unit slip the stored copy missed (SLIP lines, applied
 // by scripts/apply-audit.mjs). Only the rows outside ±1% are printed.
+//
+//   --deviations  only the filings the nightly check lists
+//                 (api/_data/universe-audit.json), every one in a detail table
+//   --ciks=a,b    only these filers
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings } from '../api/_lib/sec.js';
+import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings, getSubmissions, list13FAll } from '../api/_lib/sec.js';
 import { completeQuarter, inferPeriod } from '../api/_lib/universeSummary.js';
 import { compareTotal, lineKey, overlapPairs, TOTAL_TOLERANCE, declaredCandidates, storedUnitSlip } from '../api/_lib/universeAudit.js';
 
@@ -19,7 +23,15 @@ const U = JSON.parse(fs.readFileSync(path.join(root, 'client', 'public', 'univer
 const L = JSON.parse(fs.readFileSync(path.join(root, 'api', '_data', 'latest-holdings.json'), 'utf8')).byCik || {};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const quarter = completeQuarter(U.updatedAt);
-const rows = U.rows.filter((r) => (r.reportDate || inferPeriod(r.filed)) >= quarter && r.aum > 0);
+const argOf = (name) => process.argv.find((a) => a === `--${name}` || a.startsWith(`--${name}=`));
+const pad = (c) => String(c).replace(/\D/g, '').padStart(10, '0');
+let only = null;
+if (argOf('deviations')) {
+  const state = JSON.parse(fs.readFileSync(path.join(root, 'api', '_data', 'universe-audit.json'), 'utf8'));
+  only = new Set((state.deviations || []).map((k) => k.split('|')[0]));
+}
+if (argOf('ciks')) only = new Set(argOf('ciks').split('=')[1].split(',').filter(Boolean).map(pad));
+const rows = U.rows.filter((r) => (r.reportDate || inferPeriod(r.filed)) >= quarter && r.aum > 0 && (!only || only.has(pad(r.cik))));
 console.log(`auditing ${rows.length} filings (quarter ${quarter})`);
 
 const results = [];
@@ -54,7 +66,19 @@ await Promise.all(
         const stored = compareTotal({ ours: r.aum, declared, factor });
         const asStated = compareTotal({ ours: fresh, declared, factor: 1 });
         const slip = storedUnitSlip(r.aum, fresh);
-        const res = { cik: r.cik, name: r.name, acc: r.acc, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, ...cmp };
+        // asked for by name: what else the filer sent for the same period
+        let others = '';
+        if (only) {
+          try {
+            others = list13FAll(await getSubmissions(r.cik))
+              .filter((f) => f.reportDate === period && f.acc !== r.acc)
+              .map((f) => `${f.form} ${f.acc} ${f.filingDate}`)
+              .join('; ');
+          } catch (e) {
+            others = `submissions unreadable: ${e.message}`;
+          }
+        }
+        const res = { cik: r.cik, name: r.name, acc: r.acc, filed: r.filed, period, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, others, lines: agg.positions.length, ...cmp };
         results.push(res);
         if (slip) console.log(`SLIP ${r.cik} ${r.acc} ${r.aum} ${fresh} ${slip}`);
         if (!cmp.ok || !stored.ok) console.log(`CMP ${r.cik} ${r.aum} ${fresh} ${declared ?? 'NA'} ${factor} ${cmp.diffPct == null ? 'NA' : cmp.diffPct.toFixed(5)} ${asStated.diffPct == null ? 'NA' : asStated.diffPct.toFixed(5)} ${amends.length}`);
@@ -72,7 +96,7 @@ const byCik = new Map(rows.map((r) => [r.cik, r]));
 const judged = results.filter((r) => r.ok != null);
 const within = judged.filter((r) => r.ok).length;
 const pct = (x) => `${(x * 100).toFixed(2)}%`;
-const money = (v) => (v == null ? '—' : `$${(v / 1e9).toFixed(2)}B`);
+const money = (v) => (v == null ? '—' : Math.abs(v) >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : `$${(v / 1e6).toFixed(2)}M`);
 const n = (f) => judged.filter(f).length;
 const lines = [
   `## Universe audit — ${quarter}`,
@@ -92,6 +116,10 @@ lines.push('', '### Largest 20 funds', '', '| Fund | Ours | SEC × factor | Diff
 // the largest funds as ranked: a filing carrying another filer's table is not one
 for (const r of [...results].filter((r) => !r.misfiled).sort((a, b) => b.ours - a.ours).slice(0, 20)) lines.push(`| ${r.name} | ${money(r.ours)} | ${money(r.declaredAdj ?? r.declared)} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${money(r.stored)} |`);
 
+if (only) {
+  lines.push('', `### Every filing asked for (${results.length})`, '', '| Fund | CIK | Filing (filed) | Lines | Stored | Fresh | SEC as stated | Unit factor | Fresh vs SEC × factor | Fresh vs SEC as stated | Amended | SLIP | Other filings, same period |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  for (const r of [...results].sort((a, b) => b.stored - a.stored)) lines.push(`| ${String(r.name).replace(/\|/g, '/')} | ${r.cik} | ${r.acc} (${r.filed}) | ${r.lines} | ${money(r.stored)} | ${money(r.ours)} | ${money(r.declared)} | ${r.factor} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${r.asStatedOk ? 'within' : 'outside'} | ${r.amended ? 'yes' : ''} | ${r.slip || ''} | ${r.others || ''} |`);
+}
 const pairs = overlapPairs(books).map((p) => ({ ...p, A: byCik.get(p.a), B: byCik.get(p.b) }));
 pairs.sort((x, y) => Math.max(y.A.aum, y.B.aum) - Math.max(x.A.aum, x.B.aum));
 lines.push('', `### Books that are the same book (> 90% of lines both ways): ${pairs.length} pairs`, '', '| Fund A | Fund B | A | B | Lines matched | A share | B share |', '|---|---|---|---|---|---|---|');

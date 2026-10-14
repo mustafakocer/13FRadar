@@ -44,6 +44,10 @@ test('rawLines: namespaces, put/call, repeated CUSIPs summed, thousands separato
   assert.equal(r.get('ABC123456|').lines, 2);
   assert.equal(r.get('ABC123456|Put').shares, 50);
   assert.equal(rawLines('').size, 0);
+  // tags carrying attributes (BNP Paribas 2026-Q2: <infoTable xmlns="…">)
+  const attr = rawLines('<informationTable xmlns="x"><infoTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable"><cusip>ZZZ999999</cusip><shrsOrPrnAmt><sshPrnamt units="SH">7</sshPrnamt></shrsOrPrnAmt></infoTable></informationTable>');
+  assert.equal(attr.size, 1);
+  assert.equal(attr.get('ZZZ999999|').shares, 7);
 });
 
 test('pickSample: the same week the same ten, 4 gurus + 6 other filers, amended/misfiled/stale/tiny left out', async () => {
@@ -103,4 +107,39 @@ test('weekly-sample workflow: weekly, outside the night window, no email in the 
   assert.match(wf, /--dry-run/);
   const src = fs.readFileSync(new URL('../scripts/weekly-sample.mjs', import.meta.url), 'utf8');
   assert.match(src, /already open: not opened twice/);
+  assert.match(wf, /--scan-limit=300/); // a pull request scans the 300 largest, the schedule all
+  assert.match(src, /scan-limit/);
+});
+
+test('compareSample: a table with swapped value and share columns matches once swapped back (CalSTRS)', async () => {
+  const { compareSample, rawLines } = await import('../api/_lib/sampleCheck.js');
+  const row = (cusip, value, sh) => `<infoTable><cusip>${cusip}</cusip><value>${value}</value><shrsOrPrnAmt><sshPrnamt>${sh}</sshPrnamt></shrsOrPrnAmt></infoTable>`;
+  // as filed: shares in the value column, dollars in the share column
+  const raw = rawLines(`<informationTable>${row('NVDA', 35021490, 7007449934)}${row('AAPL', 22278223, 6446426607)}</informationTable>`);
+  const ours = { count: 2, top: [{ cusip: 'NVDA', shares: 35021490 }, { cusip: 'AAPL', shares: 22278223 }] };
+  const c = compareSample(ours, raw);
+  assert.equal(c.ok, true);
+  assert.equal(c.swapped, true);
+  assert.equal(compareSample({ ...ours, top: [{ cusip: 'NVDA', shares: 35021490 }, { cusip: 'AAPL', shares: 5 }] }, raw).ok, false);
+});
+
+test('the weekly issue: the whole-universe scan under the sample, verdict in the first line, differing funds largest first, capped', async () => {
+  const { sampleIssue, scanSection, compareSample, SCAN_LIST_MAX } = await import('../api/_lib/sampleCheck.js');
+  const okCheck = compareSample({ count: 1, top: [{ cusip: 'A', shares: 1 }] }, new Map([['A|', { shares: 1 }]]));
+  const bad = compareSample({ count: 2, top: [{ cusip: 'A', shares: 1 }] }, new Map([['A|', { shares: 1 }]]));
+  const fund = (cik, aum) => ({ cik, name: `Fund ${cik}`, acc: '0000000001-26-000001', aum, reportDate: '2026-06-30', slug: 's', kind: 'filer' });
+  const scan = { checked: 8000, unreadable: 3, skipped: 600, differs: [{ fund: fund('1', 1e8), check: bad }, { fund: fund('2', 5e9), check: bad }] };
+  const { body, scanDiffers } = sampleIssue({ week: 'w', mention: '@x', results: [{ fund: fund('9', 1e9), check: okCheck }], scan });
+  assert.equal(scanDiffers, 2);
+  assert.match(body.split('\n')[0], /8000 fonun tamamı otomatik tarandı: \*\*2 fonda fark var\*\*/);
+  assert.match(body, /## Tüm fon taraması/);
+  assert.ok(body.indexOf('Fund 2') < body.indexOf('Fund 1'));
+  assert.match(body, /okunamayan 3 bildirim/);
+  const many = scanSection({ checked: 1000, differs: Array.from({ length: SCAN_LIST_MAX + 5 }, (_, i) => ({ fund: fund(String(i), i), check: bad })) });
+  assert.equal(many.filter((l) => l.startsWith('| Fund')).length, SCAN_LIST_MAX);
+  assert.match(many.join('\n'), /… ve 5 fon daha/);
+  assert.match(scanSection({ checked: 10, differs: [] }).join('\n'), /hepsi SEC ile birebir tuttu/);
+  assert.deepEqual(scanSection(null), []);
+  // without a scan the issue is the sample alone
+  assert.doesNotMatch(sampleIssue({ week: 'w', results: [{ fund: fund('9', 1), check: okCheck }] }).body, /Tüm fon taraması/);
 });

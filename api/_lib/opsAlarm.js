@@ -35,6 +35,10 @@ export function githubIssues({ token, repo, http = axios }) {
     async openWithLabel(label) {
       return ok(await gh.get('/issues', { params: { state: 'open', labels: label, per_page: 100 } }), 'list issues');
     },
+    // open and closed: a report that must be opened once per subject
+    async anyWithLabel(label) {
+      return ok(await gh.get('/issues', { params: { state: 'all', labels: label, per_page: 100 } }), 'list issues');
+    },
     async create(title, body, labels) {
       return ok(await gh.post('/issues', { title, body, labels }), 'create issue');
     },

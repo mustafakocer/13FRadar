@@ -1,0 +1,60 @@
+name: SEC data set comparison
+# The second source: the SEC's own Form 13F data set (published once a
+# quarter) against what the site shows (scripts/sec-dataset-check.mjs).
+# One issue per data set, labelled kaynak-karsilastirma; a weekly run finds
+# the new one when the SEC publishes it. Sundays 06:37 UTC, outside the
+# 01:00–03:30 window. Commits nothing. On a pull request: the issue is
+# printed to the run summary, not opened.
+on:
+  schedule:
+    - cron: '37 6 * * 0'
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/sec-dataset-check.mjs'
+      - 'api/_lib/secDataset.js'
+      - '.github/workflows/sec-dataset.yml'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: sec-dataset
+  cancel-in-progress: false
+env:
+  SEC_USER_AGENT: 'Fundocap dataset bot (https://www.fundocap.co)'
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Find the newest data set
+        id: ds
+        run: |
+          json=$(node scripts/sec-dataset-check.mjs --latest)
+          echo "$json"
+          echo "url=$(echo "$json" | jq -r .url)" >> "$GITHUB_OUTPUT"
+          echo "name=$(echo "$json" | jq -r .name)" >> "$GITHUB_OUTPUT"
+          echo "from=$(echo "$json" | jq -r .from)" >> "$GITHUB_OUTPUT"
+          echo "to=$(echo "$json" | jq -r .to)" >> "$GITHUB_OUTPUT"
+      - name: Download and unpack the information tables
+        run: |
+          mkdir -p "$RUNNER_TEMP/ds"
+          curl -sSfL --retry 3 -A "$SEC_USER_AGENT" -o "$RUNNER_TEMP/ds.zip" "${{ steps.ds.outputs.url }}"
+          ls -la "$RUNNER_TEMP/ds.zip"
+          unzip -o -j "$RUNNER_TEMP/ds.zip" '*INFOTABLE.tsv' -d "$RUNNER_TEMP/ds"
+          ls -la "$RUNNER_TEMP/ds"
+      - name: Compare with the site's data
+        run: >-
+          node scripts/sec-dataset-check.mjs --dir "$RUNNER_TEMP/ds"
+          --name "${{ steps.ds.outputs.name }}" --from "${{ steps.ds.outputs.from }}" --to "${{ steps.ds.outputs.to }}"
+          ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

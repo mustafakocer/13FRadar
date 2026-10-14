@@ -1,0 +1,39 @@
+name: Weekly sample check
+# Ten funds a week: what the site shows next to the SEC filing itself, as an
+# issue with a box per fund for a human to tick (scripts/weekly-sample.mjs).
+# Mondays 09:07 UTC: after the night's data, outside the 01:00–03:30 window.
+# Commits nothing.
+on:
+  schedule:
+    - cron: '7 9 * * 1'
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - 'scripts/weekly-sample.mjs'
+      - 'api/_lib/sampleCheck.js'
+      - '.github/workflows/weekly-sample.yml'
+permissions:
+  contents: read
+  issues: write
+concurrency:
+  group: weekly-sample
+  cancel-in-progress: false
+jobs:
+  sample:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      # on a pull request: the issue printed to the summary, not opened
+      - name: Compare ten funds with EDGAR
+        run: node scripts/weekly-sample.mjs ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}
+        env:
+          SEC_USER_AGENT: 'Fundocap sample bot (https://www.fundocap.co)'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

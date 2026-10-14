@@ -177,11 +177,17 @@ export function likelyCause({ aum, declared }) {
   return r > 1 ? 'Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır' : 'Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir';
 }
 
-// Every deviation of the night, the largest dollar gap first. No date in the
-// page: it changes only when the list changes, so the nightly commit is quiet.
-export function deviationReport(deviations, { quarter, fresh = [] } = {}) {
+// Every deviation of the night, the largest dollar gap first. A filing with
+// a hand-checked note (config/filing-notes.json: the cover total is the
+// filer's error) is listed apart, as reviewed. No date in the page: it
+// changes only when the list changes, so the nightly commit is quiet.
+//   notes: [{ cik, acc }]
+export function deviationReport(deviations, { quarter, fresh = [], notes = [] } = {}) {
   const isNew = new Set(fresh.map((d) => `${d.cik}|${d.acc}`));
-  const rows = [...deviations].sort((a, b) => Math.abs(b.aum - b.declared) - Math.abs(a.aum - a.declared));
+  const noted = new Set(notes.map((n) => `${pad(n.cik)}|${n.acc}`));
+  const sorted = [...deviations].sort((a, b) => Math.abs(b.aum - b.declared) - Math.abs(a.aum - a.declared));
+  const open = sorted.filter((d) => !noted.has(`${pad(d.cik)}|${d.acc}`));
+  const reviewed = sorted.filter((d) => noted.has(`${pad(d.cik)}|${d.acc}`));
   const lines = [
     `# Kaynakla uyuşmayan fonlar — ${quarter}`,
     '',
@@ -189,15 +195,25 @@ export function deviationReport(deviations, { quarter, fresh = [] } = {}) {
     '',
     `"Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.`,
     '',
-    `**Toplam: ${rows.length} fon.**`,
+    `**İncelenecek: ${open.length} fon. İncelendi (fonun kendi kapak hatası): ${reviewed.length} fon.**`,
     '',
   ];
-  if (!rows.length) return `${lines.join('\n')}Sapma yok.\n`;
-  lines.push('| | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |', '|---|---|---|---|---|---|---|---|');
-  for (const d of rows) {
-    const diff = `${d.diffPct > 0 ? '+' : ''}${Math.abs(d.diffPct) >= 1e4 ? Math.round(d.diffPct).toLocaleString('en-US') : d.diffPct}%`;
-    const name = String(d.name || d.cik).replace(/\|/g, '/');
-    lines.push(`| ${isNew.has(`${d.cik}|${d.acc}`) ? '🆕' : ''} | ${name} (${d.cik}) | ${d.rank} | ${usd(d.aum)} | ${usd(d.declared)} | ${diff} | ${likelyCause(d)} | [SEC](${filingUrl(d.cik, d.acc)}) |`);
+  if (!sorted.length) return `${lines.join('\n')}Sapma yok.\n`;
+  const table = (rows, cause) => {
+    const out = ['| | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |', '|---|---|---|---|---|---|---|---|'];
+    for (const d of rows) {
+      const diff = `${d.diffPct > 0 ? '+' : ''}${Math.abs(d.diffPct) >= 1e4 ? Math.round(d.diffPct).toLocaleString('en-US') : d.diffPct}%`;
+      const name = String(d.name || d.cik).replace(/\|/g, '/');
+      out.push(`| ${isNew.has(`${d.cik}|${d.acc}`) ? '🆕' : ''} | ${name} (${d.cik}) | ${d.rank} | ${usd(d.aum)} | ${usd(d.declared)} | ${diff} | ${cause(d)} | [SEC](${filingUrl(d.cik, d.acc)}) |`);
+    }
+    return out;
+  };
+  lines.push('## İncelenecek', '');
+  if (open.length) lines.push(...table(open, likelyCause));
+  else lines.push('Yok.');
+  if (reviewed.length) {
+    lines.push('', '## İncelendi — fonun kendi kapak hatası', '', 'Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor; fonun özet sayfasındaki toplam hatalı. Sitede tablonun toplamı gösteriliyor ve fon sayfasında bu durum not olarak yazıyor (config/filing-notes.json).', '');
+    lines.push(...table(reviewed, () => 'Fonun kapak hatası (incelendi)'));
   }
   return `${lines.join('\n')}\n`;
 }

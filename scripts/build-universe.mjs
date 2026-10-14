@@ -16,6 +16,7 @@ import { persist as persistMaster, stats as masterStats } from '../api/_lib/secu
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
 import { inferPeriod, completeQuarter, universeRow, writeUniverseSummaryFile } from '../api/_lib/universeSummary.js';
 import { misfiledFor, markMisfiled } from '../api/_lib/misfiledBooks.js';
+import { indexEntry, needsSubmissions } from '../api/_lib/amendments.js';
 
 const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
@@ -99,14 +100,7 @@ async function main() {
       if (form !== '13F-HR' && form !== '13F-HR/A') continue;
       const acc = /(\d{10}-\d{2}-\d{6})/.exec(file)?.[1];
       if (!acc) continue;
-      const existing = latestByCik.get(cik);
-      // several originals in the window (a filer catching up files many
-      // periods on one day) means the newest filing date says nothing about
-      // the newest period: those go through the submissions feed below
-      const originals = (existing?.originals || 0) + (form === '13F-HR' ? 1 : 0);
-      if (!existing || existing.filed <= filed) {
-        latestByCik.set(cik, { cik, name, filed, acc, form, originals });
-      } else existing.originals = originals;
+      latestByCik.set(cik, indexEntry(latestByCik.get(cik), { cik, name, filed, acc, form }));
     }
   }
 
@@ -176,7 +170,7 @@ async function main() {
   }
 
   async function latestSnapshot(e) {
-    if (e.form !== '13F-HR/A' && (e.originals || 0) < 2) {
+    if (!needsSubmissions(e)) {
       const xml = await fetchInfoTableXml(e.cik, e.acc);
       const parsed = await parse13F(xml);
       const period = inferPeriod(e.filed);

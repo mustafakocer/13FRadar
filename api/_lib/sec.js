@@ -133,7 +133,7 @@ export function list13F(sub) {
 
 // The directory listing of one submission, cached in memory and on disk:
 // the info table and the cover page are both picked out of it.
-function filingIndex(cik, acc) {
+export function filingIndex(cik, acc) {
   const cikN = numCik(cik);
   const accNo = acc.replace(/-/g, '');
   const base = `https://www.sec.gov/Archives/edgar/data/${cikN}/${accNo}`;

@@ -16,6 +16,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings, getSubmissions, list13FAll, filingIndex } from '../api/_lib/sec.js';
 import { completeQuarter, inferPeriod } from '../api/_lib/universeSummary.js';
+import { defaultCloseOf } from '../api/_lib/valueUnits.js';
 import { compareTotal, lineKey, overlapPairs, TOTAL_TOLERANCE, declaredCandidates, storedUnitSlip } from '../api/_lib/universeAudit.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -96,7 +97,29 @@ await Promise.all(
             docs = `index unreadable: ${e.message}`;
           }
         }
-        const res = { entries, docs, rawRows, cik: r.cik, name: r.name, acc: r.acc, filed: r.filed, period, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, others, lines: agg.positions.length, ...cmp };
+        // asked for by name: every priced line against its period-end close.
+        // A line written in the wrong unit sits near ×1000 or ÷1000 of it;
+        // `fixedTotal` is the book with only those lines rescaled.
+        let px = null;
+        if (only) {
+          const b = { priced: 0, ok: 0, high: [], low: [], off: 0 };
+          for (const p of agg.positions) {
+            if (p.putCall || !(p.shares > 0) || !(p.value > 0)) continue;
+            const close = defaultCloseOf(p, period);
+            if (!close) continue;
+            b.priced++;
+            const ratio = p.value / p.shares / close;
+            if (ratio >= 300 && ratio <= 3000) b.high.push({ p, ratio });
+            else if (ratio <= 1 / 300 && ratio >= 1 / 3000) b.low.push({ p, ratio });
+            else if (ratio >= 0.5 && ratio <= 2) b.ok++;
+            else b.off++;
+          }
+          const highValue = b.high.reduce((s, x) => s + x.p.value, 0);
+          const lowValue = b.low.reduce((s, x) => s + x.p.value, 0);
+          const fixedTotal = Math.round(agg.aum - highValue + highValue / 1000 - lowValue + lowValue * 1000);
+          px = { priced: b.priced, ok: b.ok, off: b.off, high: b.high.length, highValue, low: b.low.length, lowValue, fixedTotal, fixedDiff: declared > 0 ? fixedTotal / declared - 1 : null, sample: [...b.high, ...b.low].sort((x, y) => y.p.value - x.p.value).slice(0, 3).map((x) => `${x.p.issuer} ${x.ratio.toFixed(0)}×`).join('; ') };
+        }
+        const res = { px, entries, docs, rawRows, cik: r.cik, name: r.name, acc: r.acc, filed: r.filed, period, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, others, lines: agg.positions.length, ...cmp };
         results.push(res);
         if (slip) console.log(`SLIP ${r.cik} ${r.acc} ${r.aum} ${fresh} ${slip}`);
         if (!cmp.ok || !stored.ok) console.log(`CMP ${r.cik} ${r.aum} ${fresh} ${declared ?? 'NA'} ${factor} ${cmp.diffPct == null ? 'NA' : cmp.diffPct.toFixed(5)} ${asStated.diffPct == null ? 'NA' : asStated.diffPct.toFixed(5)} ${amends.length}`);
@@ -137,6 +160,13 @@ for (const r of [...results].filter((r) => !r.misfiled).sort((a, b) => b.ours - 
 if (only) {
   lines.push('', `### Every filing asked for (${results.length})`, '', '| Fund | CIK | Filing (filed) | Lines (rows read) | Cover lines | XML documents | Stored | Fresh | SEC as stated | Unit factor | Fresh vs SEC × factor | Fresh vs SEC as stated | Amended | SLIP | Other filings, same period |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
   for (const r of [...results].sort((a, b) => b.stored - a.stored)) lines.push(`| ${String(r.name).replace(/\|/g, '/')} | ${r.cik} | ${r.acc} (${r.filed}) | ${r.lines}${r.rawRows != null ? ` (${r.rawRows})` : ''} | ${r.entries ?? '—'} | ${r.docs} | ${money(r.stored)} | ${money(r.ours)} | ${money(r.declared)} | ${r.factor} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${r.asStatedOk ? 'within' : 'outside'} | ${r.amended ? 'yes' : ''} | ${r.slip || ''} | ${r.others || ''} |`);
+}
+if (only) {
+  lines.push('', '### Line prices against period-end closes (filings asked for)', '', '| Fund | CIK | Total ours | SEC declared | Diff | Priced | ≈1× | ×1000 lines (value) | ÷1000 lines (value) | Other off | Total with those lines rescaled | Then vs SEC | Largest |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  for (const r of [...results].filter((x) => x.px).sort((a, b) => b.stored - a.stored)) {
+    const x = r.px;
+    lines.push(`| ${String(r.name).replace(/\|/g, '/')} | ${r.cik} | ${money(r.ours)} | ${money(r.declared)} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${x.priced} | ${x.ok} | ${x.high} (${money(x.highValue)}) | ${x.low} (${money(x.lowValue)}) | ${x.off} | ${money(x.fixedTotal)} | ${x.fixedDiff == null ? '—' : pct(x.fixedDiff)} | ${String(x.sample).replace(/\|/g, '/')} |`);
+  }
 }
 const pairs = overlapPairs(books).map((p) => ({ ...p, A: byCik.get(p.a), B: byCik.get(p.b) }));
 pairs.sort((x, y) => Math.max(y.A.aum, y.B.aum) - Math.max(x.A.aum, x.B.aum));

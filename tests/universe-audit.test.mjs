@@ -203,7 +203,7 @@ test('deviation report: every deviation, largest dollar gap first, new ones mark
     { cik: '0001777271', acc: '0001777271-26-000007', name: 'Big', rank: 1, aum: 21.6e9, declared: 216e9, diffPct: -90 },
   ];
   const md = deviationReport(devs, { quarter: '2026-06-30', fresh: [devs[0]] });
-  assert.match(md, /İncelenecek: 2 fon\. İncelendi \(fonun kendi kapak hatası\): 0 fon/);
+  assert.match(md, /İncelenecek: 2 fon\. İncelendi: 0 fon/);
   assert.ok(md.indexOf('Big') < md.indexOf('Small'));
   assert.match(md, /\| 🆕 \| Small \/ Co/); // a pipe in a name does not break the table
   assert.match(md, /\|  \| Big/);
@@ -211,13 +211,19 @@ test('deviation report: every deviation, largest dollar gap first, new ones mark
   assert.doesNotMatch(md, /\d{4}-\d{2}-\d{2}T/); // no timestamp: a quiet nightly commit
   assert.match(deviationReport([], { quarter: '2026-06-30' }), /Sapma yok/);
   // a filing with a hand-checked note is listed apart, as reviewed
-  const withNote = deviationReport(devs, { quarter: '2026-06-30', notes: [{ cik: '1777271', acc: '0001777271-26-000007' }] });
-  assert.match(withNote, /İncelenecek: 1 fon\. İncelendi \(fonun kendi kapak hatası\): 1 fon/);
+  const withNote = deviationReport(devs, { quarter: '2026-06-30', notes: [{ cik: '1777271', acc: '0001777271-26-000007', kind: 'cover-total' }] });
+  assert.match(withNote, /İncelenecek: 1 fon\. İncelendi: 1 fon/);
   assert.ok(withNote.indexOf('Small') < withNote.indexOf('## İncelendi'));
   assert.ok(withNote.indexOf('| Big') > withNote.indexOf('## İncelendi'));
   assert.match(withNote, /Fonun kapak hatası \(incelendi\)/);
   // a note on another filing of the same filer does not count
-  assert.match(deviationReport(devs, { quarter: 'q', notes: [{ cik: '1777271', acc: 'other' }] }), /İncelenecek: 2 fon/);
+  assert.match(deviationReport(devs, { quarter: 'q', notes: [{ cik: '1777271', acc: 'other', kind: 'cover-total' }] }), /İncelenecek: 2 fon/);
+  // each way a deviation was closed has its own section; an unknown kind stays open
+  const both = deviationReport(devs, { quarter: 'q', notes: [{ cik: '1777271', acc: '0001777271-26-000007', kind: 'incomplete-table' }], reviewed: [{ cik: '0000000001', acc: '0000000001-26-000001', kind: 'small-gap' }] });
+  assert.match(both, /İncelenecek: 0 fon\. İncelendi: 2 fon/);
+  assert.match(both, /## İncelendi — fonun tablosu eksik[\s\S]*\| Big/);
+  assert.match(both, /## İncelendi — küçük fark, tablo doğru[\s\S]*Small/);
+  assert.match(deviationReport(devs, { quarter: 'q', notes: [{ cik: '1777271', acc: '0001777271-26-000007', kind: 'other' }] }), /İncelenecek: 2 fon/);
   assert.equal(filingUrl('0000713676', '0001193125-26-339298'), 'https://www.sec.gov/Archives/edgar/data/713676/000119312526339298/');
   assert.match(likelyCause({ aum: 100, declared: 1000 }), /×10/);
   assert.match(likelyCause({ aum: 120, declared: 100 }), /yüksek/);
@@ -232,4 +238,32 @@ test('audit-universe: a deviations-only run for the nightly list, started by [au
   const wf = fs.readFileSync(new URL('../.github/workflows/audit-universe.yml', import.meta.url), 'utf8');
   assert.match(wf, /\\\[audit-deviations\\\]/);
   assert.doesNotMatch(wf, /@[a-z0-9-]+\.[a-z]+/i); // no email in the user agent
+});
+
+test('reviewed deviations and filing notes: every entry names its filing, a known kind and a reason', async () => {
+  const { REVIEWED_KINDS } = await import('../api/_lib/universeAudit.js');
+  const notes = JSON.parse(fs.readFileSync(new URL('../config/filing-notes.json', import.meta.url), 'utf8')).notes;
+  const reviewed = JSON.parse(fs.readFileSync(new URL('../config/reviewed-deviations.json', import.meta.url), 'utf8')).deviations;
+  for (const n of [...notes, ...reviewed]) {
+    assert.match(n.cik, /^\d{10}$/, JSON.stringify(n));
+    assert.match(n.acc, /^\d{10}-\d{2}-\d{6}$/, JSON.stringify(n));
+    assert.ok(REVIEWED_KINDS[n.kind], n.kind);
+    assert.ok(String(n.reason || '').length > 40, n.cik);
+  }
+  for (const n of notes) assert.ok(n.declared > 0 && n.table > 0, n.cik);
+  for (const n of notes.filter((x) => x.kind === 'incomplete-table')) assert.ok(n.declaredLines > n.tableLines, n.cik);
+  assert.ok(reviewed.every((r) => r.kind === 'small-gap'));
+  const keys = [...notes, ...reviewed].map((n) => `${n.cik}|${n.acc}`);
+  assert.equal(new Set(keys).size, keys.length); // one verdict per filing
+});
+
+test('filing notes: the page shows both kinds, the API carries the line counts', async () => {
+  const { notesFor } = await import('../api/_lib/filingNotes.js');
+  const n = notesFor('1639943', [{ cik: '0001639943', acc: 'a', kind: 'incomplete-table', declared: 2, table: 1, declaredLines: 787, tableLines: 264 }]);
+  assert.deepEqual(n, [{ acc: 'a', kind: 'incomplete-table', declared: 2, table: 1, declaredLines: 787, tableLines: 264 }]);
+  assert.equal(notesFor('1', [{ cik: '0000000001', kind: 'cover-total', declared: 1, table: 2 }])[0].declaredLines, undefined);
+  const page = fs.readFileSync(new URL('../client/src/pages/Manager.jsx', import.meta.url), 'utf8');
+  assert.match(page, /n\.kind === 'incomplete-table'/);
+  const i18n = fs.readFileSync(new URL('../client/src/i18n.jsx', import.meta.url), 'utf8');
+  assert.equal((i18n.match(/'manager\.incompleteTable':/g) || []).length, 2); // tr and en
 });

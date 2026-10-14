@@ -177,17 +177,38 @@ export function likelyCause({ aum, declared }) {
   return r > 1 ? 'Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır' : 'Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir';
 }
 
-// Every deviation of the night, the largest dollar gap first. A filing with
-// a hand-checked note (config/filing-notes.json: the cover total is the
-// filer's error) is listed apart, as reviewed. No date in the page: it
-// changes only when the list changes, so the nightly commit is quiet.
-//   notes: [{ cik, acc }]
-export function deviationReport(deviations, { quarter, fresh = [], notes = [] } = {}) {
+// Every deviation of the night, the largest dollar gap first. A filing
+// checked by hand is listed apart, under why it was closed: a note on the
+// fund's page (config/filing-notes.json: 'cover-total', 'incomplete-table')
+// or a small gap closed without one (config/reviewed-deviations.json,
+// 'small-gap'). No date in the page: it changes only when the list
+// changes, so the nightly commit is quiet.
+//   notes / reviewed: [{ cik, acc, kind }]
+export const REVIEWED_KINDS = {
+  'cover-total': {
+    title: 'İncelendi — fonun kapak hatası',
+    text: 'Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor; fonun özet sayfasındaki toplam hatalı. Sitede tablonun toplamı gösteriliyor ve fon sayfasında bu durum not olarak yazıyor.',
+    cause: 'Fonun kapak hatası (incelendi)',
+  },
+  'incomplete-table': {
+    title: 'İncelendi — fonun tablosu eksik',
+    text: 'Fon özet sayfasında, SEC\'e yüklediği tablodan çok daha fazla satır beyan etmiş. Tablodaki satırların fiyatları doğru; eksik satırlar fonun kendi bildiriminde yok, biz uyduramayız. Fon sayfasında bu durum not olarak yazıyor.',
+    cause: 'Fonun tablosu eksik (incelendi)',
+  },
+  'small-gap': {
+    title: 'İncelendi — küçük fark, tablo doğru',
+    text: 'Fark ±%5 içinde; tablo eksiksiz ve fiyatları dönem sonu kapanışlarıyla örtüşüyor. Fonun yazılımı özet toplamı tablodan ayrı hesaplamış. Fon sayfasına not konmadı.',
+    cause: 'Küçük fark (incelendi)',
+  },
+};
+
+export function deviationReport(deviations, { quarter, fresh = [], notes = [], reviewed = [] } = {}) {
   const isNew = new Set(fresh.map((d) => `${d.cik}|${d.acc}`));
-  const noted = new Set(notes.map((n) => `${pad(n.cik)}|${n.acc}`));
+  const kindOf = new Map([...reviewed, ...notes].filter((n) => REVIEWED_KINDS[n.kind]).map((n) => [`${pad(n.cik)}|${n.acc}`, n.kind]));
   const sorted = [...deviations].sort((a, b) => Math.abs(b.aum - b.declared) - Math.abs(a.aum - a.declared));
-  const open = sorted.filter((d) => !noted.has(`${pad(d.cik)}|${d.acc}`));
-  const reviewed = sorted.filter((d) => noted.has(`${pad(d.cik)}|${d.acc}`));
+  const kind = (d) => kindOf.get(`${pad(d.cik)}|${d.acc}`) || null;
+  const open = sorted.filter((d) => !kind(d));
+  const closed = sorted.length - open.length;
   const lines = [
     `# Kaynakla uyuşmayan fonlar — ${quarter}`,
     '',
@@ -195,7 +216,7 @@ export function deviationReport(deviations, { quarter, fresh = [], notes = [] } 
     '',
     `"Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.`,
     '',
-    `**İncelenecek: ${open.length} fon. İncelendi (fonun kendi kapak hatası): ${reviewed.length} fon.**`,
+    `**İncelenecek: ${open.length} fon. İncelendi: ${closed} fon** (${Object.keys(REVIEWED_KINDS).map((k) => `${REVIEWED_KINDS[k].cause.replace(' (incelendi)', '').toLowerCase()} ${sorted.filter((d) => kind(d) === k).length}`).join(', ')}).`,
     '',
   ];
   if (!sorted.length) return `${lines.join('\n')}Sapma yok.\n`;
@@ -211,9 +232,11 @@ export function deviationReport(deviations, { quarter, fresh = [], notes = [] } 
   lines.push('## İncelenecek', '');
   if (open.length) lines.push(...table(open, likelyCause));
   else lines.push('Yok.');
-  if (reviewed.length) {
-    lines.push('', '## İncelendi — fonun kendi kapak hatası', '', 'Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor; fonun özet sayfasındaki toplam hatalı. Sitede tablonun toplamı gösteriliyor ve fon sayfasında bu durum not olarak yazıyor (config/filing-notes.json).', '');
-    lines.push(...table(reviewed, () => 'Fonun kapak hatası (incelendi)'));
+  for (const [k, v] of Object.entries(REVIEWED_KINDS)) {
+    const rows = sorted.filter((d) => kind(d) === k);
+    if (!rows.length) continue;
+    lines.push('', `## ${v.title}`, '', v.text, '');
+    lines.push(...table(rows, () => v.cause));
   }
   return `${lines.join('\n')}\n`;
 }

@@ -85,8 +85,8 @@ for (const p of fresh.pairs) {
 }
 
 fs.mkdirSync(file('reports'), { recursive: true });
-fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes }));
-if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes }));
+fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] }));
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] }));
 fs.writeFileSync(
   stateFile,
   `${JSON.stringify({ quarter, deviations: deviations.map((d) => `${d.cik}|${d.acc}`).sort(), pairs: pairs.map((p) => pairKey(p.a, p.b)).sort() }, null, 1)}\n`

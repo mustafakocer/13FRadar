@@ -645,6 +645,8 @@ const dict = {
     'manager.quarterEnd': 'Dönem sonu',
     'manager.coverTotal':
       'Fonun SEC\'e verdiği özet sayfasında toplam {declared} yazıyor; pozisyon tablosunun toplamı {table}. Tablodaki fiyatlar dönem sonu piyasa fiyatlarıyla örtüşüyor, bu yüzden tablodaki rakam gösteriliyor. Özet sayfasındaki toplam fonun kendi yazım hatası.',
+    'manager.incompleteTable':
+      'Fon SEC\'e verdiği özet sayfasında {declaredLines} pozisyon ve toplam {declared} beyan ediyor; SEC\'e yüklediği pozisyon tablosunda ise {tableLines} satır var ve toplamı {table}. Sitede SEC\'teki tablo olduğu gibi gösteriliyor; eksik satırlar fonun kendi bildiriminde yok.',
     'manager.fallback': 'Son geçerli bildirim: {q}. {mq} bildirimi {other} adlı fonun tablosunu taşıdığı için kullanılmıyor; fon {mq} toplamlarında ve sıralamalarında yer almıyor.',
     'manager.invalid': 'geçersiz',
     'manager.misfiled':
@@ -2028,6 +2030,8 @@ const dict = {
     'manager.quarterEnd': 'Quarter end',
     'manager.coverTotal':
       'The cover page this fund filed with the SEC states a total of {declared}; its holdings table sums to {table}. The table\'s prices match quarter-end market prices, so the table\'s figure is shown. The cover page total is the fund\'s own error.',
+    'manager.incompleteTable':
+      'The cover page this fund filed with the SEC declares {declaredLines} positions worth {declared}; the holdings table it filed has {tableLines} rows summing to {table}. The site shows the table as filed; the missing rows are not in the fund\'s own filing.',
     'manager.fallback': 'Latest valid filing: {q}. The {mq} filing carries {other}\'s table and is not used; the fund is left out of {mq} totals and rankings.',
     'manager.invalid': 'invalid',
     'manager.misfiled':

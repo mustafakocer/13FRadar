@@ -15,6 +15,7 @@ import { completeQuarter } from '../api/_lib/universeSummary.js';
 import { totalDeviations, newFindings, pairKey, copyAdvice, adviceLine, deviationReport, filingUrl, NIGHTLY_TOLERANCE } from '../api/_lib/universeAudit.js';
 import { getSubmissions, list13FAll } from '../api/_lib/sec.js';
 import { misfiledBooks } from '../api/_lib/misfiledBooks.js';
+import { filingNotes } from '../api/_lib/filingNotes.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const file = (...p) => path.join(root, ...p);
@@ -84,8 +85,8 @@ for (const p of fresh.pairs) {
 }
 
 fs.mkdirSync(file('reports'), { recursive: true });
-fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations }));
-if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations }));
+fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes }));
+if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes }));
 fs.writeFileSync(
   stateFile,
   `${JSON.stringify({ quarter, deviations: deviations.map((d) => `${d.cik}|${d.acc}`).sort(), pairs: pairs.map((p) => pairKey(p.a, p.b)).sort() }, null, 1)}\n`

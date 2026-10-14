@@ -262,3 +262,66 @@ test('SSR: the fund page lists quarters, marks the amended ones and shows no "(A
   // selected; it is served in the state the page hydrates from
   assert.match(html, /"amendments":\[\{"acc":"0009000001-26-000025","form":"13F-HR\/A","filingDate":"2026-08-14"\}\]/);
 });
+
+test('index pass: a same-day 13F-HR/A is never hidden by the original listed after it', async () => {
+  const { indexEntry, needsSubmissions } = await import('../api/_lib/amendments.js');
+  const hr = { cik: '1846236', name: 'True Link', filed: '2026-07-31', acc: '0001846236-26-000005', form: '13F-HR' };
+  const hra = { ...hr, acc: '0001846236-26-000006', form: '13F-HR/A' };
+  // either order of the two index lines
+  for (const rows of [[hra, hr], [hr, hra]]) {
+    const e = rows.reduce((acc, r) => indexEntry(acc, r), undefined);
+    assert.equal(e.amendedOn, '2026-07-31');
+    assert.equal(needsSubmissions(e), true);
+  }
+  // an original alone: the one document the index named is enough
+  assert.equal(needsSubmissions(indexEntry(undefined, hr)), false);
+  // an amendment of an earlier period, filed before the newest original: not this filing's
+  const old = { ...hra, filed: '2026-05-02' };
+  const e = [old, hr].reduce((acc, r) => indexEntry(acc, r), undefined);
+  assert.equal(e.acc, hr.acc);
+  assert.equal(needsSubmissions(e), false);
+  // a later amendment stays the newest document, and the newest date wins
+  const later = [hr, { ...hra, filed: '2026-08-20' }, old].reduce((acc, r) => indexEntry(acc, r), undefined);
+  assert.equal(later.form, '13F-HR/A');
+  assert.equal(later.amendedOn, '2026-08-20');
+  // two originals in the window: the submissions feed decides the period
+  assert.equal(needsSubmissions([hr, { ...hr, acc: 'x', filed: '2026-08-01' }].reduce((acc, r) => indexEntry(acc, r), undefined)), true);
+});
+
+test('build-universe: the index pass goes through indexEntry/needsSubmissions', async () => {
+  const fs = await import('node:fs');
+  const src = fs.readFileSync(new URL('../scripts/build-universe.mjs', import.meta.url), 'utf8');
+  assert.match(src, /indexEntry\(latestByCik\.get\(cik\)/);
+  assert.match(src, /if \(!needsSubmissions\(e\)\)/);
+});
+
+test('a NEW HOLDINGS cover over a table that re-files the book is applied as a restatement', async () => {
+  const { applyAmendment, restatesBook, effectiveSnapshot } = await import('../api/_lib/amendments.js');
+  const pos = (c, v) => ({ cusip: c, putCall: '', issuer: c, value: v, shares: v / 10 });
+  const base = { positions: [pos('A', 500), pos('B', 300), pos('C', 200), pos('D', 100)] };
+  // Mizuho-like: the "new holdings" table re-lists A, B, C at new figures and drops D
+  const refiled = { positions: [pos('A', 400), pos('B', 250), pos('C', 150)] };
+  assert.equal(restatesBook(base, refiled), true);
+  const r = applyAmendment(base, refiled, 'NEW HOLDINGS');
+  assert.equal(r.type, 'RESTATEMENT');
+  assert.equal(r.relabeled, true);
+  assert.equal(r.aum, 800);
+  assert.deepEqual(r.positions.map((p) => p.cusip), ['A', 'B', 'C']);
+  // a genuine new-holdings amendment: a few names the original left out
+  const added = { positions: [pos('E', 50)] };
+  assert.equal(restatesBook(base, added), false);
+  const a = applyAmendment(base, added, 'NEW HOLDINGS');
+  assert.equal(a.type, 'NEW HOLDINGS');
+  assert.equal(a.relabeled, undefined);
+  assert.equal(a.aum, 1150);
+  // many new names, few repeated: still an addition
+  const many = { positions: [pos('A', 500), pos('E', 1), pos('F', 1), pos('G', 1)] };
+  assert.equal(restatesBook(base, many), false);
+  // a restatement stays one; no base means nothing to compare
+  assert.equal(applyAmendment(base, refiled, 'RESTATEMENT').relabeled, undefined);
+  assert.equal(restatesBook({ positions: [] }, refiled), false);
+  // the snapshot records the relabel
+  const snap = effectiveSnapshot({ aum: 1100, positions: base.positions }, [{ acc: 'x', filingDate: '2026-07-28', holdings: refiled, cover: { amendmentType: 'NEW HOLDINGS' } }]);
+  assert.equal(snap.aum, 800);
+  assert.equal(snap.amendments[0].relabeled, true);
+});

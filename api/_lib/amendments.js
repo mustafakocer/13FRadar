@@ -136,8 +136,24 @@ const key = (p) => `${String(p.cusip || '').toUpperCase()}|${p.putCall || ''}`;
 // Fold one amendment into a snapshot. Positions keep the aggregatePositions
 // shape ({ cusip, putCall, issuer, class, value, shares, weight }); weights
 // and the total are recomputed over the result.
+// A cover that says NEW HOLDINGS over a table that re-files the book: more
+// than half the original's rows, most of them names the original already
+// carried. Filers do this (Mizuho, Knightsbridge, RPg, GFS, McLaughlin and
+// Ahara in 2026-Q2: each amendment's own declared total matches its table,
+// not the original's plus it). Added to the original, the names the
+// restatement dropped would stay in the book; it is read as what it is.
+export function restatesBook(base, amendment) {
+  const n = base?.positions?.length || 0;
+  const rows = amendment?.positions || [];
+  if (!n || rows.length * 2 <= n) return false;
+  const have = new Set((base.positions || []).map(key));
+  const repeated = rows.filter((p) => have.has(key(p))).length;
+  return repeated * 2 > rows.length;
+}
+
 export function applyAmendment(base, amendment, type) {
-  const kind = type === RESTATEMENT || type === NEW_HOLDINGS ? type : inferAmendmentType(base, amendment);
+  const stated = type === RESTATEMENT || type === NEW_HOLDINGS ? type : null;
+  const kind = stated === NEW_HOLDINGS && restatesBook(base, amendment) ? RESTATEMENT : stated || inferAmendmentType(base, amendment);
   let positions;
   if (kind === RESTATEMENT) {
     positions = (amendment.positions || []).map((p) => ({ ...p }));
@@ -157,7 +173,7 @@ export function applyAmendment(base, amendment, type) {
   positions.sort((a, b) => b.value - a.value);
   const aum = positions.reduce((s, p) => s + (p.value || 0), 0);
   for (const p of positions) p.weight = aum ? (p.value / aum) * 100 : 0;
-  return { aum, positions, type: kind, inferred: type !== kind };
+  return { aum, positions, type: kind, inferred: type !== kind, ...(stated && stated !== kind ? { relabeled: true } : {}) };
 }
 
 // The effective snapshot of a period: the base document with every
@@ -175,6 +191,7 @@ export function effectiveSnapshot(base, amendments = []) {
       filingDate: a.filingDate,
       type: r.type,
       inferred: r.inferred,
+      ...(r.relabeled ? { relabeled: true } : {}),
       positions: (a.holdings.positions || []).length,
     });
   }
@@ -184,4 +201,27 @@ export function effectiveSnapshot(base, amendments = []) {
     ...(base.unitFix ? { unitFix: base.unitFix } : {}),
     ...(applied.length ? { amended: true, amendments: applied } : {}),
   };
+}
+
+// ---- the universe build's EDGAR index pass (scripts/build-universe.mjs) ---
+// One entry per filer: its newest document by filing date, how many
+// originals the window holds, and the date of its newest amendment. Lines
+// of one day arrive in no particular order, so an original listed after a
+// same-day 13F-HR/A must not hide the amendment: `amendedOn` keeps it.
+//   row: { cik, name, filed, acc, form }
+export function indexEntry(existing, row) {
+  const originals = (existing?.originals || 0) + (row.form === '13F-HR' ? 1 : 0);
+  const amendedOn = isAmendmentForm(row.form) && !(existing?.amendedOn > row.filed) ? row.filed : existing?.amendedOn || null;
+  const base = !existing || existing.filed <= row.filed ? row : existing;
+  return { cik: base.cik, name: base.name, filed: base.filed, acc: base.acc, form: base.form, originals, ...(amendedOn ? { amendedOn } : {}) };
+}
+
+// Whether the entry has to be read through the submissions feed (amendments
+// applied, the newest period picked) rather than as the one document the
+// index named: an amendment as the newest document, an amendment filed on
+// or after it, or several originals in the window (a filer catching up
+// files many periods on one day, and the newest filing date then says
+// nothing about the newest period).
+export function needsSubmissions(e) {
+  return isAmendmentForm(e.form) || (e.amendedOn != null && e.amendedOn >= e.filed) || (e.originals || 0) >= 2;
 }

@@ -8,6 +8,150 @@
       "declared": 215850210050,
       "table": 21585021050,
       "reason": "2026-06-30: the cover page declares $215.85B; the 2,869-line table sums to $21.59B and its implied prices match the quarter-end closes (median ratio 1.000 over 15 priced lines): the cover carries an extra digit."
+    },
+    {
+      "cik": "0001737089",
+      "acc": "0001737089-26-000006",
+      "kind": "cover-total",
+      "declared": 369178,
+      "table": 3691783000,
+      "reason": "2026-09-30: the cover page declares $369,178; the 1,669-row table sums to $3.69B and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.003 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001432539",
+      "acc": "0001432539-26-000005",
+      "kind": "cover-total",
+      "declared": 158,
+      "table": 2283184331,
+      "reason": "2026-06-30: the cover page declares $158 over 229,522 lines; the 158-row table sums to $2.28B and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 9 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0002107584",
+      "acc": "0002107584-26-000004",
+      "kind": "cover-total",
+      "declared": 105400597,
+      "table": 1054005947,
+      "reason": "2026-06-30: the cover page declares $105.40M; the 95-row table sums to $1.05B and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001802533",
+      "acc": "0001802533-26-000004",
+      "kind": "cover-total",
+      "declared": 9401630,
+      "table": 1002400160,
+      "reason": "2026-06-30: the cover page declares $9.40M; the 402-row table sums to $1.00B and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 9 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001641438",
+      "acc": "0001641438-26-000006",
+      "kind": "cover-total",
+      "declared": 88102691,
+      "table": 870740683,
+      "reason": "2026-09-30: the cover page declares $88.10M; the 140-row table sums to $870.74M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.035 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001898296",
+      "acc": "0001898296-26-000003",
+      "kind": "cover-total",
+      "declared": 522309,
+      "table": 515112409,
+      "reason": "2026-06-30: the cover page declares $522,309; the 100-row table sums to $515.11M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001079738",
+      "acc": "0001079738-26-000010",
+      "kind": "cover-total",
+      "declared": 490923,
+      "table": 422729000,
+      "reason": "2026-06-30: the cover page declares $490,923; the 61-row table sums to $422.73M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0002013988",
+      "acc": "0002013988-26-000003",
+      "kind": "cover-total",
+      "declared": 119669,
+      "table": 400743000,
+      "reason": "2026-06-30: the cover page declares $119,669 over 90 lines; the 106-row table sums to $400.74M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001535611",
+      "acc": "0001535611-26-000008",
+      "kind": "cover-total",
+      "declared": 3512993,
+      "table": 351299364,
+      "reason": "2026-09-30: the cover page declares $3.51M; the 100-row table sums to $351.30M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 0.998 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001760145",
+      "acc": "0001760145-26-000004",
+      "kind": "cover-total",
+      "declared": 2455104,
+      "table": 333238474,
+      "reason": "2026-06-30: the cover page declares $2.46M; the 710-row table sums to $333.24M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001869685",
+      "acc": "0001869685-26-000006",
+      "kind": "cover-total",
+      "declared": 1121052,
+      "table": 249189271,
+      "reason": "2026-06-30: the cover page declares $1.12M; the 53-row table sums to $249.19M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0002112884",
+      "acc": "0002112884-26-000003",
+      "kind": "cover-total",
+      "declared": 17772350,
+      "table": 177723050,
+      "reason": "2026-06-30: the cover page declares $17.77M; the 14-row table sums to $177.72M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 10 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001835206",
+      "acc": "0001835206-26-000005",
+      "kind": "cover-total",
+      "declared": 187864,
+      "table": 162694509,
+      "reason": "2026-06-30: the cover page declares $187,864 over 59 lines; the 56-row table sums to $162.69M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 7 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0002106942",
+      "acc": "0002106942-26-000003",
+      "kind": "cover-total",
+      "declared": 1,
+      "table": 159999797,
+      "reason": "2026-06-30: the cover page declares $1 over 1 lines; the 393-row table sums to $160.00M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 9 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001697539",
+      "acc": "0001697539-26-000003",
+      "kind": "cover-total",
+      "declared": 48,
+      "table": 114354354,
+      "reason": "2026-06-30: the cover page declares $48 over 114,354 lines; the 48-row table sums to $114.35M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 4 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0002139999",
+      "acc": "0002139999-26-000001",
+      "kind": "cover-total",
+      "declared": 1268164,
+      "table": 37559372,
+      "reason": "2026-06-30: the cover page declares $1.27M over 37 lines; the 36-row table sums to $37.56M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.065 over 5 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001536054",
+      "acc": "0001315863-26-000592",
+      "kind": "cover-total",
+      "declared": 534760000,
+      "table": 53476000,
+      "reason": "2026-06-30: the cover page declares $534.76M; the 3-row table sums to $53.48M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 1 lines): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001590144",
+      "acc": "0001590144-26-000004",
+      "kind": "cover-total",
+      "declared": 16515697,
+      "table": 36993272,
+      "reason": "2026-06-30: the cover page declares $16.52M; the 19-row table sums to $36.99M and its implied prices are in line with the same securities in other funds' 2026-06-30 tables (median ratio 1.000 over 9 lines): the cover total is the filer's error."
     }
   ]
 }

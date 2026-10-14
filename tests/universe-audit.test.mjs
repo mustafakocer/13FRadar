@@ -203,13 +203,21 @@ test('deviation report: every deviation, largest dollar gap first, new ones mark
     { cik: '0001777271', acc: '0001777271-26-000007', name: 'Big', rank: 1, aum: 21.6e9, declared: 216e9, diffPct: -90 },
   ];
   const md = deviationReport(devs, { quarter: '2026-06-30', fresh: [devs[0]] });
-  assert.match(md, /Toplam: 2 fon/);
+  assert.match(md, /İncelenecek: 2 fon\. İncelendi \(fonun kendi kapak hatası\): 0 fon/);
   assert.ok(md.indexOf('Big') < md.indexOf('Small'));
   assert.match(md, /\| 🆕 \| Small \/ Co/); // a pipe in a name does not break the table
   assert.match(md, /\|  \| Big/);
   assert.match(md, /https:\/\/www\.sec\.gov\/Archives\/edgar\/data\/1777271\/000177727126000007\//);
   assert.doesNotMatch(md, /\d{4}-\d{2}-\d{2}T/); // no timestamp: a quiet nightly commit
   assert.match(deviationReport([], { quarter: '2026-06-30' }), /Sapma yok/);
+  // a filing with a hand-checked note is listed apart, as reviewed
+  const withNote = deviationReport(devs, { quarter: '2026-06-30', notes: [{ cik: '1777271', acc: '0001777271-26-000007' }] });
+  assert.match(withNote, /İncelenecek: 1 fon\. İncelendi \(fonun kendi kapak hatası\): 1 fon/);
+  assert.ok(withNote.indexOf('Small') < withNote.indexOf('## İncelendi'));
+  assert.ok(withNote.indexOf('| Big') > withNote.indexOf('## İncelendi'));
+  assert.match(withNote, /Fonun kapak hatası \(incelendi\)/);
+  // a note on another filing of the same filer does not count
+  assert.match(deviationReport(devs, { quarter: 'q', notes: [{ cik: '1777271', acc: 'other' }] }), /İncelenecek: 2 fon/);
   assert.equal(filingUrl('0000713676', '0001193125-26-339298'), 'https://www.sec.gov/Archives/edgar/data/713676/000119312526339298/');
   assert.match(likelyCause({ aum: 100, declared: 1000 }), /×10/);
   assert.match(likelyCause({ aum: 120, declared: 100 }), /yüksek/);

@@ -68,7 +68,7 @@ export function pickSample(funds, { week, quarter, size = SAMPLE_SIZE, topPicks 
 }
 
 const tag = (block, name) => {
-  const m = block.match(new RegExp(`<(?:[\\w-]+:)?${name}>\\s*([^<]*?)\\s*</(?:[\\w-]+:)?${name}>`, 'i'));
+  const m = block.match(new RegExp(`<(?:[\\w-]+:)?${name}(?:\\s[^>]*)?>\\s*([^<]*?)\\s*</(?:[\\w-]+:)?${name}>`, 'i'));
   return m ? m[1] : '';
 };
 
@@ -77,7 +77,8 @@ const tag = (block, name) => {
 //   → Map('CUSIP|Put' → { cusip, putCall, issuer, shares, lines })
 export function rawLines(xml) {
   const out = new Map();
-  const re = /<(?:[\w-]+:)?infoTable>([\s\S]*?)<\/(?:[\w-]+:)?infoTable>/gi;
+  // a tag may carry attributes (BNP Paribas writes <infoTable xmlns="…">)
+  const re = /<(?:[\w-]+:)?infoTable(?:\s[^>]*)?>([\s\S]*?)<\/(?:[\w-]+:)?infoTable>/gi;
   let m;
   while ((m = re.exec(String(xml || '')))) {
     const b = m[1];

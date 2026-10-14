@@ -44,6 +44,10 @@ test('rawLines: namespaces, put/call, repeated CUSIPs summed, thousands separato
   assert.equal(r.get('ABC123456|').lines, 2);
   assert.equal(r.get('ABC123456|Put').shares, 50);
   assert.equal(rawLines('').size, 0);
+  // tags carrying attributes (BNP Paribas 2026-Q2: <infoTable xmlns="…">)
+  const attr = rawLines('<informationTable xmlns="x"><infoTable xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable"><cusip>ZZZ999999</cusip><shrsOrPrnAmt><sshPrnamt units="SH">7</sshPrnamt></shrsOrPrnAmt></infoTable></informationTable>');
+  assert.equal(attr.size, 1);
+  assert.equal(attr.get('ZZZ999999|').shares, 7);
 });
 
 test('pickSample: the same week the same ten, 4 gurus + 6 other filers, amended/misfiled/stale/tiny left out', async () => {

@@ -14,7 +14,7 @@
 //   --ciks=a,b    only these filers
 import fs from 'node:fs';
 import path from 'node:path';
-import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings, getSubmissions, list13FAll } from '../api/_lib/sec.js';
+import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings, getSubmissions, list13FAll, filingIndex } from '../api/_lib/sec.js';
 import { completeQuarter, inferPeriod } from '../api/_lib/universeSummary.js';
 import { compareTotal, lineKey, overlapPairs, TOTAL_TOLERANCE, declaredCandidates, storedUnitSlip } from '../api/_lib/universeAudit.js';
 
@@ -47,6 +47,7 @@ await Promise.all(
         const amends = (L[r.cik]?.acc === r.acc ? L[r.cik].amendments : null) || [];
         const cover = await fetchCoverPage(r.cik, r.acc);
         let agg;
+        let rawRows = null;
         let declared = cover?.tableValueTotal ?? null;
         if (amends.length) {
           const filing = { acc: r.acc, filingDate: r.filed, reportDate: period, amendments: amends.map((a) => ({ acc: a.acc, filingDate: a.filingDate })) };
@@ -58,7 +59,9 @@ await Promise.all(
           const cands = declaredCandidates(declared, amends.map((a, k) => ({ type: covers[k]?.amendmentType || a.type, total: covers[k]?.tableValueTotal ?? null })));
           declared = cands.length ? cands.reduce((best, d) => (Math.abs(Math.log(fresh0 / d)) < Math.abs(Math.log(fresh0 / best)) ? d : best)) : null;
         } else {
-          agg = aggregatePositions(await parse13F(await fetchInfoTableXml(r.cik, r.acc)), r.filed, { period });
+          const parsed = await parse13F(await fetchInfoTableXml(r.cik, r.acc));
+          rawRows = parsed.length;
+          agg = aggregatePositions(parsed, r.filed, { period });
         }
         const factor = agg.unitFix?.factor || 1;
         const fresh = Math.round(agg.aum);
@@ -67,18 +70,33 @@ await Promise.all(
         const asStated = compareTotal({ ours: fresh, declared, factor: 1 });
         const slip = storedUnitSlip(r.aum, fresh);
         // asked for by name: what else the filer sent for the same period
+        // and how many lines the cover says the table has, and which XML
+        // documents the filing carries (a table split over two documents
+        // is read as one only if the build reads both)
         let others = '';
+        let entries = null;
+        let docs = '';
         if (only) {
           try {
-            others = list13FAll(await getSubmissions(r.cik))
-              .filter((f) => f.reportDate === period && f.acc !== r.acc)
-              .map((f) => `${f.form} ${f.acc} ${f.filingDate}`)
-              .join('; ');
+            const same = list13FAll(await getSubmissions(r.cik)).filter((f) => f.reportDate === period && f.acc !== r.acc);
+            const parts = [];
+            for (const f of same) {
+              const c = await fetchCoverPage(r.cik, f.acc);
+              parts.push(`${f.form} ${f.acc} ${f.filingDate}${c ? ` ${c.amendmentType || 'type?'} entries ${c.tableEntryTotal ?? '?'} total ${c.tableValueTotal ?? '?'}` : ''}${amends.some((a) => a.acc === f.acc) ? ' (applied)' : ' (NOT applied)'}`);
+            }
+            others = parts.join('; ');
           } catch (e) {
             others = `submissions unreadable: ${e.message}`;
           }
+          entries = cover?.tableEntryTotal ?? null;
+          try {
+            const { items } = await filingIndex(r.cik, r.acc);
+            docs = items.filter((it) => /\.xml$/i.test(it.name)).map((it) => `${it.name} ${it.size || '?'}`).join(', ');
+          } catch (e) {
+            docs = `index unreadable: ${e.message}`;
+          }
         }
-        const res = { cik: r.cik, name: r.name, acc: r.acc, filed: r.filed, period, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, others, lines: agg.positions.length, ...cmp };
+        const res = { entries, docs, rawRows, cik: r.cik, name: r.name, acc: r.acc, filed: r.filed, period, stored: r.aum, ours: fresh, declared, factor, amended: amends.length > 0, misfiled: Boolean(r.misfiled), slip, storedOk: stored.ok, asStatedOk: asStated.ok, others, lines: agg.positions.length, ...cmp };
         results.push(res);
         if (slip) console.log(`SLIP ${r.cik} ${r.acc} ${r.aum} ${fresh} ${slip}`);
         if (!cmp.ok || !stored.ok) console.log(`CMP ${r.cik} ${r.aum} ${fresh} ${declared ?? 'NA'} ${factor} ${cmp.diffPct == null ? 'NA' : cmp.diffPct.toFixed(5)} ${asStated.diffPct == null ? 'NA' : asStated.diffPct.toFixed(5)} ${amends.length}`);
@@ -117,8 +135,8 @@ lines.push('', '### Largest 20 funds', '', '| Fund | Ours | SEC × factor | Diff
 for (const r of [...results].filter((r) => !r.misfiled).sort((a, b) => b.ours - a.ours).slice(0, 20)) lines.push(`| ${r.name} | ${money(r.ours)} | ${money(r.declaredAdj ?? r.declared)} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${money(r.stored)} |`);
 
 if (only) {
-  lines.push('', `### Every filing asked for (${results.length})`, '', '| Fund | CIK | Filing (filed) | Lines | Stored | Fresh | SEC as stated | Unit factor | Fresh vs SEC × factor | Fresh vs SEC as stated | Amended | SLIP | Other filings, same period |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|');
-  for (const r of [...results].sort((a, b) => b.stored - a.stored)) lines.push(`| ${String(r.name).replace(/\|/g, '/')} | ${r.cik} | ${r.acc} (${r.filed}) | ${r.lines} | ${money(r.stored)} | ${money(r.ours)} | ${money(r.declared)} | ${r.factor} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${r.asStatedOk ? 'within' : 'outside'} | ${r.amended ? 'yes' : ''} | ${r.slip || ''} | ${r.others || ''} |`);
+  lines.push('', `### Every filing asked for (${results.length})`, '', '| Fund | CIK | Filing (filed) | Lines (rows read) | Cover lines | XML documents | Stored | Fresh | SEC as stated | Unit factor | Fresh vs SEC × factor | Fresh vs SEC as stated | Amended | SLIP | Other filings, same period |', '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|');
+  for (const r of [...results].sort((a, b) => b.stored - a.stored)) lines.push(`| ${String(r.name).replace(/\|/g, '/')} | ${r.cik} | ${r.acc} (${r.filed}) | ${r.lines}${r.rawRows != null ? ` (${r.rawRows})` : ''} | ${r.entries ?? '—'} | ${r.docs} | ${money(r.stored)} | ${money(r.ours)} | ${money(r.declared)} | ${r.factor} | ${r.diffPct == null ? '—' : pct(r.diffPct)} | ${r.asStatedOk ? 'within' : 'outside'} | ${r.amended ? 'yes' : ''} | ${r.slip || ''} | ${r.others || ''} |`);
 }
 const pairs = overlapPairs(books).map((p) => ({ ...p, A: byCik.get(p.a), B: byCik.get(p.b) }));
 pairs.sort((x, y) => Math.max(y.A.aum, y.B.aum) - Math.max(x.A.aum, x.B.aum));

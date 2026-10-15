@@ -1,12 +1,12 @@
 {
  "dataset": "twelvedata",
  "kind": "provider",
- "run_id": "38545011233",
- "last_run_at": "2026-10-14T11:30:06.266Z",
- "last_success_at": "2026-10-14T11:30:06.266Z",
+ "run_id": "38672937700",
+ "last_run_at": "2026-10-15T04:39:47.980Z",
+ "last_success_at": "2026-10-15T04:39:47.980Z",
  "last_error": null,
  "last_error_at": null,
- "calls_ok": 361,
+ "calls_ok": 389,
  "refusals": 0,
- "transient_errors": 12
+ "transient_errors": 11
 }

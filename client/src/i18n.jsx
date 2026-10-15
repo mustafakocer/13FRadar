@@ -651,6 +651,11 @@ const dict = {
       'SEC bildirimi hatalı: fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu ({tableLines} pozisyon, {table}) eklemiş; özet sayfasında {declaredLines} pozisyon ve {declared} beyan ediyor. Sitede SEC\'e yüklenen tablo gösteriliyor.',
     'manager.underReview':
       'İnceleniyor: bu fonun pozisyon tablosunun toplamı ({table}) fonun SEC\'e beyan ettiği toplamla ({declared}) uyuşmuyor. Sitede SEC\'teki tablo olduğu gibi gösteriliyor; fark kontrol ediliyor.',
+    'manager.staleFiling':
+      'Eski beyan: fonun SEC\'e verdiği son 13F bildirimi {q} dönemine ait; daha yeni bir dönem için bildirim yok. Pozisyonlar o tarihteki durumu gösteriyor.',
+    'flag.stale': 'Eski beyan',
+    'flag.staleTip': 'Fonun son 13F bildirimi eski bir döneme ait; daha yeni bildirim vermemiş. Pozisyonlar güncel olmayabilir.',
+    'flag.previousTip': 'Fon yeni çeyrek bildirimine önceki çeyreğin pozisyon tablosunu eklemiş; pozisyonlar güncel değil. Ayrıntı fon sayfasında.',
     'flag.review': 'İnceleniyor',
     'flag.reviewTip': 'Bu fonun SEC bildirimindeki toplamlar birbirini tutmuyor; kontrol ediliyor. Ayrıntı fon sayfasında.',
     'flag.error': 'Bildirim hatalı',
@@ -2044,6 +2049,11 @@ const dict = {
       'SEC filing error: the fund attached the previous quarter\'s holdings table ({tableLines} positions, {table}) to this quarter\'s filing; its cover page declares {declaredLines} positions and {declared}. The site shows the table as filed.',
     'manager.underReview':
       'Under review: this fund\'s holdings table sums to {table}, which does not match the {declared} it declared to the SEC. The site shows the table as filed while the gap is checked.',
+    'manager.staleFiling':
+      'Old filing: the fund\'s latest 13F with the SEC is for {q}; there is nothing for a newer period. The positions are as of that date.',
+    'flag.stale': 'Old filing',
+    'flag.staleTip': 'The fund\'s latest 13F is for an old period; it has filed nothing newer. The positions may be out of date.',
+    'flag.previousTip': 'The fund attached last quarter\'s holdings table to its new filing; the positions are not current. Details on the fund\'s page.',
     'flag.review': 'Under review',
     'flag.reviewTip': 'The totals in this fund\'s SEC filing do not agree; being checked. Details on the fund\'s page.',
     'flag.error': 'Filing error',

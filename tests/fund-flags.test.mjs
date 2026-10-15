@@ -40,6 +40,24 @@ test('fundFlags: a filing carrying last quarter\'s table is a note kind of its o
   assert.equal(byCik['0000000002'].kind, 'previous-table');
 });
 
+test('fundFlags: a latest filing for a period before the current quarter is an old filing, unless something else is said', () => {
+  const old = [
+    { cik: '7', acc: 'g-1', reportDate: '2025-12-31', aum: 5 },
+    { cik: '8', acc: 'h-1', reportDate: '2026-06-30', aum: 5 },
+    { cik: '9', acc: 'i-1', reportDate: '2026-09-30', aum: 5 },
+    { cik: '10', acc: 'j-1', reportDate: '2025-03-31', aum: 5, misfiled: true },
+    { cik: '11', acc: 'k-1', reportDate: '2025-03-31', aum: 5, declared: 9 },
+  ];
+  const { byCik } = fundFlags({ rows: old, quarter: '2026-06-30', notes: [{ cik: '11', acc: 'k-1', kind: 'cover-total', declared: 9, table: 5 }] });
+  assert.deepEqual(byCik['0000000007'], { acc: 'g-1', kind: 'stale', declared: null, table: null, reportDate: '2025-12-31' });
+  assert.equal(byCik['0000000008'], undefined);
+  assert.equal(byCik['0000000009'], undefined);
+  assert.equal(byCik['0000000010'], undefined);
+  assert.equal(byCik['0000000011'].kind, 'cover-total');
+  // no quarter given: nothing is judged old
+  assert.equal(fundFlags({ rows: old }).byCik['0000000007'], undefined);
+});
+
 test('fundFlags: a deviation on a filing the universe no longer shows is not a badge', () => {
   const { byCik } = fundFlags({ rows, deviations: [{ cik: '0000000002', acc: 'b-1', aum: 1, declared: 2 }] });
   assert.equal(byCik['0000000002'], undefined);
@@ -55,5 +73,5 @@ test('fund-flags: written by the nightly check, committed by the universe workfl
   }
   assert.match(fs.readFileSync(new URL('../client/src/pages/Manager.jsx', import.meta.url), 'utf8'), /manager\.underReview/);
   const flags = JSON.parse(fs.readFileSync(new URL('../client/public/fund-flags.json', import.meta.url), 'utf8'));
-  for (const f of Object.values(flags.byCik)) assert.ok(['cover-total', 'incomplete-table', 'previous-table', 'review'].includes(f.kind));
+  for (const f of Object.values(flags.byCik)) assert.ok(['cover-total', 'incomplete-table', 'previous-table', 'review', 'stale'].includes(f.kind));
 });

@@ -204,6 +204,34 @@
    "kind": "review",
    "declared": 1714726809,
    "table": 37141506
+  },
+  "0001132716": {
+   "acc": "0001132716-26-000004",
+   "kind": "stale",
+   "declared": null,
+   "table": null,
+   "reportDate": "2025-12-31"
+  },
+  "0001218761": {
+   "acc": "0001218761-26-000015",
+   "kind": "stale",
+   "declared": null,
+   "table": null,
+   "reportDate": "2025-03-31"
+  },
+  "0001837496": {
+   "acc": "0001837496-26-000002",
+   "kind": "stale",
+   "declared": null,
+   "table": null,
+   "reportDate": "2025-12-31"
+  },
+  "0001969815": {
+   "acc": "0001969815-23-000001",
+   "kind": "stale",
+   "declared": null,
+   "table": null,
+   "reportDate": "2022-12-31"
   }
  }
 }

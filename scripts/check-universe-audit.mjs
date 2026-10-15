@@ -89,7 +89,7 @@ fs.mkdirSync(file('reports'), { recursive: true });
 fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] }));
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] }));
 // the badge on the fund lists and the fund page (api/_lib/fundFlags.js)
-const flags = fundFlags({ rows: U.rows, deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] });
+const flags = fundFlags({ rows: U.rows, deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [], quarter });
 fs.writeFileSync(file('client/public/fund-flags.json'), `${JSON.stringify({ quarter, ...flags }, null, 1)}\n`);
 console.log(`fund-flags.json: ${Object.keys(flags.byCik).length} fund(s) with a badge`);
 fs.writeFileSync(

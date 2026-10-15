@@ -452,11 +452,22 @@ export default function Manager({ segment = 'portfolio' }) {
           </div>
         ))}
 
-      {/* tonight's check found the totals apart and nobody has looked yet
-          (client/public/fund-flags.json): said plainly until a note replaces it */}
+      {/* tonight's check found the totals apart and nobody has looked yet, or
+          the latest filing is for an old period (client/public/fund-flags.json):
+          said plainly, until a note replaces the first */}
       {(() => {
         const f = flagOf(cik);
         const noted = (mgr.data?.notes || []).some((n) => NOTE_KINDS.includes(n.kind) && (!n.acc || n.acc === acc));
+        if (f?.kind === 'stale' && f.acc === acc) {
+          return (
+            <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }} data-flag="stale">
+              <span className="small">
+                <Ico icon={TriangleAlert} size={14} />{' '}
+                {t('manager.staleFiling').replace('{q}', quarterLabel(f.reportDate))}
+              </span>
+            </div>
+          );
+        }
         if (!f || f.kind !== 'review' || f.acc !== acc || noted) return null;
         return (
           <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }} data-flag="review">

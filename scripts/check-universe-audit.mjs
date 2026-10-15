@@ -16,6 +16,7 @@ import { totalDeviations, newFindings, pairKey, copyAdvice, adviceLine, deviatio
 import { getSubmissions, list13FAll } from '../api/_lib/sec.js';
 import { misfiledBooks } from '../api/_lib/misfiledBooks.js';
 import { filingNotes } from '../api/_lib/filingNotes.js';
+import { fundFlags } from '../api/_lib/fundFlags.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const file = (...p) => path.join(root, ...p);
@@ -87,6 +88,10 @@ for (const p of fresh.pairs) {
 fs.mkdirSync(file('reports'), { recursive: true });
 fs.writeFileSync(file(reportPath), deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] }));
 if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, deviationReport(deviations, { quarter, fresh: fresh.deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] }));
+// the badge on the fund lists and the fund page (api/_lib/fundFlags.js)
+const flags = fundFlags({ rows: U.rows, deviations, notes: filingNotes, reviewed: read(file('config/reviewed-deviations.json'), {}).deviations || [] });
+fs.writeFileSync(file('client/public/fund-flags.json'), `${JSON.stringify({ quarter, ...flags }, null, 1)}\n`);
+console.log(`fund-flags.json: ${Object.keys(flags.byCik).length} fund(s) with a badge`);
 fs.writeFileSync(
   stateFile,
   `${JSON.stringify({ quarter, deviations: deviations.map((d) => `${d.cik}|${d.acc}`).sort(), pairs: pairs.map((p) => pairKey(p.a, p.b)).sort() }, null, 1)}\n`

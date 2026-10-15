@@ -195,6 +195,11 @@ export const REVIEWED_KINDS = {
     text: 'Fon özet sayfasında, SEC\'e yüklediği tablodan çok daha fazla satır beyan etmiş. Tablodaki satırların fiyatları doğru; eksik satırlar fonun kendi bildiriminde yok, biz uyduramayız. Fon sayfasında bu durum not olarak yazıyor.',
     cause: 'Fonun tablosu eksik (incelendi)',
   },
+  'previous-table': {
+    title: 'İncelendi — fon önceki çeyreğin tablosunu eklemiş',
+    text: 'Fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu eklemiş; özet sayfasındaki toplam yeni çeyreğe ait. Sitede SEC\'teki tablo olduğu gibi gösteriliyor ve fon sayfasında bu durum not olarak yazıyor.',
+    cause: 'Fon eski tabloyu eklemiş (incelendi)',
+  },
   'small-gap': {
     title: 'İncelendi — küçük fark, tablo doğru',
     text: 'Fark ±%5 içinde; tablo eksiksiz ve fiyatları dönem sonu kapanışlarıyla örtüşüyor. Fonun yazılımı özet toplamı tablodan ayrı hesaplamış. Fon sayfasına not konmadı.',

@@ -11,6 +11,8 @@ import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import { useSeo } from '../seo.jsx';
 import { managerPath } from '../lib/paths.js';
+import { useFundFlags } from '../hooks/useFundFlags.js';
+import FundFlagBadge from '../components/FundFlagBadge.jsx';
 import Ico from '../components/Ico.jsx';
 import { SlidersHorizontal, Download, Star } from 'lucide-react';
 
@@ -97,6 +99,7 @@ export default function Screen() {
     retry: 0,
   });
   const stateOf = (cik) => states.data?.byCik?.[cik] || null;
+  const flagOf = useFundFlags();
 
   const rows = useMemo(() => {
     const all = universe.data?.rows || [];
@@ -376,6 +379,7 @@ export default function Screen() {
                         <Link to={managerPath(r.cik)} style={{ fontWeight: 700 }}>
                           {r.name}
                         </Link>
+                        <FundFlagBadge flag={flagOf(r.cik)?.acc === r.acc ? flagOf(r.cik) : null} />
                         {GURU_CIKS.has(r.cik) && <> <Ico icon={Star} size={14} className="text-primary" fill="currentColor" /></>}
                       </td>
                       <td className="l">

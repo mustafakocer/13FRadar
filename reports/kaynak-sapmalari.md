@@ -4,7 +4,7 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 "Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.
 
-**İncelenecek: 6 fon. İncelendi: 47 fon** (fonun kapak hatası 24, fonun tablosu eksik 4, küçük fark 19).
+**İncelenecek: 4 fon. İncelendi: 49 fon** (fonun kapak hatası 25, fonun tablosu eksik 5, küçük fark 19).
 
 ## İncelenecek
 
@@ -14,8 +14,6 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 |  | Ascentis Independent Advisors (0001845003) | 8642 | $37.1 mn | $1.71 mlr | -97.8% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1845003/000184500326000005/) |
 |  | NORRIS PERNE & FRENCH LLP/MI (0001092290) | 2007 | $1.47 mlr | $2.34 mlr | -37.2% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1092290/000109229026000010/) |
 |  | Darwin Wealth Management, LLC (0001663224) | 4709 | $365.3 mn | $593.5 mn | -38.5% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1663224/000166322426000003/) |
-| 🆕 | Hippocratic Financial Advisors, LLC (0002055803) | 5771 | $254.1 mn | $159.2 mn | +59.6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
-| 🆕 | Prospera Capital Management, LLC (0002082673) | 5097 | $319.8 mn | $406.3 mn | -21.3% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2082673/000208267326000005/) |
 
 ## İncelendi — fonun kapak hatası
 
@@ -44,6 +42,7 @@ Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor;
 |  | Nvest Wealth Strategies, Inc. (0002106942) | 7247 | $160.0 mn | $0.0 mn | +15,999,979,600% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2106942/000210694226000003/) |
 |  | RIHO Partners, LLC (0002112884) | 6912 | $177.7 mn | $17.8 mn | +900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2112884/000211288426000003/) |
 |  | Rosenthal {-} Henry Capital Advisors, Inc. (0001697539) | 8154 | $114.4 mn | $0.0 mn | +238,238,138% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1697539/000169753926000003/) |
+|  | Hippocratic Financial Advisors, LLC (0002055803) | 5771 | $254.1 mn | $159.2 mn | +59.6% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
 |  | X ADVISORS, LLC (0002139999) | 8640 | $37.6 mn | $1.3 mn | +2861.7% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2139999/000213999926000001/) |
 |  | PURA VIDA INVESTMENTS, LLC (0001590144) | 8643 | $37.0 mn | $16.5 mn | +124% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1590144/000159014426000004/) |
 |  | North Forty Two & Co. (0002055134) | 8092 | $117.8 mn | $129.1 mn | -8.8% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055134/000205513426000003/) |
@@ -57,6 +56,7 @@ Fon özet sayfasında, SEC'e yüklediği tablodan çok daha fazla satır beyan e
 |  | WealthPLAN Partners, LLC (0001639943) | 3776 | $523.0 mn | $2.55 mlr | -79.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1639943/000163994326000004/) |
 |  | Saraza Management, LP (0001894188) | 5811 | $250.9 mn | $669.7 mn | -62.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1894188/000189418826000009/) |
 |  | LIBERTY WEALTH MANAGEMENT LLC (0001769302) | 2931 | $800.4 mn | $911.7 mn | -12.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1769302/000176930226000003/) |
+|  | Prospera Capital Management, LLC (0002082673) | 5097 | $319.8 mn | $406.3 mn | -21.3% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2082673/000208267326000005/) |
 |  | Oceanic Investment Management LTD (0001438258) | 8461 | $77.9 mn | $118.0 mn | -33.9% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1438258/000143825826000002/) |
 
 ## İncelendi — küçük fark, tablo doğru

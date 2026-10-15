@@ -644,9 +644,15 @@ const dict = {
     'manager.noPrev': 'Önceki çeyrek verisi yok',
     'manager.quarterEnd': 'Dönem sonu',
     'manager.coverTotal':
-      'Fonun SEC\'e verdiği özet sayfasında toplam {declared} yazıyor; pozisyon tablosunun toplamı {table}. Tablodaki fiyatlar dönem sonu piyasa fiyatlarıyla örtüşüyor, bu yüzden tablodaki rakam gösteriliyor. Özet sayfasındaki toplam fonun kendi yazım hatası.',
+      'SEC bildirim hatası: fonun özet sayfasında toplam {declared}, pozisyon tablosunda {table}. Tablodaki fiyatlar piyasayla örtüştüğü için tablo gösteriliyor; özet sayfasındaki rakam fonun hatası.',
     'manager.incompleteTable':
-      'Fon SEC\'e verdiği özet sayfasında {declaredLines} pozisyon ve toplam {declared} beyan ediyor; SEC\'e yüklediği pozisyon tablosunda ise {tableLines} satır var ve toplamı {table}. Sitede SEC\'teki tablo olduğu gibi gösteriliyor; eksik satırlar fonun kendi bildiriminde yok.',
+      'SEC bildirimi eksik: fon özet sayfasında {declaredLines} pozisyon ({declared}) beyan etmiş, ama tabloya {tableLines} pozisyon ({table}) koymuş. Sitede SEC\'e yüklenen tablo gösteriliyor; eksik pozisyonlar fonun bildiriminde yok.',
+    'manager.underReview':
+      'İnceleniyor: bu fonun pozisyon tablosunun toplamı ({table}) fonun SEC\'e beyan ettiği toplamla ({declared}) uyuşmuyor. Sitede SEC\'teki tablo olduğu gibi gösteriliyor; fark kontrol ediliyor.',
+    'flag.review': 'İnceleniyor',
+    'flag.reviewTip': 'Bu fonun SEC bildirimindeki toplamlar birbirini tutmuyor; kontrol ediliyor. Ayrıntı fon sayfasında.',
+    'flag.error': 'Bildirim hatalı',
+    'flag.errorTip': 'Fonun SEC bildirimi kendi içinde tutarsız (özet sayfası ile tablo uyuşmuyor). Ayrıntı fon sayfasında.',
     'manager.fallback': 'Son geçerli bildirim: {q}. {mq} bildirimi {other} adlı fonun tablosunu taşıdığı için kullanılmıyor; fon {mq} toplamlarında ve sıralamalarında yer almıyor.',
     'manager.invalid': 'geçersiz',
     'manager.misfiled':
@@ -2029,9 +2035,15 @@ const dict = {
     'manager.noPrev': 'No prior quarter data',
     'manager.quarterEnd': 'Quarter end',
     'manager.coverTotal':
-      'The cover page this fund filed with the SEC states a total of {declared}; its holdings table sums to {table}. The table\'s prices match quarter-end market prices, so the table\'s figure is shown. The cover page total is the fund\'s own error.',
+      'SEC filing error: the fund\'s cover page states {declared}, its holdings table {table}. The table\'s prices match the market, so the table is shown; the cover figure is the fund\'s own error.',
     'manager.incompleteTable':
-      'The cover page this fund filed with the SEC declares {declaredLines} positions worth {declared}; the holdings table it filed has {tableLines} rows summing to {table}. The site shows the table as filed; the missing rows are not in the fund\'s own filing.',
+      'Incomplete SEC filing: the fund\'s cover page declares {declaredLines} positions ({declared}), but its table lists {tableLines} ({table}). The site shows the table as filed; the missing positions are not in the fund\'s filing.',
+    'manager.underReview':
+      'Under review: this fund\'s holdings table sums to {table}, which does not match the {declared} it declared to the SEC. The site shows the table as filed while the gap is checked.',
+    'flag.review': 'Under review',
+    'flag.reviewTip': 'The totals in this fund\'s SEC filing do not agree; being checked. Details on the fund\'s page.',
+    'flag.error': 'Filing error',
+    'flag.errorTip': 'The fund\'s SEC filing is inconsistent with itself (cover page and table disagree). Details on the fund\'s page.',
     'manager.fallback': 'Latest valid filing: {q}. The {mq} filing carries {other}\'s table and is not used; the fund is left out of {mq} totals and rankings.',
     'manager.invalid': 'invalid',
     'manager.misfiled':

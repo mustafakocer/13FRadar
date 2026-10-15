@@ -29,6 +29,7 @@ import ChangeStory from '../components/ChangeStory.jsx';
 import InfoTip from '../components/InfoTip.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
+import { useFundFlags } from '../hooks/useFundFlags.js';
 import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert, TrendingUp } from 'lucide-react';
 
 // The same shape as the consensus page: the four numbers that frame the
@@ -82,6 +83,7 @@ export default function Manager({ segment = 'portfolio' }) {
     retry: 0,
   });
   const cik = cikParam || slugQ.data?.cik || null;
+  const flagOf = useFundFlags();
   const { isPro } = useAuth();
 
   const tab = TABS.includes(segment) ? segment : 'portfolio';
@@ -449,6 +451,22 @@ export default function Manager({ segment = 'portfolio' }) {
             </span>
           </div>
         ))}
+
+      {/* tonight's check found the totals apart and nobody has looked yet
+          (client/public/fund-flags.json): said plainly until a note replaces it */}
+      {(() => {
+        const f = flagOf(cik);
+        const noted = (mgr.data?.notes || []).some((n) => (n.kind === 'cover-total' || n.kind === 'incomplete-table') && (!n.acc || n.acc === acc));
+        if (!f || f.kind !== 'review' || f.acc !== acc || noted) return null;
+        return (
+          <div className="card" style={{ background: 'var(--surface-alt)', borderColor: 'var(--border-strong)', marginBottom: 16 }} data-flag="review">
+            <span className="small">
+              <Ico icon={TriangleAlert} size={14} />{' '}
+              {t('manager.underReview').replace('{declared}', fmtMoney(f.declared)).replace('{table}', fmtMoney(f.table))}
+            </span>
+          </div>
+        );
+      })()}
 
       <AnswerBox text={seo.answer} />
 

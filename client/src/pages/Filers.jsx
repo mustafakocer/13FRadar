@@ -6,6 +6,8 @@ import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import Ico from '../components/Ico.jsx';
+import { useFundFlags } from '../hooks/useFundFlags.js';
+import FundFlagBadge from '../components/FundFlagBadge.jsx';
 import { Landmark } from 'lucide-react';
 
 const LETTERS = ['0', ...'abcdefghijklmnopqrstuvwxyz'];
@@ -17,6 +19,7 @@ export default function Filers() {
   const { t, lang } = useI18n();
   const key = LETTERS.includes(letter) ? letter : 'a';
   const list = useQuery({ queryKey: ['filers', key], queryFn: () => api.filersByLetter(key), staleTime: Infinity });
+  const flagOf = useFundFlags();
   const label = key === '0' ? '0-9' : key.toUpperCase();
   useSeo(
     useMemo(
@@ -55,6 +58,7 @@ export default function Filers() {
           {rows.map((r) => (
             <li key={r.slug}>
               <Link to={`/${r.kind === 'guru' ? 'guru' : 'filer'}/${r.slug}`}>{r.name}</Link>
+              <FundFlagBadge flag={flagOf(r.cik)} />
             </li>
           ))}
         </ul>

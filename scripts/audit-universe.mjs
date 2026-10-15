@@ -12,6 +12,10 @@
 //   --deviations  only the filings the nightly check lists
 //                 (api/_data/universe-audit.json), every one in a detail table
 //   --ciks=a,b    only these filers
+//   --amended     every current filing with a 13F-HR/A: a NEW HOLDINGS
+//                 amendment that states names the original already carries,
+//                 read both ways (its figure replaces the original's, or is
+//                 added to it) against the covers' totals
 // Asked for by name, a filer not yet reviewed (config/filing-notes.json,
 // config/reviewed-deviations.json) also gets its last five 13F filings, each
 // table read on its own against its cover, and its unpriced lines summed:
@@ -21,6 +25,7 @@ import path from 'node:path';
 import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getEffectiveHoldings, getSubmissions, list13FAll, filingIndex } from '../api/_lib/sec.js';
 import { completeQuarter, inferPeriod } from '../api/_lib/universeSummary.js';
 import { defaultCloseOf } from '../api/_lib/valueUnits.js';
+import { applyAmendment, restatesBook, NEW_HOLDINGS } from '../api/_lib/amendments.js';
 import { compareTotal, lineKey, overlapPairs, TOTAL_TOLERANCE, declaredCandidates, storedUnitSlip } from '../api/_lib/universeAudit.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -45,6 +50,76 @@ const readJson = (...p) => {
   }
 };
 const reviewedKeys = new Set([...(readJson('config', 'filing-notes.json').notes || []), ...(readJson('config', 'reviewed-deviations.json').deviations || [])].map((x) => `${pad(x.cik)}|${x.acc}`));
+if (argOf('amended')) {
+  const lk = (p) => `${String(p.cusip || '').toUpperCase()}|${p.putCall || ''}`;
+  const todo = U.rows.filter((r) => (r.reportDate || inferPeriod(r.filed)) >= quarter && L[r.cik]?.acc === r.acc && L[r.cik].amendments?.length);
+  console.log(`amended filings: ${todo.length}`);
+  const out = [];
+  let k = 0;
+  await Promise.all(
+    Array.from({ length: 4 }, async () => {
+      while (k < todo.length) {
+        const r = todo[k++];
+        const period = r.reportDate || inferPeriod(r.filed);
+        try {
+          const read = async (acc, filed) => aggregatePositions(await parse13F(await fetchInfoTableXml(r.cik, acc)), filed, { period });
+          const base = await read(r.acc, r.filed);
+          const baseCover = await fetchCoverPage(r.cik, r.acc);
+          let replace = { aum: base.aum, positions: base.positions };
+          let add = { aum: base.aum, positions: base.positions };
+          let coverSum = baseCover?.tableValueTotal ?? null;
+          let repeated = 0;
+          const parts = [];
+          for (const a of [...L[r.cik].amendments].sort((x, y) => (x.filingDate < y.filingDate ? -1 : 1))) {
+            const h = await read(a.acc, a.filingDate);
+            const c = await fetchCoverPage(r.cik, a.acc);
+            const type = c?.amendmentType || null;
+            const nh = type === NEW_HOLDINGS && !restatesBook(replace, h);
+            const have = new Set(replace.positions.map(lk));
+            const rep = nh ? h.positions.filter((p) => have.has(lk(p))).length : 0;
+            repeated += rep;
+            replace = applyAmendment(replace, h, type);
+            if (nh) {
+              const m = new Map(add.positions.map((p) => [lk(p), { ...p }]));
+              for (const p of h.positions) {
+                const cur = m.get(lk(p));
+                if (cur) m.set(lk(p), { ...cur, value: cur.value + p.value, shares: cur.shares + p.shares });
+                else m.set(lk(p), { ...p });
+              }
+              add = { positions: [...m.values()], aum: [...m.values()].reduce((x, p) => x + p.value, 0) };
+              if (coverSum != null && c?.tableValueTotal != null) coverSum += c.tableValueTotal;
+            } else {
+              add = { aum: replace.aum, positions: replace.positions };
+              coverSum = c?.tableValueTotal ?? coverSum;
+            }
+            parts.push(`${type || 'type?'}${nh ? '' : type === NEW_HOLDINGS ? ' (read as restatement)' : ''} ${h.positions.length} lines ${money(h.aum)}${rep ? `, ${rep} repeated` : ''}`);
+          }
+          const off = (v) => (coverSum > 0 ? v / coverSum - 1 : null);
+          out.push({ r, repeated, replace: replace.aum, add: add.aum, coverSum, offReplace: off(replace.aum), offAdd: off(add.aum), parts: parts.join('; ') });
+        } catch (e) {
+          console.log(`FAILED ${r.cik} ${r.acc} ${e.message}`);
+        }
+        await sleep(300);
+      }
+    })
+  );
+  const pc = (x) => (x == null ? '—' : `${(x * 100).toFixed(2)}%`);
+  const within = (x) => x != null && Math.abs(x) <= 0.01;
+  const withRep = out.filter((o) => o.repeated);
+  const lines2 = [
+    `## Amended filings — ${quarter}`,
+    '',
+    `Read: ${out.length}. With repeated names in a NEW HOLDINGS amendment: ${withRep.length}.`,
+    `- of those, within ±1% of the covers' sum when the amendment's figure replaces: ${withRep.filter((o) => within(o.offReplace)).length}; when it is added: ${withRep.filter((o) => within(o.offAdd)).length}; neither: ${withRep.filter((o) => !within(o.offReplace) && !within(o.offAdd)).length}`,
+    '',
+    '| Fund | CIK | Filing | Amendments | Repeated | Replace | Add | Covers summed | Replace vs covers | Add vs covers |',
+    '|---|---|---|---|---|---|---|---|---|---|',
+  ];
+  for (const o of [...out].sort((a, b) => b.repeated - a.repeated || b.r.aum - a.r.aum)) lines2.push(`| ${String(o.r.name).replace(/\|/g, '/')} | ${o.r.cik} | ${o.r.acc} | ${o.parts.replace(/\|/g, '/')} | ${o.repeated} | ${money(o.replace)} | ${money(o.add)} | ${money(o.coverSum)} | ${pc(o.offReplace)} | ${pc(o.offAdd)} |`);
+  console.log(lines2.join('\n'));
+  if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines2.join('\n')}\n`);
+  process.exit(0);
+}
 const rows = U.rows.filter((r) => (r.reportDate || inferPeriod(r.filed)) >= quarter && r.aum > 0 && (!only || only.has(pad(r.cik))));
 console.log(`auditing ${rows.length} filings (quarter ${quarter})`);
 

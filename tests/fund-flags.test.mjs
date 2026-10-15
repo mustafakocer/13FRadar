@@ -35,6 +35,11 @@ test('fundFlags: a hand-checked note wins, an unchecked deviation is under revie
   assert.deepEqual(fundFlags().byCik, {});
 });
 
+test('fundFlags: a filing carrying last quarter\'s table is a note kind of its own', () => {
+  const { byCik } = fundFlags({ rows, notes: [{ cik: '2', acc: 'b-2', kind: 'previous-table', declared: 80, table: 50 }] });
+  assert.equal(byCik['0000000002'].kind, 'previous-table');
+});
+
 test('fundFlags: a deviation on a filing the universe no longer shows is not a badge', () => {
   const { byCik } = fundFlags({ rows, deviations: [{ cik: '0000000002', acc: 'b-1', aum: 1, declared: 2 }] });
   assert.equal(byCik['0000000002'], undefined);
@@ -50,5 +55,5 @@ test('fund-flags: written by the nightly check, committed by the universe workfl
   }
   assert.match(fs.readFileSync(new URL('../client/src/pages/Manager.jsx', import.meta.url), 'utf8'), /manager\.underReview/);
   const flags = JSON.parse(fs.readFileSync(new URL('../client/public/fund-flags.json', import.meta.url), 'utf8'));
-  for (const f of Object.values(flags.byCik)) assert.ok(['cover-total', 'incomplete-table', 'review'].includes(f.kind));
+  for (const f of Object.values(flags.byCik)) assert.ok(['cover-total', 'incomplete-table', 'previous-table', 'review'].includes(f.kind));
 });

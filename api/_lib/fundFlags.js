@@ -2,7 +2,7 @@
 // written nightly by scripts/check-universe-audit.mjs; read by the fund
 // lists and the fund page). A fund whose current filing does not add up:
 //   - a note checked by hand (config/filing-notes.json) on that filing: its
-//     kind, 'cover-total' or 'incomplete-table';
+//     kind, 'cover-total', 'incomplete-table' or 'previous-table';
 //   - otherwise a deviation on tonight's list (±1% against the filer's own
 //     declared total) not yet looked at: 'review', the page says it is
 //     being checked;
@@ -13,14 +13,15 @@
 const pad = (cik) => String(cik || '').replace(/\D/g, '').padStart(10, '0');
 const key = (cik, acc) => `${pad(cik)}|${acc || ''}`;
 
-export const FLAG_KINDS = ['cover-total', 'incomplete-table', 'review'];
+export const NOTE_KINDS = ['cover-total', 'incomplete-table', 'previous-table'];
+export const FLAG_KINDS = [...NOTE_KINDS, 'review'];
 
 export function fundFlags({ rows = [], deviations = [], notes = [], reviewed = [] } = {}) {
   const current = new Map(rows.map((r) => [pad(r.cik), r]));
   const closed = new Set(reviewed.map((d) => key(d.cik, d.acc)));
   const byCik = {};
   for (const n of notes) {
-    if (n.kind !== 'cover-total' && n.kind !== 'incomplete-table') continue;
+    if (!NOTE_KINDS.includes(n.kind)) continue;
     const row = current.get(pad(n.cik));
     // a note on an older filing says nothing about the one shown now
     if (!row || (n.acc && n.acc !== row.acc)) continue;

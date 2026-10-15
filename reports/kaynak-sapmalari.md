@@ -4,7 +4,7 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 "Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.
 
-**İncelenecek: 4 fon. İncelendi: 49 fon** (fonun kapak hatası 25, fonun tablosu eksik 5, küçük fark 19).
+**İncelenecek: 4 fon. İncelendi: 49 fon** (fonun kapak hatası 25, fonun tablosu eksik 4, fon eski tabloyu eklemiş 1, küçük fark 19).
 
 ## İncelenecek
 
@@ -56,8 +56,15 @@ Fon özet sayfasında, SEC'e yüklediği tablodan çok daha fazla satır beyan e
 |  | WealthPLAN Partners, LLC (0001639943) | 3776 | $523.0 mn | $2.55 mlr | -79.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1639943/000163994326000004/) |
 |  | Saraza Management, LP (0001894188) | 5811 | $250.9 mn | $669.7 mn | -62.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1894188/000189418826000009/) |
 |  | LIBERTY WEALTH MANAGEMENT LLC (0001769302) | 2931 | $800.4 mn | $911.7 mn | -12.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1769302/000176930226000003/) |
-|  | Prospera Capital Management, LLC (0002082673) | 5097 | $319.8 mn | $406.3 mn | -21.3% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2082673/000208267326000005/) |
 |  | Oceanic Investment Management LTD (0001438258) | 8461 | $77.9 mn | $118.0 mn | -33.9% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1438258/000143825826000002/) |
+
+## İncelendi — fon önceki çeyreğin tablosunu eklemiş
+
+Fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu eklemiş; özet sayfasındaki toplam yeni çeyreğe ait. Sitede SEC'teki tablo olduğu gibi gösteriliyor ve fon sayfasında bu durum not olarak yazıyor.
+
+| | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
+|---|---|---|---|---|---|---|---|
+|  | Prospera Capital Management, LLC (0002082673) | 5097 | $319.8 mn | $406.3 mn | -21.3% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2082673/000208267326000005/) |
 
 ## İncelendi — küçük fark, tablo doğru
 

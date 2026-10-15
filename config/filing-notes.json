@@ -236,12 +236,12 @@
     {
       "cik": "0002082673",
       "acc": "0002082673-26-000005",
-      "kind": "incomplete-table",
+      "kind": "previous-table",
       "declared": 406312626,
       "table": 319789303,
       "declaredLines": 75,
       "tableLines": 63,
-      "reason": "2026-06-30 (filed 2026-10-13): the cover page declares 75 lines worth $406.31M; the filed table has 63 rows summing to $319.79M, 30 of 30 priced lines at the period-end close: the filer's table is incomplete."
+      "reason": "2026-09-30 (filed 2026-10-13): the cover page declares 75 lines worth $406.31M; the attached table (amparan_2q2026.inftbl.xml) is the 2026-06-30 one, 63 rows summing to $319.79M to the dollar as in 0002082673-26-000004: the filer attached last quarter's table."
     },
     {
       "cik": "0002055803",
@@ -249,7 +249,7 @@
       "kind": "cover-total",
       "declared": 159168237,
       "table": 254079101,
-      "reason": "2026-06-30 (filed 2026-10-13): the cover page declares $159.17M over 52 lines; the 51-row table sums to $254.08M and 18 of its 18 priced lines sit at the period-end close: the cover total is the filer's error. (The table file is named 13f2026q3.xml; its prices fit the June closes.)"
+      "reason": "2026-09-30 (filed 2026-10-13): the cover page declares $159.17M over 52 lines; the 51-row table (13f2026q3.xml) sums to $254.08M and 18 of its 18 priced lines sit near the closes: the cover total is the filer's error."
     }
   ]
 }

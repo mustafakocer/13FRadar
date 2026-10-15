@@ -647,6 +647,8 @@ const dict = {
       'SEC bildirim hatası: fonun özet sayfasında toplam {declared}, pozisyon tablosunda {table}. Tablodaki fiyatlar piyasayla örtüştüğü için tablo gösteriliyor; özet sayfasındaki rakam fonun hatası.',
     'manager.incompleteTable':
       'SEC bildirimi eksik: fon özet sayfasında {declaredLines} pozisyon ({declared}) beyan etmiş, ama tabloya {tableLines} pozisyon ({table}) koymuş. Sitede SEC\'e yüklenen tablo gösteriliyor; eksik pozisyonlar fonun bildiriminde yok.',
+    'manager.previousTable':
+      'SEC bildirimi hatalı: fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu ({tableLines} pozisyon, {table}) eklemiş; özet sayfasında {declaredLines} pozisyon ve {declared} beyan ediyor. Sitede SEC\'e yüklenen tablo gösteriliyor.',
     'manager.underReview':
       'İnceleniyor: bu fonun pozisyon tablosunun toplamı ({table}) fonun SEC\'e beyan ettiği toplamla ({declared}) uyuşmuyor. Sitede SEC\'teki tablo olduğu gibi gösteriliyor; fark kontrol ediliyor.',
     'flag.review': 'İnceleniyor',
@@ -2038,6 +2040,8 @@ const dict = {
       'SEC filing error: the fund\'s cover page states {declared}, its holdings table {table}. The table\'s prices match the market, so the table is shown; the cover figure is the fund\'s own error.',
     'manager.incompleteTable':
       'Incomplete SEC filing: the fund\'s cover page declares {declaredLines} positions ({declared}), but its table lists {tableLines} ({table}). The site shows the table as filed; the missing positions are not in the fund\'s filing.',
+    'manager.previousTable':
+      'SEC filing error: the fund attached the previous quarter\'s holdings table ({tableLines} positions, {table}) to this quarter\'s filing; its cover page declares {declaredLines} positions and {declared}. The site shows the table as filed.',
     'manager.underReview':
       'Under review: this fund\'s holdings table sums to {table}, which does not match the {declared} it declared to the SEC. The site shows the table as filed while the gap is checked.',
     'flag.review': 'Under review',

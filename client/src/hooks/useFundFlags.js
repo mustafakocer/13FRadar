@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 // client/public/fund-flags.json: the funds whose current SEC filing does not
 // add up (api/_lib/fundFlags.js), written each night with the universe.
 // → (cik) => { acc, kind, declared, table } | null
+// the kinds of a note checked by hand (api/_lib/fundFlags.js NOTE_KINDS)
+export const NOTE_KINDS = ['cover-total', 'incomplete-table', 'previous-table'];
 const pad = (cik) => String(cik || '').replace(/\D/g, '').padStart(10, '0');
 
 export function useFundFlags() {

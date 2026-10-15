@@ -4,6 +4,7 @@ name: Audit the universe
 # filed twice under two CIKs (scripts/audit-universe.mjs). Commits nothing.
 # About an hour of EDGAR reads, so on a pull request it runs only when the
 # head commit's message carries [audit].
+# ([audit-deviations]: only the funds on the nightly list.)
 on:
   workflow_dispatch: {}
   pull_request:

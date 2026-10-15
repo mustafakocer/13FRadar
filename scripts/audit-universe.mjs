@@ -69,15 +69,31 @@ if (argOf('amended')) {
           let add = { aum: base.aum, positions: base.positions };
           let coverSum = baseCover?.tableValueTotal ?? null;
           let repeated = 0;
-          const parts = [];
+          const parts = [`original ${base.positions.length} lines ${money(base.aum)}, cover ${baseCover?.tableEntryTotal ?? '?'} lines ${money(baseCover?.tableValueTotal)}`];
           for (const a of [...L[r.cik].amendments].sort((x, y) => (x.filingDate < y.filingDate ? -1 : 1))) {
             const h = await read(a.acc, a.filingDate);
             const c = await fetchCoverPage(r.cik, a.acc);
             const type = c?.amendmentType || null;
             const nh = type === NEW_HOLDINGS && !restatesBook(replace, h);
+            const baseLen = replace.positions.length;
             const have = new Set(replace.positions.map(lk));
             const rep = nh ? h.positions.filter((p) => have.has(lk(p))).length : 0;
             repeated += rep;
+            // the repeated names: the same figure as the original's (a line
+            // stated again) or another one (another lot, or a correction)
+            let same = 0;
+            let repBase = 0;
+            let repAmend = 0;
+            if (nh) {
+              const baseBy = new Map(replace.positions.map((p) => [lk(p), p]));
+              for (const p of h.positions) {
+                const b0 = baseBy.get(lk(p));
+                if (!b0) continue;
+                repBase += b0.value;
+                repAmend += p.value;
+                if (b0.value > 0 && Math.abs(p.value / b0.value - 1) <= 0.02 && Math.abs((p.shares || 0) / (b0.shares || 1) - 1) <= 0.02) same++;
+              }
+            }
             replace = applyAmendment(replace, h, type);
             if (nh) {
               const m = new Map(add.positions.map((p) => [lk(p), { ...p }]));
@@ -92,7 +108,7 @@ if (argOf('amended')) {
               add = { aum: replace.aum, positions: replace.positions };
               coverSum = c?.tableValueTotal ?? coverSum;
             }
-            parts.push(`${type || 'type?'}${nh ? '' : type === NEW_HOLDINGS ? ' (read as restatement)' : ''} ${h.positions.length} lines ${money(h.aum)}${rep ? `, ${rep} repeated` : ''}`);
+            parts.push(`${type || 'type?'}${nh ? '' : type === NEW_HOLDINGS ? ' (read as restatement)' : ''} ${h.positions.length} lines ${money(h.aum)}${rep ? `, ${rep} repeated (${same} with the original's figure; original ${money(repBase)} vs amendment ${money(repAmend)} on them)` : ''}; book ${baseLen} lines before it, cover ${c?.tableEntryTotal ?? '?'} lines ${money(c?.tableValueTotal)}`);
           }
           const off = (v) => (coverSum > 0 ? v / coverSum - 1 : null);
           out.push({ r, repeated, replace: replace.aum, add: add.aum, coverSum, offReplace: off(replace.aum), offAdd: off(add.aum), parts: parts.join('; ') });

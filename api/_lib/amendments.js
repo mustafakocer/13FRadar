@@ -151,6 +151,10 @@ export function restatesBook(base, amendment) {
   return repeated * 2 > rows.length;
 }
 
+// Within 2% on both value and share count.
+const near = (a, b) => (a > 0 && b > 0 ? Math.abs(a / b - 1) <= 0.02 : a === b);
+const sameLine = (a, b) => near(a.value || 0, b.value || 0) && near(a.shares || 0, b.shares || 0);
+
 export function applyAmendment(base, amendment, type) {
   const stated = type === RESTATEMENT || type === NEW_HOLDINGS ? type : null;
   const kind = stated === NEW_HOLDINGS && restatesBook(base, amendment) ? RESTATEMENT : stated || inferAmendmentType(base, amendment);
@@ -163,10 +167,15 @@ export function applyAmendment(base, amendment, type) {
     for (const p of amendment.positions || []) {
       const k = key(p);
       const cur = map.get(k);
-      // a name the original already carried is stated again: the amendment's
-      // figure is the corrected one, not an addition to it
-      if (cur) map.set(k, { ...cur, value: p.value, shares: p.shares, issuer: p.issuer || cur.issuer, class: p.class || cur.class });
-      else map.set(k, { ...p });
+      if (!cur) map.set(k, { ...p });
+      // a name the book already carries, at the book's own figure: the same
+      // line stated again (Check Capital 2026-Q2 re-filed its 17 largest
+      // lines, $3.75B, as NEW HOLDINGS), not a second one
+      else if (sameLine(cur, p)) continue;
+      // at another figure: another lot of it, added as the form says (Norris
+      // Perne & French 2026-Q2: 56 of 65 added lines repeat names at other
+      // figures; added, the book is the covers' $2.34B, replaced $1.47B)
+      else map.set(k, { ...cur, value: (cur.value || 0) + (p.value || 0), shares: (cur.shares || 0) + (p.shares || 0) });
     }
     positions = [...map.values()];
   }

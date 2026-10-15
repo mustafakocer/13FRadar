@@ -34,8 +34,9 @@ jobs:
         run: npm ci
       - if: steps.ask.outputs.run == 'true'
         name: Compare with EDGAR
-        # [audit-deviations] in the head commit: only the nightly list, minutes not an hour
+        # [audit-deviations] in the head commit: only the nightly list, minutes not an hour;
+        # [audit-amended]: only the filings with an amendment, both readings
         run: |
-          if git log -1 --format=%B | grep -q '\[audit-deviations\]'; then node scripts/audit-universe.mjs --deviations; else node scripts/audit-universe.mjs; fi
+          if git log -1 --format=%B | grep -q '\[audit-amended\]'; then node scripts/audit-universe.mjs --amended; elif git log -1 --format=%B | grep -q '\[audit-deviations\]'; then node scripts/audit-universe.mjs --deviations; else node scripts/audit-universe.mjs; fi
         env:
           SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'

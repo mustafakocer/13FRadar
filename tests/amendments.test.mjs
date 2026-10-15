@@ -102,10 +102,18 @@ test('a NEW HOLDINGS amendment is added to the original; a RESTATEMENT replaces 
   assert.equal(restated.positions[0].shares, 12);
   assert.equal(restated.aum, 700);
 
-  // a name stated again in a NEW HOLDINGS amendment is corrected, not doubled
-  const corrected = applyAmendment(base, { aum: 500, positions: [pos('B', 20, 500)] }, NEW_HOLDINGS);
-  assert.equal(corrected.positions.find((p) => p.cusip === 'B').shares, 20);
-  assert.equal(corrected.positions.length, 2);
+  // a name stated again at another figure in a NEW HOLDINGS amendment is
+  // another lot of it: added, as the form says (Norris Perne & French 2026-Q2)
+  const lot = applyAmendment(base, { aum: 500, positions: [pos('B', 20, 500)] }, NEW_HOLDINGS);
+  assert.equal(lot.positions.find((p) => p.cusip === 'B').shares, 30);
+  assert.equal(lot.positions.find((p) => p.cusip === 'B').value, 900);
+  assert.equal(lot.aum, 1500);
+  assert.equal(lot.positions.length, 2);
+  // at the book's own figure it is the same line stated again: kept once
+  // (Check Capital 2026-Q2 re-filed its largest lines as NEW HOLDINGS)
+  const again = applyAmendment(base, { aum: 600, positions: [pos('A', 10, 600), pos('C', 1, 5)] }, NEW_HOLDINGS);
+  assert.equal(again.aum, 1005);
+  assert.equal(again.positions.find((p) => p.cusip === 'A').shares, 10);
 });
 
 test('an amendment whose cover page is unreadable is classified by its size', () => {

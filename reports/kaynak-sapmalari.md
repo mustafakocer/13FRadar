@@ -4,16 +4,13 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 "Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.
 
-**İncelenecek: 4 fon. İncelendi: 49 fon** (fonun kapak hatası 25, fonun tablosu eksik 4, fon eski tabloyu eklemiş 1, küçük fark 19).
+**İncelenecek: 1 fon. İncelendi: 52 fon** (fonun kapak hatası 26, fonun tablosu eksik 6, fon eski tabloyu eklemiş 1, küçük fark 19).
 
 ## İncelenecek
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | THURSTON, SPRINGER, MILLER, HERD & TITAK, INC. (0000319933) | 5541 | $274.9 mn | $3.41 mlr | -91.9% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/319933/000031993326000010/) |
-|  | Ascentis Independent Advisors (0001845003) | 8642 | $37.1 mn | $1.71 mlr | -97.8% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1845003/000184500326000005/) |
 |  | NORRIS PERNE & FRENCH LLP/MI (0001092290) | 2007 | $1.47 mlr | $2.34 mlr | -37.2% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1092290/000109229026000010/) |
-|  | Darwin Wealth Management, LLC (0001663224) | 4709 | $365.3 mn | $593.5 mn | -38.5% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1663224/000166322426000003/) |
 
 ## İncelendi — fonun kapak hatası
 
@@ -38,6 +35,7 @@ Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor;
 |  | Silverleafe Capital Partners, LLC (0001535611) | 4818 | $351.3 mn | $3.5 mn | +9900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535611/000153561126000008/) |
 |  | Costello Asset Management, INC (0001760145) | 4953 | $333.2 mn | $2.5 mn | +13,473% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1760145/000176014526000004/) |
 |  | Mirabaud & Cie SA (0001869685) | 5828 | $249.2 mn | $1.1 mn | +22,128% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1869685/000186968526000006/) |
+|  | Darwin Wealth Management, LLC (0001663224) | 4709 | $365.3 mn | $593.5 mn | -38.5% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1663224/000166322426000003/) |
 |  | Gimbal Financial (0001835206) | 7187 | $162.7 mn | $0.2 mn | +86,502% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1835206/000183520626000005/) |
 |  | Nvest Wealth Strategies, Inc. (0002106942) | 7247 | $160.0 mn | $0.0 mn | +15,999,979,600% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2106942/000210694226000003/) |
 |  | RIHO Partners, LLC (0002112884) | 6912 | $177.7 mn | $17.8 mn | +900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2112884/000211288426000003/) |
@@ -53,7 +51,9 @@ Fon özet sayfasında, SEC'e yüklediği tablodan çok daha fazla satır beyan e
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
+|  | THURSTON, SPRINGER, MILLER, HERD & TITAK, INC. (0000319933) | 5541 | $274.9 mn | $3.41 mlr | -91.9% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/319933/000031993326000010/) |
 |  | WealthPLAN Partners, LLC (0001639943) | 3776 | $523.0 mn | $2.55 mlr | -79.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1639943/000163994326000004/) |
+|  | Ascentis Independent Advisors (0001845003) | 8642 | $37.1 mn | $1.71 mlr | -97.8% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1845003/000184500326000005/) |
 |  | Saraza Management, LP (0001894188) | 5811 | $250.9 mn | $669.7 mn | -62.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1894188/000189418826000009/) |
 |  | LIBERTY WEALTH MANAGEMENT LLC (0001769302) | 2931 | $800.4 mn | $911.7 mn | -12.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1769302/000176930226000003/) |
 |  | Oceanic Investment Management LTD (0001438258) | 8461 | $77.9 mn | $118.0 mn | -33.9% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1438258/000143825826000002/) |

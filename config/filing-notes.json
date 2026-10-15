@@ -250,6 +250,44 @@
       "declared": 159168237,
       "table": 254079101,
       "reason": "2026-09-30 (filed 2026-10-13): the cover page declares $159.17M over 52 lines; the 51-row table (13f2026q3.xml) sums to $254.08M and 18 of its 18 priced lines sit near the closes: the cover total is the filer's error."
+    },
+    {
+      "cik": "0000319933",
+      "acc": "0000319933-26-000010",
+      "kind": "incomplete-table",
+      "declared": 3413105261,
+      "table": 274942926,
+      "declaredLines": 215435,
+      "tableLines": 18827,
+      "reason": "2026-06-30: the cover page declares 215,435 lines worth $3.41B; the one table document filed (thurston06.30.26.xml) has 18,827 rows summing to $274.94M, 723 of 726 priced lines at the period-end close. Every one of the last six quarters is short the same way (-66% to -98%): the filer uploads part of its table."
+    },
+    {
+      "cik": "0000319933",
+      "acc": "0000319933-26-000014",
+      "kind": "incomplete-table",
+      "declared": 3400000000,
+      "table": 61120000,
+      "declaredLines": 201479,
+      "tableLines": 4871,
+      "reason": "2026-09-30 (filed 2026-10-14): the cover page declares 201,479 lines worth $3.40B; the filed table has 4,871 rows summing to $61.12M (audit-universe history, rounded): the same partial upload as every quarter before."
+    },
+    {
+      "cik": "0001845003",
+      "acc": "0001845003-26-000005",
+      "kind": "incomplete-table",
+      "declared": 1714726809,
+      "table": 37141506,
+      "declaredLines": 67453,
+      "tableLines": 1917,
+      "reason": "2026-06-30: the cover page declares 67,453 lines worth $1.71B; the filed table has 1,917 rows summing to $37.14M, 246 of 247 priced lines at the period-end close. The RESTATEMENT of 2026-08-04 (0001845003-26-000007) carries the same table under the same cover. 2026-03-31 matched (5,735 rows, $1.32B)."
+    },
+    {
+      "cik": "0001663224",
+      "acc": "0001663224-26-000003",
+      "kind": "cover-total",
+      "declared": 593470033,
+      "table": 365262313,
+      "reason": "2026-06-30: the cover page declares 122 lines worth $593.47M; the filed table has 777 rows summing to $365.26M, 360 of 362 priced lines at the period-end close, in line with the five quarters before ($297M-$322M, each cover matching its table): the cover is the filer's error."
     }
   ]
 }

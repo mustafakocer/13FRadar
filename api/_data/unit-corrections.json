@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-15T02:48:17.281Z",
+ "updatedAt": "2026-10-16T02:50:43.354Z",
  "count": 439,
  "corrections": [
   {
@@ -83,6 +83,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001569102",
+   "name": "A. D. Beadell Investment Counsel, Inc.",
+   "period": "2026-09-30",
+   "acc": "0001569102-26-000005",
+   "filed": "2026-10-14",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001601622",
    "name": "LBJ Family Wealth Advisors, Ltd.",
    "period": "2026-09-30",
@@ -133,6 +143,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001697375",
+   "name": "Farmers & Merchants Trust Co of Chambersburg PA",
+   "period": "2026-09-30",
+   "acc": "0001697375-26-000009",
+   "filed": "2026-10-14",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001725247",
    "name": "WoodTrust Financial Corp",
    "period": "2026-09-30",
@@ -150,6 +170,16 @@
    "filed": "2026-10-08",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001729048",
+   "name": "Nicollet Investment Management, Inc.",
+   "period": "2026-09-30",
+   "acc": "0001729048-26-000006",
+   "filed": "2026-10-14",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1713,16 +1743,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001569102",
-   "name": "A. D. Beadell Investment Counsel, Inc.",
-   "period": "2026-06-30",
-   "acc": "0001569102-26-000004",
-   "filed": "2026-07-15",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001569453",
    "name": "F&V Capital Management, LLC",
    "period": "2026-06-30",
@@ -2163,16 +2183,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001697375",
-   "name": "Farmers & Merchants Trust Co of Chambersburg PA",
-   "period": "2026-06-30",
-   "acc": "0001697375-26-000006",
-   "filed": "2026-07-24",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 11 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001697765",
    "name": "Achmea Investment Management B.V.",
    "period": "2026-06-30",
@@ -2310,16 +2320,6 @@
    "filed": "2026-07-16",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.000986 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001729048",
-   "name": "Nicollet Investment Management, Inc.",
-   "period": "2026-06-30",
-   "acc": "0001729048-26-000005",
-   "filed": "2026-08-05",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2709,7 +2709,7 @@
    "acc": "0001831003-26-000004",
    "filed": "2026-08-10",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00102 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00105 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

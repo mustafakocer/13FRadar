@@ -75,7 +75,7 @@
       "path": "api/_data/congress.json",
       "metrics": {
         "rows": 13273,
-        "members": 167,
+        "members": 181,
         "futureDated": 0,
         "orphanRows": 0,
         "duplicateIds": 0

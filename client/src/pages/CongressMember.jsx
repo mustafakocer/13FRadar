@@ -23,7 +23,18 @@ export default function CongressMember() {
   const d = q.data;
   const m = d?.member;
   const seat = m ? (m.ch === 'S' ? t('cg.senatorOf') : t('cg.repOf')).replace('{st}', m.st || '—').replace('{dist}', m.dist != null ? `-${m.dist}` : '') : '';
-  const answer = m
+  const unread = d?.unread || [];
+  // a member whose every report is a scan: say so, not "0 trades"
+  const answer = m && !m.trades && unread.length
+    ? (lang === 'tr'
+        ? '{n} ({p}, {seat}) {u} işlem bildirimi verdi; hepsi taranmış ya da kâğıt form olduğu için içlerindeki işlemler okunamadı. Son bildirim {last}. Belgeler aşağıda.'
+        : '{n} ({p}, {seat}) has filed {u} trade reports, all as scans or paper forms, so their trades could not be read. Latest report {last}. The documents are listed below.')
+        .replace('{n}', m.n)
+        .replace('{p}', m.p ? t(`cg.party.${m.p}`) : t('cg.partyUnknown'))
+        .replace('{seat}', seat)
+        .replace('{u}', fmtNum(unread.length))
+        .replace('{last}', unread[0].f)
+    : m
     ? (lang === 'tr'
         ? '{n} ({p}, {seat}) {trades} işlem bildirdi: {buys} alım, {sells} satış, tahmini toplam ~{vol}. Son bildirim {last}. En büyük işlem gördüğü hisse: {top}.'
         : '{n} ({p}, {seat}) has disclosed {trades} trades: {buys} buys and {sells} sells, an estimated ~{vol} in total. Latest disclosure {last}. Largest position by volume: {top}.')
@@ -114,7 +125,7 @@ export default function CongressMember() {
         )}
         <div className="fund-stat">
           <span className="k">{t('cg.lastFiled')}</span>
-          <b>{m.last || '—'}</b>
+          <b>{m.last || d.unread?.[0]?.f || '—'}</b>
           <span className="s">{t('cg.lastTrade')}: {m.lastTrade || '—'}</span>
           {m.late > 0 && <span className="s" data-late={m.late}>{t('cg.lateCount').replace('{n}', fmtNum(m.late))}</span>}
         </div>

@@ -114,6 +114,12 @@
       "acc": "0002112239-26-000003",
       "kind": "small-gap",
       "reason": "2026-06-30: table $131.70M vs cover $130.21M (+1.15%); 96 rows vs 40 cover lines; 75 of 76 priced lines at the period-end close."
+    },
+    {
+      "cik": "0001977500",
+      "acc": "0001977500-26-000004",
+      "kind": "small-gap",
+      "reason": "2026-09-30: table $639.91M vs cover $650.09M (-1.56%); 221 rows vs 221 cover lines; 125 of 125 priced lines at the period-end close. Earlier filings match their covers (2025-09-30 -0.64%)."
     }
   ]
 }

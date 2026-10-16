@@ -16,6 +16,14 @@
       "copyOfName": "KMT Wealth Management, LLC",
       "declared": null,
       "reason": "The 2026-06-30 filing is KMT Wealth Management's (121 of 121 lines identical, cover total $118,195,925 identical too, so Kingsbury's own Q2 total is unknown). Filed 2026-08-25 through the same filing agent as KMT's 2026-08-05 13F; Kingsbury (Evanston/Wilmette IL, CRD 145658) and KMT (Hermosa Beach CA, CRD 328911) are unrelated advisers. Kingsbury's other filing that day, 0001104659-26-100714, is its own 2026-03-31 book (113 lines, $106.4M), a different quarter."
+    },
+    {
+      "cik": "0001962838",
+      "acc": "0001962838-26-000005",
+      "copyOf": "0002112005",
+      "copyOfName": "Tempo Wealth, LLC",
+      "declared": 294697332,
+      "reason": "The 2026-09-30 information table is Tempo Wealth's (245 of 245 lines identical, the same 92,566-byte file, $820.71M = Tempo's own cover total); Schear's own cover page declares 81 lines and $294.70M. Both filed 2026-10-14. Schear's earlier filings match their covers (2026-06-30: 83 lines, $299.00M)."
     }
   ]
 }

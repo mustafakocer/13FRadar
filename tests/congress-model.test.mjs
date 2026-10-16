@@ -68,7 +68,11 @@ test('the served file: matched members, one row per trade, prices on the trade d
   assert.equal(served.members.W000816.slug, 'roger-williams');
   assert.deepEqual(served.members.M000355.cm, ['SSAF']);
   assert.equal(served.members['S:x-unknown'].p, null);
-  assert.deepEqual(served.unmatched, ['S X Unknown']);
+  // a scanned report: no trades, listed for the member's page
+  assert.deepEqual(served.unmatched, ['H A B (CA01)', 'S X Unknown']);
+  assert.deepEqual(served.unread, [{ m: 'H:a-b', f: '2026-03-01', src: 'h3', s: 'scan' }]);
+  assert.equal(served.counts.unread, 1);
+  assert.equal(served.counts.members, 3, 'a member with only a scanned report is not counted as trading');
   const cvx = served.rows.find((r) => r.t === 'CVX');
   assert.equal(cvx.pt, 150);
   assert.equal(served.px.CVX.c, 165);
@@ -218,4 +222,14 @@ test('a ticker that is another company\'s is kept as filed and left unpriced', a
   assert.equal(cvx.pt, 150);
   assert.equal(cvx.tf, undefined);
   assert.equal(out.counts.tickerMismatch, 1);
+});
+
+test('a trade reported more than 45 days after it is late', async () => {
+  const { lateDays, present } = await import('../api/_lib/congressModel.js');
+  assert.equal(lateDays({ d: '2026-01-01', f: '2026-02-14' }), null);
+  assert.equal(lateDays({ d: '2026-01-01', f: '2026-02-16' }), 46);
+  assert.equal(lateDays({ d: '2024-05-10', f: '2026-08-05' }), 817);
+  const row = present({ members: { x: { n: 'X' } }, px: {} }, { m: 'x', d: '2026-01-01', f: '2026-03-01', lo: 1001, hi: 15000 });
+  assert.equal(row.late, 59);
+  assert.equal(present({ members: {}, px: {} }, { m: 'x', d: '2026-01-01', f: '2026-01-20' }).late, undefined);
 });

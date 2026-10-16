@@ -116,8 +116,23 @@ export default function CongressMember() {
           <span className="k">{t('cg.lastFiled')}</span>
           <b>{m.last || '—'}</b>
           <span className="s">{t('cg.lastTrade')}: {m.lastTrade || '—'}</span>
+          {m.late > 0 && <span className="s" data-late={m.late}>{t('cg.lateCount').replace('{n}', fmtNum(m.late))}</span>}
         </div>
       </div>
+
+      {d.unread?.length > 0 && (
+        <div className="card mt16 note-card" data-unread={d.unread.length}>
+          <h3>{t('cg.unreadTitle').replace('{n}', fmtNum(d.unread.length))}</h3>
+          <p className="muted small">{t('cg.unreadTip')}</p>
+          <ul className="small">
+            {d.unread.map((u) => (
+              <li key={u.src}>
+                <a href={u.src} target="_blank" rel="noopener noreferrer nofollow">{u.f}</a> · {t(u.s === 'paper' ? 'cg.unreadPaper' : 'cg.unreadScan')}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {m.inField > 0 && (
         <div className="card mt16" data-in-field={m.inField}>

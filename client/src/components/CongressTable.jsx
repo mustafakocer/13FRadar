@@ -57,6 +57,9 @@ export function KindBadge({ k }) {
 }
 
 // One table for every list of trades: the overview, a member, a stock.
+// a line with no ticker: what kind of asset it is, so a missing link reads as expected
+const ASSET_LABELS = new Set(['bond', 'crypto', 'option', 'stock', 'other']);
+
 export default function CongressTable({ rows, showMember = true, showTicker = true }) {
   const { t } = useI18n();
   if (!rows?.length) return <p className="muted">{t('cg.none')}</p>;
@@ -86,6 +89,7 @@ export default function CongressTable({ rows, showMember = true, showTicker = tr
               {showTicker && (
                 <td className="l">
                   {r.t ? <Link to={`/stock/${r.t}`} style={{ fontWeight: 700 }}>{r.t}</Link> : null}
+                  {!r.t && !r.tf && <span className="badge sm" title={t('cg.noTickerTip')} data-asset={r.at || 'other'}>{t(`cg.asset.${ASSET_LABELS.has(r.at) ? r.at : 'other'}`)}</span>}
                   {r.tf && <span className="badge warn sm" title={t('cg.tickerMismatchTip').replace('{tf}', r.tf).replace('{tn}', r.tn || '')} data-flag="ticker-mismatch">{r.tf} · {t('cg.tickerMismatch')}</span>}
                   <div className="muted small" style={{ maxWidth: 320 }}>{r.a}</div>
                   {r.field && <div style={{ whiteSpace: 'normal' }}><FieldBadge field={r.field} /> <span className="muted small">{[...new Set(r.field.map((c) => indLabel(t, c.label)))].join(', ')}</span></div>}

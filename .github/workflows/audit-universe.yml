@@ -35,8 +35,10 @@ jobs:
       - if: steps.ask.outputs.run == 'true'
         name: Compare with EDGAR
         # [audit-deviations] in the head commit: only the nightly list, minutes not an hour;
-        # [audit-amended]: only the filings with an amendment, both readings
+        # [audit-amended]: only the filings with an amendment, both readings;
+        # [audit-ciks=a,b]: only these filers, with their filing history
         run: |
-          if git log -1 --format=%B | grep -q '\[audit-amended\]'; then node scripts/audit-universe.mjs --amended; elif git log -1 --format=%B | grep -q '\[audit-deviations\]'; then node scripts/audit-universe.mjs --deviations; else node scripts/audit-universe.mjs; fi
+          CIKS=$(git log -1 --format=%B | grep -o '\[audit-ciks=[0-9,]*\]' | head -1 | sed 's/^\[audit-ciks=//; s/\]$//')
+          if [ -n "$CIKS" ]; then node scripts/audit-universe.mjs --ciks="$CIKS"; elif git log -1 --format=%B | grep -q '\[audit-amended\]'; then node scripts/audit-universe.mjs --amended; elif git log -1 --format=%B | grep -q '\[audit-deviations\]'; then node scripts/audit-universe.mjs --deviations; else node scripts/audit-universe.mjs; fi
         env:
           SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'

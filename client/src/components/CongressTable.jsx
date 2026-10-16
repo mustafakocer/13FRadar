@@ -100,6 +100,7 @@ export default function CongressTable({ rows, showMember = true, showTicker = tr
               <td className="num muted">{r.d}</td>
               <td className="num muted">
                 <a href={r.src} target="_blank" rel="noopener noreferrer nofollow" title={t('cg.source')}>{r.f}</a>
+                {r.late && <div><span className="badge sm" title={t('cg.lateTip').replace('{n}', fmtNum(r.late))} data-flag="late">{t('cg.late')}</span></div>}
               </td>
               <td className="num">
                 {r.ret != null ? (

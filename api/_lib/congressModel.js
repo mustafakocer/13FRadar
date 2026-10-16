@@ -54,7 +54,7 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
   const list = Object.values(filings).filter((f) => f.status === 'ok' && f.tx?.length && (!since || f.filed >= since));
   // the newest filing first, so an amendment's rows win over the original's
   list.sort((a, b) => b.filed.localeCompare(a.filed) || String(b.id).localeCompare(String(a.id)));
-  for (const f of list) {
+  const memberOf = (f) => {
     const who = f.ch === 'S' ? matchSenate(legislators, f, f.filed) : matchHouse(legislators, f, f.filed);
     const key = who?.bioguide || `${f.ch}:${slugify(filerName(f.first, f.last))}`;
     if (!members[key]) {
@@ -63,6 +63,16 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
         : { n: filerName(f.first, f.last), ch: f.ch, p: null, st: f.stateDst ? String(f.stateDst).slice(0, 2) : null, dist: null, bg: null, cm: [] };
       if (!who) unmatched.add(`${f.ch} ${filerName(f.first, f.last)}${f.stateDst ? ` (${f.stateDst})` : ''}`);
     }
+    return key;
+  };
+  // reports filed as a scan or on paper: no text to read, so no trades; the
+  // member's page lists them with a link, so a reader knows what is missing
+  const unread = Object.values(filings)
+    .filter((f) => (f.status === 'scan' || f.status === 'paper') && f.filed && (!since || f.filed >= since))
+    .sort((a, b) => b.filed.localeCompare(a.filed) || String(b.id).localeCompare(String(a.id)))
+    .map((f) => ({ m: memberOf(f), f: f.filed, src: f.url, s: f.status }));
+  for (const f of list) {
+    const key = memberOf(f);
     f.tx.forEach((tx, i) => {
       // no date, or one after the report that discloses it: a typo on the form
       // no date, a date after the report that discloses it, or one years
@@ -104,12 +114,13 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
     since: since || null,
     counts: {
       rows: rows.length,
-      members: Object.keys(members).length,
+      members: new Set(rows.map((r) => r.m)).size,
       house: rows.filter((r) => r.id.startsWith('H:')).length,
       senate: rows.filter((r) => r.id.startsWith('S:')).length,
       priced: rows.filter((r) => r.pt).length,
       inField: rows.filter((r) => r.jx).length,
       tickerMismatch: rows.filter((r) => r.tf).length,
+      unread: unread.length,
     },
     lastFiled: rows[0]?.f || null,
     members,
@@ -117,6 +128,7 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
     px,
     sic: sics,
     rows,
+    unread,
     unmatched: [...unmatched].sort(),
   }, seriesFor, now);
 }
@@ -170,11 +182,21 @@ export const rowReturn = (r, px) => {
   return r.pt > 0 && c > 0 ? c / r.pt - 1 : null;
 };
 
+// The STOCK Act gives a member 45 days from the trade to report it (30 from
+// being notified of it, at most 45 from the trade). Past that: the days it
+// took, for a "late" label. → number | null
+export const LATE_AFTER_DAYS = 45;
+export function lateDays(r) {
+  const days = Math.round((Date.parse(r.f) - Date.parse(r.d)) / DAY);
+  return Number.isFinite(days) && days > LATE_AFTER_DAYS ? days : null;
+}
+
 // What a row looks like on the wire: the member's name and slug ride along.
 export function present(db, r) {
   const m = db.members[r.m] || {};
   const field = r.jx?.length ? r.jx.map((c) => ({ id: c, name: db.committees?.[c] || c, slug: committeeSlug(db.committees?.[c] || c), label: jurisdictionLabel(c, db.sic?.[r.t]) })) : undefined;
-  return { ...r, field, mid: amountMid(r), ret: rowReturn(r, db.px), cur: r.t ? db.px?.[r.t]?.c ?? null : null, n: m.n, slug: m.slug, ch: m.ch, p: m.p, st: m.st };
+  const late = lateDays(r);
+  return { ...r, field, mid: amountMid(r), ret: rowReturn(r, db.px), cur: r.t ? db.px?.[r.t]?.c ?? null : null, n: m.n, slug: m.slug, ch: m.ch, p: m.p, st: m.st, ...(late ? { late } : {}) };
 }
 
 export function memberCard(db, key, rows) {
@@ -196,6 +218,7 @@ export function memberCard(db, key, rows) {
     buys: buys.length,
     sells: mine.filter((r) => isSell(r.k)).length,
     inField: mine.filter((r) => r.jx).length,
+    late: mine.filter((r) => lateDays(r)).length,
     volume: mine.reduce((s, r) => s + (amountMid(r) || 0), 0),
     last: mine.reduce((d, r) => (r.f > d ? r.f : d), '') || null,
     lastTrade: mine.reduce((d, r) => (r.d > d ? r.d : d), '') || null,
@@ -444,6 +467,7 @@ export function memberView(db, slug) {
     member: { ...card, ytd: memberYtd(db, mine), committees: (m.cm || []).filter((c) => db.committees?.[c]).map((id) => ({ id, name: db.committees[id], slug: committeeSlug(db.committees[id]) })) },
     tickers,
     rows: mine.map((r) => present(db, r)),
+    unread: (db.unread || []).filter((u) => u.m === key),
   };
 }
 

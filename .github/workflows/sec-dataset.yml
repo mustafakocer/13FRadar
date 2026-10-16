@@ -1,6 +1,8 @@
 name: SEC data set comparison
 # The second source: the SEC's own Form 13F data set (published once a
-# quarter) against what the site shows (scripts/sec-dataset-check.mjs).
+# quarter) against what the site shows (scripts/sec-dataset-check.mjs), and
+# its Insider Transactions data set against the site's Form 4 rows
+# (scripts/insider-dataset-check.mjs).
 # One issue per data set, labelled kaynak-karsilastirma; a weekly run finds
 # the new one when the SEC publishes it. Sundays 06:37 UTC, outside the
 # 01:00–03:30 window. Commits nothing. On a pull request: the issue is
@@ -13,6 +15,8 @@ on:
     paths:
       - 'scripts/sec-dataset-check.mjs'
       - 'api/_lib/secDataset.js'
+      - 'scripts/insider-dataset-check.mjs'
+      - 'api/_lib/insiderDataset.js'
       - '.github/workflows/sec-dataset.yml'
 permissions:
   contents: read
@@ -53,6 +57,41 @@ jobs:
       - name: Compare with the site's data
         run: >-
           node scripts/sec-dataset-check.mjs --dir "$RUNNER_TEMP/ds"
+          --name "${{ steps.ds.outputs.name }}" --from "${{ steps.ds.outputs.from }}" --to "${{ steps.ds.outputs.to }}"
+          ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+  insider:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - name: Find the newest insider data set
+        id: ds
+        run: |
+          json=$(node scripts/insider-dataset-check.mjs --latest)
+          echo "$json"
+          echo "url=$(echo "$json" | jq -r .url)" >> "$GITHUB_OUTPUT"
+          echo "name=$(echo "$json" | jq -r .name)" >> "$GITHUB_OUTPUT"
+          echo "from=$(echo "$json" | jq -r .from)" >> "$GITHUB_OUTPUT"
+          echo "to=$(echo "$json" | jq -r .to)" >> "$GITHUB_OUTPUT"
+      - name: Download and unpack the Form 4 files
+        run: |
+          mkdir -p "$RUNNER_TEMP/ids"
+          curl -sSfL --retry 3 -A "$SEC_USER_AGENT" -o "$RUNNER_TEMP/ids.zip" "${{ steps.ds.outputs.url }}"
+          ls -la "$RUNNER_TEMP/ids.zip"
+          unzip -o -j "$RUNNER_TEMP/ids.zip" '*SUBMISSION.tsv' '*NONDERIV_TRANS.tsv' -d "$RUNNER_TEMP/ids"
+          ls -la "$RUNNER_TEMP/ids"
+      - name: Compare with the site's insider data
+        run: >-
+          node scripts/insider-dataset-check.mjs --dir "$RUNNER_TEMP/ids"
           --name "${{ steps.ds.outputs.name }}" --from "${{ steps.ds.outputs.from }}" --to "${{ steps.ds.outputs.to }}"
           ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}
         env:

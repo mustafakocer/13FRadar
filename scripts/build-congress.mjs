@@ -339,7 +339,17 @@ try {
 const sicFor = (t) => sicCache.byTicker[t]?.sic || null;
 
 if (legislators.length) {
-  const served = buildServed(filings, { legislators, seats, committeeNames, seriesFor: readSeries, sicFor, since: SINCE, now });
+  // the issuer SEC lists under each ticker, against the company the member
+  // named (api/_lib/congressTickerCheck.js)
+  const secNames = readJson(path.join(process.cwd(), 'api', '_data', 'company-names.json'), { names: {} }).names || {};
+  const nameFor = (t) => secNames[t] || secNames[t.replace('.', '-')] || null;
+  const served = buildServed(filings, { legislators, seats, committeeNames, seriesFor: readSeries, sicFor, nameFor, since: SINCE, now });
+  const wrong = served.rows.filter((r) => r.tf);
+  if (wrong.length) {
+    const lines = wrong.map((r) => `${r.tf}: filed as "${r.a}", SEC lists ${r.tn} (${r.d}, ${r.src})`);
+    console.log(`ticker not the named company (${wrong.length}), left unpriced:\n  ${lines.join('\n  ')}`);
+    if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Ticker ≠ company (${wrong.length}), left unpriced\n\n${lines.map((l) => `- ${l}`).join('\n')}\n`);
+  }
   if (!served.rows.length) problems.push('no trades to serve');
   else writeJson(files.data(), served);
   console.log(`served: ${served.counts.rows} trades (House ${served.counts.house}, Senate ${served.counts.senate}), ${served.counts.members} members, ${served.counts.priced} priced, ${served.counts.inField} in a committee's field; newest disclosure ${served.lastFiled}`);

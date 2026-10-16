@@ -48,7 +48,8 @@ test('insider data sets: each row paired by code, day and shares, then judged on
   assert.equal(cents(0.0231, 0.02), 'match');
   assert.equal(cents(0.0004, 0), 'match');
   assert.equal(cents(0.05, 0.02), 'differs');
-  assert.equal(cents(210.4, 210), 'differs');
+  assert.equal(cents(212, 210), 'differs');
+  assert.equal(cents(210.4, 210), 'match', "half a percent: the filer's own rounding");
 
   const issue = insiderDatasetIssue({
     dataset: { name: '2026q2_form345', from: '2026-04-01', to: '2026-06-30' },

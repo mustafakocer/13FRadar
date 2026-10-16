@@ -86,6 +86,7 @@ export default function CongressTable({ rows, showMember = true, showTicker = tr
               {showTicker && (
                 <td className="l">
                   {r.t ? <Link to={`/stock/${r.t}`} style={{ fontWeight: 700 }}>{r.t}</Link> : null}
+                  {r.tf && <span className="badge warn sm" title={t('cg.tickerMismatchTip').replace('{tf}', r.tf).replace('{tn}', r.tn || '')} data-flag="ticker-mismatch">{r.tf} · {t('cg.tickerMismatch')}</span>}
                   <div className="muted small" style={{ maxWidth: 320 }}>{r.a}</div>
                   {r.field && <div style={{ whiteSpace: 'normal' }}><FieldBadge field={r.field} /> <span className="muted small">{[...new Set(r.field.map((c) => indLabel(t, c.label)))].join(', ')}</span></div>}
                 </td>

@@ -189,3 +189,33 @@ test('YTD: trades replayed as positions, each measured against SPY over the same
   // idempotent: a second stamp changes nothing
   assert.deepEqual(annotateYtd(structuredClone(out), sf, Date.parse('2026-10-08')), out);
 });
+
+test('a ticker that is another company\'s is kept as filed and left unpriced', async () => {
+  const { tickerNameMatches } = await import('../api/_lib/congressTickerCheck.js');
+  // names that agree, renames, an asset written as the ticker alone
+  assert.equal(tickerNameMatches('AZO', 'AutoZone, Inc. Common Stock', 'AUTOZONE INC'), true);
+  assert.equal(tickerNameMatches('JPM', 'JPMorgan Chase & Co. Common Stock', 'JPMORGAN CHASE & CO'), true);
+  assert.equal(tickerNameMatches('SLB', 'Schlumberger N.V. Common Stock', 'SLB LIMITED/NV'), true);
+  assert.equal(tickerNameMatches('NVDA', 'Common Stock', 'NVIDIA CORP'), true);
+  assert.equal(tickerNameMatches('ZZZZ', 'Anything', null), true, 'a ticker SEC does not list cannot be judged');
+  // a reused ticker, a slip on the form
+  assert.equal(tickerNameMatches('PARA', 'Paramount Global Cl B', 'Banzai International, Inc.'), false);
+  assert.equal(tickerNameMatches('EXE', 'Crexendo, Inc.', 'EXPAND ENERGY Corp'), false);
+
+  const names = { PARA: 'Banzai International, Inc.', CVX: 'CHEVRON CORP' };
+  const series = { prices: [{ date: '2024-05-10', close: 3360 }, { date: '2025-05-08', close: 150 }, { date: '2026-10-01', close: 160 }] };
+  const tx = (t, a) => ({ d: '2025-05-08', t, a, at: 'stock', k: 'buy', o: 'self', lo: 1001, hi: 15000 });
+  const out = buildServed(
+    { 'H:x': { ch: 'H', id: 'x', filed: '2025-06-01', first: 'Roger', last: 'Williams', stateDst: 'TX25', url: 'u', status: 'ok', tx: [tx('PARA', 'Paramount Global Cl B'), tx('CVX', 'Chevron Corporation')] } },
+    { legislators: idx, since: '2025-01-01', seriesFor: () => series, sicFor: () => '1311', nameFor: (t) => names[t] || null },
+  );
+  const para = out.rows.find((r) => r.tf === 'PARA');
+  assert.equal(para.t, null);
+  assert.equal(para.tn, 'Banzai International, Inc.');
+  assert.equal(para.pt, undefined, 'not priced with the other company\'s series');
+  assert.equal(para.jx, undefined);
+  const cvx = out.rows.find((r) => r.t === 'CVX');
+  assert.equal(cvx.pt, 150);
+  assert.equal(cvx.tf, undefined);
+  assert.equal(out.counts.tickerMismatch, 1);
+});

@@ -7,12 +7,15 @@
 // sell_partial | exchange), o (self | spouse | joint | child), lo, hi
 // (amount range in dollars; hi null for "Over $X"), src (filing URL), pt
 // (close on the trade day, when priced), jx (the member's committees whose
-// field the company is in, api/_lib/congressJurisdiction.js) }.
+// field the company is in, api/_lib/congressJurisdiction.js), tf + tn (the
+// ticker as filed and the company SEC lists under it, when that is not the
+// company the member named; t is then null) }.
 import { closeOnOrAfter } from './insiderOutcome.js';
 import { amountMid, cleanTicker } from './congressParse.js';
 import { assignSlugs, filerName, matchHouse, matchSenate, normName } from './congressMembers.js';
 import { slugify } from '../../client/src/lib/slugify.js';
 import { JURISDICTION, jurisdictionLabel, matchingCommittees } from './congressJurisdiction.js';
+import { CHECKED_TYPES, tickerNameMatches } from './congressTickerCheck.js';
 
 const DAY = 86400000;
 const isoDay = (t) => new Date(t).toISOString().slice(0, 10);
@@ -32,7 +35,7 @@ export function tickerFromName(a) {
 }
 
 // filings: { key: { ch, id, filed, first, last, stateDst, url, status, tx } }
-export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, sicFor = () => null, since, now = Date.now() }) {
+export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, sicFor = () => null, nameFor = () => null, since, now = Date.now() }) {
   const members = {};
   const rows = [];
   const unmatched = new Set();
@@ -69,8 +72,14 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
       const dup = [key, tx.d, tx.t || normName(tx.a), tx.k, tx.o, tx.lo, tx.hi].join('|');
       if (seen.has(dup)) return;
       seen.add(dup);
-      const t = tx.t || (tx.at === 'stock' || tx.at === 'etf' ? tickerFromName(tx.a) : null);
-      const row = { id: `${f.ch}:${f.id}:${i}`, m: key, d: tx.d, f: f.filed, t, a: tx.a, at: tx.at, k: tx.k, o: tx.o, lo: tx.lo, hi: tx.hi, src: f.url };
+      let t = tx.t || (tx.at === 'stock' || tx.at === 'etf' ? tickerFromName(tx.a) : null);
+      // a ticker that is another company's (api/_lib/congressTickerCheck.js):
+      // kept as filed (tf), but nothing is priced, linked or flagged by it
+      const sec = t && CHECKED_TYPES.has(tx.at) ? nameFor(t) : null;
+      const wrong = sec && !tickerNameMatches(t, tx.a, sec);
+      const filedTicker = wrong ? t : null;
+      if (wrong) t = null;
+      const row = { id: `${f.ch}:${f.id}:${i}`, m: key, d: tx.d, f: f.filed, t, a: tx.a, at: tx.at, k: tx.k, o: tx.o, lo: tx.lo, hi: tx.hi, src: f.url, ...(wrong ? { tf: filedTicker, tn: sec } : {}) };
       const s = priceOf(row.t);
       if (s) {
         const bar = closeOnOrAfter(s.prices, row.d);
@@ -100,6 +109,7 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
       senate: rows.filter((r) => r.id.startsWith('S:')).length,
       priced: rows.filter((r) => r.pt).length,
       inField: rows.filter((r) => r.jx).length,
+      tickerMismatch: rows.filter((r) => r.tf).length,
     },
     lastFiled: rows[0]?.f || null,
     members,

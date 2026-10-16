@@ -43,6 +43,12 @@ test('insider data sets: each row paired by code, day and shares, then judged on
   assert.equal(off.status, 'differs');
   assert.deepEqual(off.lines.map((l) => l.issue), ['price', 'owned', 'not-found']);
   assert.equal(compareAccession(ours, undefined).status, 'missing');
+  // the SEC's file rounds the price to the cent
+  const cents = (p, q) => compareAccession([{ k: 'P', d: '2026-07-01', s: 100, p, o: 100 }], [{ k: 'P', d: '2026-07-01', s: 100, p: q, o: 100.5 }]).status;
+  assert.equal(cents(0.0231, 0.02), 'match');
+  assert.equal(cents(0.0004, 0), 'match');
+  assert.equal(cents(0.05, 0.02), 'differs');
+  assert.equal(cents(210.4, 210), 'differs');
 
   const issue = insiderDatasetIssue({
     dataset: { name: '2026q2_form345', from: '2026-04-01', to: '2026-06-30' },

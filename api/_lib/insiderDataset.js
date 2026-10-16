@@ -12,8 +12,11 @@ import { normDate, num } from './insiderForm4.js';
 
 export const INSIDER_DATASET_PAGE = 'https://www.sec.gov/data-research/sec-markets-data/insider-transactions-data-sets';
 export const INSIDER_ZIP_BASE = 'https://www.sec.gov/files/structureddata/data/insider-transactions-data-sets';
-// the price is stored to 4 decimals; a filer's own rounding stays inside this
+// the price is stored to 4 decimals, the SEC's flat file to 2 (0.0231 → 0.02,
+// 0.0004 → 0): a gap within half a cent is the file's rounding; past that,
+// a filer's own rounding stays inside half a percent
 export const PRICE_TOLERANCE = 0.005;
+export const CENT_ROUNDING = 0.005;
 
 const quarterRange = (y, q) => {
   const m = (q - 1) * 3 + 1;
@@ -50,10 +53,10 @@ const samePrice = (ours, sec) => {
   const a = Number(ours) || 0;
   const b = Number(sec) || 0;
   if (!a && !b) return true;
-  return near(a, b, Math.max(0.0001, Math.abs(b) * PRICE_TOLERANCE));
+  return near(a, b, Math.max(CENT_ROUNDING + 1e-9, Math.abs(b) * PRICE_TOLERANCE));
 };
-// the site stores whole shares (Math.round), the SEC the figure as filed
-const sameOwned = (ours, sec) => (ours == null || sec == null ? ours == null && sec == null : ours === Math.round(sec));
+// the site stores whole shares, the SEC the figure as filed (6529.5)
+const sameOwned = (ours, sec) => (ours == null || sec == null ? ours == null && sec == null : Math.abs(ours - sec) < 1);
 
 // The site's rows of one filing against the SEC's lines of it. A row is
 // paired with an unused line of the same code, day and shares (one that
@@ -66,7 +69,7 @@ export function compareAccession(ours, sec) {
   if (!sec) return { status: 'missing', lines: [] };
   const used = new Set();
   const lines = ours.map((r) => {
-    const fits = (l, j) => !used.has(j) && l.k === r.k && l.d === r.d && l.s != null && Math.round(l.s) === r.s;
+    const fits = (l, j) => !used.has(j) && l.k === r.k && l.d === r.d && l.s != null && Math.abs(l.s - r.s) < 1;
     // two lots alike but for the price: the one that agrees in full first
     let i = sec.findIndex((l, j) => fits(l, j) && samePrice(r.p, l.p) && sameOwned(r.o, l.o));
     if (i === -1) i = sec.findIndex(fits);
@@ -101,7 +104,7 @@ export function insiderDatasetIssue({ dataset, results, absent = [], skipped = {
     '',
     absent.length ? `**SEC verisinde olup sitede hiç olmayan alım/satım: ${absent.length} satır** (${new Set(absent.map((a) => a.acc)).size} bildirim).` : '**SEC verisindeki alım/satımların hepsi sitede var.**',
     '',
-    'Karşılaştırılan: işlem kodu, işlem tarihi, adet, fiyat (±%0,5) ve işlem sonrası elde kalan adet. Bu veriyi SEC kendi sistemiyle okuyor; bizim kodumuzdan tamamen bağımsız.',
+    'Karşılaştırılan: işlem kodu, işlem tarihi, adet, fiyat (SEC dosyası fiyatı kuruşa yuvarladığı için yarım sent ya da %0,5 içi aynı sayılır) ve işlem sonrası elde kalan adet. Bu veriyi SEC kendi sistemiyle okuyor; bizim kodumuzdan tamamen bağımsız.',
     '',
     `Karşılaştırılmayan: bu veri setinde olmayan ${skipped.missing || 0} bildirimimiz (başka bir çeyrekte verilmiş ya da SEC henüz eklememiş).`,
     '',

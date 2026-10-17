@@ -86,7 +86,7 @@
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {
-        "total": 16666,
+        "total": 16355,
         "penny": 9
       },
       "findings": []

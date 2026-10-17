@@ -179,3 +179,63 @@ export function currencyOf(text) {
   for (const [cur, re] of CURRENCY_WORDS) if (re.test(s)) return cur;
   return USD_RE.test(s) ? 'USD' : null;
 }
+
+// The last resort for a currency neither H.10 nor the ECB delivered (TWD and
+// LKR when the Federal Reserve is down: the ECB does not publish them): the
+// open daily rates of fawazahmed0/currency-api, one file per day, served by
+// jsDelivr with a Cloudflare mirror. Not an official fixing, so it only
+// extends a series past its last official day, and a value more than
+// FALLBACK_MAX_JUMP away from that day's rate is refused.
+export const FALLBACK_SOURCE = 'currency-api';
+export const FALLBACK_MAX_JUMP = 0.1;
+export const fallbackUrls = (day) => [
+  `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@${day}/v1/currencies/usd.min.json`,
+  `https://${day}.currency-api.pages.dev/v1/currencies/usd.min.json`,
+];
+// { date: '2026-10-15', usd: { twd: 31.8, … } } (units per USD) →
+// { TWD: [day, usdPerUnit] } for the wanted currencies
+export function parseCurrencyApi(json, wanted) {
+  const day = String(json?.date || '');
+  const table = json?.usd;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !table || typeof table !== 'object') return {};
+  const out = {};
+  for (const cur of wanted) {
+    const x = Number(table[cur.toLowerCase()]);
+    if (x > 0) out[cur] = [day, Number((1 / x).toPrecision(6))];
+  }
+  return out;
+}
+// The series with the newer points appended: only days after its last one,
+// weekdays only (like H.10 and the ECB), each within FALLBACK_MAX_JUMP of the
+// last official rate. → { series, added, refused }
+export function extendSeries(series, points, { maxJump = FALLBACK_MAX_JUMP } = {}) {
+  const base = [...(series || [])];
+  const last = base.at(-1);
+  if (!last) return { series: base, added: 0, refused: 0 };
+  let added = 0;
+  let refused = 0;
+  for (const [day, v] of [...points].sort((a, b) => (a[0] < b[0] ? -1 : 1))) {
+    const wd = new Date(`${day}T00:00:00Z`).getUTCDay();
+    if (day <= base.at(-1)[0] || wd === 0 || wd === 6) continue;
+    if (!(v > 0) || Math.abs(v / last[1] - 1) > maxJump) {
+      refused++;
+      continue;
+    }
+    base.push([day, v]);
+    added++;
+  }
+  return { series: base, added, refused };
+}
+
+// The currencies whose newest rate is older than `maxDays` calendar days
+// (a weekend and a holiday stay inside 7). → [{ cur, last, days }], oldest first
+export const RATE_ALARM_DAYS = 7;
+export function staleRates(rates, today, { maxDays = RATE_ALARM_DAYS } = {}) {
+  const out = [];
+  for (const [cur, s] of Object.entries(rates || {})) {
+    const last = s?.at?.(-1)?.[0];
+    const days = last ? Math.floor((Date.parse(today) - Date.parse(last)) / 86400000) : Infinity;
+    if (days > maxDays) out.push({ cur, last: last || null, days });
+  }
+  return out.sort((a, b) => b.days - a.days || a.cur.localeCompare(b.cur));
+}

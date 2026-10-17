@@ -34,9 +34,9 @@
       "path": "api/_data/guru-stocks.json",
       "metrics": {
         "managers": 72,
-        "stocks": 1920,
+        "stocks": 1919,
         "options": 57,
-        "withTicker": 1914,
+        "withTicker": 1913,
         "withSector": 1737,
         "withCap": 1510
       },
@@ -55,7 +55,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 587
+        "names": 565
       },
       "findings": []
     },
@@ -120,7 +120,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4229
+        "tickers": 4234
       },
       "findings": []
     },
@@ -128,7 +128,7 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4830,
+        "series": 4838,
         "coveragePct": 98.3
       },
       "findings": []
@@ -171,7 +171,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 1400
+        "rows": 1635
       },
       "findings": []
     },
@@ -179,7 +179,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 1173
+        "filers": 1381
       },
       "findings": []
     },

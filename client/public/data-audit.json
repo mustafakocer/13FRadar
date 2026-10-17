@@ -1,5 +1,5 @@
 {
-  "worst": "warn",
+  "worst": "ok",
   "datasets": [
     {
       "key": "consensus",
@@ -21,24 +21,18 @@
         "topSold": 20,
         "newPositions": 40
       },
-      "findings": [
-        {
-          "rule": "lagging",
-          "severity": "warn",
-          "message": "Pershing Square (Bill Ackman) last reported 2026-03-31, panel median 2026-06-30"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "guru-stocks",
       "path": "api/_data/guru-stocks.json",
       "metrics": {
         "managers": 72,
-        "stocks": 1919,
+        "stocks": 1920,
         "options": 57,
-        "withTicker": 1913,
-        "withSector": 1737,
-        "withCap": 1510
+        "withTicker": 1914,
+        "withSector": 1735,
+        "withCap": 1508
       },
       "findings": []
     },
@@ -46,7 +40,7 @@
       "key": "guru-history",
       "path": "api/_data/guru-history.json",
       "metrics": {
-        "gurus": 85
+        "gurus": 86
       },
       "findings": []
     },
@@ -55,7 +49,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 565
+        "names": 561
       },
       "findings": []
     },
@@ -120,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4234
+        "tickers": 4242
       },
       "findings": []
     },
@@ -128,8 +122,8 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4838,
-        "coveragePct": 98.3
+        "series": 4845,
+        "coveragePct": 98.4
       },
       "findings": []
     },
@@ -145,7 +139,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6215,
+        "resolved": 6229,
         "unresolved": 81
       },
       "findings": []
@@ -154,7 +148,7 @@
       "key": "related",
       "path": "api/_data/related.json",
       "metrics": {
-        "managers": 85
+        "managers": 86
       },
       "findings": []
     },
@@ -187,7 +181,7 @@
       "key": "sector-map",
       "path": "api/_data/sector-map.json",
       "metrics": {
-        "symbols": 1745
+        "symbols": 1746
       },
       "findings": []
     }

@@ -1,6 +1,6 @@
 import { businessDaysBetween, daySummary, isBuy, isListed, isSell, sizeBucket } from './insiderModel.js';
 import { buildClusters } from './insiderCluster.js';
-import { categorize, classify } from './insiderClassify.js';
+import { categorize, classify, OPEN_MARKET } from './insiderClassify.js';
 import { filingTotals, signalLevel } from './insiderSignal.js';
 import { sinceTrade } from './splitAdjust.js';
 import { priceCheck } from './insiderPriceCheck.js';
@@ -20,13 +20,19 @@ function retFor(r, meta, opts = {}) {
 // cluster detector keeps its own input (roadmap item 3).
 const openBuy = (r) => categorize(r) === 'open_buy';
 // …with a verified dollar amount: a foreign-currency line that could not be
-// converted (fpiNormalize.js) never takes a ranked slot
-const ranked = (r) => openBuy(r) && !r.fx?.fail && r.fx?.off == null;
+// converted (fpiNormalize.js) never takes a ranked slot, and neither does a
+// line whose price failed the market check (`pu`: insiderOutcome.
+// checkPriceUnits, fpiNormalize) — SLBT's CEO with the $2.27M aggregate in
+// the price column, GPUS/Ault's $5M at $0.50 against a $0.16 close. Their
+// amount is not a number a ranking can stand on.
+export const verifiedAmount = (r) => !r.fx?.fail && r.fx?.off == null && !r.pu;
+const ranked = (r) => openBuy(r) && verifiedAmount(r);
 
 // Public preview of the insider dataset for the landing page (no paywall):
 //   pulse     buy/sell split on the newest filing day
 //   highlight the single largest open-market buy filed that day
-//   signals   cluster buys (≥2 insiders, 7-day window) · C-suite buys · penny-stock buys (last 30 days)
+//   signals   cluster buys (≥2 insiders within 10 business days, insiderCluster.js)
+//             · C-suite buys · penny-stock buys (last 30 days)
 //   penny     the full free board behind /insiders/penny (see buildPennyBoard)
 //   rows      the 20 newest buys
 // The full, filterable feed stays Pro (/api/insider-feed).
@@ -136,13 +142,17 @@ function pennyRow(r, companies, meta, clusters, opts) {
 export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now(), opts = {}) {
   const anchor = lastDay ? new Date(`${lastDay}T00:00:00Z`).getTime() : now;
   const since = iso(anchor - PENNY.windowDays * 86400000);
-  // Open-market trades only: grants, tax withholding and gifts say nothing
-  // about conviction and would inflate every count on the page.
-  const window = rows.filter(
-    (r) => isPenny(r) && r.d >= since && (r.v || 0) >= PENNY.minValue && (isBuy(r) || isSell(r))
-  );
-  const buys = window.filter(isBuy);
-  const sells = window.filter(isSell);
+  // Open-market trades only (insiderClassify.categorize): grants, tax
+  // withholding and gifts say nothing about conviction and would inflate
+  // every count on the page; neither do shares taken as pay, mirror P/S
+  // pairs or a mutual fund's NAV purchases, which categorize also excludes.
+  // A line whose price failed the market check is out too: in the window
+  // ending 2026-10-09 that was 16 of 491 lines but $51.2M of $302.5M — GGR's
+  // $26.5M issuer purchase at $2.48 against a $2.99 close took the top slot.
+  const inWindow = rows.filter((r) => isPenny(r) && r.d >= since && (r.v || 0) >= PENNY.minValue && OPEN_MARKET.has(categorize(r)));
+  const window = inWindow.filter(verifiedAmount);
+  const buys = window.filter((r) => categorize(r) === 'open_buy');
+  const sells = window.filter((r) => categorize(r) === 'open_sell');
   // the one cluster definition (insiderCluster.js), over the board's buys
   const clusters = buildClusters(buys, { rawOf: rawOfOpts(opts), toUsd: opts.toUsd }).byTicker;
   const sum = (list) => list.reduce((s, r) => s + (r.v || 0), 0);
@@ -192,6 +202,8 @@ export function buildPennyBoard(rows, companies, meta, lastDay, now = Date.now()
       sellValue: Math.round(sellValue),
       sellShare: buyValue + sellValue > 0 ? round((sellValue / (buyValue + sellValue)) * 100) : null,
       clusterCount: clusters.size,
+      // open-market lines left out because their price failed the check
+      priceExcluded: inWindow.length - window.length,
     },
     signals,
     top: {

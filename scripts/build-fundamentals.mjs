@@ -24,6 +24,7 @@ import { inlineFacts } from '../api/_lib/inlineXbrl.js';
 import { getSubmissions } from '../api/_lib/sec.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { toUsdWith } from '../api/_lib/fpiContext.js';
+import { adrResolver, withoutPerShare } from '../api/_lib/adrResolve.js';
 
 const root = process.cwd();
 const read = (rel, fallback = null) => {
@@ -53,17 +54,13 @@ const tickers = [...wanted].map((t) => String(t).toUpperCase());
 const secIndex = await fetchSecTickers();
 const cikOf = (t) => secIndex.get(t)?.cik || secIndex.get(t.replace('.', '-'))?.cik || secIndex.get(t.replace('-', ''))?.cik || null;
 const fpi = read('api/_data/fpi.json', {});
-const overrides = read('config/adr-overrides.json', {})?.byTicker || {};
 const classRules = read('config/share-classes.json', {})?.byTicker || {};
 const predecessors = read('config/predecessors.json', {})?.byTicker || {};
 const sectorOf = read('api/_data/sector-map.json', {})?.bySymbol || {};
-const adrRatioOf = (t, cik) => {
-  const o = overrides[t];
-  if (o?.force && o.ratio > 0) return o.ratio;
-  const iss = fpi.issuers?.[cik];
-  if (iss?.ads && iss.ratio > 0) return iss.ratio;
-  return o?.ratio > 0 ? o.ratio : null;
-};
+// is the US security an ADS, and of how many shares (api/_lib/adrResolve.js)
+const adrOf = adrResolver(root);
+const splitTable = read('api/_data/splits.json', {})?.byTicker || {};
+const splitsOf = (t) => splitTable[t] || splitTable[t.replace('.', '-')] || splitTable[t.replace('-', '.')] || null;
 // The reporting currency at today's rate, else the newest one within three
 // weeks: the H.10-only currencies (TWD, LKR) are published weekly with a
 // lag, so a 7-day window left TSM's EPS without a rate every few days.
@@ -146,9 +143,13 @@ for (const [cik, list] of byCik) {
     noFacts += list.length;
     continue;
   }
-  const recOf = (t) => fundamentalsOf(cf, { cik, classRule: classRules[t] || null, fx: usd, adrRatio: adrRatioOf(t, padCik(cik)), asOf: today });
+  const recOf = (t) => {
+    const adr = adrOf(t, padCik(cik));
+    const rec = fundamentalsOf(cf, { cik, classRule: classRules[t] || classRules[t.replace('.', '-')] || null, fx: usd, adrRatio: adr.ratio, asOf: today, splits: splitsOf(t) });
+    return adr.unknown ? withoutPerShare(rec) : rec;
+  };
   // the filing's own document fills what companyfacts leaves out
-  if (list.some((t) => important.has(t) && (recOf(t).eps?.value == null || !recOf(t).shares))) {
+  if (list.some((t) => important.has(t) && !recOf(t).adrUnknown && (recOf(t).eps?.value == null || !recOf(t).shares))) {
     const doc = await fromDocument(cik);
     if (doc) cf = mergeFacts(doc, cf);
   }

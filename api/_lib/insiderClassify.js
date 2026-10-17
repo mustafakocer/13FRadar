@@ -45,11 +45,26 @@ const SELL_CODES = new Set(['S', 'D', 'F', 'G']);
 const price = (r) => Number(r?.p);
 export const hasPrice = (r) => Number.isFinite(price(r)) && price(r) > 0;
 
+// A mutual-fund ticker: five letters ending in X is the NASDAQ symbol
+// convention reserved for mutual funds (LNBIX, PBLSX, CCLFX, MUNEX, PMPEX…).
+// Interval and tender-offer funds file Form 4s because they are registered
+// closed-end funds, but their shares are bought from and sold back to the
+// fund at NAV — there is no exchange and no open market. ticker-meta.json
+// carries `etf: 1` and a fund name for every one of them. Their P/S lines
+// are 'other' below: 169 lines and $609M of "open-market buys" before, and
+// PMPEX sat in the home page's cluster list.
+const MUTUAL_FUND_RE = /^[A-Z]{4}X$/;
+export const isMutualFundTicker = (t) => MUTUAL_FUND_RE.test(String(t || ''));
+
 export function categorize(r) {
   const code = String(r?.k || '').trim().toUpperCase();
   const derivative = Boolean(r?.dv);
   if (r?.sk === 'preferred') return 'preferred';
   if (r?.sk === 'other') return 'other_security';
+  // a P and an S of the same shares at the same price in one filing is a
+  // transfer, not two trades (insiderStore.markMirrors); a mutual fund's
+  // shares have no open market (above)
+  if ((code === 'P' || code === 'S') && (r?.mx || isMutualFundTicker(r?.t))) return 'other';
   switch (code) {
     case 'P':
       if (r?.cp) return 'compensation';
@@ -129,6 +144,10 @@ export function flagsOf(r) {
     // close — almost always a foreign currency or a per-ADR/per-share unit
     // mix-up (set by the nightly build, insiderOutcome.checkPriceUnits)
     price_unverified: Boolean(r?.pu),
+    // categorized 'other' for these two reasons (categorize above); the
+    // flags let a page say why a P or S is not an open-market trade
+    mirror_trade: Boolean(r?.mx),
+    not_traded: isMutualFundTicker(r?.t),
   };
 }
 

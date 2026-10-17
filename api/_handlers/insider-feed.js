@@ -160,6 +160,10 @@ function shape(r, meta, companies, d) {
     holder: sig.holder,
     fund: c.fund_insider,
     priceUnverified: c.price_unverified,
+    // a P or S that is not an open-market trade: one side of a same-filing
+    // P/S mirror pair (a transfer) or a mutual fund bought at NAV
+    ...(c.mirror_trade ? { mirrorTrade: true } : {}),
+    ...(c.not_traded ? { notTraded: true } : {}),
     priceNote: chk.ok ? null : chk.reason,
     signal: { level: sig.level, why: sig.why, role: sig.role, value: sig.value, lines: sig.lines, ownIncrease: Number.isFinite(sig.ownIncrease) ? Number(sig.ownIncrease.toFixed(1)) : sig.ownIncrease === Infinity ? 'new' : null },
     shares: r.s,
@@ -234,7 +238,9 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
   const clusters = d.recentClusters;
   const signals = [];
   for (const r of last24) {
-    if (r.fx?.fail || r.fx?.off != null) continue;
+    // a price that failed the market check (`pu`, or the read-time check)
+    // makes the amount unreliable: no card ranks on it
+    if (r.fx?.fail || r.fx?.off != null || clsOf(r, d, meta).price_unverified) continue;
     const m = (r.t && meta[r.t]) || {};
     const ret = retOf(r, meta, d);
     const cl = clusters.get(r.t);
@@ -267,7 +273,10 @@ function buildStats(all, meta, scope = null, d = derive({ rows: all })) {
 
   const top = (list) =>
     list
-      .filter((r) => !r.fx?.fail && r.fx?.off == null)
+      // the biggest trades of the day: only amounts that can be trusted —
+      // not an unconverted currency, an off-market price or a price that
+      // failed the market check (GPUS: $5M at $0.50 against a $0.16 close)
+      .filter((r) => !r.fx?.fail && r.fx?.off == null && !clsOf(r, d, meta).price_unverified)
       .sort((a, b) => (b.v || 0) - (a.v || 0))
       .slice(0, 3)
       .map((r) => {

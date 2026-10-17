@@ -102,4 +102,5 @@ export const GURU_SLUGS = {
   '0001798849': 'durable-capital-partners-lp',
   '0001953324': 'aquamarine-zurich-ag',
   '0001998597': 'jana-partners-management-lp',
+  '0002026053': 'pershing-square-inc',
 };

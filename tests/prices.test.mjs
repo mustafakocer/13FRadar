@@ -180,6 +180,14 @@ test('returnsFromSeries: 1Y from the first close a year back, YTD from the last 
   assert.equal(r.asOf, '2026-09-22');
 });
 
+test('returnsFromSeries: a listing younger than a year has no 1Y (never a since-listing return)', () => {
+  const now = Date.parse('2026-09-22T22:00:00Z');
+  const r = returnsFromSeries('X', series('2026-03-02', '2026-09-22', { start: 100 }), now);
+  assert.equal(r.ret1y, null);
+  assert.equal(r.retYtd, null, 'listed after Jan 1: no YTD base either');
+  assert.ok(Number.isFinite(r.ret1d));
+});
+
 // ---- the backtest arithmetic -------------------------------------------
 const TICKERS = ['AAPL', 'AXP', 'BAC', 'KO', 'CVX', 'OXY', 'GOOGL', 'AMZN', 'NVDA', 'MSFT', 'HLT', 'MCO', 'DVA', 'KHC', 'V'];
 const cusipOf = (t) => `C${t.padEnd(8, '0')}`;

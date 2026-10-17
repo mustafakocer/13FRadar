@@ -2,8 +2,13 @@
 // behind the guru page's FAQ, its "Changes" tab and the holdings API.
 //
 // By share count, not by weight: a position that only moved with its price
-// is neither bought nor sold. Keyed by CUSIP and put/call, so a call on a
-// stock is a separate line from the stock. Both books must be complete: a
+// is neither bought nor sold. Keyed by the ticker when one is known (else the
+// CUSIP) and put/call, so a call on a stock is a separate line from the
+// stock, and a security whose CUSIP changed under the holder — Carnival's
+// redomicile (143658300 → G2004J103), Lam's split, TE Connectivity's move to
+// Ireland — is one continuous holding, not an exit plus a new position. Two
+// lines of one book that land on the same key are added together. Both
+// books must be complete: a
 // line missing from the current book is an exit, so comparing a full
 // previous book with a top-10 extract (the bug this replaced) calls every
 // holding outside the top 10 "sold out".
@@ -12,7 +17,23 @@
 //   added    more shares than before
 //   reduced  fewer shares, still held
 //   exited   held before, not now
-const keyOf = (p) => `${String(p.cusip || '').toUpperCase()}|${p.putCall || ''}`;
+export const keyOf = (p) => `${String(p.ticker || p.cusip || '').toUpperCase()}|${p.putCall || ''}`;
+
+// One line per key: shares, value and weight summed; the identity of the
+// largest line wins (the CUSIP the holder files most of it under).
+function byKey(book) {
+  const out = new Map();
+  for (const p of book) {
+    const k = keyOf(p);
+    const a = out.get(k);
+    if (!a) out.set(k, p);
+    else {
+      const big = (p.value || 0) > (a.value || 0) ? p : a;
+      out.set(k, { ...big, shares: (a.shares || 0) + (p.shares || 0), value: (a.value || 0) + (p.value || 0), weight: (a.weight || 0) + (p.weight || 0) });
+    }
+  }
+  return out;
+}
 
 const line = (cur, prev) => {
   const shares = cur?.shares ?? 0;
@@ -35,8 +56,8 @@ const line = (cur, prev) => {
 
 export function portfolioChanges(current, previous) {
   if (!Array.isArray(current) || !Array.isArray(previous)) return null;
-  const prev = new Map(previous.map((p) => [keyOf(p), p]));
-  const cur = new Map(current.map((p) => [keyOf(p), p]));
+  const prev = byKey(previous);
+  const cur = byKey(current);
   const out = { new: [], added: [], reduced: [], exited: [] };
   for (const [k, p] of cur) {
     const q = prev.get(k);

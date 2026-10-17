@@ -26,9 +26,11 @@
 // but no trades. PUT/CALL rows are not trades in the underlying and are
 // skipped (the caller aggregates them separately).
 //
-// `idOf(position)` picks the security identity — the CUSIP by default, a
-// ticker from the security master when the caller has one, so a CUSIP
-// change under a position is not read as a sale plus a purchase.
+// `idOf(position)` picks the security identity. By default it is the
+// ticker — the position's own, else the security master's for its CUSIP —
+// and the CUSIP only when no ticker is known, so a CUSIP change under a
+// position (Carnival's redomicile, 143658300 → G2004J103) is one holding and
+// not an exit by every holder plus as many "new buyers".
 //
 // `listedOn(id)` (client/src/lib/newListings.js) gives a security's first
 // trading day. A fund's first line in a security that listed inside the
@@ -40,10 +42,13 @@
 // apply (it was not new to these filers).
 
 import { listedInQuarter } from '../../client/src/lib/newListings.js';
+import { tickerFor } from './securityMaster.js';
+
+export const defaultIdOf = (p) => String(p.ticker || tickerFor(p.cusip) || p.cusip || '').toUpperCase();
 
 const equity = (snap) => (snap?.positions || []).filter((p) => !p.putCall);
 
-export function netActivity(managers, { idOf = (p) => String(p.cusip || '').toUpperCase(), listedOn = null } = {}) {
+export function netActivity(managers, { idOf = defaultIdOf, listedOn = null } = {}) {
   const rows = new Map();
   const row = (id, p) => {
     let r = rows.get(id);

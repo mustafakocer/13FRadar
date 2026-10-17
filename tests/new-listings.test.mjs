@@ -12,6 +12,9 @@ import { listingLookup, listedInQuarter, previousQuarterEnd, heldBeforeListing }
 
 const pos = (cusip, shares, value) => ({ cusip, issuer: cusip, shares, value, weight: 1, putCall: '' });
 const Q = '2026-06-30';
+// netActivity keys a row by ticker when the security master knows one, so
+// look a row up by the CUSIP it carries
+const byCusip = (rows, c) => [...rows.values()].find((r) => r.cusip === c);
 
 test('listedInQuarter: first traded after the previous quarter end, on or before this one', () => {
   assert.equal(previousQuarterEnd(Q), '2026-03-31');
@@ -29,7 +32,7 @@ test('a pre-IPO stake is held, not bought: out of buy $, net $ and the buyer cou
     { cik: 'B', name: 'B', reportDate: Q, cur: { positions: [pos('84615Q103', 50, 7500)] }, prev: { positions: [pos('Y', 1, 1)] } },
   ];
   const rows = netActivity(managers, { listedOn });
-  const s = rows.get('84615Q103');
+  const s = byCusip(rows, '84615Q103');
   assert.equal(s.buyValue, 0);
   assert.equal(s.netValue, 0);
   assert.equal(s.buyers, 0);
@@ -44,14 +47,14 @@ test('a pre-IPO stake is held, not bought: out of buy $, net $ and the buyer cou
   assert.deepEqual(st.newBuys.map((x) => x.cusip), []);
   assert.deepEqual(st.preListing.map((x) => x.cusip), ['84615Q103']);
   // without the lookup it is the old reading: $22.5k bought
-  assert.equal(netActivity(managers).get('84615Q103').buyValue, 22500);
+  assert.equal(byCusip(netActivity(managers), '84615Q103').buyValue, 22500);
 });
 
 test('the next quarter, new stakes in the same stock are buys again', () => {
   const listedOn = listingLookup({ rows: [{ t: 'SPCX', c: ['84615Q103'], d: '2026-06-12' }] });
   const rows = netActivity([{ cik: 'A', name: 'A', reportDate: '2026-09-30', cur: { positions: [pos('84615Q103', 10, 1500)] }, prev: { positions: [pos('X', 1, 1)] } }], { listedOn });
-  assert.equal(rows.get('84615Q103').buyValue, 1500);
-  assert.equal(rows.get('84615Q103').newBuyers, 1);
+  assert.equal(byCusip(rows, '84615Q103').buyValue, 1500);
+  assert.equal(byCusip(rows, '84615Q103').newBuyers, 1);
 });
 
 test('a security some fund held the quarter before is not new to the set (the rule stays off)', () => {

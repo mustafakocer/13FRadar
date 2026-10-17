@@ -128,6 +128,27 @@ test('no cover count (a multi-class filer) or a stale / off-scale one: the dilut
   assert.equal(sharesOutstanding(good, null, { asOf: '2026-10-02' }).value, 12_050_000_000);
 });
 
+test('cover and income-statement counts disagree: net income ÷ EPS decides, and neither fitting gives no count', () => {
+  const quarters = (vals) => [e('2025-07-01', '2025-09-30', vals[0]), e('2025-10-01', '2025-12-31', vals[1]), e('2026-01-01', '2026-03-31', vals[2]), e('2026-04-01', '2026-06-30', vals[3])];
+  const cover = (val) => ({ EntityCommonStockSharesOutstanding: { units: { shares: [{ end: '2026-07-31', val, accn: 'c', filed: '2026-08-07', form: '10-Q' }] } } });
+  const book = (wa, cov) => ({
+    'us-gaap': {
+      EarningsPerShareDiluted: { units: { 'USD/shares': quarters([3, 3, 3, 3]) } },
+      NetIncomeLoss: { units: { USD: quarters([2.13e9, 2.13e9, 2.13e9, 2.13e9]) } },
+      WeightedAverageNumberOfDilutedSharesOutstanding: { units: { shares: [e('2026-04-01', '2026-06-30', wa)] } },
+    },
+    dei: cover(cov),
+  });
+  // McDonald's: the diluted count tagged "in millions" (711); NI/EPS ≈ 710M
+  assert.equal(sharesOutstanding(book(711, 713_000_000), null, { asOf: '2026-10-02' }).value, 713_000_000);
+  // Waters: the diluted count a thousand times too big; the cover count fits
+  assert.equal(sharesOutstanding(book(710_000_000_000, 709_000_000), null, { asOf: '2026-10-02' }).value, 709_000_000);
+  // the cover count is the slip: the diluted count fits
+  assert.equal(sharesOutstanding(book(709_000_000, 709_000), null, { asOf: '2026-10-02' }).basis, 'weighted-average');
+  // neither within 2x of what the income statement implies: no count
+  assert.equal(sharesOutstanding(book(50_000_000, 4_000_000_000), null, { asOf: '2026-10-02' }), null);
+});
+
 test('no EPS concept (Berkshire): net income over the diluted shares, then the class rule', () => {
   const q = (s0, e0, v) => e(s0, e0, v);
   const facts = {
@@ -163,4 +184,59 @@ test('a weekly-published rate (H.10 TWD) eight days old still converts for funda
   assert.equal(Number(fx(65.47, 'TWD', '2026-10-03').toFixed(4)), Number((65.47 * 0.0314268).toFixed(4)));
   assert.equal(toUsdWith({ rates })(65.47, 'TWD', '2026-10-03'), null);
   assert.equal(fx(1, 'TWD', '2026-10-20'), null, 'older than three weeks: no rate');
+});
+
+test('a split inside the TTM window: pre-split quarters reported before it are restated, restated ones are not divided again', () => {
+  const sp = [{ date: '2026-04-06', ratio: 25 }];
+  // BKNG: Q3/Q4 2025 in pre-split shares, Q1/Q2 2026 after the 25-for-1
+  const raw = [
+    e('2025-07-01', '2025-09-30', 84.41, '10-Q', '2025-10-28'),
+    e('2025-01-01', '2025-12-31', 250, '10-K', '2026-02-20'),
+    e('2025-01-01', '2025-03-31', 40, '10-Q', '2025-04-29'),
+    e('2025-04-01', '2025-06-30', 46, '10-Q', '2025-07-29'),
+    e('2026-01-01', '2026-03-31', 1.36, '10-Q', '2026-04-28'),
+    e('2026-04-01', '2026-06-30', 2.53, '10-Q', '2026-07-28'),
+  ];
+  const t = trailing(periods(raw), { asOf: '2026-10-02', splits: sp });
+  // Q4 2025 = (250 − 40 − 46 − 84.41) / 25 = 3.1836; Q3 = 84.41 / 25
+  assert.equal(Number(t.value.toFixed(4)), Number((84.41 / 25 + (250 - 40 - 46 - 84.41) / 25 + 1.36 + 2.53).toFixed(4)));
+  // the same quarter restated by a later filing is already per new share
+  const restated = raw.map((x) => (x.end === '2025-09-30' ? { ...x, val: 3.38, filed: '2026-04-28', accn: 'R' } : x));
+  const r = trailing(periods(restated), { asOf: '2026-10-02', splits: sp });
+  assert.equal(r.parts[0].val, 3.38);
+  // a spin-off factor is not a split
+  assert.equal(trailing(periods(raw), { asOf: '2026-10-02', splits: [{ date: '2026-04-06', ratio: 1.253 }] }).parts[0].val, 84.41);
+});
+
+test('a derived Q4 larger than twice the year and its quarters is not used (CMCT, ALIT)', () => {
+  const bad = [
+    e('2025-01-01', '2025-03-31', -0.4),
+    e('2025-04-01', '2025-06-30', -0.5),
+    e('2025-07-01', '2025-09-30', -0.6),
+    e('2025-01-01', '2025-12-31', 3722.82, '10-K', '2026-03-01', 'K'),
+    e('2026-01-01', '2026-03-31', -0.3),
+    e('2026-04-01', '2026-06-30', -0.2),
+  ];
+  const t = trailing(periods(bad), { asOf: '2026-10-02' });
+  assert.notEqual(t?.basis, 'ttm', 'no TTM through a 3,724 "Q4"');
+  // Boeing: a real one-off Q4 gain is kept
+  const ba = [
+    e('2025-01-01', '2025-03-31', -0.49),
+    e('2025-04-01', '2025-06-30', -0.92),
+    e('2025-07-01', '2025-09-30', -7.14),
+    e('2025-01-01', '2025-12-31', 2.15, '10-K', '2026-02-01', 'K'),
+    e('2026-01-01', '2026-03-31', -0.11),
+    e('2026-04-01', '2026-06-30', -0.67),
+  ];
+  assert.equal(trailing(periods(ba), { asOf: '2026-10-02' }).basis, 'ttm');
+});
+
+test('shares stated before a split are restated after it; a yield above 30% is not quoted', () => {
+  const facts = {
+    dei: { EntityCommonStockSharesOutstanding: { units: { shares: [{ end: '2026-07-20', val: 1_200_000_000, accn: 'c', filed: '2026-07-25', form: '10-Q' }] } } },
+  };
+  const rec = fundamentalsOf({ facts }, { cik: '820313', asOf: '2026-10-02', splits: [{ date: '2026-09-03', ratio: 2 }] });
+  assert.equal(rec.shares.value, 2_400_000_000);
+  assert.equal(valuationFor({ div: { value: 3.49 } }, 1).dividendYield, null);
+  assert.equal(valuationFor({ div: { value: 0.05 } }, 1).dividendYield, 0.05);
 });

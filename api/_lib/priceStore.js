@@ -172,7 +172,12 @@ export function returnsFromSeries(symbol, prices, now = Date.now()) {
   const last = prices[prices.length - 1];
   const price = last.close;
   const yearAgo = isoDay(now - 365 * DAY);
-  const base1y = prices.find((p) => p.date >= yearAgo) || prices[0];
+  // A series that starts after the year-ago date (a listing younger than a
+  // year) has no 1Y base: its first close would make "1Y" a since-listing
+  // return. A week of slack covers a year-ago date that fell on a weekend
+  // or holiday.
+  const covers1y = prices[0].date <= isoDay(now - 358 * DAY);
+  const base1y = covers1y ? prices.find((p) => p.date >= yearAgo) : null;
   const jan1 = `${new Date(now).getUTCFullYear()}-01-01`;
   let baseYtd = null;
   for (let i = prices.length - 1; i >= 0; i--) {

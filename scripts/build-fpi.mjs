@@ -8,9 +8,12 @@
 //   node scripts/build-fpi.mjs --refresh       re-check every issuer, not only stale ones
 //
 // Per step:
-//   rates    FRED, H.10 series (api/_lib/fx.js) from 30 days before the
-//            oldest insider line. A series that cannot be read keeps what
-//            the file had.
+//   rates    from 30 days before the oldest insider line (api/_lib/fx.js):
+//            the Federal Reserve's H.10 download, then the ECB, then FRED for
+//            what is still missing, each retried; a series none of them
+//            refreshed is extended day by day from the open currency-api
+//            files. A series that cannot be read keeps what the file had;
+//            one older than 7 days is an alarm (scripts/fx-stale-alarm.mjs).
 //   issuers  SEC submissions JSON for every issuer in the insider data
 //            (cached 30 days): FPI when it files 20-F, 40-F or 6-K; home
 //            country and currency from the business address; ADR ratio
@@ -27,7 +30,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import axios from 'axios';
 import { secGet, padCik, numCik } from '../api/_lib/sec.js';
-import { FRED_SERIES, parseFredCsv, usdPerUnit, currencyOf, FED_H10_URL, parseFedH10Csv, ECB_URL, parseEcb, ECB_EXTRA } from '../api/_lib/fx.js';
+import { FRED_SERIES, parseFredCsv, usdPerUnit, currencyOf, FED_H10_URL, parseFedH10Csv, ECB_URL, parseEcb, ECB_EXTRA, FALLBACK_SOURCE, FALLBACK_MAX_JUMP, fallbackUrls, parseCurrencyApi, extendSeries, staleRates } from '../api/_lib/fx.js';
 import { statedRatio, deriveRatio } from '../api/_lib/adrRatio.js';
 import { annualStatus } from '../api/_lib/annualForm.js';
 import { loadDataset, currentRows, loadRaw, readJson, rowId } from '../api/_lib/insiderStore.js';
@@ -70,16 +73,25 @@ const web = axios.create({
   maxRedirects: 5,
 });
 const us = (d) => `${d.slice(5, 7)}/${d.slice(8, 10)}/${d.slice(0, 4)}`;
-async function tryGet(label, url, opts = {}) {
-  const t0 = Date.now();
-  try {
-    const r = await web.get(url, { responseType: 'text', transformResponse: [(x) => x], ...opts });
-    console.log(`  ${label}: HTTP ${r.status}, ${String(r.data || '').length} bytes, ${((Date.now() - t0) / 1000).toFixed(1)} s`);
-    return r.status === 200 ? r.data : null;
-  } catch (e) {
-    console.log(`  ${label}: ${e.code || e.message} after ${((Date.now() - t0) / 1000).toFixed(1)} s`);
-    return null;
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+// One source, up to `attempts` tries. A 200 whose body `valid` rejects (the
+// Federal Reserve answered 200 with 0 bytes for weeks) counts as a failure.
+async function tryGet(label, url, { attempts = 1, valid = (body) => String(body || '').length > 0, backoff = [5000, 15000], ...opts } = {}) {
+  for (let i = 1; i <= attempts; i++) {
+    const t0 = Date.now();
+    const took = () => `${((Date.now() - t0) / 1000).toFixed(1)} s`;
+    const tag = attempts > 1 ? ` (try ${i}/${attempts})` : '';
+    try {
+      const r = await web.get(url, { responseType: 'text', transformResponse: [(x) => x], ...opts });
+      const ok = r.status === 200 && valid(r.data);
+      console.log(`  ${label}${tag}: HTTP ${r.status}, ${String(r.data || '').length} bytes, ${took()}${r.status === 200 && !ok ? ' — no usable data' : ''}`);
+      if (ok) return r.data;
+    } catch (e) {
+      console.log(`  ${label}${tag}: ${e.code || e.message} after ${took()}`);
+    }
+    if (i < attempts) await wait(backoff[Math.min(i - 1, backoff.length - 1)]);
   }
+  return null;
 }
 const got = new Set();
 const keep = (series, src) => {
@@ -90,38 +102,77 @@ const keep = (series, src) => {
     got.add(cur);
   }
 };
+const missingRates = () => Object.keys(FRED_SERIES).filter((c) => !got.has(c));
 console.log('rates:');
 // 1. the Federal Reserve Board's H.10 download (all currencies, one request)
-const fed = await tryGet('Federal Reserve H.10', FED_H10_URL(us(from), us(today)));
+const fed = await tryGet('Federal Reserve H.10', FED_H10_URL(us(from), us(today)), { attempts: 3, valid: (b) => Object.keys(parseFedH10Csv(b)).length > 0 });
 if (fed) keep(parseFedH10Csv(fed), 'H.10');
-// 2. FRED, the same H.10 series, one request for all that are still missing
-const missingRates = () => Object.keys(FRED_SERIES).filter((c) => !got.has(c));
-if (missingRates().length) {
-  const ids = missingRates().map((c) => FRED_SERIES[c][0]);
-  const csv = await tryGet(`FRED (${ids.length} series)`, `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${ids.join(',')}&cosd=${from}`);
-  if (csv) {
-    const head = csv.split(/\r?\n/)[0].split(',');
-    for (const cur of missingRates()) {
-      const [id, usdPer] = FRED_SERIES[cur];
-      const col = head.indexOf(id);
-      if (col < 0) continue;
-      const one = csv.split(/\r?\n/).map((l) => { const f = l.split(','); return `${f[0]},${f[col] ?? ''}`; }).join('\n');
-      keep({ [cur]: parseFredCsv(one, usdPer) }, 'H.10 (FRED)');
-    }
-  }
-}
-// 3. the ECB reference rates: what H.10 lacks, and anything still missing
+// 2. the ECB reference rates: what H.10 lacks, and what it did not deliver
 const ecbWant = [...new Set([...missingRates(), ...ECB_EXTRA])];
-const ecb = await tryGet(`ECB (${ecbWant.length} currencies)`, ECB_URL(from, today, ecbWant));
-if (ecb) {
-  try {
-    keep(parseEcb(JSON.parse(ecb)), 'ECB');
-  } catch {
-    /* logged above */
+const ecb = await tryGet(`ECB (${ecbWant.length} currencies)`, ECB_URL(from, today, ecbWant), { attempts: 2, valid: (b) => { try { return Object.keys(parseEcb(JSON.parse(b))).length > 0; } catch { return false; } } });
+if (ecb) keep(parseEcb(JSON.parse(ecb)), 'ECB');
+// 3. FRED, the same H.10 series, for what is still missing (after the ECB
+// that is only TWD and LKR: a small request, where all 22 series timed out)
+const fredCsv = (ids, timeout) => tryGet(`FRED (${ids.join(',')})`, `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${ids.join(',')}&cosd=${from}`, { attempts: 2, timeout, valid: (b) => /^observation_date|^DATE/i.test(String(b || '')) });
+const keepFred = (csv) => {
+  const lines = csv.split(/\r?\n/);
+  const head = lines[0].split(',');
+  for (const cur of missingRates()) {
+    const [id, usdPer] = FRED_SERIES[cur];
+    const col = head.indexOf(id);
+    if (col < 0) continue;
+    const one = lines.map((l) => { const f = l.split(','); return `${f[0]},${f[col] ?? ''}`; }).join('\n');
+    keep({ [cur]: parseFredCsv(one, usdPer) }, 'H.10 (FRED)');
+  }
+};
+if (missingRates().length) {
+  const csv = await fredCsv(missingRates().map((c) => FRED_SERIES[c][0]), 90000);
+  if (csv) keepFred(csv);
+  // one series at a time when the batch failed
+  if (missingRates().length > 1 && missingRates().length <= 4) for (const c of missingRates()) {
+    const one = await fredCsv([FRED_SERIES[c][0]], 60000);
+    if (one) keepFred(one);
   }
 }
-const stillMissing = Object.keys(FRED_SERIES).filter((c) => !got.has(c));
+// 4. the open daily rates (api/_lib/fx.js FALLBACK_SOURCE): only extend a
+// series that none of the official sources refreshed, from its last day
+const fallbackWant = missingRates().filter((c) => rates[c]?.length);
+if (fallbackWant.length) {
+  const start = fallbackWant.map((c) => rates[c].at(-1)[0]).sort()[0];
+  const days = [];
+  for (let d = addDays(start, 1); d <= today && days.length < 45; d = addDays(d, 1)) days.push(d);
+  const points = Object.fromEntries(fallbackWant.map((c) => [c, []]));
+  let read = 0;
+  for (const day of days) {
+    let body = null;
+    for (const url of fallbackUrls(day)) {
+      try {
+        const r = await web.get(url, { responseType: 'text', transformResponse: [(x) => x], timeout: 20000 });
+        if (r.status === 200) body = JSON.parse(r.data);
+      } catch {
+        body = null;
+      }
+      if (body) break;
+    }
+    if (!body) continue;
+    read++;
+    for (const [cur, p] of Object.entries(parseCurrencyApi(body, fallbackWant))) points[cur].push(p);
+  }
+  console.log(`  ${FALLBACK_SOURCE}: ${read}/${days.length} day files read (${fallbackWant.join(', ')} since ${start})`);
+  for (const cur of fallbackWant) {
+    const { series, added, refused } = extendSeries(rates[cur], points[cur]);
+    if (refused) console.warn(`::warning::${FALLBACK_SOURCE}: ${refused} ${cur} rate(s) refused (more than ${FALLBACK_MAX_JUMP * 100}% from the last official ${rates[cur].at(-1)[1]})`);
+    if (!added) continue;
+    rates[cur] = series;
+    const base = String(rateSource[cur] || '').split(' + ')[0] || 'H.10';
+    rateSource[cur] = `${base} + ${FALLBACK_SOURCE}`;
+    got.add(cur);
+    console.log(`  ${cur}: ${added} day(s) from ${FALLBACK_SOURCE}, now to ${series.at(-1)[0]}`);
+  }
+}
+const stillMissing = missingRates();
 if (stillMissing.length) console.warn(`::warning::no fresh rate for ${stillMissing.join(', ')} — keeping what the file had`);
+for (const s of staleRates(rates, today)) console.warn(`::warning::${s.cur} rate is ${s.days} days old (last ${s.last}) — scripts/fx-stale-alarm.mjs raises the alarm`);
 console.log(`rates: ${got.size} currencies refreshed (${Object.entries(rateSource).filter(([c]) => got.has(c)).map(([c, s]) => `${c} ${s}`).join(', ')})`);
 
 // ------------------------------------------------------------------ issuers

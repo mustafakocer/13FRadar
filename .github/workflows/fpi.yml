@@ -44,6 +44,7 @@ on:
 permissions:
   contents: write
   actions: write # a stale-code retry starts the workflow again (scripts/rerun-workflow.mjs)
+  issues: write # the exchange-rate alarm (scripts/fx-stale-alarm.mjs)
 
 concurrency:
   group: fpi-data-${{ github.head_ref || github.ref_name }}
@@ -135,6 +136,16 @@ jobs:
         run: node scripts/rerun-workflow.mjs fpi.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # A currency whose newest rate is older than 7 days (every source down
+      # for it) opens a data-alarm issue; it closes when the rates are fresh.
+      # The data is already committed: the alarm never stops it.
+      - name: Exchange-rate alarm
+        if: ${{ !cancelled() && steps.commit.outcome == 'success' }}
+        run: node scripts/fx-stale-alarm.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
 
       - name: Conversion gate
         run: node scripts/fpi-report.mjs --gate > /dev/null

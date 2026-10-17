@@ -66,7 +66,7 @@ export function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc, li, 
     c: s.issuer, // stripped again once the ticker -> name map is built
     ci: s.cik,
     n: o.name,
-    r: classifyRole(o),
+    r: classifyRole(o, { ticker: s.ticker, name: s.issuer }),
     ti: o.title || null,
     d,
     f: s.filed,

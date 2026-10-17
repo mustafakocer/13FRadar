@@ -21,6 +21,8 @@
 // price it has: P/E = price / eps (a loss when eps ≤ 0), market cap =
 // shares × price, yield = divTtm / price — see valuationFor below.
 
+import { isShareSplit } from './history.js';
+
 const DAY = 86_400_000;
 const days = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / DAY);
 
@@ -82,7 +84,21 @@ const isYear = (p) => p.len >= 350 && p.len <= 380;
 // Trailing twelve months from one concept's periods.
 //   { value, basis: 'ttm' | 'annual', end, form, filed, accn, parts }
 // null when there is nothing recent enough (asOf: no older than 15 months).
-export function trailing(ps, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
+//
+// splits ([{ date, ratio }], api/_data/splits.json) restate a per-share
+// figure in today's shares: a period that ended before a split and was
+// reported before it is divided by the ratio. BKNG's 25-for-1 (2026-04-06)
+// otherwise summed two pre-split quarters ($84) with two post-split ones
+// ($2) into a TTM EPS of $168 and a P/E of 0.95. A figure a later filing
+// restated (filed after the split) is already in the new shares.
+export const splitDivisor = (end, filed, splits, asOf) => {
+  let f = 1;
+  for (const s of splits || []) if (s.date > end && s.date > String(filed || '') && s.date <= asOf && isShareSplit(s.ratio)) f *= s.ratio;
+  return f;
+};
+
+export function trailing(ps, { asOf = new Date().toISOString().slice(0, 10), splits = null } = {}) {
+  if (splits?.length) ps = ps.map((p) => ({ ...p, val: p.val / splitDivisor(p.end, p.filed, splits, asOf) }));
   const quarters = ps.filter(isQuarter);
   const years = ps.filter(isYear);
   // Q4 = the year minus the three quarters inside it
@@ -93,10 +109,19 @@ export function trailing(ps, { asOf = new Date().toISOString().slice(0, 10) } = 
     if (distinct.length !== 3) continue;
     const lastEnd = distinct.map((q) => q.end).sort().at(-1);
     if (quarters.some((q) => q.end === y.end)) continue;
+    const q4 = y.val - distinct.reduce((s, q) => s + q.val, 0);
+    // A fourth quarter more than five times the largest of the three it was
+    // derived from is the year and its quarters disagreeing — mostly a year
+    // restated after a reverse split the quarters predate — not a quarter:
+    // three loss quarters and a $3,724 "Q4" made CMCT's TTM EPS positive
+    // (ALIT, WHLR, AMBQ, LBRX the same). Leave it out; the year stands
+    // instead. Boeing's real Q4 gain (10.70 against a −7.14 quarter) passes.
+    const maxQ = Math.max(...distinct.map((q) => Math.abs(q.val)));
+    if (Math.abs(q4) > 1 && Math.abs(q4) > 5 * maxQ) continue;
     derived.push({
       start: lastEnd,
       end: y.end,
-      val: y.val - distinct.reduce((s, q) => s + q.val, 0),
+      val: q4,
       accn: y.accn,
       form: y.form,
       filed: y.filed,
@@ -169,14 +194,44 @@ export function weightedShares(facts) {
 // facts tagged per share class, so a multi-class filer (Alphabet, Meta) has
 // no cover count at all, and a stale or oddly scaled one (Sony's from 2019,
 // Alibaba's a tenth of its ordinary shares) is not used.
+//
+// When the two disagree, one of them is mis-scaled more often than not — a
+// filer tags a count "in millions" as plain shares (McDonald's: 711; Waters:
+// 98 billion) — so the count the income statement implies, trailing net
+// income ÷ trailing EPS, decides between them. Neither within a factor of two
+// of it: no count at all, so the page shows no market cap rather than one
+// off by a thousand. With no referee (no EPS or net income), a gap of 100×
+// or more is a scaling slip and the cover page, which states the count
+// outright, wins.
+export function impliedShares(facts, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
+  const eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
+  const ni = trailingOf(facts, NET_INCOME_CONCEPTS, { asOf, unit: (u) => (/^[A-Z]{3}$/.test(u) ? u : null) });
+  if (!eps || !ni || eps.currency !== ni.currency || eps.end !== ni.end || eps.basis !== ni.basis) return null;
+  if (!(Math.abs(eps.value) >= 0.05) || !ni.value) return null;
+  const n = ni.value / eps.value;
+  return n > 0 ? n : null;
+}
+
 export function sharesOutstanding(facts, classRule = null, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
   const cover = coverShares(facts, classRule);
   const w = weightedShares(facts);
   const wv = w ? unitShares(w.value, classRule) : null;
   const recent = (end) => days(end, asOf) <= 550;
-  if (cover && recent(cover.asOf) && (!wv || (cover.value / wv > 0.5 && cover.value / wv < 2))) return cover;
-  if (w && recent(w.end)) return { value: Math.round(wv), classes: 1, asOf: w.end, form: w.form, filed: w.filed, accn: w.accn, basis: 'weighted-average' };
-  return cover && recent(cover.asOf) ? cover : null;
+  const near = (a, b) => a > 0 && b > 0 && a / b > 0.5 && a / b < 2;
+  const coverOk = cover && recent(cover.asOf);
+  const weighted = w && recent(w.end) ? { value: Math.round(wv), classes: 1, asOf: w.end, form: w.form, filed: w.filed, accn: w.accn, basis: 'weighted-average' } : null;
+  if (coverOk && (!wv || near(cover.value, wv))) return cover;
+  // the class rules restate counts in the listed share's units; EPS is in
+  // the filer's own, so the referee only applies without one
+  const ref = classRule ? null : impliedShares(facts, { asOf });
+  if (ref) {
+    if (coverOk && near(cover.value, ref)) return cover;
+    if (weighted && near(weighted.value, ref)) return weighted;
+    return null;
+  }
+  if (coverOk && wv && (cover.value / wv >= 100 || wv / cover.value >= 100)) return cover;
+  if (weighted) return weighted;
+  return coverOk ? cover : null;
 }
 
 const unitShares = (v, classRule) => {
@@ -198,7 +253,9 @@ function coverShares(facts, classRule = null) {
 // A company's record for the nightly file. fx: (amount, currency, day) →
 // USD or null. adrRatio: home shares per US-listed share (TSM: 5), so EPS
 // and the share count are restated per ADS.
-export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio = null, asOf } = {}) {
+// splits: this ticker's splits (api/_data/splits.json); per-share figures
+// and the share count are restated in today's shares.
+export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio = null, asOf, splits = null } = {}) {
   const facts = cf?.facts || {};
   const out = { cik: String(cik || cf?.cik || '').padStart(10, '0') };
   const per = adrRatio > 0 ? adrRatio : 1;
@@ -214,7 +271,8 @@ export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio 
     if (classRule?.epsDivisor && kind === 'eps' && !t.listedUnits) v /= classRule.epsDivisor;
     return { value: Number(v.toFixed(4)), basis: t.basis, currency: t.currency, ...(t.currency !== 'USD' ? { local: t.value } : {}), ...(per !== 1 ? { perAds: per } : {}), ...(t.parts ? { parts: t.parts } : {}), ...src(t, out.cik) };
   };
-  let eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
+  const today = asOf || new Date().toISOString().slice(0, 10);
+  let eps = trailingOf(facts, EPS_CONCEPTS, { asOf, splits });
   // no EPS concept: net income over the diluted shares (Berkshire, some 20-F)
   if (!eps) {
     const ni = trailingOf(facts, NET_INCOME_CONCEPTS, { asOf, unit: (u) => (/^[A-Z]{3}$/.test(u) ? u : null) });
@@ -234,14 +292,19 @@ export function fundamentalsOf(cf, { cik, classRule = null, fx = null, adrRatio 
     out.eps.concept = eps.concept;
     if (eps.derivedFrom) out.eps.derivedFrom = eps.derivedFrom;
   }
-  const div = trailingOf(facts, DIV_CONCEPTS, { asOf });
+  const div = trailingOf(facts, DIV_CONCEPTS, { asOf, splits });
   out.div = money(div, 'div');
   const sh = sharesOutstanding(facts, classRule, { asOf });
-  out.shares = sh ? { value: Math.round(sh.value / per), classes: sh.classes, ...(sh.basis ? { basis: sh.basis } : {}), ...(per !== 1 ? { perAds: per } : {}), asOf: sh.asOf, ...src(sh, out.cik) } : null;
+  // a split after the count was stated: APH's 2-for-1 (2026-09-03) halved
+  // the market cap until the next 10-Q
+  const shSplit = sh ? splitDivisor(sh.asOf, sh.filed, splits, today) : 1;
+  out.shares = sh ? { value: Math.round((sh.value * shSplit) / per), ...(shSplit !== 1 ? { splitAdjusted: shSplit } : {}), classes: sh.classes, ...(sh.basis ? { basis: sh.basis } : {}), ...(per !== 1 ? { perAds: per } : {}), asOf: sh.asOf, ...src(sh, out.cik) } : null;
   return out;
 }
 
 const src = (t, cik) => ({ end: t.end || t.asOf, form: t.form, filed: t.filed, url: filingUrl(cik, t.accn) });
+
+export const MAX_YIELD = 0.3;
 
 // What the page shows, from the nightly record and the price it has.
 //   pe: number, 'loss' (eps ≤ 0) or null · marketCap · dividendYield (a fraction)
@@ -254,7 +317,9 @@ export function valuationFor(rec, price) {
   return {
     pe: !ok || eps == null ? null : eps <= 0 ? 'loss' : Number((p / eps).toFixed(2)),
     marketCap: ok && shares > 0 ? Math.round(shares * p) : null,
-    dividendYield: ok && div != null && div >= 0 ? Number((div / p).toFixed(5)) : null,
+    // above 30% a yield is a filer's tag in other units or a one-off
+    // special, not something to quote (BUR 349%, FMBH 202%): no figure
+    dividendYield: ok && div != null && div >= 0 && div / p <= MAX_YIELD ? Number((div / p).toFixed(5)) : null,
   };
 }
 

@@ -3,10 +3,14 @@ import { getSubmissions, list13F, getEffectiveHoldings } from '../_lib/sec.js';
 import { mapLimit } from '../_lib/mapLimit.js';
 import { dailyCloses } from '../_lib/providers.js';
 import { guruHistory } from '../_lib/history.js';
-import { aumHistoryFromGuru, annotateAum, attachFlows } from '../_lib/managerHistory.js';
+import { aumHistoryFromGuru, aumRowFromSnapshot, annotateAum, attachFlows } from '../_lib/managerHistory.js';
 
 // Quarterly AUM history + estimated net flows.
 // Estimated flow = ΔAUM - (previous AUM × SPY quarterly return)
+//
+// AUM here is the equity book — the filing's total less its PUT/CALL
+// notional (managerHistory.js) — and `positions` the equity lines, the same
+// definition on both paths.
 //
 // A curated guru answers from the nightly history file; anyone else is read
 // from EDGAR, a quarter at a time.
@@ -48,8 +52,7 @@ export default async function handler(req, res) {
         const filings = list13F(sub).slice(0, limit).reverse(); // oldest -> newest
         if (!filings.length) return { history: [] };
         const sums = await mapLimit(filings, 4, async (f) => {
-          const { aum, positions, amended } = await getEffectiveHoldings(cik, f);
-          return { acc: f.acc, filingDate: f.filingDate, reportDate: f.reportDate, aum, positions: positions.length, ...(amended ? { amended: true } : {}) };
+          return aumRowFromSnapshot(f, await getEffectiveHoldings(cik, f));
         });
         history = annotateAum(sums.filter(Boolean));
       }

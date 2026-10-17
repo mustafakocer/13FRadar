@@ -5,6 +5,7 @@ import { GURUS, consensusPanel, coverage as coverageOf } from './gurus.js';
 import { netActivity, storiesByManager } from './netActivity.js';
 import { reportDatesByCik } from './guruStatus.js';
 import { companyName } from './companyNames.js';
+import { splitAdjustPrev } from './splitAdjust.js';
 
 // How many holders travel with each security in the per-stock table. Twenty
 // five covers every name that matters on the stock page; the tail is funds
@@ -42,7 +43,7 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
     let prev = null;
     if (fl[1]) {
       try {
-        prev = await getEffectiveHoldings(m.cik, fl[1]);
+        prev = splitAdjustPrev(await getEffectiveHoldings(m.cik, fl[1]), fl[1].reportDate, fl[0].reportDate);
       } catch {
         /* prev optional */
       }

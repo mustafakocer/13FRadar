@@ -32,12 +32,14 @@ export function annotateAum(history) {
 
 // Estimated net flow = ΔAUM − previous AUM × the benchmark's return over the
 // quarter. `spyAt(date)` answers the benchmark close on or before a date, or
-// null, in which case the flow columns stay null rather than pretend.
+// null, in which case the flow columns stay null rather than pretend. A row
+// on the 'reported' basis (a total that still counts option notional) gets
+// no flow either: a put book doubling is not money arriving.
 export function attachFlows(history, spyAt) {
   for (let i = 0; i < history.length; i++) {
     const cur = history[i];
     const prev = history[i - 1];
-    if (!prev) {
+    if (!prev || cur.basis === 'reported' || prev.basis === 'reported') {
       cur.spyRet = null;
       cur.estFlow = null;
       continue;
@@ -50,20 +52,67 @@ export function attachFlows(history, spyAt) {
   return history;
 }
 
+// Options in the AUM. A 13F's total counts PUT/CALL lines at the notional
+// of the underlying, and for some funds that is most of it: 80% of Citadel's
+// reported total, 46% of Millennium's, 37% of Elliott's; Scion's 2025Q3
+// "$1.38B" was $68M of stock. The positions every page lists are the equity
+// lines, so the AUM chart and the flow estimate use the same book: the total
+// less `putCallValue`, which the history build stores per quarter.
+//
+// Quarters stored before the build kept `putCallValue` say it only where the
+// stored rows cover the whole equity book. A window where some quarter does
+// not say it, for a fund whose options are material where it is known, stays
+// on the reported total (`basis: 'reported'`) and gets no flow estimate,
+// rather than mixing the two bases into a fake inflow or outflow.
+export const OPTIONS_MATERIAL = 0.01;
+export const equityValue = (q) => (Number.isFinite(q?.putCallValue) && Number.isFinite(q?.aum) ? Math.max(0, q.aum - q.putCallValue) : null);
+
 // The last `limit` quarters of a guru's stored history, oldest first, in the
-// shape /api/aum-history answers.
+// shape /api/aum-history answers. `positions` is the equity line count (what
+// the holdings list shows); `optionLines` the PUT/CALL lines on top, when
+// known.
 export function aumHistoryFromGuru(guru, limit = 12) {
   const quarters = Array.isArray(guru?.quarters) ? guru.quarters : [];
   if (!quarters.length) return null;
-  const history = quarters.slice(-limit).map((q) => ({
-    acc: q.acc,
-    filingDate: q.filed,
-    reportDate: q.reportDate,
-    aum: q.aum,
-    positions: q.count,
-    ...(q.amended ? { amended: true } : {}),
-  }));
+  const rows = quarters.slice(-limit);
+  const known = rows.filter((q) => equityValue(q) != null);
+  const material = known.some((q) => q.aum > 0 && q.putCallValue / q.aum >= OPTIONS_MATERIAL);
+  const basis = known.length === rows.length || !material ? 'equity' : 'reported';
+  const history = rows.map((q) => {
+    const eq = equityValue(q);
+    return {
+      acc: q.acc,
+      filingDate: q.filed,
+      reportDate: q.reportDate,
+      aum: basis === 'equity' && eq != null ? eq : q.aum,
+      reportedAum: q.aum,
+      ...(Number.isFinite(q.putCallValue) ? { optionsValue: q.putCallValue } : {}),
+      positions: q.count,
+      ...(Number.isFinite(q.optionLines) ? { optionLines: q.optionLines } : {}),
+      basis,
+      ...(q.amended ? { amended: true } : {}),
+    };
+  });
   return annotateAum(history);
+}
+
+// The same row from a full EDGAR snapshot (filers outside the curated set):
+// equity lines and equity value, options broken out.
+export function aumRowFromSnapshot(f, { aum, positions = [], amended }) {
+  const options = positions.filter((p) => p.putCall);
+  const optionsValue = options.reduce((s, p) => s + (p.value || 0), 0);
+  return {
+    acc: f.acc,
+    filingDate: f.filingDate,
+    reportDate: f.reportDate,
+    aum: Math.max(0, (aum || 0) - optionsValue),
+    reportedAum: aum,
+    optionsValue,
+    positions: positions.length - options.length,
+    optionLines: options.length,
+    basis: 'equity',
+    ...(amended ? { amended: true } : {}),
+  };
 }
 
 // Positions held in a quarter, from the stored series: Map cusip → value.

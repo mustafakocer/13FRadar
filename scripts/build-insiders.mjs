@@ -54,7 +54,7 @@ import {
   loadErrors,
   loadRaw,
   loadRawBackfill,
-  markSuperseded,
+  markRows,
   mergeFilings,
   readJson,
   rowId,
@@ -74,6 +74,7 @@ import { PLAN_NOTE_RE } from '../api/_lib/insiderClassify.js';
 import { readSeries, priceCacheStatus } from '../api/_lib/priceStore.js';
 import { priceSnapshots, fetchSectors, fetchSharesOutstanding, marketCap } from '../api/_lib/marketData.js';
 import { topUpCloses, finnhubSummary } from '../api/_lib/pricesBuild.js';
+import { adrResolver } from '../api/_lib/adrResolve.js';
 import { peerRunning } from './finnhub-peer.mjs';
 import { isSecBusinessDay, addDays, calendarCoverage } from '../client/src/lib/secCalendar.js';
 
@@ -354,13 +355,28 @@ async function enrich(tickers, cikOf) {
   let capped = 0;
   try {
     const shares = await fetchSharesOutstanding();
+    // the cover count is home-market shares; the price is the US security's,
+    // so an ADS's count is divided by its ratio (TSM: 5) — and an ADS whose
+    // ratio nobody documented gets no market cap rather than one off by N
+    // For an ADS the stock page's own count (fundamentals.json, already per
+    // US security) is used when there is one, so the two never disagree.
+    const adrOf = adrResolver(process.cwd());
+    let pageShares = {};
+    try {
+      pageShares = JSON.parse(fs.readFileSync(path.join(dataDir, 'fundamentals.json'), 'utf8')).byTicker || {};
+    } catch {
+      /* no fundamentals yet */
+    }
     for (const t of tickers) {
       const sh = cikOf.get(t) ? shares.get(cikOf.get(t)) : null;
-      const v = marketCap(sh?.shares, meta[t]?.px);
+      const adr = adrOf(t, cikOf.get(t));
+      const isAdr = adr.ratio > 0 && adr.ratio !== 1;
+      const perUs = isAdr && pageShares[t]?.shares?.value > 0 ? pageShares[t].shares.value : sh?.shares ? sh.shares / (adr.ratio || 1) : null;
+      const v = adr.unknown ? null : marketCap(perUs, meta[t]?.px);
       if (v) {
         meta[t].mcap = v;
         capped++;
-      }
+      } else if (adr.unknown && meta[t]) delete meta[t].mcap;
     }
   } catch (e) {
     console.warn(`  SEC shares outstanding: ${e.message}`);
@@ -559,7 +575,16 @@ for (const r of rows) {
   all.push(r);
 }
 assignLineIndexes(all);
-const superseded = markSuperseded(all);
+// every stored Form 4 field: nightly, backfilled, and what this run read
+const rawAll = { ...loadRawBackfill(), ...loadRaw().rows, ...rawAdd };
+// roles under the current title rules, 4/A amendments, duplicate filings,
+// mirror P/S pairs — one function, also run offline by
+// scripts/build-insiders-marks.mjs (insiderStore.markRows)
+const issuerNames = { ...(db.companies || {}) };
+for (const r of [...rows, ...freshRows]) if (r.t && r.c) issuerNames[r.t] = r.c;
+const marks = markRows(all, { rawOf: (r) => rawAll[rowId(r)] || null, companies: issuerNames });
+const superseded = marks.superseded;
+console.log(`Marks: ${marks.roles} role(s) re-read from titles, ${marks.superseded} superseded by 4/A, ${marks.duplicates} duplicate line(s) of an earlier filing, ${marks.mirrors} mirror P/S line(s).`);
 // Ascending by filing date: new rows append at the end and only a small slice
 // falls off the front each day, which keeps the daily git delta small.
 all.sort((a, b) => (a.f === b.f ? (a.a === b.a ? a.li - b.li : a.a < b.a ? -1 : 1) : a.f < b.f ? -1 : 1));
@@ -593,7 +618,6 @@ if (!NO_ENRICH) {
 
 // A footnote that says "10b5-1" or "trading plan" marks a planned trade even
 // when the filing's checkbox is empty (`pn`; the classifier reads p5 || pn).
-const rawAll = { ...loadRawBackfill(), ...loadRaw().rows, ...rawAdd };
 let planNotes = 0;
 for (const r of all) {
   const fn = rawAll[rowId(r)]?.fn;
@@ -658,7 +682,7 @@ saveFreshness({
 });
 
 console.log(
-  `insiders.json: ${all.length} rows (${current.length} current, ${superseded} superseded by 4/A), ` +
+  `insiders.json: ${all.length} rows (${current.length} current, ${superseded} superseded by 4/A, ${marks.duplicates} duplicate filing line(s)), ` +
     `${current.filter((r) => r.k === 'P').length} buys, ${live.size} tickers, newest filing ${newest}, checkpoint ${checkpoint} → ${newCheckpoint}` +
     (newErrors.length ? `, ${newErrors.length} unreadable filing(s) logged` : '')
 );

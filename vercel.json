@@ -4,6 +4,7 @@
   "installCommand": "npm install && npm install --prefix client",
   "buildCommand": "node scripts/check-env.mjs && node scripts/build-insiders-served.mjs && npm run build --prefix client && node scripts/build-llms.mjs && node scripts/check-jsonld.mjs",
   "outputDirectory": "client/dist",
+  "ignoreCommand": "node scripts/vercel-ignore.mjs",
   "functions": {
     "api/ssr.js": { "includeFiles": "{client/dist/**,api/_data/insiders-served.json}", "maxDuration": 30 },
     "api/index.js": { "includeFiles": "{api/_data/reports/**,api/_data/prices/**,api/_data/insiders-raw.json,api/_data/insiders-raw-backfill.json,api/_data/insiders-served.json,api/_data/splits.json,api/_data/fpi.json,config/adr-overrides.json,reports/**,api/_assets/**}", "maxDuration": 30 }

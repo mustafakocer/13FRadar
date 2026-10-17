@@ -1,0 +1,211 @@
+{
+  "_readme": "Reviewed ADR ratios for the fundamentals build only (EPS, dividend and share count restated per US security: scripts/build-fundamentals.mjs via api/_lib/adrResolve.js, and the market cap in ticker-meta.json). ratio = home-market shares per ONE US-listed security. An entry fills in where api/_data/fpi.json documents no ratio; force: true wins over fpi.json (a programme that ended). Kept apart from config/adr-overrides.json on purpose: an entry there also routes every Form 4 line of the ticker through the foreign-issuer normaliser. Always cite the source.",
+  "byTicker": {
+    "AZN": {
+      "ratio": 1,
+      "force": true,
+      "source": "AstraZeneca ended its ADS programme on 2026-01-30; the ordinary shares list directly on the NYSE under AZN from 2026-02-02 (press release 2026-01-20). fpi.json still holds the retired F-6 ratio of 0.5.",
+      "url": "https://www.astrazeneca.com/media-centre/press-releases/2026/astrazeneca-to-complete-direct-listing-on-NYSE.html"
+    },
+    "INDV": {
+      "ratio": 1,
+      "force": true,
+      "source": "Indivior terminated its ADR programme in June 2023; ADSs were mandatorily exchanged 1:1 for ordinary shares, which trade on Nasdaq as INDV (now a 10-Q filer). fpi.json holds the 2014 F-6 ratio of 5."
+    },
+    "SMMT": {
+      "ratio": 1,
+      "force": true,
+      "source": "Summit Therapeutics redomiciled to Delaware in 2020 and its ADSs became common stock; it files 10-Q/10-K. fpi.json holds the 2020 20-F ratio of 5."
+    },
+    "ZLAB": {
+      "ratio": 10,
+      "force": true,
+      "source": "Zai Lab 10-K: each ADS represents 10 ordinary shares (since the 2022 share-structure change); fpi.json reads 1."
+    },
+    "ONC": {
+      "ratio": 13,
+      "source": "BeOne Medicines 10-K FY2025 and 2026 proxy: each ADS represents 13 ordinary shares.",
+      "url": "https://www.sec.gov/Archives/edgar/data/1651308/000162828026011946/bgne-20251231.htm"
+    },
+    "FUTU": {
+      "ratio": 8,
+      "source": "Futu Holdings prospectus: each ADS represents eight Class A ordinary shares.",
+      "url": "https://www.sec.gov/Archives/edgar/data/1754581/000119312519068853/d620103d424b4.htm"
+    },
+    "YMM": {
+      "ratio": 20,
+      "source": "Full Truck Alliance prospectus: each ADS represents 20 Class A ordinary shares.",
+      "url": "https://www.sec.gov/Archives/edgar/data/1838413/000119312521196842/d260023d424b4.htm"
+    },
+    "EH": {
+      "ratio": 2,
+      "source": "EHang F-1: each ADS represents two Class A ordinary shares.",
+      "url": "https://www.sec.gov/Archives/edgar/data/1759783/000119312519307380/d515413df1a.htm"
+    },
+    "HSBC": {
+      "ratio": 5,
+      "source": "20-F cover page: American Depositary Shares, each representing five ordinary shares of US$0.50 each."
+    },
+    "BP": {
+      "ratio": 6,
+      "source": "20-F cover page: American Depositary Shares, each representing six ordinary shares."
+    },
+    "SHEL": {
+      "ratio": 2,
+      "source": "20-F cover page: American Depositary Shares, each representing two ordinary shares (since the 2022 single-line share structure)."
+    },
+    "DEO": {
+      "ratio": 4,
+      "source": "20-F cover page: American Depositary Shares, each representing four ordinary shares."
+    },
+    "LYG": {
+      "ratio": 4,
+      "source": "20-F cover page: American Depositary Shares, each representing four ordinary shares."
+    },
+    "GSK": {
+      "ratio": 2,
+      "source": "20-F cover page: American Depositary Shares, each representing two ordinary shares."
+    },
+    "HLN": {
+      "ratio": 2,
+      "source": "20-F cover page: American Depositary Shares, each representing two ordinary shares."
+    },
+    "HDB": {
+      "ratio": 3,
+      "source": "20-F cover page: American Depositary Shares, each representing three equity shares."
+    },
+    "KOF": {
+      "ratio": 80,
+      "source": "Coca-Cola FEMSA 20-F (after the 2024 unit restructuring): each ADS represents 10 units, and each unit represents three Series B shares and five Series L shares, so one ADS = 80 shares — the unit of the XBRL share count and EPS."
+    },
+    "PBR": {
+      "ratio": 2,
+      "source": "20-F cover page: American Depositary Shares, each representing two common shares."
+    },
+    "PBR-A": {
+      "ratio": 2,
+      "source": "20-F cover page: American Depositary Shares, each representing two preferred shares."
+    },
+    "SNY": {
+      "ratio": 0.5,
+      "source": "20-F cover page: American Depositary Shares, each representing one-half of one ordinary share."
+    },
+    "CCU": {
+      "ratio": 2,
+      "source": "20-F cover page: American Depositary Shares, each representing two common shares."
+    },
+    "TX": {
+      "ratio": 10,
+      "source": "20-F cover page: American Depositary Shares, each representing 10 shares."
+    },
+    "ATAT": {
+      "ratio": 3,
+      "source": "20-F cover page: American Depositary Shares, each representing three Class A ordinary shares."
+    },
+    "EMBJ": {
+      "ratio": 4,
+      "source": "20-F cover page: American Depositary Shares, each representing four common shares."
+    },
+    "GGAL": {
+      "ratio": 10,
+      "source": "20-F cover page: American Depositary Shares, each representing 10 Class B shares."
+    },
+    "BMA": {
+      "ratio": 10,
+      "source": "20-F cover page: American Depositary Shares, each representing 10 Class B shares."
+    },
+    "GPCR": {
+      "ratio": 3,
+      "source": "Structure Therapeutics 10-K: each ADS represents three ordinary shares."
+    },
+    "SAP": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "UL": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "NVO": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one B share."
+    },
+    "NVS": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one share."
+    },
+    "BUD": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "RIO": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "BTI": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "INFY": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one equity share."
+    },
+    "EQNR": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "TCOM": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "VIST": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one Series A share."
+    },
+    "SQM": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one Series B share."
+    },
+    "KB": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one common share."
+    },
+    "CIG": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one preferred share."
+    },
+    "ARGX": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one ordinary share."
+    },
+    "KSPI": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one common share."
+    },
+    "TUYA": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one Class A ordinary share."
+    },
+    "BCYC": {
+      "ratio": 1,
+      "source": "Bicycle Therapeutics 10-K: each ADS represents one ordinary share."
+    },
+    "SUZ": {
+      "ratio": 1,
+      "source": "20-F cover page: American Depositary Shares, each representing one common share."
+    },
+    "CRTO": {
+      "ratio": 1,
+      "source": "Criteo 10-K: each ADS represents one ordinary share."
+    },
+    "ICLR": {
+      "ratio": 1,
+      "source": "ICON plc ordinary shares trade on Nasdaq directly; there is no ADS."
+    },
+    "CX": {
+      "ratio": 30,
+      "force": true,
+      "source": "CEMEX 20-F: each ADS represents ten CPOs, and each CPO represents two Series A shares and one Series B share, so one ADS = 30 shares — the unit the XBRL share count and EPS are in. fpi.json records the ADS-to-CPO ratio of 10. (config/adr-overrides.json keeps CX's Form 4 rule, which is about CPOs.)"
+    }
+  }
+}

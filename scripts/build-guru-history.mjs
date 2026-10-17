@@ -10,7 +10,15 @@
 //   GURU_HISTORY_INCREMENTAL=0 node scripts/…        (on a changed fingerprint read every quarter)
 //
 // Output: api/_data/guru-history.json (see api/_lib/history.js for the shape).
-// Share counts are split-adjusted with api/_data/splits.json when present.
+// Share counts are split-adjusted with api/_data/splits.json when present:
+// each position records the splits its rows carry (`splitsApplied`) and a
+// run applies only the missing ones, so a split that lands after a quarter
+// was stored still reaches it and nothing is adjusted twice. Spin-off price
+// factors in that table are never applied (history.js isShareSplit).
+//
+// Each quarter row also keeps `putCallValue` (the PUT/CALL lines' notional,
+// which `aum` includes) and `optionLines`, so the AUM chart and the flow
+// estimate can use the equity book the positions describe.
 //
 // Every quarter is an effective snapshot: the 13F-HR for the period with its
 // 13F-HR/A amendments applied (api/_lib/amendments.js). A quarter row says
@@ -39,7 +47,8 @@ import { mapLimit } from '../api/_lib/mapLimit.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats, tickerFor } from '../api/_lib/securityMaster.js';
 import { historyPanel } from '../api/_lib/gurus.js';
-import { splitAdjust, topRankedCusips } from '../api/_lib/history.js';
+import { topRankedCusips, reconcileSplits, splitKey, isShareSplit } from '../api/_lib/history.js';
+import { splitAdjustPrev } from '../api/_lib/splitAdjust.js';
 import { turnover, turnoverOutliers, TURNOVER_OUTLIER } from '../api/_lib/turnover.js';
 
 const QUARTERS = Number(process.env.GURU_HISTORY_QUARTERS || 40);
@@ -55,6 +64,27 @@ try {
   splits = JSON.parse(fs.readFileSync(path.join(root, 'api', '_data', 'splits.json'), 'utf8')).byTicker || {};
 } catch {
   /* no splits table yet */
+}
+
+// The splits a stored position's rows carry. Files written before
+// `splitsApplied` existed only say `splitAdjusted: true`, meaning "every split
+// in the table when the rows were adjusted" — the closest reading is the
+// table's current share splits.
+const storedApplied = (e) =>
+  e.splitsApplied || (e.splitAdjusted && e.ticker ? (splits[e.ticker] || []).filter((s) => isShareSplit(s.ratio)).map(splitKey) : null);
+
+// Bring one position's rows to today's shares: fresh rows get every split
+// after their date, stored rows only the splits they do not carry yet.
+function applySplits(e, fresh) {
+  const { series, applied } = reconcileSplits(e.series, storedApplied(e), e.ticker ? splits[e.ticker] || [] : [], fresh);
+  e.series = series;
+  if (applied.length) {
+    e.splitsApplied = applied;
+    e.splitAdjusted = true;
+  } else {
+    delete e.splitsApplied;
+    delete e.splitAdjusted;
+  }
 }
 
 const gurus = new Map();
@@ -104,7 +134,7 @@ function keptFromPrevious(prev, keep) {
   for (const [cusip, e] of Object.entries(prev?.positions || {})) {
     const series = (e.series || []).filter((r) => dates.has(r[0]));
     if (!series.length) continue;
-    positions[cusip] = { issuer: e.issuer, series, splitAdjusted: Boolean(e.splitAdjusted), keptTicker: e.ticker || null };
+    positions[cusip] = { issuer: e.issuer, series, splitsApplied: storedApplied(e), keptTicker: e.ticker || null };
   }
   return { quarters, positions };
 }
@@ -145,7 +175,15 @@ for (const [cik, name] of gurus) {
       try {
         const { aum, positions, amendments } = await getEffectiveHoldings(cik, f);
         tablesRead += 1 + (f.amendments?.length || 0);
-        return { f, aum, positions: positions.filter((p) => !p.putCall), amendments: amendments || [] };
+        const options = positions.filter((p) => p.putCall);
+        return {
+          f,
+          aum,
+          putCallValue: options.reduce((s, p) => s + (p.value || 0), 0),
+          optionLines: options.length,
+          positions: positions.filter((p) => !p.putCall),
+          amendments: amendments || [],
+        };
       } catch (e) {
         console.warn(`${name} ${f.acc}: ${e.message}`);
         return null;
@@ -180,14 +218,23 @@ for (const [cik, name] of gurus) {
   let prev = null;
   for (const s of snaps) {
     if (plan.recompute.has(s.f.reportDate)) {
-      const t = turnover(prev, s, { idOf });
+      // turnover compares share counts, so the previous book goes into this
+      // quarter's shares first: a 4-for-1 between the two reports is not
+      // 300% more stock bought (Altimeter NVDA 2024Q2 read 25.9% for 13.3%)
+      const before = prev ? splitAdjustPrev(prev, prev.f.reportDate, s.f.reportDate, { tickerOf: tickerFor, splits }) : null;
+      const t = turnover(before, s, { idOf });
       quarters.push({
         reportDate: s.f.reportDate,
         filed: s.f.filingDate,
         acc: s.f.acc,
         aum: Math.round(s.aum),
+        putCallValue: Math.round(s.putCallValue),
+        optionLines: s.optionLines,
         count: s.positions.length,
         turnover: t.turnover,
+        // read once by scripts/repair-guru-history.mjs: this figure already
+        // compares split-adjusted share counts
+        turnoverBasis: 'split-adjusted',
         newCount: prev ? t.newCount : null,
         exitCount: prev ? t.exitCount : null,
         top10: s.positions.slice(0, 10).map((p) => p.cusip),
@@ -235,7 +282,12 @@ if (DRY) {
 // reorganisation) keeps its holding streak — and split adjustment
 const tickers = await mapCusipsToTickers([...allCusips], { maxLive: 0 });
 for (const [cik, g] of Object.entries(out.gurus)) {
-  if (g === previous[cik]) continue; // carried over or reused: already mapped and adjusted
+  if (g === previous[cik]) {
+    // carried over or reused: already mapped, but a split splits.json gained
+    // since still has to reach the stored rows
+    for (const e of Object.values(g.positions || {})) applySplits(e, new Set());
+    continue;
+  }
   const fresh = g.fresh || new Set();
   delete g.fresh;
   const dates = g.quarters.map((q) => q.reportDate);
@@ -256,13 +308,7 @@ for (const [cik, g] of Object.entries(out.gurus)) {
     for (let i = dates.length - 1; i >= 0 && have.has(dates[i]); i--) held++;
     e.heldQuarters = held;
     e.firstSeen = [...have].sort()[0] || e.series[0][0];
-    const sp = e.ticker ? splits[e.ticker] : null;
-    if (sp?.length) {
-      // rows kept from the stored file are already adjusted; only the rows
-      // read this run are
-      e.series = e.series.map(([d, sh, v, w]) => (fresh.has(d) || !e.splitAdjusted ? [d, Math.round(splitAdjust(sh, d, sp)), v, w] : [d, sh, v, w]));
-      e.splitAdjusted = true;
-    } else delete e.splitAdjusted;
+    applySplits(e, fresh);
     // keep the file small: full series only for the last 12 quarters unless
     // the position is still held (its whole history feeds the pair page)
     if (e.heldQuarters === 0) e.series = e.series.slice(-12);

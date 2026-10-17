@@ -10,6 +10,8 @@
 // splits: { TICKER: [{ date: 'YYYY-MM-DD', ratio: 4 }] } — api/_data/splits.json,
 // built nightly by scripts/build-splits.mjs.
 import { createRequire } from 'node:module';
+import { tickerFor } from './securityMaster.js';
+import { splitAdjust } from './history.js';
 
 const require = createRequire(import.meta.url);
 let loaded = null;
@@ -39,4 +41,25 @@ export function sinceTrade(r, current, splits) {
   if (r?.pu || !(current > 0)) return null;
   const base = adjustedPrice(r, splits);
   return base > 0 ? ((current - base) / base) * 100 : null;
+}
+
+// The previous quarter's book in the current quarter's shares. A 25-for-1
+// split between the two reports (BKNG, 2026-04) otherwise reads as every
+// holder adding 2,400% — the quarter's largest "net buy" — and a reduce on
+// top of a split as an add. Only share counts move; values are dollars and
+// already comparable. Splits after the current report date are left out:
+// both books are in pre-split shares then.
+export function splitAdjustPrev(prev, prevDate, curDate, { tickerOf = tickerFor, splits = loadSplits() } = {}) {
+  if (!prev?.positions?.length || !prevDate || !curDate) return prev;
+  let touched = false;
+  const positions = prev.positions.map((p) => {
+    const t = tickerOf(p.cusip);
+    const sp = t ? splits[t] : null;
+    if (!sp?.length || !(p.shares > 0)) return p;
+    const shares = Math.round(splitAdjust(p.shares, prevDate, sp, curDate));
+    if (shares === p.shares) return p;
+    touched = true;
+    return { ...p, shares };
+  });
+  return touched ? { ...prev, positions } : prev;
 }

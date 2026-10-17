@@ -84,8 +84,8 @@ test('the registry is the only fund list: 100 funds, 98 filing, valid categories
     assert.ok(CATEGORIES.includes(g.category), `${g.name}: category ${g.category}`);
     for (const d of [g.activeFrom, g.activeTo]) if (d) assert.match(d, /^\d{4}-\d{2}-\d{2}$/);
   }
-  assert.equal(GURUS.length, 100);
-  assert.equal(GURUS.filter((g) => g.activeTo).length, 2, 'Scion and Greenlight closed, kept');
+  assert.equal(GURUS.length, 101);
+  assert.equal(GURUS.filter((g) => g.activeTo).length, 3, 'Scion, Greenlight and the old Pershing CIK closed, kept');
   assert.equal(activeGurus().length, 98, 'tracked = still filing');
   assert.equal(consensusPanel().length, 72, 'the consensus panel');
   assert.equal(historyPanel().length, GURUS.length - GURUS.filter((g) => g.history === false).length);
@@ -106,7 +106,15 @@ test('active windows: a closed fund counts in the quarters it filed for, a succe
   assert.equal(isActive(greenlight, '2024-03-31'), false);
   assert.equal(isActive(dme, '2023-12-31'), false);
   assert.equal(isActive(dme, '2024-03-31'), true);
-  assert.equal(activeGurus('2023-12-31').length, 99, 'Scion + Greenlight in, DME out');
+  assert.equal(activeGurus('2023-12-31').length, 99, 'Scion + Greenlight in, DME and Pershing Square Inc. out');
+  // Ackman's book moved CIKs with the 2026 Q2 report
+  const psOld = guruByCik('0001336528');
+  const psNew = guruByCik('0002026053');
+  assert.equal(psOld.successor, psNew.cik);
+  assert.equal(isActive(psOld, '2026-03-31'), true);
+  assert.equal(isActive(psOld, '2026-06-30'), false);
+  assert.equal(isActive(psNew, '2026-03-31'), false);
+  assert.equal(isActive(psNew, '2026-06-30'), true);
 });
 
 test('coverage explains tracked → filed → counted with reasons', () => {

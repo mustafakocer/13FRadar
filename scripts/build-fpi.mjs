@@ -9,10 +9,10 @@
 //
 // Per step:
 //   rates    from 30 days before the oldest insider line (api/_lib/fx.js):
-//            the Federal Reserve's H.10 download, then the ECB, then FRED for
-//            what is still missing, each retried; a series none of them
-//            refreshed is extended day by day from the open currency-api
-//            files. A series that cannot be read keeps what the file had;
+//            the Federal Reserve's H.10 download (weekly, a week behind),
+//            carried on with the ECB's newer days, then FRED for what is
+//            still missing, each retried; a series still more than 3 days
+//            behind is extended day by day from the open currency-api files. A series that cannot be read keeps what the file had;
 //            one older than 7 days is an alarm (scripts/fx-stale-alarm.mjs).
 //   issuers  SEC submissions JSON for every issuer in the insider data
 //            (cached 30 days): FPI when it files 20-F, 40-F or 6-K; home
@@ -103,14 +103,33 @@ const keep = (series, src) => {
   }
 };
 const missingRates = () => Object.keys(FRED_SERIES).filter((c) => !got.has(c));
+// A series kept from a source, carried on with another source's newer days
+// (api/_lib/fx.js extendSeries: weekdays, never a jump past 10%).
+const extendTail = (cur, points, src) => {
+  const { series, added, refused } = extendSeries(rates[cur], points);
+  if (refused) console.warn(`::warning::${src}: ${refused} ${cur} rate(s) refused (more than ${FALLBACK_MAX_JUMP * 100}% from ${rates[cur].at(-1)[1]} on ${rates[cur].at(-1)[0]})`);
+  if (!added) return 0;
+  rates[cur] = series;
+  rateSource[cur] = `${String(rateSource[cur] || '').split(' + ')[0] || 'H.10'} + ${src}`;
+  got.add(cur);
+  return added;
+};
 console.log('rates:');
 // 1. the Federal Reserve Board's H.10 download (all currencies, one request)
 const fed = await tryGet('Federal Reserve H.10', FED_H10_URL(us(from), us(today)), { attempts: 3, valid: (b) => Object.keys(parseFedH10Csv(b)).length > 0 });
 if (fed) keep(parseFedH10Csv(fed), 'H.10');
-// 2. the ECB reference rates: what H.10 lacks, and what it did not deliver
-const ecbWant = [...new Set([...missingRates(), ...ECB_EXTRA])];
+// 2. the ECB reference rates: what H.10 lacks or did not deliver, and the
+// days after H.10's last one (H.10 is published weekly, about a week behind:
+// on its own it left every rate up to 8 days old)
+const ecbWant = [...new Set([...Object.keys(FRED_SERIES), ...ECB_EXTRA])];
 const ecb = await tryGet(`ECB (${ecbWant.length} currencies)`, ECB_URL(from, today, ecbWant), { attempts: 2, valid: (b) => { try { return Object.keys(parseEcb(JSON.parse(b))).length > 0; } catch { return false; } } });
-if (ecb) keep(parseEcb(JSON.parse(ecb)), 'ECB');
+if (ecb) {
+  const series = parseEcb(JSON.parse(ecb));
+  const fromH10 = Object.keys(series).filter((c) => got.has(c));
+  keep(series, 'ECB');
+  const added = fromH10.map((c) => [c, extendTail(c, series[c], 'ECB')]).filter(([, n]) => n);
+  if (added.length) console.log(`  ECB after H.10's last day: ${added.map(([c, n]) => `${c} +${n}`).join(', ')}`);
+}
 // 3. FRED, the same H.10 series, for what is still missing (after the ECB
 // that is only TWD and LKR: a small request, where all 22 series timed out)
 const fredCsv = (ids, timeout) => tryGet(`FRED (${ids.join(',')})`, `https://fred.stlouisfed.org/graph/fredgraph.csv?id=${ids.join(',')}&cosd=${from}`, { attempts: 2, timeout, valid: (b) => /^observation_date|^DATE/i.test(String(b || '')) });
@@ -134,9 +153,10 @@ if (missingRates().length) {
     if (one) keepFred(one);
   }
 }
-// 4. the open daily rates (api/_lib/fx.js FALLBACK_SOURCE): only extend a
-// series that none of the official sources refreshed, from its last day
-const fallbackWant = missingRates().filter((c) => rates[c]?.length);
+// 4. the open daily rates (api/_lib/fx.js FALLBACK_SOURCE) for a series
+// still more than 3 days behind (TWD and LKR: H.10 only, a week behind), only
+// after its last official day
+const fallbackWant = Object.keys(FRED_SERIES).filter((c) => rates[c]?.length && rates[c].at(-1)[0] < addDays(today, -3));
 if (fallbackWant.length) {
   const start = fallbackWant.map((c) => rates[c].at(-1)[0]).sort()[0];
   const days = [];
@@ -160,14 +180,8 @@ if (fallbackWant.length) {
   }
   console.log(`  ${FALLBACK_SOURCE}: ${read}/${days.length} day files read (${fallbackWant.join(', ')} since ${start})`);
   for (const cur of fallbackWant) {
-    const { series, added, refused } = extendSeries(rates[cur], points[cur]);
-    if (refused) console.warn(`::warning::${FALLBACK_SOURCE}: ${refused} ${cur} rate(s) refused (more than ${FALLBACK_MAX_JUMP * 100}% from the last official ${rates[cur].at(-1)[1]})`);
-    if (!added) continue;
-    rates[cur] = series;
-    const base = String(rateSource[cur] || '').split(' + ')[0] || 'H.10';
-    rateSource[cur] = `${base} + ${FALLBACK_SOURCE}`;
-    got.add(cur);
-    console.log(`  ${cur}: ${added} day(s) from ${FALLBACK_SOURCE}, now to ${series.at(-1)[0]}`);
+    const n = extendTail(cur, points[cur], FALLBACK_SOURCE);
+    if (n) console.log(`  ${cur}: ${n} day(s) from ${FALLBACK_SOURCE}, now to ${rates[cur].at(-1)[0]}`);
   }
 }
 const stillMissing = missingRates();

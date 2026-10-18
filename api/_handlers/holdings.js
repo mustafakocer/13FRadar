@@ -87,6 +87,10 @@ export default async function handler(req, res) {
       acc: filing?.acc || acc,
       ...meta,
       aum,
+      // the option lines' notional inside aum; the page shows the shares'
+      // value as the portfolio and this apart (13F reports an option at the
+      // underlying shares' value: Citadel 2026 Q2, $701B of $875B)
+      optionValue: Math.round(holdings.putCallValue ?? positions.reduce((s, p) => s + (p.putCall ? p.value || 0 : 0), 0)),
       count: total,
       locked,
       amended,

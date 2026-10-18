@@ -369,8 +369,15 @@ export default function Manager({ segment = 'portfolio' }) {
             </div>
             <div className="fund-stat">
               <span className="k">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
-              <b>{fmtMoney(holdings.data?.aum)}</b>
+              {/* the shares' value; an option line's 13F value is the
+                  underlying's notional, shown apart (tips.notional) */}
+              <b>{fmtMoney(holdings.data?.aum != null ? Math.max(0, holdings.data.aum - (holdings.data.optionValue || 0)) : null)}</b>
               <span className="s">{latest?.qoq != null ? <>{t('manager.qoq')} <b className={deltaClass(latest.qoq)}>{fmtPct(latest.qoq)}</b></> : filing && quarterLabel(filing.reportDate)}</span>
+              {holdings.data?.optionValue > 0 && (
+                <span className="s" data-options={holdings.data.optionValue} title={t('tips.notional')}>
+                  {t('manager.optionsNotional').replace('{v}', fmtMoney(holdings.data.optionValue))}
+                </span>
+              )}
             </div>
             <div className="fund-stat">
               <span className="k">{t('manager.positions')}</span>

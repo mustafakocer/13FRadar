@@ -288,6 +288,34 @@
       "declared": 593470033,
       "table": 365262313,
       "reason": "2026-06-30: the cover page declares 122 lines worth $593.47M; the filed table has 777 rows summing to $365.26M, 360 of 362 priced lines at the period-end close, in line with the five quarters before ($297M-$322M, each cover matching its table): the cover is the filer's error."
+    },
+    {
+      "cik": "0002047540",
+      "acc": "0002047540-26-000005",
+      "kind": "previous-table",
+      "declared": 2177236268,
+      "table": 2107565767,
+      "declaredLines": 461,
+      "tableLines": 462,
+      "reason": "2026-09-30 (filed 2026-10-15): the cover page declares 461 lines worth $2.18B; the attached table (EDGAR_13F260630.xml) is the 2026-06-30 one, 462 rows summing to $2,107,565,767 to the dollar as the cover of 0002047540-26-000004: the filer attached last quarter's table."
+    },
+    {
+      "cik": "0001730754",
+      "acc": "0001730754-26-000008",
+      "kind": "previous-table",
+      "declared": 115181381,
+      "table": 159623483,
+      "declaredLines": 38,
+      "tableLines": 39,
+      "reason": "2026-09-30 (filed 2026-10-15): the cover page declares 38 lines worth $115.18M; the attached table (AubreyCMQ32026.xml) is the 2026-06-30 one, 39 rows summing to $159,623,483 to the dollar as the cover of 0001730754-26-000005, 34 of 35 priced lines at the 2026-06-30 close and none near the 2026-09-30 close: the filer attached last quarter's table."
+    },
+    {
+      "cik": "0001801892",
+      "acc": "0001801892-26-000004",
+      "kind": "cover-total",
+      "declared": 179714391,
+      "table": 163005060,
+      "reason": "2026-09-30 (filed 2026-10-15): the cover page declares 127 lines worth $179.71M; the 128-row table (13F.xml) sums to $163.01M and 72 of its 72 priced lines sit at the period-end close (2026-06-30 cover: $160.44M): the cover total is the filer's error."
     }
   ]
 }

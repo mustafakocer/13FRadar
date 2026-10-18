@@ -1,5 +1,5 @@
 import { fmtMoney, quarterLabel } from './format.js';
-import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155, RANK_NAME } from './answerBox.js';
+import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155, RANK_NAME, portfolioValue } from './answerBox.js';
 import { organization, website, guruEntity, guruDataset, corporation, stockDataset, article, itemList } from './jsonld.js';
 
 // Title / description templates per entity type, TR and EN. Every
@@ -29,7 +29,7 @@ export function managerSeo({ lang, cik, manager, filing, holdings, changes = nul
   const top = holdings?.positions?.[0];
   const topTxt = top ? `${top.ticker || top.issuer} (${top.weight.toFixed(1)}%)` : null;
   const count = holdings?.count;
-  const aum = holdings?.aum;
+  const aum = portfolioValue(holdings);
   const title =
     lang === 'tr'
       ? `${name} Portföyü ${qt}: Pozisyonlar, Alımlar ve Satışlar | Fundocap`
@@ -369,7 +369,7 @@ export function managerFaq({ lang, name, filing, holdings, changes }) {
     return [
       [
         `${name} ${qt} itibarıyla hangi hisseleri tutuyor?`,
-        `${name}, ${qt} 13F bildiriminde ${count} pozisyon ve ${fmtMoney(holdings.aum)} portföy büyüklüğü raporladı. En büyük pozisyonlar: ${list(top, lang)}.`,
+        `${name}, ${qt} 13F bildiriminde ${count} pozisyon ve ${fmtMoney(portfolioValue(holdings))} portföy büyüklüğü raporladı. En büyük pozisyonlar: ${list(top, lang)}.`,
       ],
       [
         `${name} ${qt} çeyreğinde ne aldı?`,
@@ -392,7 +392,7 @@ export function managerFaq({ lang, name, filing, holdings, changes }) {
   return [
     [
       `What stocks does ${name} hold as of ${qt}?`,
-      `${name} reported ${count} positions worth ${fmtMoney(holdings.aum)} in its ${qt} 13F filing. Largest positions: ${list(top, lang)}.`,
+      `${name} reported ${count} positions worth ${fmtMoney(portfolioValue(holdings))} in its ${qt} 13F filing. Largest positions: ${list(top, lang)}.`,
     ],
     [
       `What did ${name} buy in ${qt}?`,

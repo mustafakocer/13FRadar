@@ -285,7 +285,14 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                       )}
                     </td>
                   )}
-                  <td className="num" data-col="shares">{fmtNum(p.shares)}</td>
+                  <td className="num" data-col="shares">
+                    {/* a note's column is its principal in dollars (13F "PRN") */}
+                    {p.prn ? (
+                      <span data-prn title={t('tips.principal')}>{fmtMoney(p.shares)} <span className="muted small">{t('table.principal')}</span></span>
+                    ) : (
+                      fmtNum(p.shares)
+                    )}
+                  </td>
                   {cost && (
                     <td className="num" data-col="avgBuy" title={p.openedBeforeData ? t('pair.openedBeforeData') : undefined}>
                       {p.avgBuy != null ? `${fmtPx(p.avgBuy)}${p.openedBeforeData ? '*' : ''}` : '—'}

@@ -39,6 +39,7 @@ export function latestHoldings(cik, acc) {
   if (!e || e.acc !== acc || !Array.isArray(e.top)) return null;
   return {
     aum: e.aum,
+    ...(e.putCallValue != null ? { putCallValue: e.putCallValue } : {}),
     count: e.count,
     filingDate: e.filed || null,
     reportDate: e.reportDate || null,
@@ -50,6 +51,7 @@ export function latestHoldings(cik, acc) {
       class: p.class || '',
       value: p.value,
       shares: p.shares,
+      ...(p.prn ? { prn: true } : {}),
       weight: p.weight,
     })),
     source: 'snapshot',
@@ -68,6 +70,8 @@ export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, a
     // the filing was rescaled by 1000 (valueUnits.js); kept for the log
     ...(unitFix && typeof unitFix === 'object' ? { unitFix } : {}),
     aum: Math.round(aum),
+    // the option lines' notional inside aum (the underlying shares' value)
+    putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value || 0 : 0), 0)),
     count: positions.length,
     top: positions.slice(0, top).map((p) => ({
       cusip: p.cusip,
@@ -76,6 +80,7 @@ export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, a
       ...(p.class ? { class: p.class } : {}),
       value: Math.round(p.value),
       shares: Math.round(p.shares),
+      ...(p.prn ? { prn: true } : {}),
       weight: Number(p.weight.toFixed(3)),
     })),
   };

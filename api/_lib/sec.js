@@ -307,6 +307,9 @@ export function aggregatePositions(rows, filingDate, { period = null, closeOf } 
       };
     cur.value += value;
     cur.shares += shares;
+    // a convertible note's column is its principal amount in dollars, not a
+    // share count (Soros, Global Payments 1.5% notes: 247,500,000)
+    if (String(r.shrsOrPrnAmt?.sshPrnamtType || '').toUpperCase() === 'PRN') cur.prn = true;
     map.set(key, cur);
   }
   const positions = [...map.values()].sort((a, b) => b.value - a.value);

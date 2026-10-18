@@ -53,6 +53,11 @@ export function movesFromChanges(changes) {
   };
 }
 
+// The fund's portfolio as the page states it: the shares' value. A 13F
+// reports an option line at the underlying shares' value (Citadel 2026 Q2:
+// $701B of $875B), which /api/holdings returns apart as optionValue.
+export const portfolioValue = (holdings) => (holdings?.aum == null ? null : Math.max(0, holdings.aum - (holdings.optionValue || 0)));
+
 // Guru ----------------------------------------------------------------------
 // input: { name, firm, count, aum, reportDate, filingDate, top: {ticker, issuer, weight}, move: {kind, ticker, issuer, value} }
 export function guruAnswer(input, lang = 'en') {
@@ -86,7 +91,7 @@ export function guruAnswerFromPage({ manager, filing, holdings, changes, update 
       name: manager.displayName || manager.name,
       firm: manager.name,
       count: holdings.count ?? holdings.positions.length,
-      aum: holdings.aum,
+      aum: portfolioValue(holdings),
       reportDate: filing.reportDate,
       filingDate: filing.filingDate,
       top: { ticker: top.ticker, issuer: top.issuer, weight: top.weight },
@@ -109,7 +114,7 @@ export function guruAnswerFromHistory({ name, firm, history, update, tickerOf = 
       name,
       firm,
       count: q.count,
-      aum: q.aum,
+      aum: portfolioValue({ aum: q.aum, optionValue: q.putCallValue }),
       reportDate: q.reportDate,
       filingDate: q.filed,
       top: topCusip ? { ticker: topEntry?.ticker || tickerOf(topCusip) || (/^[A-Z0-9.-]{1,6}$/.test(topCusip) ? topCusip : null), issuer: topEntry?.issuer || topCusip, weight: latest?.[3] } : null,

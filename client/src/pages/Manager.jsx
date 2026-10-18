@@ -16,6 +16,7 @@ import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
+import { portfolioValue } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
 import { securityLabel } from '../lib/label.js';
 import CompanyName from '../components/CompanyName.jsx';
@@ -369,8 +370,15 @@ export default function Manager({ segment = 'portfolio' }) {
             </div>
             <div className="fund-stat">
               <span className="k">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
-              <b>{fmtMoney(holdings.data?.aum)}</b>
+              {/* the shares' value; an option line's 13F value is the
+                  underlying's notional, shown apart (tips.notional) */}
+              <b>{fmtMoney(portfolioValue(holdings.data))}</b>
               <span className="s">{latest?.qoq != null ? <>{t('manager.qoq')} <b className={deltaClass(latest.qoq)}>{fmtPct(latest.qoq)}</b></> : filing && quarterLabel(filing.reportDate)}</span>
+              {holdings.data?.optionValue > 0 && (
+                <span className="s" data-options={holdings.data.optionValue} title={t('tips.notional')}>
+                  {t('manager.optionsNotional').replace('{v}', fmtMoney(holdings.data.optionValue))}
+                </span>
+              )}
             </div>
             <div className="fund-stat">
               <span className="k">{t('manager.positions')}</span>

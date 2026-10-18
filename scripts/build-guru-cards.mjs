@@ -49,10 +49,14 @@ function main() {
     if (!h) continue;
     const { firm, person } = split(g.name);
     const y1 = perf[g.cik]?.horizons?.y1;
+    // the portfolio is the shares' value: an option line's 13F value is the
+    // underlying's (Susquehanna 2026 Q2: $1.28T of which $1.17T options)
+    const options = h.putCallValue || 0;
+    const equity = Math.max(0, h.aum - options);
     const top = (h.top || [])
       .filter((p) => !p.putCall && tickerByCusip.has(p.cusip))
       .slice(0, 3)
-      .map((p) => ({ t: tickerByCusip.get(p.cusip), n: readable(tickerByCusip.get(p.cusip), p.issuer), w: p.weight }));
+      .map((p) => ({ t: tickerByCusip.get(p.cusip), n: readable(tickerByCusip.get(p.cusip), p.issuer), w: equity ? Number(((p.value / equity) * 100).toFixed(3)) : p.weight }));
     rows.push({
       cik: g.cik,
       slug: slugs[g.cik]?.slug || null,
@@ -62,7 +66,8 @@ function main() {
       category: CATEGORIES.includes(g.category) ? g.category : 'other',
       consensus: g.consensus !== false,
       reportDate: h.reportDate,
-      aum: h.aum,
+      aum: equity,
+      ...(options ? { optionValue: options } : {}),
       count: h.count,
       y1: y1?.port ?? null,
       spy1: y1?.spy ?? null,

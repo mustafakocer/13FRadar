@@ -24,10 +24,12 @@ const pub = path.join(root, 'client', 'public');
 const readJson = (p) => { try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return null; } };
 
 // "Berkshire Hathaway (Warren Buffett)" → the person and the firm; a name
-// with no bracket is the firm and the card leads with it
+// with no bracket is the firm and the card leads with it. A bracket that
+// also names the old firm ("DME Capital Management (Greenlight, David
+// Einhorn)") gives the person after the last comma; "to Q1 2026" is a date.
 const split = (name) => {
   const m = String(name).match(/^(.*?)\s*\((.+)\)\s*$/);
-  return m ? { firm: m[1].trim(), person: m[2].trim() } : { firm: name.trim(), person: null };
+  return m ? { firm: m[1].trim(), person: m[2].split(',').map((x) => x.trim()).filter((x) => !/^to\s/i.test(x)).pop() || null } : { firm: name.trim(), person: null };
 };
 
 function main() {

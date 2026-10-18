@@ -99,3 +99,12 @@ test('the lists the consensus page already shipped keep their shape', () => {
   assert.ok(consensus.topBought.every((r) => r.netValue > 0));
   assert.ok(consensus.topSold.every((r) => r.netValue < 0));
 });
+
+test('consensus quarter: the newest one half the panel has filed, not one early filer', async () => {
+  const { panelQuarter } = await import('../api/_lib/consensusBuild.js');
+  const q2 = Array(71).fill('2026-06-30');
+  assert.equal(panelQuarter([...q2, '2026-09-30']), '2026-06-30', 'Smead alone in Q3');
+  assert.equal(panelQuarter([...Array(36).fill('2026-09-30'), ...Array(36).fill('2026-06-30')]), '2026-09-30', 'half filed: the new quarter');
+  assert.equal(panelQuarter([...q2, '2026-03-31', '2026-03-31']), '2026-06-30', 'a late filer does not pull it back');
+  assert.equal(panelQuarter([]), '');
+});

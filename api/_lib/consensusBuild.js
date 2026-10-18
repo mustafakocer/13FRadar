@@ -6,6 +6,7 @@ import { netActivity, storiesByManager } from './netActivity.js';
 import { reportDatesByCik } from './guruStatus.js';
 import { companyName } from './companyNames.js';
 import { splitAdjustPrev } from './splitAdjust.js';
+import { predecessorOf, mergeBooks } from './successorHistory.js';
 
 // How many holders travel with each security in the per-stock table. Twenty
 // five covers every name that matters on the stock page; the tail is funds
@@ -27,25 +28,57 @@ const PUBLIC_ACTIVITY = 5;
 //   the static map knows; the daily build raises it (it has a key and time).
 //   listedOn: id → first trading day (api/_lib/newListings.js); a stake in a
 //   security that listed inside the quarter is a pre-IPO holding, not a buy.
+// The newest period of report that at least `share` of the panel has filed.
+//   latest: each fund's newest period of report ('YYYY-MM-DD')
+export function panelQuarter(latest, share = 0.5) {
+  const dates = latest.filter(Boolean);
+  for (const q of [...new Set(dates)].sort().reverse()) if (dates.filter((d) => d >= q).length >= dates.length * share) return q;
+  return '';
+}
+
 export async function build({ stocksTickers = 0, listedOn = null } = {}) {
   // CONSENSUS_CIKS narrows the panel — the offline tests run the whole
   // aggregation over the three filers that have fixtures. Naming a closed
   // fund there still includes it; the registry alone never does.
   const only = process.env.CONSENSUS_CIKS ? new Set(process.env.CONSENSUS_CIKS.split(',')) : null;
   const panel = only ? GURUS.filter((m) => only.has(m.cik)) : consensusPanel();
-  const per = await mapLimit(panel, 5, async (m) => {
-    const sub = await getSubmissions(m.cik);
-    const fl = list13F(sub);
-    if (!fl.length) return null;
+  const listed = (
+    await mapLimit(panel, 5, async (m) => {
+      const fl = list13F(await getSubmissions(m.cik));
+      return fl.length ? { m, fl } : null;
+    })
+  ).filter(Boolean);
+  // The quarter the panel reports on: the newest one half the panel has
+  // filed. One early filer (Smead's 2026 Q3, in October) used to turn the
+  // whole page into "Q3 · 1 of 98 filed" over 71 Q2 books.
+  const quarter = panelQuarter(listed.map((x) => x.fl[0].reportDate));
+  const per = await mapLimit(listed, 5, async ({ m, fl: all }) => {
+    // an early filer of the next quarter is read at the panel's quarter
+    const fl = all.slice(Math.max(0, all.findIndex((f) => f.reportDate <= quarter)));
     // effective snapshots: the original with its 13F-HR/A amendments applied,
     // never an amendment standing in for a quarter
-    const cur = await getEffectiveHoldings(m.cik, fl[0]);
+    let cur = await getEffectiveHoldings(m.cik, fl[0]);
     let prev = null;
     if (fl[1]) {
       try {
         prev = splitAdjustPrev(await getEffectiveHoldings(m.cik, fl[1]), fl[1].reportDate, fl[0].reportDate);
       } catch {
         /* prev optional */
+      }
+    }
+    // a manager whose 13Fs moved to this filer: the old filer's books of the
+    // same periods are part of the manager's (api/_lib/successorHistory.js),
+    // or Ackman's whole book reads as bought in his new filer's first quarter
+    const pred = predecessorOf(m.cik, GURUS);
+    if (pred) {
+      try {
+        const pfl = list13F(await getSubmissions(pred.cik));
+        const same = pfl.find((f) => f.reportDate === fl[0].reportDate);
+        if (same) cur = mergeBooks(cur, await getEffectiveHoldings(pred.cik, same));
+        const before = pfl.find((f) => f.reportDate < fl[0].reportDate && (!fl[1] || f.reportDate >= fl[1].reportDate));
+        if (before) prev = mergeBooks(prev, splitAdjustPrev(await getEffectiveHoldings(pred.cik, before), before.reportDate, fl[0].reportDate));
+      } catch {
+        /* the predecessor's book is optional, like prev */
       }
     }
     return { name: m.name, cik: m.cik, reportDate: fl[0].reportDate, filed: fl[0].filingDate, amended: Boolean(cur.amended), cur, prev };
@@ -196,7 +229,6 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
   // The quarter the panel reports on, and how the tracked bench maps onto
   // it: tracked → filed for it → counted. The same object ships in every
   // file so every page explains the same numbers the same way.
-  const quarter = managers.reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
   const cov = coverageOf(quarter, reportDatesByCik(managers));
   if (only) Object.assign(cov, { tracked: managers.length, filed: managers.filter((m) => m.reportDate === quarter).length, included: managers.filter((m) => m.reportDate === quarter).length, excluded: {} });
 

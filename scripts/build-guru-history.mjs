@@ -46,7 +46,8 @@ import { planRebuild, estimateRequests, estimateSeconds } from '../api/_lib/hist
 import { mapLimit } from '../api/_lib/mapLimit.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats, tickerFor } from '../api/_lib/securityMaster.js';
-import { historyPanel } from '../api/_lib/gurus.js';
+import { historyPanel, GURUS } from '../api/_lib/gurus.js';
+import { applySuccessors } from '../api/_lib/successorHistory.js';
 import { topRankedCusips, reconcileSplits, splitKey, isShareSplit } from '../api/_lib/history.js';
 import { splitAdjustPrev } from '../api/_lib/splitAdjust.js';
 import { turnover, turnoverOutliers, TURNOVER_OUTLIER } from '../api/_lib/turnover.js';
@@ -103,7 +104,10 @@ const INCREMENTAL = process.env.GURU_HISTORY_INCREMENTAL !== '0';
 // reported at the end; a run that refreshes nothing exits non-zero.
 let previous = {};
 try {
-  previous = JSON.parse(fs.readFileSync(OUT, 'utf8')).gurus || {};
+  const file = JSON.parse(fs.readFileSync(OUT, 'utf8'));
+  // a successor's stored entry is merged with its predecessor's; its EDGAR
+  // reads are planned on what the filer itself filed (api/_lib/successorHistory.js)
+  previous = { ...(file.gurus || {}), ...(file.own || {}) };
 } catch {
   /* first run */
 }
@@ -324,7 +328,8 @@ if (!refreshed && !reused.length && Object.keys(previous).length) {
   process.exit(1);
 }
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
-fs.writeFileSync(OUT, JSON.stringify(out));
+// one book per manager across a change of filer (Ackman, Einhorn)
+fs.writeFileSync(OUT, JSON.stringify(applySuccessors(out, GURUS)));
 persistMaster();
 {
   const ms = masterStats();

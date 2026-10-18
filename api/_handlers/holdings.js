@@ -2,6 +2,7 @@ import { getHoldings, getEffectiveHoldings, getSubmissions, list13F, filingForAc
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { isPro, noStore } from '../_lib/auth.js';
 import { latestHoldings } from '../_lib/latestHoldings.js';
+import { cashLikeWeight } from '../_lib/cashLike.js';
 import { companyName } from '../_lib/companyNames.js';
 import { closeOn } from '../_lib/valueUnits.js';
 import { readSeries } from '../_lib/priceStore.js';
@@ -61,6 +62,11 @@ export default async function handler(req, res) {
     const { aum, positions, count: snapCount } = holdings;
     const amended = Boolean(holdings.amended || snap?.amended);
     const amendments = holdings.amendments || snap?.amendments || (filing?.amendments || []).map((a) => ({ acc: a.acc, filingDate: a.filingDate }));
+    // T-bill ETFs' weight (cashLike.js): the stored figure on the free view
+    // (its ten rows are not the book), the whole book's otherwise; the
+    // previous period's only when this is the filer's latest filing
+    const cashLike = snap ? (snap.cashLike ?? null) : cashLikeWeight(positions);
+    const cashLikePrev = (snap || latestHoldings(cik, filing?.acc || acc))?.cashLikePrev || null;
 
     const pro = wantFull ? await isPro(req) : false;
     let out = positions;
@@ -92,6 +98,8 @@ export default async function handler(req, res) {
       // underlying shares' value: Citadel 2026 Q2, $701B of $875B)
       optionValue: Math.round(holdings.putCallValue ?? positions.reduce((s, p) => s + (p.putCall ? p.value || 0 : 0), 0)),
       count: total,
+      ...(cashLike != null ? { cashLike } : {}),
+      ...(cashLikePrev ? { cashLikePrev } : {}),
       locked,
       amended,
       ...(amended ? { amendments } : {}),

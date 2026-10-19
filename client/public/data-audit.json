@@ -28,9 +28,9 @@
       "path": "api/_data/guru-stocks.json",
       "metrics": {
         "managers": 72,
-        "stocks": 1920,
+        "stocks": 1921,
         "options": 57,
-        "withTicker": 1914,
+        "withTicker": 1915,
         "withSector": 1735,
         "withCap": 1508
       },
@@ -49,7 +49,7 @@
       "path": "client/public/guru-activity.json",
       "metrics": {
         "quarters": 8,
-        "names": 561
+        "names": 584
       },
       "findings": []
     },
@@ -57,8 +57,8 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 79357,
-        "companies": 4249,
+        "rows": 79241,
+        "companies": 4248,
         "futureDated": 0,
         "duplicateIds": 0
       },
@@ -114,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4243
+        "tickers": 4245
       },
       "findings": []
     },
@@ -156,8 +156,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 9040,
-        "byCik": 9040
+        "bySlug": 9044,
+        "byCik": 9044
       },
       "findings": []
     },

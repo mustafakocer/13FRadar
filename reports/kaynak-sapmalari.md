@@ -10,9 +10,9 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-| 🆕 | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1571 | $2.11 mlr | $2.18 mlr | -3.2% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
-| 🆕 | Aubrey Capital Management Ltd (0001730754) | 7260 | $159.6 mn | $115.2 mn | +38.6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1730754/000173075426000008/) |
-| 🆕 | Future Financial Wealth Managment LLC (0001801892) | 7195 | $163.0 mn | $179.7 mn | -9.3% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
+|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1571 | $2.11 mlr | $2.18 mlr | -3.2% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
+|  | Aubrey Capital Management Ltd (0001730754) | 7260 | $159.6 mn | $115.2 mn | +38.6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1730754/000173075426000008/) |
+|  | Future Financial Wealth Managment LLC (0001801892) | 7195 | $163.0 mn | $179.7 mn | -9.3% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
 
 ## İncelendi — fonun kapak hatası
 

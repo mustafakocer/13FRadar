@@ -1,0 +1,13 @@
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="32" cy="32" r="32" fill="#FF8C42"/>
+  
+  <!-- Cup -->
+  <path d="M18 36H46V42C46 48 40 52 32 52C24 52 18 48 18 42V36Z" fill="#FFF8E1"/>
+  <path d="M46 38H50C52 38 53 40 53 42C53 44 51 46 48 46H46" stroke="#FFF8E1" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- Steam/Cloud -->
+  <circle cx="26" cy="24" r="5" fill="#FFFFFF"/>
+  <circle cx="38" cy="24" r="5" fill="#FFFFFF"/>
+  <circle cx="32" cy="18" r="6" fill="#FFFFFF"/>
+</svg>

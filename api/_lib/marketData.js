@@ -16,7 +16,7 @@
 //     which times the chart price into a market cap.
 // Everything here that does not touch the network is pure and tested.
 import { secGet, padCik } from './sec.js';
-import { readSeries } from './priceStore.js';
+import { readSeries, returnsFromSeries } from './priceStore.js';
 
 
 // ---------------------------------------------------------------- sectors
@@ -181,26 +181,18 @@ export function seriesSnapshot(prices, now = Date.now()) {
   if (!bars.length) return null;
   const last = bars[bars.length - 1];
   const price = last.close;
-  const prev = bars.length > 1 ? bars[bars.length - 2] : null;
   const yearAgo = new Date(now - 365 * 86400 * 1000).toISOString().slice(0, 10);
-  const base1y = bars.find((b) => b.date >= yearAgo) || null;
-  const jan1 = `${new Date(now).getUTCFullYear()}-01-01`;
-  let baseYtd = null;
-  for (let i = bars.length - 1; i >= 0; i--) {
-    if (bars[i].date < jan1) {
-      baseYtd = bars[i];
-      break;
-    }
-  }
-  const pct = (base) => (base && base.close > 0 ? ((price - base.close) / base.close) * 100 : null);
+  // the same three columns returns.json carries, by the same rules: no
+  // return across an unadjusted split, a bad print or a hole in the series
+  const { ret1y, retYtd, ret1d } = returnsFromSeries(null, bars, now);
   const year = bars.filter((b) => b.date >= yearAgo).map((b) => b.close);
   return {
     price,
     asOf: last.date,
     // a year of history, or no 1Y figure (a June listing has none)
-    ret1y: base1y && bars[0].date <= new Date(now - 358 * 86400 * 1000).toISOString().slice(0, 10) ? pct(base1y) : null,
-    retYtd: pct(baseYtd),
-    ret1d: pct(prev),
+    ret1y,
+    retYtd,
+    ret1d,
     lo: year.length ? Math.min(...year) : null,
     hi: year.length ? Math.max(...year) : null,
     vol: null,

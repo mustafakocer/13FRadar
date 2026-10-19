@@ -188,6 +188,47 @@ test('returnsFromSeries: a listing younger than a year has no 1Y (never a since-
   assert.ok(Number.isFinite(r.ret1d));
 });
 
+test('returnsFromSeries: an unadjusted reverse split or a bad print hides every return that spans it', () => {
+  const now = Date.parse('2026-09-22T22:00:00Z');
+  const s = series('2025-06-01', '2026-09-22', { start: 0.8 });
+  const at = s.findIndex((p) => p.date >= '2026-07-23');
+  // VYNE's 1-for-60, unadjusted: $0.76 one day, $46 the next
+  const split = s.map((p, i) => (i >= at ? { ...p, close: p.close * 60 } : p));
+  const r = returnsFromSeries('X', split, now);
+  assert.equal(r.ret1y, null);
+  assert.equal(r.retYtd, null);
+  assert.ok(Number.isFinite(r.ret1d), 'the last day does not span the split');
+
+  // a bad print that comes back: still a break
+  const spike = s.map((p, i) => (i === at ? { ...p, close: p.close / 10 } : p));
+  assert.equal(returnsFromSeries('X', spike, now).ret1y, null);
+
+  // the split on the last day: 1D is the split, not a gain
+  const today = s.map((p, i) => (i === s.length - 1 ? { ...p, close: p.close * 20 } : p));
+  assert.equal(returnsFromSeries('X', today, now).ret1d, null);
+
+  // an ordinary +80% day is the market, not a break
+  const pop = s.map((p, i) => (i >= at ? { ...p, close: p.close * 1.8 } : p));
+  assert.ok(returnsFromSeries('X', pop, now).ret1y > 50);
+});
+
+test('returnsFromSeries: a symbol that went dark for years has no base from before the hole', () => {
+  const now = Date.parse('2026-09-22T22:00:00Z');
+  // BSP: a close at $0.0015 in 2022, then nothing until July 2026
+  const s = [...series('2021-06-01', '2022-03-02', { start: 0.002 }), ...series('2026-07-01', '2026-09-22', { start: 40 })];
+  const r = returnsFromSeries('X', s, now);
+  assert.equal(r.retYtd, null, 'the last close before Jan 1 is from 2022');
+  assert.equal(r.ret1y, null, 'the first close after the year-ago date is from July');
+  assert.ok(Number.isFinite(r.ret1d));
+});
+
+test('returnsFromSeries: a holiday week is not a hole', () => {
+  const now = Date.parse('2026-09-22T22:00:00Z');
+  const s = series('2025-06-01', '2026-09-22', { start: 100 }).filter((p) => !(p.date >= '2025-12-22' && p.date <= '2026-01-02'));
+  const r = returnsFromSeries('X', s, now);
+  assert.ok(Number.isFinite(r.retYtd) && Number.isFinite(r.ret1y));
+});
+
 // ---- the backtest arithmetic -------------------------------------------
 const TICKERS = ['AAPL', 'AXP', 'BAC', 'KO', 'CVX', 'OXY', 'GOOGL', 'AMZN', 'NVDA', 'MSFT', 'HLT', 'MCO', 'DVA', 'KHC', 'V'];
 const cusipOf = (t) => `C${t.padEnd(8, '0')}`;

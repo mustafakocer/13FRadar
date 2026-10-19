@@ -96,7 +96,9 @@ export async function buildStockMeta({
   if (merged.fresh === 0 && previousReturns) {
     log(`returns.json: nothing fetched — keeping the previous file (${Object.keys(previousReturns.returns || {}).length} tickers)`);
   } else {
-    write('client/public/returns.json', { updatedAt: new Date(now).toISOString(), returns: merged.returns });
+    // the carried rows were computed under the previous file's rule and the
+    // fresh ones by the same returnsFromSeries, so the stamp carries over
+    write('client/public/returns.json', { updatedAt: new Date(now).toISOString(), ...(previousReturns?.rule ? { rule: previousReturns.rule } : {}), returns: merged.returns });
     log(`returns.json: ${total} tickers (${merged.fresh} refreshed today, ${total - merged.fresh} carried over)`);
   }
 

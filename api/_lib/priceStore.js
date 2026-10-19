@@ -165,6 +165,34 @@ export function priceCacheStatus() {
 // Days between the series' last close and now; Infinity without a series.
 export const seriesAgeDays = (asOf, now = Date.now()) => (asOf ? (now - parseDay(asOf)) / DAY : Infinity);
 
+// A return is only as good as the series between its two closes. Two things
+// break that series, and both made the screener print returns no market
+// produced (2026-10, data audit):
+//   · a jump of ×3 or more in one day — a reverse split the provider did not
+//     adjust (VYNE $0.76 → $46.17 the morning of its 1-for-60) or a bad print
+//     that came back the next day. A real one-day tripling or a two-thirds
+//     crash does happen; hiding that return costs a blank cell, publishing a
+//     split as a gain costs the number.
+//   · a hole of weeks between two closes — the symbol went dark and came back,
+//     often as a different company (BSP's last close before 2026 was $0.0015
+//     in 2022; "YTD +3,137,900%").
+// A base more than BASE_SLACK_DAYS from the date it stands for is the same
+// hole seen from the other side: it is not that day's price.
+export const BREAK_FACTOR = 3;
+export const MAX_GAP_DAYS = 20;
+export const BASE_SLACK_DAYS = 20;
+
+// The index of the last row that follows a break (0 when there is none): a
+// base at or after it reaches today over clean closes.
+export function lastBreak(prices) {
+  for (let i = prices.length - 1; i > 0; i--) {
+    const q = prices[i].close / prices[i - 1].close;
+    if (!(q < BREAK_FACTOR && q > 1 / BREAK_FACTOR)) return i;
+    if ((parseDay(prices[i].date) - parseDay(prices[i - 1].date)) / DAY > MAX_GAP_DAYS) return i;
+  }
+  return 0;
+}
+
 // {price, ret1y, retYtd, ret1d} from a [{date, close}] series (ascending):
 // the return columns the screener and the manager page show.
 export function returnsFromSeries(symbol, prices, now = Date.now()) {
@@ -172,21 +200,24 @@ export function returnsFromSeries(symbol, prices, now = Date.now()) {
   const last = prices[prices.length - 1];
   const price = last.close;
   const yearAgo = isoDay(now - 365 * DAY);
+  const clean = lastBreak(prices);
+  const near = (a, b) => Math.abs(parseDay(a) - parseDay(b)) / DAY <= BASE_SLACK_DAYS;
   // A series that starts after the year-ago date (a listing younger than a
   // year) has no 1Y base: its first close would make "1Y" a since-listing
   // return. A week of slack covers a year-ago date that fell on a weekend
   // or holiday.
   const covers1y = prices[0].date <= isoDay(now - 358 * DAY);
-  const base1y = covers1y ? prices.find((p) => p.date >= yearAgo) : null;
+  const i1y = covers1y ? prices.findIndex((p) => p.date >= yearAgo) : -1;
+  const base1y = i1y >= clean && near(prices[i1y].date, yearAgo) ? prices[i1y] : null;
   const jan1 = `${new Date(now).getUTCFullYear()}-01-01`;
   let baseYtd = null;
   for (let i = prices.length - 1; i >= 0; i--) {
     if (prices[i].date < jan1) {
-      baseYtd = prices[i];
+      if (i >= clean && near(prices[i].date, jan1)) baseYtd = prices[i];
       break;
     }
   }
-  const prevClose = prices.length > 1 ? prices[prices.length - 2].close : null;
+  const prevClose = prices.length > 1 && prices.length - 2 >= clean ? prices[prices.length - 2].close : null;
   const pct = (base) => (base && base > 0 ? ((price - base) / base) * 100 : null);
   return { symbol, price, asOf: last.date, ret1y: pct(base1y?.close), retYtd: pct(baseYtd?.close), ret1d: pct(prevClose) };
 }

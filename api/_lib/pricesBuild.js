@@ -30,6 +30,10 @@ const DAY = 86400 * 1000;
 const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
 
 export const BENCHMARKS = ['SPY', 'QQQ', 'IWM'];
+// What returns.json was computed under; bump it when returnsFromSeries changes
+// what it refuses, and the next build recomputes every row once.
+// 2: no return across a ×3 day or a 20-day hole (2026-10).
+export const RETURNS_RULE = 2;
 export const HISTORY_YEARS = 10;
 
 // A listed ticker: letters, digits, a class dash or dot; not a bond
@@ -369,19 +373,24 @@ export async function buildPrices({
   if (returnsFile?.returns) {
     let refreshed = 0;
     const today = isoDay(now);
+    // a file written under an older rule is recomputed whole, once: a row
+    // whose series has no new close would otherwise keep its old figure
+    const full = returnsFile.rule !== RETURNS_RULE;
     for (const [key, e] of after) {
       const have = returnsFile.returns[key];
-      if (have?.asOf && have.asOf >= e.asOf) continue;
+      if (!full && have?.asOf && have.asOf >= e.asOf) continue;
       const s = readSeries(key);
       if (!s) continue;
       const r = returnsFromSeries(key, s.prices, now);
-      if (r.ret1y == null && r.retYtd == null) continue;
+      // nothing to say about a new symbol; a known one is overwritten with
+      // its blanks, never left showing the figure the rules now refuse
+      if (r.ret1y == null && r.retYtd == null && !have) continue;
       const round = (x) => (x == null ? null : Number(x.toFixed(2)));
       returnsFile.returns[key] = { ret1y: round(r.ret1y), retYtd: round(r.retYtd), ret1d: round(r.ret1d), asOf: r.asOf || today };
       refreshed++;
     }
-    if (refreshed) {
-      fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ ...returnsFile, updatedAt: new Date(now).toISOString() }));
+    if (refreshed || full) {
+      fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ ...returnsFile, rule: RETURNS_RULE, updatedAt: new Date(now).toISOString() }));
       log(`returns.json: ${refreshed} rows refreshed from the price cache`);
     }
   }

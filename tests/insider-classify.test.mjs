@@ -287,9 +287,11 @@ test('3) the level is judged on the filing total, and the page says so', async (
   const lines = [
     { n: 'White Parker', r: 'owner10', t: 'DFDV', k: 'P', a: 'DFDV-1', li: 0, s: 9462, p: 8.96, v: 84780, o: 9462, d: '2026-09-17', f: '2026-09-18' },
     { n: 'White Parker', r: 'owner10', t: 'DFDV', k: 'P', a: 'DFDV-1', li: 1, s: 538, p: 8.9, v: 4788, o: 10000, d: '2026-09-17', f: '2026-09-18' },
-    // an officer's $6K line inside a $60K filing: "Kayda değer alım", total shown
-    { n: 'Kang Daniel', r: 'officer', ti: 'Chief Strategy Officer', t: 'DFDV', k: 'P', a: 'DFDV-2', li: 0, s: 6000, p: 9, v: 54000, o: 20000, d: '2026-09-17', f: '2026-09-18' },
-    { n: 'Kang Daniel', r: 'officer', ti: 'Chief Strategy Officer', t: 'DFDV', k: 'P', a: 'DFDV-2', li: 1, s: 700, p: 9, v: 6300, o: 20700, d: '2026-09-17', f: '2026-09-18' },
+    // an officer's $6K line inside a $60K filing: "Kayda değer alım", total shown.
+    // A ticker with no entry in ticker-meta.json: DFDV's live price ($3.77 on
+    // 2026-10-19) put $9 more than 2× away and capped the level as unverifiable.
+    { n: 'Kang Daniel', r: 'officer', ti: 'Chief Strategy Officer', t: 'ZZDF', k: 'P', a: 'ZZDF-2', li: 0, s: 6000, p: 9, v: 54000, o: 20000, d: '2026-09-17', f: '2026-09-18' },
+    { n: 'Kang Daniel', r: 'officer', ti: 'Chief Strategy Officer', t: 'ZZDF', k: 'P', a: 'ZZDF-2', li: 1, s: 700, p: 9, v: 6300, o: 20700, d: '2026-09-17', f: '2026-09-18' },
   ];
   const feed = await feedOver(lines, { tab: 'latest' });
   const small = feed.rows.find((r) => r.value === 4788);

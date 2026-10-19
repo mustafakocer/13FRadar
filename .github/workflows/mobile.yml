@@ -3,8 +3,9 @@ name: Mobile layout
 # Renders the public pages at two phone widths (390×844, 360×800) against
 # the built site served locally on fixtures, and fails when any page scrolls
 # sideways (scripts/mobile-overflow.mjs). Screenshots are attached to the
-# run, and the step summary lists every page × viewport with the widest
-# element when one sticks out.
+# run (kept 3 days: they are only for looking at a failure), and the step
+# summary lists every page × viewport with the widest element when one
+# sticks out.
 on:
   pull_request:
     paths:
@@ -60,3 +61,31 @@ jobs:
           name: mobile-screenshots
           path: mobile-shots
           if-no-files-found: ignore
+          retention-days: 3
+        # the screenshots are a debugging aid: a full artifact quota must not
+        # turn the layout check red
+        continue-on-error: true
+
+  # Screenshots uploaded before retention-days was set were kept 90 days and
+  # filled the account's artifact quota (2026-10-19: the weekly database
+  # backup could not upload). Delete the ones older than 3 days; on main only,
+  # where the token may write.
+  prune-screenshots:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+    steps:
+      - name: Delete mobile screenshots older than 3 days
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cutoff=$(date -u -d '3 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          # list first, then delete: deleting while paging shifts the pages
+          ids=$(gh api --paginate "repos/${{ github.repository }}/actions/artifacts?per_page=100" \
+            --jq ".artifacts[] | select(.name == \"mobile-screenshots\" and .expired == false and .created_at < \"$cutoff\") | .id")
+          echo "$(echo "$ids" | grep -c . || true) old screenshot artifacts"
+          for id in $ids; do
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$id" > /dev/null && echo "deleted $id"
+          done

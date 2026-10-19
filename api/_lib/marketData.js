@@ -16,7 +16,7 @@
 //     which times the chart price into a market cap.
 // Everything here that does not touch the network is pure and tested.
 import { secGet, padCik } from './sec.js';
-import { readSeries, returnsFromSeries } from './priceStore.js';
+import { readSeries, returnsFromSeries, tradingDays } from './priceStore.js';
 
 
 // ---------------------------------------------------------------- sectors
@@ -176,7 +176,7 @@ export const marketCap = (shares, price) =>
 // (pricesBuild.js). No request leaves the runner here. Yahoo's chart used to
 // answer this; it is out of every chain (its terms do not cover a paid site).
 // Volume is not in the store: it stays null rather than borrowed.
-export function seriesSnapshot(prices, now = Date.now()) {
+export function seriesSnapshot(prices, now = Date.now(), { calendar = null } = {}) {
   const bars = (prices || []).filter((b) => b?.date && Number.isFinite(b.close) && b.close > 0);
   if (!bars.length) return null;
   const last = bars[bars.length - 1];
@@ -184,7 +184,7 @@ export function seriesSnapshot(prices, now = Date.now()) {
   const yearAgo = new Date(now - 365 * 86400 * 1000).toISOString().slice(0, 10);
   // the same three columns returns.json carries, by the same rules: no
   // return across an unadjusted split, a bad print or a hole in the series
-  const { ret1y, retYtd, ret1d } = returnsFromSeries(null, bars, now);
+  const { ret1y, retYtd, ret1d } = returnsFromSeries(null, bars, now, { calendar });
   const year = bars.filter((b) => b.date >= yearAgo).map((b) => b.close);
   return {
     price,
@@ -210,9 +210,10 @@ export function seriesSnapshot(prices, now = Date.now()) {
 // stay for them and are always 0 / false.
 export function priceSnapshots(symbols, { now = Date.now(), read = readSeries } = {}) {
   const out = new Map();
+  const calendar = tradingDays();
   for (const sym of symbols) {
     const s = read(sym);
-    out.set(sym, s?.prices?.length ? seriesSnapshot(s.prices, now) : null);
+    out.set(sym, s?.prices?.length ? seriesSnapshot(s.prices, now, { calendar }) : null);
   }
   return { snapshots: out, failed: 0, blocked: false };
 }

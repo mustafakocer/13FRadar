@@ -181,6 +181,12 @@ export const seriesAgeDays = (asOf, now = Date.now()) => (asOf ? (now - parseDay
 export const BREAK_FACTOR = 3;
 export const MAX_GAP_DAYS = 20;
 export const BASE_SLACK_DAYS = 20;
+// A base under a cent that "returns" over 1,000% is a sub-penny print, not a
+// tenfold year: AMFN's series sits at $0.0009 in October 2025 where the
+// market's 52-week low is $0.023, and climbs to $0.036 in steps of 30–70% —
+// no single day trips the ×3 rule, the year reads +2,820%.
+export const SUBPENNY_BASE = 0.01;
+export const SUBPENNY_MAX_RETURN = 1000;
 
 // The index of the last row that follows a break (0 when there is none): a
 // base at or after it reaches today over clean closes.
@@ -193,9 +199,41 @@ export function lastBreak(prices) {
   return 0;
 }
 
+// The US trading days: SPY's closes on file. Every symbol here trades on
+// the same exchange calendar, so a symbol's previous close should sit on
+// SPY's previous date.
+export function tradingDays() {
+  return (readSeries('SPY')?.prices || []).map((p) => p.date);
+}
+
+// The trading day before `date`, or null when the calendar cannot say. A
+// date past the calendar's end (SPY not yet updated tonight) is answered
+// only across a weekend: a weekday in between could be a holiday or a day
+// SPY is itself missing, and a guessed date would plant a close on it.
+export function previousTradingDay(date, days = tradingDays()) {
+  if (!date || !days.length) return null;
+  let lo = 0;
+  let hi = days.length - 1;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (days[mid] === date) return mid > 0 ? days[mid - 1] : null;
+    if (days[mid] < date) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  const last = days[days.length - 1];
+  if (date <= last) return null; // inside the calendar but not a trading day
+  for (let t = parseDay(last) + DAY; t < parseDay(date); t += DAY) {
+    const dow = new Date(t).getUTCDay();
+    if (dow !== 0 && dow !== 6) return null;
+  }
+  return last;
+}
+
 // {price, ret1y, retYtd, ret1d} from a [{date, close}] series (ascending):
-// the return columns the screener and the manager page show.
-export function returnsFromSeries(symbol, prices, now = Date.now()) {
+// the return columns the screener and the manager page show. `calendar`
+// (tradingDays()) lets 1D refuse a previous row that is not the previous
+// trading day: with a close missing in between, "1D" would be two days.
+export function returnsFromSeries(symbol, prices, now = Date.now(), { calendar = null } = {}) {
   if (!prices?.length) return { symbol, price: null, ret1y: null, retYtd: null, ret1d: null };
   const last = prices[prices.length - 1];
   const price = last.close;
@@ -217,7 +255,15 @@ export function returnsFromSeries(symbol, prices, now = Date.now()) {
       break;
     }
   }
-  const prevClose = prices.length > 1 && prices.length - 2 >= clean ? prices[prices.length - 2].close : null;
+  let prevClose = prices.length > 1 && prices.length - 2 >= clean ? prices[prices.length - 2].close : null;
+  if (prevClose != null && calendar?.length) {
+    const expected = previousTradingDay(last.date, calendar);
+    if (expected && prices[prices.length - 2].date !== expected) prevClose = null;
+  }
   const pct = (base) => (base && base > 0 ? ((price - base) / base) * 100 : null);
-  return { symbol, price, asOf: last.date, ret1y: pct(base1y?.close), retYtd: pct(baseYtd?.close), ret1d: pct(prevClose) };
+  const long = (base) => {
+    const r = pct(base);
+    return r != null && base < SUBPENNY_BASE && r > SUBPENNY_MAX_RETURN ? null : r;
+  };
+  return { symbol, price, asOf: last.date, ret1y: long(base1y?.close), retYtd: long(baseYtd?.close), ret1d: pct(prevClose) };
 }

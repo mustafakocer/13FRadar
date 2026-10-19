@@ -1,7 +1,7 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { mapLimit } from '../_lib/mapLimit.js';
 import { dailyCloses } from '../_lib/providers.js';
-import { returnsFromSeries } from '../_lib/priceStore.js';
+import { returnsFromSeries, tradingDays } from '../_lib/priceStore.js';
 import { priceSnapshot } from '../_lib/priceSnapshot.js';
 
 // One symbol's {price, ret1y, retYtd, ret1d}: from the close series (the
@@ -9,7 +9,7 @@ import { priceSnapshot } from '../_lib/priceSnapshot.js';
 // build wrote (returns.json), else nulls.
 async function symbolReturns(sym) {
   const prices = await dailyCloses(sym);
-  if (prices?.length) return returnsFromSeries(sym, prices);
+  if (prices?.length) return returnsFromSeries(sym, prices, Date.now(), { calendar: tradingDays() });
   const snap = priceSnapshot(sym);
   return { symbol: sym, price: snap?.price?.price ?? null, asOf: snap?.priceAsOf || null, ret1y: snap?.history?.ret1y ?? null, retYtd: snap?.history?.retYtd ?? null, ret1d: snap?.history?.ret1d ?? null };
 }

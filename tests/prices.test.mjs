@@ -229,6 +229,42 @@ test('returnsFromSeries: a holiday week is not a hole', () => {
   assert.ok(Number.isFinite(r.retYtd) && Number.isFinite(r.ret1y));
 });
 
+test('previousTradingDay: the calendar row before, a weekend bridged past its end, never a guessed weekday', async () => {
+  const { previousTradingDay } = await import('../api/_lib/priceStore.js');
+  const days = ['2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16'];
+  assert.equal(previousTradingDay('2026-10-15', days), '2026-10-14');
+  assert.equal(previousTradingDay('2026-10-12', days), null, 'nothing before the first day');
+  assert.equal(previousTradingDay('2026-10-19', days), '2026-10-16', 'Monday after a calendar ending Friday');
+  assert.equal(previousTradingDay('2026-10-20', days), null, 'Monday is missing: Tuesday cannot be placed');
+  assert.equal(previousTradingDay('2026-10-11', days), null, 'a Sunday inside the calendar is no trading day');
+});
+
+test('returnsFromSeries: 1D only from the previous trading day', () => {
+  const now = Date.parse('2026-10-17T12:00:00Z');
+  const calendar = series('2025-06-01', '2026-10-16').map((p) => p.date);
+  const s = series('2025-06-01', '2026-10-16', { start: 0.5 });
+  const whole = returnsFromSeries('X', s, now, { calendar });
+  assert.ok(Number.isFinite(whole.ret1d));
+  // OPENW: no close on 15 October, so 14 → 16 October read as one day
+  const gap = s.filter((p) => p.date !== '2026-10-15');
+  const r = returnsFromSeries('X', gap, now, { calendar });
+  assert.equal(r.ret1d, null);
+  assert.ok(Number.isFinite(r.ret1y), 'the long columns do not care about one missing day');
+  assert.ok(Number.isFinite(returnsFromSeries('X', gap, now).ret1d), 'without a calendar nothing is refused');
+});
+
+test('returnsFromSeries: over 1,000% off a sub-penny base is a print, not a year', () => {
+  const now = Date.parse('2026-10-17T12:00:00Z');
+  // AMFN: $0.0009 a year ago, $0.073 today, no single ×3 day on the way
+  const s = series('2025-06-01', '2026-10-16', { start: 0.0005, drift: 0.0145 });
+  const r = returnsFromSeries('X', s, now);
+  assert.ok(s.find((p) => p.date >= '2025-10-17').close < 0.01);
+  assert.equal(r.ret1y, null);
+  // a real tenfold from a dollar stays
+  const real = returnsFromSeries('X', series('2025-06-01', '2026-10-16', { start: 1, drift: 0.012 }), now);
+  assert.ok(real.ret1y > 1000);
+});
+
 // ---- the backtest arithmetic -------------------------------------------
 const TICKERS = ['AAPL', 'AXP', 'BAC', 'KO', 'CVX', 'OXY', 'GOOGL', 'AMZN', 'NVDA', 'MSFT', 'HLT', 'MCO', 'DVA', 'KHC', 'V'];
 const cusipOf = (t) => `C${t.padEnd(8, '0')}`;
@@ -280,6 +316,12 @@ test('Finnhub 403 is about one symbol: skipped, the night goes on; ten in a row 
     const refused = async () => ({ status: 403, data: { error: "You don't have access to this resource." } });
     assert.equal(await finnhubQuote('ABCD', null, { get: refused }), null, 'a refused symbol is unknown, not fatal');
     assert.deepEqual(await finnhubQuote('AAPL', null, { get: ok }), [{ date: '2026-10-01', close: 12.5 }]);
+    // the previous close goes on the previous trading day when the series stops before it
+    const withPc = async () => ({ status: 200, data: { c: 12.5, pc: 12, t: Date.parse('2026-10-01T20:00:00Z') / 1000 } });
+    const prevDay = (d) => (d === '2026-10-01' ? '2026-09-30' : null);
+    assert.deepEqual(await finnhubQuote('AAPL', '2026-09-29', { get: withPc, prevDay }), [{ date: '2026-09-30', close: 12 }, { date: '2026-10-01', close: 12.5 }]);
+    assert.deepEqual(await finnhubQuote('AAPL', '2026-09-30', { get: withPc, prevDay }), [{ date: '2026-10-01', close: 12.5 }], 'nothing missing');
+    assert.deepEqual(await finnhubQuote('AAPL', '2026-09-29', { get: withPc, prevDay: () => null }), [{ date: '2026-10-01', close: 12.5 }], 'no calendar, no guess');
     for (let i = 1; i < FINNHUB_REFUSALS_IN_A_ROW; i++) assert.equal(await finnhubQuote(`X${i}`, null, { get: refused }), null);
     await assert.rejects(finnhubQuote('XLAST', null, { get: refused }), (e) => e.dead && /10 times in a row/.test(e.message));
     assert.equal(finnhubRefusals(), FINNHUB_REFUSALS_IN_A_ROW + 1);

@@ -22,7 +22,7 @@ import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
 import { tdGet, hasTd, hasFinnhub } from './providers.js';
-import { readSeries, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir } from './priceStore.js';
+import { readSeries, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir, tradingDays, previousTradingDay } from './priceStore.js';
 import { noteProvider } from './providerAlarm.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -33,7 +33,8 @@ export const BENCHMARKS = ['SPY', 'QQQ', 'IWM'];
 // What returns.json was computed under; bump it when returnsFromSeries changes
 // what it refuses, and the next build recomputes every row once.
 // 2: no return across a ×3 day or a 20-day hole (2026-10).
-export const RETURNS_RULE = 2;
+// 3: 1D only from the previous trading day; no >1,000% off a sub-penny base.
+export const RETURNS_RULE = 3;
 export const HISTORY_YEARS = 10;
 
 // A listed ticker: letters, digits, a class dash or dot; not a bond
@@ -201,7 +202,7 @@ export function finnhubSummary(label) {
   return line;
 }
 
-export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.get(url, opts), wait = sleep } = {}) {
+export async function finnhubQuote(symbol, from, { get = (url, opts) => http.get(url, opts), wait = sleep, prevDay = (d) => previousTradingDay(d) } = {}) {
   const key = process.env.FINNHUB_API_KEY;
   if (!key) throw new Error('FINNHUB_API_KEY not set');
   const ask = () => {
@@ -230,7 +231,17 @@ export async function finnhubQuote(symbol, _from, { get = (url, opts) => http.ge
   const c = Number(r.data?.c);
   const t = Number(r.data?.t);
   if (!(c > 0) || !(t > 0)) return null;
-  return [{ date: isoDay(t * 1000), close: c }];
+  const date = isoDay(t * 1000);
+  const rows = [{ date, close: c }];
+  // The quote carries the previous close too. A symbol the night's budget
+  // did not reach lost that day for good — 1,301 of 4,322 series had no
+  // 15 October 2026, and their "1D" spanned two days. Written on the
+  // previous trading day when the calendar can name it, and only when the
+  // series stops before it.
+  const pc = Number(r.data?.pc);
+  const prev = pc > 0 ? prevDay(date) : null;
+  if (prev && (!from || from < prev)) rows.unshift({ date: prev, close: pc });
+  return rows;
 }
 
 // The providers a run can use, with tonight's budget and the pause between
@@ -376,12 +387,13 @@ export async function buildPrices({
     // a file written under an older rule is recomputed whole, once: a row
     // whose series has no new close would otherwise keep its old figure
     const full = returnsFile.rule !== RETURNS_RULE;
+    const calendar = tradingDays();
     for (const [key, e] of after) {
       const have = returnsFile.returns[key];
       if (!full && have?.asOf && have.asOf >= e.asOf) continue;
       const s = readSeries(key);
       if (!s) continue;
-      const r = returnsFromSeries(key, s.prices, now);
+      const r = returnsFromSeries(key, s.prices, now, { calendar });
       // nothing to say about a new symbol; a known one is overwritten with
       // its blanks, never left showing the figure the rules now refuse
       if (r.ret1y == null && r.retYtd == null && !have) continue;
@@ -415,7 +427,7 @@ export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAg
   for (const job of plan.jobs) {
     asked++;
     try {
-      const rows = await quote(job.symbol);
+      const rows = await quote(job.symbol, job.from);
       noteProvider('finnhub', { ok: true });
       if (!rows) unknown++;
       else {

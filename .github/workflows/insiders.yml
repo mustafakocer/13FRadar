@@ -157,7 +157,7 @@ jobs:
       - name: Audit the rebuilt data
         id: audit
         if: inputs.simulate_failure != true
-        run: node scripts/audit-data.mjs --only=insiders,insiders-teaser
+        run: node scripts/audit-data.mjs --only=insiders,insiders-teaser,insiders-raw,ticker-meta,bench-spy,bench-qqq,bench-iwm
         env:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 

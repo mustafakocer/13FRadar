@@ -107,7 +107,7 @@ jobs:
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
       - name: Audit the rebuilt data
-        run: node scripts/audit-data.mjs --only=universe,stocks,slugs,latest-holdings
+        run: node scripts/audit-data.mjs --only=universe,stocks,slugs,latest-holdings,security-master,cusip-tickers
         env:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 

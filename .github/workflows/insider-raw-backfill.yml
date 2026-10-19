@@ -45,12 +45,16 @@ jobs:
       # PR head, and checks do not run on commits pushed with GITHUB_TOKEN
       # (the pull_request paths filter looks at the whole PR, so every push
       # starts this job). The weekly and manual runs commit.
+      - name: Audit the rebuilt data
+        id: audit
+        run: node scripts/audit-data.mjs --only=insiders-raw-backfill
+
       - name: Commit
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && steps.audit.outcome == 'success'
         run: |
           git config user.name 'insider-bot'
           git config user.email 'actions@github.com'
-          git add api/_data/insiders-raw-backfill.json 2>/dev/null || true
+          git add api/_data/insiders-raw-backfill.json client/public/data-audit.json 2>/dev/null || true
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: backfill Form 4 fields of recent open-market buys'
           branch="${{ github.head_ref || github.ref_name }}"

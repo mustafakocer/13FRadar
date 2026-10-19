@@ -86,7 +86,7 @@ for (const d of report.datasets) {
   const counts = Object.entries(d.metrics)
     .map(([k, v]) => `${k} ${v}`)
     .join(', ');
-  console.log(`${MARK[worst]} ${d.key.padEnd(16)} ${counts}`);
+  console.log(`${MARK[worst]} ${d.key.padEnd(21)} ${counts}`);
   for (const f of d.findings) {
     if (f.severity === 'info' && f.rule === 'drift') continue; // first build, nothing to say
     console.log(`        ${f.severity === 'error' ? '✗' : f.severity === 'warn' ? '!' : '·'} ${f.rule}: ${f.message}`);

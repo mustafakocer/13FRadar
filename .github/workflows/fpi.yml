@@ -40,6 +40,10 @@ on:
         description: 'Re-check every issuer at the SEC (not only those older than 30 days)'
         type: boolean
         default: false
+      allow_drift:
+        description: 'Treat a large rate move as real (a devaluation, not a bad print)'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -111,13 +115,22 @@ jobs:
       # pull_request looks at the whole PR, so every push would start it, and
       # a commit by the bot becomes the PR head that no check runs on
       # (workflows triggered by GITHUB_TOKEN pushes need approval).
+      # The gate (api/_lib/dataValueChecks.js fxChecks): a rate stored upside
+      # down or a bad print stops here, with last night's rates still live.
+      # Every insider dollar figure of a foreign issuer is priced off these.
+      - name: Audit the rebuilt data
+        id: audit
+        run: node scripts/audit-data.mjs --only=fpi
+        env:
+          AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
+
       - name: Commit
         id: commit
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && steps.audit.outcome == 'success'
         run: |
           git config user.name 'fpi-bot'
           git config user.email 'actions@github.com'
-          git add api/_data/fpi.json
+          git add api/_data/fpi.json client/public/data-audit.json
           if git diff --cached --quiet; then echo "no changes"; exit 0; fi
           git commit -m 'chore: refresh foreign issuer data (FX, ADR ratios)'
           branch="${{ github.head_ref || github.ref_name }}"

@@ -18,6 +18,16 @@
 // The second is the one that catches a bad upstream day. A quarter's rebuild
 // shifts counts by a few percent; a truncated SEC response halves them.
 
+import {
+  guruPerformanceChecks,
+  fxChecks,
+  returnsMetrics,
+  returnsChecks,
+  benchmarkMetrics,
+  benchmarkChecks,
+  tickerMetaMetrics,
+} from './dataValueChecks.js';
+
 const isObj = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 
 // Rows, whichever shape a file keeps them in. A count that is already a number
@@ -214,8 +224,12 @@ export const DATASETS = [
     key: 'returns',
     path: 'client/public/returns.json',
     require: ['updatedAt', 'returns'],
-    metrics: (d) => ({ tickers: size(d.returns) }),
+    metrics: returnsMetrics,
     floors: { tickers: 100 },
+    ceilings: { nonNumeric: 0 },
+    // fewer extreme returns than last night is good news, not a collapse
+    noDrift: ['extreme'],
+    checks: returnsChecks,
   },
   {
     // the nightly price cache's summary (the series themselves are one file
@@ -228,6 +242,16 @@ export const DATASETS = [
     floors: { series: 50 },
     drift: false,
   },
+  // The three benchmarks every "vs SPY" and every chart's comparison line is
+  // read against: one bad print here is wrong on every guru page at once.
+  ...['SPY', 'QQQ', 'IWM'].map((symbol) => ({
+    key: `bench-${symbol.toLowerCase()}`,
+    path: `api/_data/prices/${symbol}.json`,
+    require: ['from', 'asOf', 'd', 'c'],
+    metrics: benchmarkMetrics,
+    floors: { rows: 1000 },
+    checks: benchmarkChecks,
+  })),
   {
     key: 'splits',
     path: 'api/_data/splits.json',
@@ -256,6 +280,92 @@ export const DATASETS = [
     require: ['bySlug', 'byCik'],
     metrics: (d) => ({ bySlug: size(d.bySlug), byCik: size(d.byCik) }),
     floors: { bySlug: 3000, byCik: 3000 },
+  },
+  {
+    // the 1/3/5/10-year figures against SPY on every guru page and the
+    // "best performance" list — the numbers a reader is most likely to quote
+    key: 'guru-performance',
+    path: 'api/_data/guru-performance.json',
+    require: ['updatedAt', 'asOf', 'byCik'],
+    metrics: (d) => ({
+      gurus: size(d.byCik),
+      // a price cache that stopped answering turns every horizon to null
+      // while the file keeps its size: this is the count that collapses
+      withY1: count(d.byCik, (g) => g?.horizons?.y1?.port != null),
+      withY5: count(d.byCik, (g) => g?.horizons?.y5?.port != null),
+    }),
+    floors: { gurus: 20, withY1: 10 },
+    checks: guruPerformanceChecks,
+  },
+  {
+    // exchange rates and ADR ratios: every foreign issuer's dollar figure on
+    // the insider pages is a share count times one of these
+    key: 'fpi',
+    path: 'api/_data/fpi.json',
+    require: ['updatedAt', 'rates', 'issuers'],
+    metrics: (d) => ({
+      currencies: size(d.rates),
+      issuers: size(d.issuers),
+      adrs: count(d.issuers, (e) => e?.ads),
+    }),
+    floors: { currencies: 15, issuers: 200 },
+    checks: fxChecks,
+  },
+  {
+    key: 'fundamentals',
+    path: 'api/_data/fundamentals.json',
+    require: ['updatedAt', 'byTicker'],
+    metrics: (d) => ({
+      tickers: size(d.byTicker),
+      withEps: count(d.byTicker, (x) => x?.eps?.value != null),
+      withShares: count(d.byTicker, (x) => x?.shares?.value > 0),
+    }),
+    floors: { tickers: 1000 },
+    warnFloors: { withEps: 1000, withShares: 1000 },
+  },
+  {
+    key: 'ticker-meta',
+    path: 'api/_data/ticker-meta.json',
+    require: [],
+    metrics: tickerMetaMetrics,
+    floors: { symbols: 1000 },
+    ceilings: { invertedRange: 0, negativeCap: 0 },
+    noDrift: ['invertedRange', 'negativeCap'],
+  },
+  {
+    key: 'company-names',
+    path: 'api/_data/company-names.json',
+    require: ['updatedAt', 'names'],
+    metrics: (d) => ({ names: size(d.names) }),
+    floors: { names: 5000 },
+  },
+  {
+    key: 'cusip-tickers',
+    path: 'api/_data/cusip-tickers.json',
+    require: [],
+    metrics: (d) => ({ cusips: size(d) }),
+    floors: { cusips: 2000 },
+  },
+  {
+    key: 'filer-meta',
+    path: 'api/_data/filer-meta.json',
+    require: ['updatedAt', 'byCik'],
+    metrics: (d) => ({ filers: size(d.byCik) }),
+    floors: { filers: 300 },
+  },
+  {
+    key: 'insiders-raw',
+    path: 'api/_data/insiders-raw.json',
+    require: ['updatedAt', 'rows'],
+    metrics: (d) => ({ rows: size(d.rows) }),
+    floors: { rows: 2000 },
+  },
+  {
+    key: 'insiders-raw-backfill',
+    path: 'api/_data/insiders-raw-backfill.json',
+    require: ['updatedAt', 'rows'],
+    metrics: (d) => ({ rows: size(d.rows) }),
+    floors: { rows: 100 },
   },
   // The feed is a rolling window over filings as they land, and 13F filings
   // bunch around the 45-day deadline: 81 rows in the week after one, close to
@@ -352,7 +462,12 @@ export function auditDataset({ spec, current, baseline = null, allowDrift = fals
   // Dataset-specific rules that are not a count against a number.
   if (typeof spec.checks === 'function') {
     try {
-      for (const f of spec.checks(current) || []) add(f.severity || 'warn', f.rule || 'check', f.message, f.cik ? { cik: f.cik } : {});
+      for (const f of spec.checks(current) || []) {
+        // a value that can, rarely, be real is waved through by the same
+        // override as an intended collapse; arithmetic never is
+        const waved = allowDrift && f.overridable && f.severity === 'error';
+        add(waved ? 'warn' : f.severity || 'warn', f.rule || 'check', waved ? `${f.message} (drift override on)` : f.message, f.cik ? { cik: f.cik } : {});
+      }
     } catch (e) {
       add('warn', 'check', `custom check failed to run: ${e.message}`);
     }
@@ -373,7 +488,9 @@ export function auditDataset({ spec, current, baseline = null, allowDrift = fals
     return { key: spec.key, path: spec.path, metrics, findings };
   }
 
+  const noDrift = new Set(spec.noDrift || []);
   for (const [name, value] of Object.entries(metrics)) {
+    if (noDrift.has(name)) continue;
     const v = driftVerdict(value, before[name]);
     if (!v) continue;
     // An override exists because a real change — the guru bench going from 20

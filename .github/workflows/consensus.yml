@@ -224,7 +224,7 @@ jobs:
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.
       - name: Audit the rebuilt data
-        run: node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,returns,prices,splits,related,filings,filer-states,sector-map,security-master
+        run: node scripts/audit-data.mjs --only=consensus,consensus-pro,guru-stocks,guru-history,guru-activity,guru-performance,returns,prices,bench-spy,bench-qqq,bench-iwm,splits,related,filings,filer-states,sector-map,security-master,cusip-tickers,fundamentals,ticker-meta,company-names,filer-meta
         env:
           AUDIT_ALLOW_DRIFT: ${{ inputs.allow_drift == true && '1' || '0' }}
 

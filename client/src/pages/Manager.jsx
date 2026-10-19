@@ -379,6 +379,17 @@ export default function Manager({ segment = 'portfolio' }) {
                   {t('manager.optionsNotional').replace('{v}', fmtMoney(holdings.data.optionValue))}
                 </span>
               )}
+              {/* T-bill ETFs' weight (api/_lib/cashLike.js): the cash a 13F
+                  can show; beside the previous period's when the build kept it */}
+              {(holdings.data?.cashLike > 0 || holdings.data?.cashLikePrev?.w > 0) && (
+                <span className="s" data-cashlike={holdings.data.cashLike ?? ''}>
+                  {t('manager.cashLike').replace('{w}', fmtPct(holdings.data.cashLike ?? 0, { sign: false }))}
+                  {holdings.data.cashLikePrev && (
+                    <> · {t('manager.cashLikePrev').replace('{q}', quarterLabel(holdings.data.cashLikePrev.reportDate)).replace('{w}', fmtPct(holdings.data.cashLikePrev.w, { sign: false }))}</>
+                  )}
+                  <InfoTip tip="tips.cashLike" />
+                </span>
+              )}
             </div>
             <div className="fund-stat">
               <span className="k">{t('manager.positions')}</span>

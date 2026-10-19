@@ -14,6 +14,7 @@ import { declaredCandidates, lineKey, overlapPairs } from '../api/_lib/universeA
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
+import { cashLikePrev } from '../api/_lib/cashLike.js';
 import { inferPeriod, completeQuarter, universeRow, writeUniverseSummaryFile } from '../api/_lib/universeSummary.js';
 import { misfiledFor, markMisfiled } from '../api/_lib/misfiledBooks.js';
 import { indexEntry, needsSubmissions } from '../api/_lib/amendments.js';
@@ -112,6 +113,14 @@ async function main() {
   // the ten largest positions and the totals of every latest filing, so a
   // portfolio page's free view never has to go back to EDGAR for them
   const snapshot = {};
+  // last run's entries: the cash-like weight of a filer's previous period
+  // is carried from there (cashLike.js), no extra EDGAR read
+  let lastSnapshot = {};
+  try {
+    lastSnapshot = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'api', '_data', 'latest-holdings.json'), 'utf8')).byCik || {};
+  } catch {
+    /* first run: no previous weights */
+  }
   const stockAgg = new Map(); // cusip -> {issuer, value, funds}
   const books = []; // { id: cik, keys } per filer
   let done = 0;
@@ -205,6 +214,7 @@ async function main() {
             positions,
             amendments: snap.amendments,
             unitFix: snap.unitFix,
+            cashLikePrev: cashLikePrev(lastSnapshot[e.cik.padStart(10, '0')], snap.reportDate),
           });
           // whale-heatmap aggregate across ALL filers (equity positions only);
           // a filing carrying another filer's table is not counted twice

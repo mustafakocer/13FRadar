@@ -4,15 +4,11 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 "Olası neden" bir ipucudur, karar değil. 🆕 = bu gece ilk kez görülen.
 
-**İncelenecek: 3 fon. İncelendi: 49 fon** (fonun kapak hatası 25, fonun tablosu eksik 5, fon eski tabloyu eklemiş 1, küçük fark 18).
+**İncelenecek: 0 fon. İncelendi: 52 fon** (fonun kapak hatası 26, fonun tablosu eksik 5, fon eski tabloyu eklemiş 3, küçük fark 18).
 
 ## İncelenecek
 
-| | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
-|---|---|---|---|---|---|---|---|
-|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1571 | $2.11 mlr | $2.18 mlr | -3.2% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
-|  | Aubrey Capital Management Ltd (0001730754) | 7260 | $159.6 mn | $115.2 mn | +38.6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1730754/000173075426000008/) |
-|  | Future Financial Wealth Managment LLC (0001801892) | 7195 | $163.0 mn | $179.7 mn | -9.3% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
+Yok.
 
 ## İncelendi — fonun kapak hatası
 
@@ -44,6 +40,7 @@ Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor;
 |  | Hippocratic Financial Advisors, LLC (0002055803) | 5775 | $254.1 mn | $159.2 mn | +59.6% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
 |  | X ADVISORS, LLC (0002139999) | 8650 | $37.6 mn | $1.3 mn | +2861.7% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2139999/000213999926000001/) |
 |  | PURA VIDA INVESTMENTS, LLC (0001590144) | 8653 | $37.0 mn | $16.5 mn | +124% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1590144/000159014426000004/) |
+|  | Future Financial Wealth Managment LLC (0001801892) | 7195 | $163.0 mn | $179.7 mn | -9.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
 |  | North Forty Two & Co. (0002055134) | 8099 | $117.8 mn | $129.1 mn | -8.8% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055134/000205513426000003/) |
 
 ## İncelendi — fonun tablosu eksik
@@ -65,6 +62,8 @@ Fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu eklemiş
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
 |  | Prospera Capital Management, LLC (0002082673) | 5109 | $319.8 mn | $406.3 mn | -21.3% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2082673/000208267326000005/) |
+|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1571 | $2.11 mlr | $2.18 mlr | -3.2% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
+|  | Aubrey Capital Management Ltd (0001730754) | 7260 | $159.6 mn | $115.2 mn | +38.6% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1730754/000173075426000008/) |
 
 ## İncelendi — küçük fark, tablo doğru
 

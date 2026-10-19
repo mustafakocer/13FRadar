@@ -10,6 +10,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
+import { cashLikeWeight } from './cashLike.js';
 
 const require = createRequire(import.meta.url);
 let table;
@@ -44,6 +45,8 @@ export function latestHoldings(cik, acc) {
     filingDate: e.filed || null,
     reportDate: e.reportDate || null,
     ...(e.amendments?.length ? { amended: true, amendments: e.amendments } : {}),
+    ...(e.cashLike != null ? { cashLike: e.cashLike } : {}),
+    ...(e.cashLikePrev ? { cashLikePrev: e.cashLikePrev } : {}),
     positions: e.top.map((p) => ({
       cusip: p.cusip,
       putCall: p.putCall || '',
@@ -61,7 +64,11 @@ export function latestHoldings(cik, acc) {
 // One filer's entry as the universe build stores it: the totals and the ten
 // largest positions, rounded to what the table shows. `amendments` lists the
 // 13F-HR/A documents folded into the snapshot, when there were any.
-export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, amendments = null, unitFix = null }, top = 10) {
+// `cashLike` is the T-bill ETFs' weight in percent (cashLike.js), a share so
+// a ×1000 unit repair of the entry leaves it right; `cashLikePrev` the
+// previous period's, carried from the last build ({ reportDate, w }).
+export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, amendments = null, unitFix = null, cashLikePrev = null }, top = 10) {
+  const cashLike = cashLikeWeight(positions);
   return {
     acc,
     filed,
@@ -72,6 +79,8 @@ export function snapshotEntry({ acc, filed, reportDate = null, aum, positions, a
     aum: Math.round(aum),
     // the option lines' notional inside aum (the underlying shares' value)
     putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value || 0 : 0), 0)),
+    ...(cashLike != null ? { cashLike } : {}),
+    ...(cashLikePrev ? { cashLikePrev } : {}),
     count: positions.length,
     top: positions.slice(0, top).map((p) => ({
       cusip: p.cusip,

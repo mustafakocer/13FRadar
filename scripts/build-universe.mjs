@@ -230,7 +230,10 @@ async function main() {
         }
         done++;
         if (done % 200 === 0) console.log(`  ${done}/${entries.length} (failed: ${failed})`);
-        await sleep(500); // 3 workers × 2 requests ≈ 7 req/s, under SEC's 10/s limit
+        // No pause here: every EDGAR request goes through secGet's process-wide
+        // clock (SEC_RPS, 6/s, under SEC's 10/s), and a filer served from the
+        // disk cache (.cache/edgar, restored by the Action) makes none. The
+        // fixed 500 ms used to cost 25 minutes a night on cached filers alone.
       }
     })
   );

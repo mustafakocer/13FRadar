@@ -145,7 +145,11 @@ jobs:
       # terms do not cover a paid site). The log opens with the plan and how many
       # nights a full fill takes. Best-effort: a provider outage leaves
       # yesterday's files in place.
+      # Not on a code push: the nightly run refreshes the closes anyway, and
+      # this step is ~100 minutes of waiting on the providers' per-minute
+      # limits. A push rebuilds the tables on the closes already committed.
       - name: Build the price cache (api/_data/prices)
+        if: github.event_name != 'push'
         run: node scripts/build-prices.mjs
         env:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
@@ -160,6 +164,8 @@ jobs:
       # (scripts/build-fundamentals.mjs). A failed download keeps yesterday's
       # api/_data/fundamentals.json.
       - name: Build fundamentals.json (SEC XBRL)
+        # nightly only, like the closes above
+        if: github.event_name != 'push'
         continue-on-error: true
         run: |
           curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip

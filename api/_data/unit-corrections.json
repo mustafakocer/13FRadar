@@ -1,7 +1,17 @@
 {
- "updatedAt": "2026-10-18T02:54:25.262Z",
+ "updatedAt": "2026-10-21T06:00:53.851Z",
  "count": 437,
  "corrections": [
+  {
+   "cik": "0000049969",
+   "name": "CIGNA INVESTMENTS INC /NEW",
+   "period": "2026-09-30",
+   "acc": "0000049969-26-000011",
+   "filed": "2026-10-19",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
   {
    "cik": "0000071210",
    "name": "NEVILLE RODIE & SHAW INC",
@@ -143,6 +153,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001511098",
+   "name": "Baskin Financial Services Inc.",
+   "period": "2026-09-30",
+   "acc": "0001511098-26-000005",
+   "filed": "2026-10-19",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001569102",
    "name": "A. D. Beadell Investment Counsel, Inc.",
    "period": "2026-09-30",
@@ -150,6 +170,16 @@
    "filed": "2026-10-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001569453",
+   "name": "F&V Capital Management, LLC",
+   "period": "2026-09-30",
+   "acc": "0001569453-26-000005",
+   "filed": "2026-10-19",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -163,6 +193,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001600746",
+   "name": "Eagle Capital Management, LLC",
+   "period": "2026-09-30",
+   "acc": "0001600746-26-000005",
+   "filed": "2026-10-19",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001601622",
    "name": "LBJ Family Wealth Advisors, Ltd.",
    "period": "2026-09-30",
@@ -170,6 +210,16 @@
    "filed": "2026-10-01",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001630064",
+   "name": "Lancaster Investment Management",
+   "period": "2026-09-30",
+   "acc": "0001630064-26-000005",
+   "filed": "2026-10-19",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (63% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -200,6 +250,16 @@
    "filed": "2026-10-13",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 12 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001654847",
+   "name": "Community Bank & Trust, Waco, Texas",
+   "period": "2026-09-30",
+   "acc": "0001654847-26-000004",
+   "filed": "2026-10-19",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -420,16 +480,6 @@
    "filed": "2026-07-30",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0000049969",
-   "name": "CIGNA INVESTMENTS INC /NEW",
-   "period": "2026-06-30",
-   "acc": "0000049969-26-000005",
-   "filed": "2026-07-21",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1613,16 +1663,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001511098",
-   "name": "Baskin Financial Services Inc.",
-   "period": "2026-06-30",
-   "acc": "0001511098-26-000003",
-   "filed": "2026-07-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001511291",
    "name": "M3F, Inc.",
    "period": "2026-06-30",
@@ -1793,16 +1833,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001569453",
-   "name": "F&V Capital Management, LLC",
-   "period": "2026-06-30",
-   "acc": "0001569453-26-000004",
-   "filed": "2026-07-21",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001569638",
    "name": "M Holdings Securities, Inc.",
    "period": "2026-06-30",
@@ -1923,16 +1953,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001600746",
-   "name": "Eagle Capital Management, LLC",
-   "period": "2026-06-30",
-   "acc": "0001600746-26-000003",
-   "filed": "2026-07-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001606152",
    "name": "Hikari Power Ltd",
    "period": "2026-06-30",
@@ -2013,16 +2033,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001630064",
-   "name": "Lancaster Investment Management",
-   "period": "2026-06-30",
-   "acc": "0001630064-26-000003",
-   "filed": "2026-07-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001630798",
    "name": "Industrial Alliance Investment Management Inc.",
    "period": "2026-06-30",
@@ -2100,16 +2110,6 @@
    "filed": "2026-07-24",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 5 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001654847",
-   "name": "Community Bank & Trust, Waco, Texas",
-   "period": "2026-06-30",
-   "acc": "0001654847-26-000003",
-   "filed": "2026-08-04",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

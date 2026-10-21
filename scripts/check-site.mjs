@@ -238,7 +238,7 @@ else {
 // A filer whose newest 13F carries another filer's table opens on its newest
 // valid quarter, with a note (config/misfiled-books.json, pageFiling).
 {
-  for (const [cik, label] of [['0001927315', 'Kingsbury'], ['0001812095', 'Sixth Street']]) {
+  for (const [cik, label] of [['0002058235', 'KMT Wealth'], ['0001812095', 'Sixth Street']]) {
     const r = await get(`/api/manager/${cik}`);
     if (r.status !== 200) {
       out.push(`- ${label}: /api/manager → HTTP ${r.status}`);

@@ -2,7 +2,7 @@
 // day in one quarter's EDGAR index. For each filing: the period it reports,
 // its line count and declared total, whether the universe uses it, and
 // whether its table is 90%+ another filer's book (a filing agent's slip, as
-// Kingsbury's 0001104659-26-100644 carried KMT Wealth's table).
+// KMT Wealth's 0001104659-26-091013 carried Kingsbury's table).
 // Prints a markdown table (and appends it to the step summary). Writes nothing.
 //
 //   SCAN_QUARTER=2026Q3 node scripts/scan-same-day-originals.mjs

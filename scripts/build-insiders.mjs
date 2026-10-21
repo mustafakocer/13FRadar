@@ -98,7 +98,7 @@ if ((FROM && !DAY_RE.test(FROM)) || (TO && !DAY_RE.test(TO)) || (TO && !FROM) ||
 }
 
 // ---------------------------------------------------------------- config
-const UA = process.env.SEC_USER_AGENT || 'Fundocap insider bot (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap insider bot (https://www.fundocap.co)';
 const MONTHS = Number(process.env.INSIDER_MONTHS || 12);
 const MAX_DAYS = Number(process.env.INSIDER_MAX_DAYS || DEFAULTS.maxDays);
 const MIN_FORM4 = Number(process.env.INSIDER_MIN_FORM4 || DEFAULTS.minForm4PerDay);

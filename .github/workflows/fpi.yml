@@ -97,7 +97,7 @@ jobs:
 
       - name: Build fpi.json
         env:
-          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap insider bot (https://www.fundocap.co)'
           SEC_RETRY_BACKOFF: '2,4,8,16,30'
           # the verified examples: their 20-F / F-6 ratio sentences go to the log
           FPI_DEBUG: 'TSM,BBD,CX,BABA,ASX,GGAL,VIPS'

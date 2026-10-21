@@ -62,7 +62,7 @@ jobs:
         run: node scripts/build-domains.mjs | tee -a "$GITHUB_STEP_SUMMARY"
         env:
           DOMAINS_BATCH: '200'
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (https://www.fundocap.co)'
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
       - name: Fetch logos
         run: node scripts/build-logos.mjs ${{ inputs.refresh == true && '--refresh' || '' }} | tee -a "$GITHUB_STEP_SUMMARY"

@@ -19,7 +19,7 @@ import { inferPeriod, completeQuarter, universeRow, writeUniverseSummaryFile } f
 import { misfiledFor, markMisfiled } from '../api/_lib/misfiledBooks.js';
 import { indexEntry, needsSubmissions } from '../api/_lib/amendments.js';
 
-const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap-universe/1.0 (https://www.fundocap.co)';
 const LIMIT = Number(process.env.UNIVERSE_LIMIT || 0);
 const http = axios.create({ timeout: 60000, headers: { 'User-Agent': UA } });
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

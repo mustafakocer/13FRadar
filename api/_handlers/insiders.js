@@ -8,7 +8,7 @@ import { readServed } from '../_lib/insiderStore.js';
 import { categorize, classify } from '../_lib/insiderClassify.js';
 import { dataFreshness } from '../../client/src/lib/secCalendar.js';
 
-const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (https://www.fundocap.co)';
 const http = axios.create({ timeout: 20000, headers: { 'User-Agent': UA } });
 
 const arr = (x) => (x == null ? [] : Array.isArray(x) ? x : [x]);

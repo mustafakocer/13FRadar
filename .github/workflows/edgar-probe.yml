@@ -42,7 +42,7 @@ jobs:
       - run: npm ci
       - run: node scripts/probe-market-data.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap probe (https://www.fundocap.co)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
@@ -51,13 +51,13 @@ jobs:
       - name: Dry run — sector, market cap, returns
         run: node scripts/build-stock-meta.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap probe (https://www.fundocap.co)'
       - name: Dry run — guru activity
         run: node scripts/build-guru-activity.mjs
       - name: Dry run — insiders
         run: node scripts/build-insiders.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap probe (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap probe (https://www.fundocap.co)'
           INSIDER_MONTHS: '12'
           INSIDER_MAX_DAYS: '3'
       - name: Audit what the dry runs wrote

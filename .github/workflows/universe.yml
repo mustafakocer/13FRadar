@@ -15,9 +15,9 @@ on:
     # Started on time by Supabase pg_cron (migrations/0005_job_triggers);
     # this entry is the fallback. Daily at 01:23 UTC (04:23 Istanbul), first in the nightly chain: the
     # consensus build runs when this finishes (workflow_run), the insider
-    # build follows at 04:53. The repository is private, so Actions minutes
-    # are billed: the guard skips a duplicate run and the document cache
-    # below keeps a night to the new filings; weekly left the
+    # build follows at 04:53. The repository is public, so Actions minutes
+    # are free; the guard still skips a duplicate run and the document cache
+    # below keeps a night to the new filings. Weekly left the
     # universe eighteen days stale after one failed Monday. An odd minute
     # because GitHub queues the crowd at :00 and :30 for hours.
     - cron: '23 1 * * *'
@@ -96,7 +96,7 @@ jobs:
       - name: Build universe.json
         run: node scripts/build-universe.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
       # The universe reads the latest quarter and its amendments only; what a
       # build has not touched for five months is a quarter gone by. Dropped
@@ -123,7 +123,7 @@ jobs:
           node scripts/check-universe-audit.mjs 2>&1 | tee "$RUNNER_TEMP/universe-audit.log"
         env:
           # a new copy pair: the filers' other filings for the same quarter
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.

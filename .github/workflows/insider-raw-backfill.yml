@@ -36,7 +36,7 @@ jobs:
       - run: npm ci
       - name: Backfill
         env:
-          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap insider bot (https://www.fundocap.co)'
           SEC_RETRY_BACKOFF: '2,4,8,16,30'
           # the clusters the PR discusses: remarks and footnotes to the log
           INSIDER_BACKFILL_REREAD: 'BBD,SBLK,PMTS,RWT,WIX,TSM,KRMN'

@@ -25,4 +25,4 @@ jobs:
       - run: npm ci
       - run: node scripts/check-annual-forms.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap fpi bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap fpi bot (https://www.fundocap.co)'

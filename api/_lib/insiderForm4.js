@@ -56,6 +56,10 @@ export function normDate(s) {
 //   ow  reporting-owner CIK (10 digits), used to match 4/A amendments
 //   fa  '4/A' on rows that come from an amendment (absent on a plain 4)
 //   sb  accession of the 4/A that superseded this row (set by the store)
+// Share counts keep up to four decimals: a dividend reinvestment of 0.07
+// shares (SXI, 2026-08-21) is not a 0-share trade. Whole counts are unchanged.
+const shareCount = (x) => Number(Number(x).toFixed(4));
+
 export function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc, li, formType, ownerCik }) {
   const value = price != null ? shares * price : null;
   const acquired = ['P', 'M', 'X', 'C', 'A', 'G', 'W', 'J', 'I', 'L'].includes(code) && code !== 'G';
@@ -73,10 +77,10 @@ export function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc, li, 
     k: code,
     cl: cl || classifyTransaction(code),
     ...(p5 ? { p5: 1 } : {}),
-    s: Math.round(shares),
+    s: shareCount(shares),
     p: price != null ? Number(price.toFixed(4)) : null,
     v: value != null ? Math.round(value) : null,
-    o: owned != null ? Math.round(owned) : null,
+    o: owned != null ? shareCount(owned) : null,
     oc: oc != null ? Number(oc.toFixed(1)) : null,
     a: acc,
     ...(li != null ? { li } : {}),

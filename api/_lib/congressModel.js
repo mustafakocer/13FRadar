@@ -17,6 +17,15 @@ import { slugify } from '../../client/src/lib/slugify.js';
 import { JURISDICTION, jurisdictionLabel, matchingCommittees } from './congressJurisdiction.js';
 import { CHECKED_TYPES, tickerNameMatches } from './congressTickerCheck.js';
 
+// an asset name as a dedupe key: case, accents, spaces and punctuation
+// dropped, digits kept (a coupon or maturity tells two bonds apart)
+const assetKey = (a) =>
+  String(a || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+
 const DAY = 86400000;
 const isoDay = (t) => new Date(t).toISOString().slice(0, 10);
 // the oldest trade a report can plausibly disclose: three years back
@@ -39,7 +48,7 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
   const members = {};
   const rows = [];
   const unmatched = new Set();
-  const seen = new Set();
+  const seen = new Map(); // dup key -> lines an earlier report gave
   const px = {};
   const sics = {};
   const priceOf = (t) => {
@@ -73,15 +82,21 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
     .map((f) => ({ m: memberOf(f), f: f.filed, src: f.url, s: f.status }));
   for (const f of list) {
     const key = memberOf(f);
+    const here = new Map();
     f.tx.forEach((tx, i) => {
       // no date, or one after the report that discloses it: a typo on the form
       // no date, a date after the report that discloses it, or one years
       // before it (2015 on a 2025 report): a typo on the form
       if (!tx.d || tx.d > f.filed || tx.d < floor(f.filed)) return;
-      // an amended report repeats the original's lines: one row per trade
-      const dup = [key, tx.d, tx.t || normName(tx.a), tx.k, tx.o, tx.lo, tx.hi].join('|');
-      if (seen.has(dup)) return;
-      seen.add(dup);
+      // an amended report repeats the original's lines: one row per trade.
+      // Lines that look alike inside one report are separate trades (two
+      // trusts, two accounts: Hern, Salazar, Peters 2026-10), so a line is a
+      // repeat only past the count an earlier report already gave. The asset
+      // key keeps digits: JENKS GO 2.00% 11/01/2028 is not the 2030 bond.
+      const dup = [key, tx.d, tx.t || assetKey(tx.a), tx.k, tx.o, tx.lo, tx.hi].join('|');
+      const n = (here.get(dup) || 0) + 1;
+      here.set(dup, n);
+      if (n <= (seen.get(dup) || 0)) return;
       let t = tx.t || (tx.at === 'stock' || tx.at === 'etf' ? tickerFromName(tx.a) : null);
       // a ticker that is another company's (api/_lib/congressTickerCheck.js):
       // kept as filed (tf), but nothing is priced, linked or flagged by it
@@ -103,6 +118,7 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
       }
       rows.push(row);
     });
+    for (const [dup, n] of here) if (n > (seen.get(dup) || 0)) seen.set(dup, n);
   }
   assignSlugs(members);
   for (const t of Object.keys(px)) if (!px[t]) delete px[t];

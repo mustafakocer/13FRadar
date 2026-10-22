@@ -30,7 +30,7 @@
         "managers": 72,
         "stocks": 1921,
         "options": 57,
-        "withTicker": 1915,
+        "withTicker": 1916,
         "withSector": 1735,
         "withCap": 1508
       },
@@ -57,8 +57,8 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 79589,
-        "companies": 4256,
+        "rows": 79435,
+        "companies": 4249,
         "futureDated": 0,
         "duplicateIds": 0
       },
@@ -68,7 +68,7 @@
       "key": "congress",
       "path": "api/_data/congress.json",
       "metrics": {
-        "rows": 13291,
+        "rows": 13310,
         "members": 181,
         "futureDated": 0,
         "orphanRows": 0,
@@ -80,7 +80,7 @@
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {
-        "total": 16395,
+        "total": 16411,
         "penny": 9
       },
       "findings": []
@@ -89,7 +89,7 @@
       "key": "universe",
       "path": "client/public/universe.json",
       "metrics": {
-        "rows": 8936
+        "rows": 8942
       },
       "findings": []
     },
@@ -97,8 +97,8 @@
       "key": "latest-holdings",
       "path": "api/_data/latest-holdings.json",
       "metrics": {
-        "filers": 8936,
-        "withRows": 8936
+        "filers": 8942,
+        "withRows": 8942
       },
       "findings": []
     },
@@ -114,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4252
+        "tickers": 4232
       },
       "findings": []
     },
@@ -122,7 +122,7 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4852,
+        "series": 4858,
         "coveragePct": 98.5
       },
       "findings": []
@@ -139,8 +139,8 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6236,
-        "unresolved": 81
+        "resolved": 6239,
+        "unresolved": 79
       },
       "findings": []
     },
@@ -156,8 +156,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 9044,
-        "byCik": 9044
+        "bySlug": 9052,
+        "byCik": 9052
       },
       "findings": []
     },
@@ -165,7 +165,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 1865
+        "rows": 2388
       },
       "findings": []
     },
@@ -173,7 +173,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 1599
+        "filers": 2071
       },
       "findings": []
     },

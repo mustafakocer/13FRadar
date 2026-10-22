@@ -61,32 +61,34 @@ test('every size listing leaves a misfiled row out', () => {
   assert.match(read('client/src/pages/Manager.jsx'), /t\('manager\.misfiled'\)/);
 });
 
-test('config: Kingsbury 2026-Q2 carries KMT Wealth\'s table; its 2026-Q1 filing of the same day is not touched', () => {
-  const f = misfiledFor('0001927315', '0001104659-26-100644');
+test('config: KMT Wealth 2026-Q2 carries Kingsbury\'s table; Kingsbury\'s own filings are not touched', () => {
+  const f = misfiledFor('0002058235', '0001104659-26-091013');
   assert.ok(f);
-  assert.equal(f.copyOf, '0002058235');
-  assert.equal(f.declared, null, 'the cover total was copied too: Kingsbury\'s own Q2 total is unknown');
-  assert.equal(misfiledFor('0001927315', '0001104659-26-100714'), null, 'its own 2026-03-31 book');
-  const rows = [{ cik: '0001927315', acc: '0001104659-26-100644', aum: 118195925, positions: 121 }];
+  assert.equal(f.copyOf, '0001927315');
+  assert.equal(f.declared, null, 'the cover total was copied too: KMT\'s own Q2 total is unknown');
+  assert.equal(misfiledFor('0002058235', '0001104659-26-059198'), null, 'its own 2026-03-31 book');
+  // Kingsbury's Q1, Q2 and Q3 are one continuous book (corrected 2026-10-22)
+  for (const acc of ['0001104659-26-100714', '0001104659-26-100644', '0001104659-26-117244']) assert.equal(misfiledFor('0001927315', acc), null, acc);
+  const rows = [{ cik: '0002058235', acc: '0001104659-26-091013', aum: 118195925, positions: 121 }];
   markMisfiled(rows);
-  assert.deepEqual([rows[0].misfiled.copyOf, rows[0].misfiled.declared], ['0002058235', null]);
+  assert.deepEqual([rows[0].misfiled.copyOf, rows[0].misfiled.declared], ['0001927315', null]);
 });
 
 test('pageFiling: a misfiled newest quarter opens the page on the newest valid one, never another filer', async () => {
   const { pageFiling } = await import('../api/_lib/misfiledBooks.js');
-  const K = '0001927315';
+  const K = '0002058235';
   const filings = [
-    { acc: '0001104659-26-100644', reportDate: '2026-06-30' },
-    { acc: '0001104659-26-100714', reportDate: '2026-03-31' },
-    { acc: '0001104659-22-116938', reportDate: '2022-09-30' },
+    { acc: '0001104659-26-091013', reportDate: '2026-06-30' },
+    { acc: '0001104659-26-059198', reportDate: '2026-03-31' },
+    { acc: '0001104659-26-010767', reportDate: '2025-12-31' },
   ];
   const p = pageFiling(K, filings);
-  assert.equal(p.acc, '0001104659-26-100714');
-  assert.deepEqual(p.fallback, { reportDate: '2026-03-31', misfiled: { reportDate: '2026-06-30', acc: '0001104659-26-100644', copyOf: '0002058235', copyOfName: 'KMT Wealth Management, LLC' } });
+  assert.equal(p.acc, '0001104659-26-059198');
+  assert.deepEqual(p.fallback, { reportDate: '2026-03-31', misfiled: { reportDate: '2026-06-30', acc: '0001104659-26-091013', copyOf: '0001927315', copyOfName: 'Kingsbury Capital Investment Advisors LLC' } });
   // Sixth Street: the same rule
   const s = pageFiling(SIXTH, [{ acc: ACC, reportDate: '2026-06-30' }, { acc: '0001752724-26-000020', reportDate: '2026-03-31' }]);
   assert.deepEqual([s.acc, s.fallback.misfiled.copyOf], ['0001752724-26-000020', '0000884546']);
   // a valid newest filing: no fallback; only a misfiled one and nothing earlier: no fallback
   assert.deepEqual(pageFiling(K, [{ acc: 'x-new', reportDate: '2026-09-30' }, ...filings]), { acc: 'x-new', fallback: null });
-  assert.deepEqual(pageFiling(K, filings.slice(0, 1)), { acc: '0001104659-26-100644', fallback: null });
+  assert.deepEqual(pageFiling(K, filings.slice(0, 1)), { acc: '0001104659-26-091013', fallback: null });
 });

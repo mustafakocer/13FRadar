@@ -1,7 +1,7 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-10-22T00:53:43.977Z",
- "last_success_at": "2026-10-22T00:53:53.204Z",
+ "last_run_at": "2026-10-22T18:32:50.477Z",
+ "last_success_at": "2026-10-22T18:32:58.995Z",
  "last_filing_date": "2026-10-21",
  "row_count": 13310,
  "member_count": 181,
@@ -24,8 +24,8 @@
   },
   "senate": {
    "indexed": 304,
-   "fetched": 2,
-   "ok": 2,
+   "fetched": 0,
+   "ok": 0,
    "paper": 0,
    "empty": 0,
    "error": 0

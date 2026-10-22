@@ -10,7 +10,7 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-| 🆕 | Kings Path Partners LLC (0002030974) | 4614 | $380.2 mn | $1.0 mn | +37,500% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/2030974/000203097426000010/) |
+|  | Kings Path Partners LLC (0002030974) | 4614 | $380.2 mn | $1.0 mn | +37,500% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/2030974/000203097426000010/) |
 
 ## İncelendi — fonun kapak hatası
 

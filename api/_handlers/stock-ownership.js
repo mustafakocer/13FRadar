@@ -4,7 +4,7 @@ import { getSubmissions, list13F, getEffectiveHoldings, padCik } from '../_lib/s
 import { mapLimit } from '../_lib/mapLimit.js';
 import { requirePro } from '../_lib/auth.js';
 
-const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (https://www.fundocap.co)';
 
 // GET /api/stock-ownership?cusip=037833100
 // WhaleWisdom-style aggregate view: the largest 13F holders of one security,

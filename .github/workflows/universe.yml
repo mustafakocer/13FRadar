@@ -16,7 +16,8 @@ on:
     # this entry is the fallback. Daily at 01:23 UTC (04:23 Istanbul), first in the nightly chain: the
     # consensus build runs when this finishes (workflow_run), the insider
     # build follows at 04:53. The repository is public, so Actions minutes
-    # are free and a run that commits nothing costs nothing; weekly left the
+    # are free; the guard still skips a duplicate run and the document cache
+    # below keeps a night to the new filings. Weekly left the
     # universe eighteen days stale after one failed Monday. An odd minute
     # because GitHub queues the crowd at :00 and :30 for hours.
     - cron: '23 1 * * *'
@@ -78,11 +79,31 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+      # EDGAR documents read by a previous night (info tables, cover pages,
+      # filing indexes under .cache/edgar, api/_lib/edgarCache.js). A filed
+      # document never changes, so a warm cache leaves only the filings that
+      # are new since yesterday to download: the crawl of ~8,900 filers took
+      # 1½–4½ hours a night re-reading the same tables. Its own key, apart
+      # from the consensus build's history cache. The key is unique per run
+      # so tonight's additions are saved; restore takes the newest previous.
+      - name: Restore the EDGAR document cache
+        uses: actions/cache@v4
+        with:
+          path: .cache/edgar
+          key: edgar-universe-v1-${{ github.run_id }}
+          restore-keys: |
+            edgar-universe-v1-
       - name: Build universe.json
         run: node scripts/build-universe.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
+      # The universe reads the latest quarter and its amendments only; what a
+      # build has not touched for five months is a quarter gone by. Dropped
+      # before the cache is saved so it stays well inside GitHub's 10 GB.
+      - name: Prune the EDGAR document cache
+        if: ${{ !cancelled() }}
+        run: find .cache/edgar -type f -atime +150 -delete 2>/dev/null || true
       # Stored values in dollars, filing by filing (a filer that wrote the
       # wrong unit is rescaled as a whole), the correction log rebuilt, and
       # the headline numbers recomputed from the result.
@@ -102,7 +123,7 @@ jobs:
           node scripts/check-universe-audit.mjs 2>&1 | tee "$RUNNER_TEMP/universe-audit.log"
         env:
           # a new copy pair: the filers' other filings for the same quarter
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.

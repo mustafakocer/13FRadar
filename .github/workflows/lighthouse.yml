@@ -1,12 +1,18 @@
 name: Lighthouse
 
 # Performance, accessibility, best-practice and SEO scores on every
-# finished Vercel deployment (PR previews and production), for the pages a
+# finished Vercel preview (a PR's code) and once a day on production, for the pages a
 # reader lands on (scripts/lighthouse-check.mjs). Accessibility below 90
 # fails the check; performance is reported for a person to judge. No
 # account or key: the open-source Lighthouse CLI on the runner's Chrome.
 on:
   deployment_status: {}
+  # Production is deployed by every nightly data commit (16–20 a day) with
+  # the same code; measuring each one cost ~300 minutes a week. Code reaches
+  # production through a PR whose preview was already measured, so once a
+  # day is enough to catch a drift.
+  schedule:
+    - cron: '17 12 * * *'
   workflow_dispatch:
     inputs:
       url:
@@ -19,7 +25,9 @@ permissions:
 
 jobs:
   lighthouse:
-    if: github.event_name == 'workflow_dispatch' || github.event.deployment_status.state == 'success'
+    if: >-
+      github.event_name != 'deployment_status' ||
+      (github.event.deployment_status.state == 'success' && !startsWith(github.event.deployment.environment, 'Production'))
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -30,7 +38,7 @@ jobs:
       - run: npm install -g lighthouse@12
       - name: Measure the deployment
         env:
-          URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url || inputs.url }}
+          URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url || inputs.url || 'https://www.fundocap.co' }}
           VERCEL_BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: |
           set -o pipefail

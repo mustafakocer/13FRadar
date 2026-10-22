@@ -75,7 +75,9 @@ test('insider data sets: the script reads the SEC files and finds a changed pric
   const rows = db.rows.filter((r) => accs.includes(r.a));
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ids-'));
   fs.writeFileSync(path.join(dir, 'SUBMISSION.tsv'), ['ACCESSION_NUMBER\tFILING_DATE\tDOCUMENT_TYPE\tISSUERCIK\tISSUERTRADINGSYMBOL', ...accs.map((a) => `${a}\t${sd(day)}\t4\t1\tX`), `9999999999-26-000001\t${sd(day)}\t4\t2\tNEWCO`].join('\n'));
-  const lines = rows.map((r, i) => `${r.a}\t${r.k}\t${sd(r.d)}\t${r.s}\t${i === 0 ? (r.p || 0) + 5 : r.p ?? ''}\t${r.o ?? ''}`);
+  // the first line's price moved by 10% + $5: a flat $5 on a $1,240 share
+  // (LLY, 2026-10-20) fell inside the half-percent rounding tolerance
+  const lines = rows.map((r, i) => `${r.a}\t${r.k}\t${sd(r.d)}\t${r.s}\t${i === 0 ? (r.p || 0) * 1.1 + 5 : r.p ?? ''}\t${r.o ?? ''}`);
   lines.push(`9999999999-26-000001\tP\t${sd(day)}\t100\t12.5\t100`);
   fs.writeFileSync(path.join(dir, 'NONDERIV_TRANS.tsv'), ['ACCESSION_NUMBER\tTRANS_CODE\tTRANS_DATE\tTRANS_SHARES\tTRANS_PRICEPERSHARE\tSHRS_OWND_FOLWNG_TRANS', ...lines].join('\n'));
   const out = execFileSync('node', ['scripts/insider-dataset-check.mjs', '--dir', dir, '--name', 'test', '--from', day, '--to', day, '--dry-run'], { cwd: new URL('..', import.meta.url).pathname, encoding: 'utf8', env: { ...process.env, GITHUB_STEP_SUMMARY: '' } });

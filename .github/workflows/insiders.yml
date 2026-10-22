@@ -123,7 +123,7 @@ jobs:
           set -o pipefail
           node scripts/build-insiders.mjs 2>&1 | tee insiders-build.log
         env:
-          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap insider bot (https://www.fundocap.co)'
           INSIDER_MONTHS: '12'
           INSIDER_MAX_DAYS: '45'
           # a business day has ~1,000–2,000 Form 4s; the repository variable

@@ -10,7 +10,7 @@ import { RateClock } from './edgarClock.js';
 import { cacheGet, cachePut, cacheStats } from './edgarCache.js';
 
 // SEC requires a descriptive User-Agent with contact info.
-const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap/1.0 (https://www.fundocap.co)';
 
 // A batch script can wait out a slow EDGAR response; a request on Vercel has
 // a ten-second function limit and a reader watching a spinner. Fail fast

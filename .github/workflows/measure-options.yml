@@ -38,4 +38,4 @@ jobs:
         name: Read every current filing's option lines
         run: node scripts/measure-options.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'

@@ -145,7 +145,11 @@ jobs:
       # terms do not cover a paid site). The log opens with the plan and how many
       # nights a full fill takes. Best-effort: a provider outage leaves
       # yesterday's files in place.
+      # Not on a code push: the nightly run refreshes the closes anyway, and
+      # this step is ~100 minutes of waiting on the providers' per-minute
+      # limits. A push rebuilds the tables on the closes already committed.
       - name: Build the price cache (api/_data/prices)
+        if: github.event_name != 'push'
         run: node scripts/build-prices.mjs
         env:
           TWELVEDATA_API_KEY: ${{ secrets.TWELVEDATA_API_KEY }}
@@ -160,13 +164,15 @@ jobs:
       # (scripts/build-fundamentals.mjs). A failed download keeps yesterday's
       # api/_data/fundamentals.json.
       - name: Build fundamentals.json (SEC XBRL)
+        # nightly only, like the closes above
+        if: github.event_name != 'push'
         continue-on-error: true
         run: |
-          curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
+          curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (https://www.fundocap.co)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
           node scripts/build-fundamentals.mjs
           rm -f "$RUNNER_TEMP/companyfacts.zip"
         env:
-          SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap fundamentals bot (https://www.fundocap.co)'
           COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
       # Sector comes from SEC (SIC code), market cap from SEC's share count
       # times the stored close, returns from the same closes (the price cache
@@ -178,11 +184,11 @@ jobs:
         continue-on-error: true
         run: node scripts/build-company-names.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (https://www.fundocap.co)'
       - name: Build consensus.json, guru-stocks.json & returns.json
         run: node scripts/build-consensus.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (https://www.fundocap.co)'
           SEC_RPS: '6'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           SECTOR_BUDGET: ${{ inputs.sector_budget || '2500' }}
@@ -192,7 +198,7 @@ jobs:
       - name: Plan the history walk (dry run)
         run: node scripts/build-guru-history.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (https://www.fundocap.co)'
           SEC_RPS: '6'
           GURU_HISTORY_DRY: '1'
           GURU_HISTORY_QUARTERS: ${{ inputs.guru_quarters || '40' }}
@@ -200,7 +206,7 @@ jobs:
       - name: Build guru-history.json (10 years, curated gurus) & splits.json
         run: node scripts/build-guru-history.mjs && node scripts/build-splits.mjs && node scripts/build-related.mjs && node scripts/build-guru-performance.mjs && node scripts/build-guru-cards.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (https://www.fundocap.co)'
           SEC_RPS: '6'
           OPENFIGI_API_KEY: ${{ secrets.OPENFIGI_API_KEY }}
           # build-splits.mjs reads TwelveData's /splits
@@ -219,7 +225,7 @@ jobs:
       - name: Build filings.json
         run: node scripts/build-filings.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap bot (https://www.fundocap.co)'
       # The gate. A rebuild that produced something implausible stops here,
       # with the previous data still live, instead of publishing a bad number
       # and waiting for somebody to notice.

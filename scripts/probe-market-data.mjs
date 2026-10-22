@@ -30,7 +30,7 @@ import { raceProviders } from '../api/_handlers/stock.js';
 import { classify, snapshot } from '../api/_lib/providerHealth.js';
 import { openfigiLookup } from '../api/_lib/figi.js';
 
-const UA = process.env.SEC_USER_AGENT || 'Fundocap probe (kocergpt@gmail.com)';
+const UA = process.env.SEC_USER_AGENT || 'Fundocap probe (https://www.fundocap.co)';
 const SYMBOLS = (process.env.PROBE_SYMBOLS || 'AAPL').split(',').map((s) => s.trim()).filter(Boolean);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const http = axios.create({ timeout: 20000, validateStatus: () => true, headers: { 'User-Agent': UA } });

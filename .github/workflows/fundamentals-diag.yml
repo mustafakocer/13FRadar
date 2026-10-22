@@ -37,12 +37,12 @@ jobs:
         run: npm ci
       - if: steps.ask.outputs.run == 'true'
         name: Download SEC companyfacts.zip
-        run: curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
+        run: curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (https://www.fundocap.co)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
       - if: steps.ask.outputs.run == 'true'
         name: The test tickers
         run: node scripts/build-fundamentals.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap fundamentals bot (https://www.fundocap.co)'
           COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
           FUNDAMENTALS_TICKERS: 'AAPL,MSFT,BRK-B,BRK-A,TSM,SLBT,GOOGL,GOOG,META,NVDA,KO,JPM,BABA,TM,ASML,SONY,RIVN,INTC,PFE,XOM,AMZN'
           FUNDAMENTALS_DRY: '1'
@@ -66,11 +66,11 @@ jobs:
         run: npm ci
       - if: steps.ask.outputs.run == 'true'
         name: Download SEC companyfacts.zip
-        run: curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (kocergpt@gmail.com)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
+        run: curl -sS --fail --retry 3 -A 'Fundocap fundamentals bot (https://www.fundocap.co)' -o "$RUNNER_TEMP/companyfacts.zip" https://www.sec.gov/Archives/edgar/daily-index/xbrl/companyfacts.zip
       - if: steps.ask.outputs.run == 'true'
         name: Every page's ticker, dry
         run: node scripts/build-fundamentals.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap fundamentals bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap fundamentals bot (https://www.fundocap.co)'
           COMPANYFACTS_ZIP: ${{ runner.temp }}/companyfacts.zip
           FUNDAMENTALS_DRY: '1'

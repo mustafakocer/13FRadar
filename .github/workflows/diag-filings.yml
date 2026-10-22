@@ -43,7 +43,7 @@ jobs:
         name: Read the filings
         run: node scripts/diag-filings.mjs ${{ inputs.ciks || env.DIAG_CIKS }}
         env:
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'
       - if: steps.ask.outputs.run == 'true'
         name: What the live site serves
         run: node scripts/live-report.mjs
@@ -58,5 +58,5 @@ jobs:
           head -c 600 api/_data/copy-books.json; echo
           node scripts/check-universe-audit.mjs || echo "check exit $?"
         env:
-          SEC_USER_AGENT: 'Fundocap universe bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap universe bot (https://www.fundocap.co)'
           UNIVERSE_LIMIT: 300

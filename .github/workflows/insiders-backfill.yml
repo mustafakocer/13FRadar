@@ -71,7 +71,7 @@ jobs:
           TO: ${{ inputs.to }}
           DRY: ${{ inputs.dry_run }}
           REINGEST: ${{ inputs.reingest_same_trade }}
-          SEC_USER_AGENT: 'Fundocap insider bot (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap insider bot (https://www.fundocap.co)'
           INSIDER_MONTHS: '12'
           INSIDER_MIN_FORM4: ${{ vars.INSIDER_MIN_FORM4 || '200' }}
           SEC_RETRY_BACKOFF: '2,4,8,16'

@@ -25,5 +25,5 @@ jobs:
       - run: npm ci
       - run: node scripts/scan-same-day-originals.mjs
         env:
-          SEC_USER_AGENT: 'Fundocap scan (kocergpt@gmail.com)'
+          SEC_USER_AGENT: 'Fundocap scan (https://www.fundocap.co)'
           SCAN_QUARTER: '2026Q3'

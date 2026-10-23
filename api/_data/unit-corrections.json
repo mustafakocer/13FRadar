@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-21T23:56:15.806Z",
+ "updatedAt": "2026-10-23T02:59:01.010Z",
  "count": 437,
  "corrections": [
   {
@@ -233,6 +233,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001511291",
+   "name": "M3F, Inc.",
+   "period": "2026-09-30",
+   "acc": "0001511291-26-000004",
+   "filed": "2026-10-21",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001569102",
    "name": "A. D. Beadell Investment Counsel, Inc.",
    "period": "2026-09-30",
@@ -450,6 +460,16 @@
    "filed": "2026-10-08",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001735605",
+   "name": "USAdvisors Wealth Management, LLC",
+   "period": "2026-09-30",
+   "acc": "0001735605-26-000004",
+   "filed": "2026-10-21",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1743,16 +1763,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001511291",
-   "name": "M3F, Inc.",
-   "period": "2026-06-30",
-   "acc": "0001511291-26-000003",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001512020",
    "name": "Kepos Capital LP",
    "period": "2026-06-30",
@@ -2460,16 +2470,6 @@
    "filed": "2026-07-27",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001735605",
-   "name": "USAdvisors Wealth Management, LLC",
-   "period": "2026-06-30",
-   "acc": "0001735605-26-000003",
-   "filed": "2026-07-29",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 4 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

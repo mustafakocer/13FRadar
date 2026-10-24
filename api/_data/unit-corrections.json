@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-23T02:59:01.010Z",
+ "updatedAt": "2026-10-24T01:34:07.490Z",
  "count": 437,
  "corrections": [
   {
@@ -20,6 +20,16 @@
    "filed": "2026-10-05",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0000314969",
+   "name": "NEW YORK STATE TEACHERS RETIREMENT SYSTEM",
+   "period": "2026-09-30",
+   "acc": "0000314969-26-000011",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -63,6 +73,26 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001039128",
+   "name": "HARBOR CAPITAL ADVISORS, INC.",
+   "period": "2026-09-30",
+   "acc": "0001039128-26-000004",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001054425",
+   "name": "DILLON & ASSOCIATES INC",
+   "period": "2026-09-30",
+   "acc": "0001054425-26-000004",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001055544",
    "name": "JACOBS & CO/CA",
    "period": "2026-09-30",
@@ -100,6 +130,16 @@
    "filed": "2026-10-07",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001142495",
+   "name": "WEDBUSH SECURITIES INC",
+   "period": "2026-09-30",
+   "acc": "0001142495-26-000012",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -190,6 +230,16 @@
    "filed": "2026-10-16",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001411133",
+   "name": "KBC Group NV",
+   "period": "2026-09-30",
+   "acc": "0001193125-26-428470",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -413,6 +463,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001694895",
+   "name": "Mitsubishi UFJ Asset Management (UK) Ltd.",
+   "period": "2026-09-30",
+   "acc": "0001694895-26-000005",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001697375",
    "name": "Farmers & Merchants Trust Co of Chambersburg PA",
    "period": "2026-09-30",
@@ -510,6 +570,16 @@
    "filed": "2026-10-20",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00101 over 15 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001778131",
+   "name": "BI Asset Management Fondsmaeglerselskab A/S",
+   "period": "2026-09-30",
+   "acc": "0001778131-26-000008",
+   "filed": "2026-10-22",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -690,16 +760,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0000314969",
-   "name": "NEW YORK STATE TEACHERS RETIREMENT SYSTEM",
-   "period": "2026-06-30",
-   "acc": "0000314969-26-000007",
-   "filed": "2026-07-23",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -973,16 +1033,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001039128",
-   "name": "HARBOR CAPITAL ADVISORS, INC.",
-   "period": "2026-06-30",
-   "acc": "0001039128-26-000003",
-   "filed": "2026-08-07",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001039807",
    "name": "BOSTON FAMILY OFFICE LLC",
    "period": "2026-06-30",
@@ -1050,16 +1100,6 @@
    "filed": "2026-08-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001054425",
-   "name": "DILLON & ASSOCIATES INC",
-   "period": "2026-06-30",
-   "acc": "0001054425-26-000003",
-   "filed": "2026-08-05",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1363,16 +1403,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001142495",
-   "name": "WEDBUSH SECURITIES INC",
-   "period": "2026-06-30",
-   "acc": "0001142495-26-000008",
-   "filed": "2026-07-28",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001163902",
    "name": "FOSTER & MOTLEY INC",
    "period": "2026-06-30",
@@ -1593,16 +1623,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001411133",
-   "name": "KBC Group NV",
-   "period": "2026-06-30",
-   "acc": "0001193125-26-334201",
-   "filed": "2026-08-05",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001418342",
    "name": "Seascape Capital Management",
    "period": "2026-06-30",
@@ -1789,7 +1809,7 @@
    "acc": "0001512858-26-000003",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2233,16 +2253,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001694895",
-   "name": "Mitsubishi UFJ Asset Management (UK) Ltd.",
-   "period": "2026-06-30",
-   "acc": "0001694895-26-000003",
-   "filed": "2026-07-28",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001695214",
    "name": "Polianta Ltd",
    "period": "2026-06-30",
@@ -2550,16 +2560,6 @@
    "filed": "2026-07-23",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 4 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001778131",
-   "name": "BI Asset Management Fondsmaeglerselskab A/S",
-   "period": "2026-06-30",
-   "acc": "0001778131-26-000007",
-   "filed": "2026-08-10",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

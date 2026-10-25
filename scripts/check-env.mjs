@@ -30,4 +30,10 @@ if (missing.length && production) {
   process.exit(1);
 }
 if (missing.length) console.log(`supabase: ${missing.join(', ')} not set — auth off, Pro locked (fine outside production)`);
+// Meta Pixel (client) and Conversions API (server) must name the same pixel,
+// or the browser and server copies of an event never deduplicate.
+const px = process.env.VITE_META_PIXEL_ID || '';
+const pxSrv = process.env.META_PIXEL_ID || '';
+if ((px || pxSrv) && px !== pxSrv) console.warn(`meta: VITE_META_PIXEL_ID (${px || 'unset'}) and META_PIXEL_ID (${pxSrv || 'unset'}) differ — set both to the same pixel id (docs/META-KURULUM.md)`);
+if (pxSrv && !process.env.META_CAPI_TOKEN) console.warn('meta: META_PIXEL_ID set without META_CAPI_TOKEN — server events are off');
 console.log(`env ok (SITE_URL=${site || (production ? CANONICAL_SITE : '(unset, non-production)')})`);

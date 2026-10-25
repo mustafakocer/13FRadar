@@ -171,6 +171,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
    - `OPENFIGI_API_KEY` → [openfigi.com/api](https://www.openfigi.com/api) üzerinden ücretsiz alın; CUSIP→ticker çözümlemeyi 10 kat hızlandırır (100'lük batch, yüksek rate limit).
    - `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` → hisse fiyat sağlayıcıları.
    - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).
+   - Reklam ölçümü (Meta Pixel + Conversions API, isteğe bağlı): `VITE_META_PIXEL_ID`, `META_PIXEL_ID`, `META_CAPI_TOKEN` → [docs/META-KURULUM.md](docs/META-KURULUM.md).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
 
 ### Landing Verisi

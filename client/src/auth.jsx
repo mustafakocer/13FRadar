@@ -5,6 +5,7 @@ import { mergeFavorites, addFavorite } from './hooks/useFavorites.js';
 import { consumePendingFavorite } from './lib/pendingFavorite.js';
 import { authReturnUrl } from './lib/authRedirect.js';
 import { sessionPlan, localOnly } from './lib/sessionSync.js';
+import { reportRegistration } from './lib/metaPixel.js';
 
 const AuthCtx = createContext(null);
 
@@ -29,6 +30,9 @@ export function AuthProvider({ children }) {
       setLoading(false);
       return;
     }
+    // a new account's first sign-in is the sign-up conversion (no-op without
+    // marketing consent, for accounts over a day old, or when already sent)
+    reportRegistration(session.user);
     const supabase = await getSupabase();
     try {
       // The database decides what Pro means (public.is_pro: plan = 'pro' and

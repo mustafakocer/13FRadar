@@ -11,6 +11,7 @@ import InsiderSignal from './pages/InsiderSignal.jsx';
 import Rankings from './pages/Rankings.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
+import ConsentBanner from './components/ConsentBanner.jsx';
 import TopBar from './components/TopBar.jsx';
 import { LAZY_PAGES } from './pages/lazyPages.js';
 
@@ -106,6 +107,7 @@ export default function App() {
         <Footer />
       </main>
       <CommandPalette />
+      <ConsentBanner />
     </div>
   );
 }

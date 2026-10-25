@@ -59,3 +59,17 @@ export function writeJson(file, value, { pretty = false } = {}) {
   fs.writeFileSync(tmp, JSON.stringify(value, null, pretty ? 1 : 0));
   fs.renameSync(tmp, file);
 }
+
+// The Senate's eFD site sits behind a bot manager that can refuse an
+// automated session for days (2026-10-23: the agreement POST answered 403
+// from the build's runners while the House kept flowing). A refusal is a
+// warning for SENATE_GRACE_DAYS — the House half of the data still lands and
+// the job stays green — and a problem after that, so a lasting block is not
+// left to rot quietly. `since` is when the current run of refusals began.
+export const SENATE_GRACE_DAYS = 7;
+export function senateBlockState(prevSince, nowIso, refused) {
+  if (!refused) return { since: null, problem: false };
+  const since = prevSince || nowIso;
+  const days = (Date.parse(nowIso) - Date.parse(since)) / 86400000;
+  return { since, problem: days >= SENATE_GRACE_DAYS };
+}

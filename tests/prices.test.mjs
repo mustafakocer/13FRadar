@@ -152,7 +152,11 @@ test('dailyCloses answers from the cache without a key or a network, and null fo
   assert.equal(await dailyCloses('ZZZZ'), null);
 });
 
-test('/api/chart reads the cache (thinned for the long ranges) and answers 404 for an unpriced symbol; /api/returns computes the columns from it', async () => {
+test('/api/chart reads the cache (thinned for the long ranges) and answers 404 for an unpriced symbol; /api/returns computes the columns from it', async (t) => {
+  // the ranges count back from today and the fixture ends 2026-09-22: pin
+  // the clock to the day after, or the year window shrinks as the calendar
+  // moves on (239 bars by 2026-10-25)
+  t.mock.timers.enable({ apis: ['Date'], now: new Date('2026-09-23T12:00:00Z') });
   const c1 = await invoke(chartHandler, { ticker: 'BRK-B', range: '1y' });
   assert.equal(c1.status, 200);
   assert.ok(c1.body.prices.length > 240 && c1.body.prices.length < 270, `a year of daily bars (${c1.body.prices.length})`);

@@ -233,3 +233,15 @@ test('a trade reported more than 45 days after it is late', async () => {
   assert.equal(row.late, 59);
   assert.equal(present({ members: {}, px: {} }, { m: 'x', d: '2026-01-01', f: '2026-01-20' }).late, undefined);
 });
+
+test('Senate refusal: a warning for the grace period, a problem after it, cleared on success', async () => {
+  const { senateBlockState, SENATE_GRACE_DAYS } = await import('../api/_lib/congressStore.js');
+  const t0 = '2026-10-23T18:20:00.000Z';
+  assert.deepEqual(senateBlockState(null, t0, null), { since: null, problem: false });
+  assert.deepEqual(senateBlockState(null, t0, 'HTTP 403'), { since: t0, problem: false }, 'first refusal starts the clock');
+  const later = new Date(Date.parse(t0) + (SENATE_GRACE_DAYS - 1) * 86400000).toISOString();
+  assert.deepEqual(senateBlockState(t0, later, 'HTTP 403'), { since: t0, problem: false });
+  const past = new Date(Date.parse(t0) + SENATE_GRACE_DAYS * 86400000).toISOString();
+  assert.deepEqual(senateBlockState(t0, past, 'HTTP 403'), { since: t0, problem: true });
+  assert.deepEqual(senateBlockState(t0, past, null), { since: null, problem: false }, 'a good run resets it');
+});

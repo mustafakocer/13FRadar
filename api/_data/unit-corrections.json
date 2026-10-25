@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-10-24T01:34:07.490Z",
+ "updatedAt": "2026-10-25T01:34:35.380Z",
  "count": 437,
  "corrections": [
   {
@@ -63,6 +63,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0000919192",
+   "name": "AMALGAMATED BANK",
+   "period": "2026-09-30",
+   "acc": "0000919192-26-000006",
+   "filed": "2026-10-23",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001038661",
    "name": "ABNER HERRMAN & BROCK LLC",
    "period": "2026-09-30",
@@ -120,6 +130,26 @@
    "filed": "2026-10-20",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001080201",
+   "name": "VALICENTI ADVISORY SERVICES INC",
+   "period": "2026-09-30",
+   "acc": "0001080201-26-000005",
+   "filed": "2026-10-23",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001089707",
+   "name": "LEDERER & ASSOCIATES INVESTMENT COUNSEL/CA",
+   "period": "2026-09-30",
+   "acc": "0001089707-26-000004",
+   "filed": "2026-10-23",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -623,6 +653,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001800513",
+   "name": "TSFG, LLC",
+   "period": "2026-09-30",
+   "acc": "0001800513-26-000006",
+   "filed": "2026-10-23",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001802132",
    "name": "Aurora Private Wealth, Inc.",
    "period": "2026-09-30",
@@ -953,16 +993,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0000919192",
-   "name": "AMALGAMATED BANK",
-   "period": "2026-06-30",
-   "acc": "0000919192-26-000004",
-   "filed": "2026-07-23",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0000919219",
    "name": "PAYDEN & RYGEL",
    "period": "2026-06-30",
@@ -1233,16 +1263,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001080201",
-   "name": "VALICENTI ADVISORY SERVICES INC",
-   "period": "2026-06-30",
-   "acc": "0001080201-26-000004",
-   "filed": "2026-07-16",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001080382",
    "name": "EUBEL BRADY & SUTTMAN ASSET MANAGEMENT INC",
    "period": "2026-06-30",
@@ -1280,16 +1300,6 @@
    "filed": "2026-07-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001089707",
-   "name": "LEDERER & ASSOCIATES INVESTMENT COUNSEL/CA",
-   "period": "2026-06-30",
-   "acc": "0001089707-26-000003",
-   "filed": "2026-07-10",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2600,16 +2610,6 @@
    "filed": "2026-07-28",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001800513",
-   "name": "TSFG, LLC",
-   "period": "2026-06-30",
-   "acc": "0001800513-26-000005",
-   "filed": "2026-07-23",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

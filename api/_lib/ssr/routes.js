@@ -374,6 +374,8 @@ export const ROUTES = [
   { kind: 'compare', re: /^\/compare$/, load: loadCompare, cache: 'hour' },
   { kind: 'watchlist', re: /^\/watchlist$/, load: async () => [], cache: 'none' },
   { kind: 'account', re: /^\/account$/, load: async () => [], cache: 'none' },
+  // the portfolio matcher's empty form is a public, indexable page; results load client-side
+  { kind: 'match', re: /^\/match$/, load: async () => [], cache: 'day' },
 ];
 
 // static content: language-specific slugs; a slug from the other language

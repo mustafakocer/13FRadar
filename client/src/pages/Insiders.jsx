@@ -17,6 +17,7 @@ import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import { X, SlidersHorizontal } from 'lucide-react';
 import CompanyName from '../components/CompanyName.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
+import LeadForm from '../components/LeadForm.jsx';
 
 const TABS = ['latest', 'ceo', 'cfo', 'cluster', 'penny', 'sells'];
 const PERIODS = ['1d', '3d', '1w', '1m', '3m', '1y'];
@@ -697,6 +698,11 @@ export default function Insiders() {
       )}
 
       <p className="muted small mt16">{t('ins.note')}</p>
+
+      <div className="lead-grid">
+        <LeadForm magnet="xl-insiders" title={t('lead.xli.title')} text={t('lead.xli.text')} />
+        <LeadForm magnet="newsletter" title={t('lead.news.title')} text={t('lead.news.text')} cta={t('lead.news.cta')} />
+      </div>
 
       <AdvancedDialog
         open={advOpen}

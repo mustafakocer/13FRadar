@@ -24,6 +24,9 @@ export const LAZY_PAGES = {
   Congress: { load: () => import('./Congress.jsx'), match: /^\/congress$/ },
   CongressCommittee: { load: () => import('./CongressCommittee.jsx'), match: /^\/congress\/committee\/[a-z0-9-]+$/ },
   CongressMember: { load: () => import('./CongressMember.jsx'), match: /^\/congress\/[a-z0-9-]+$/ },
+  Match: { load: () => import('./Match.jsx'), match: /^\/match$/ },
+  LeadThanks: { load: () => import('./LeadThanks.jsx'), match: /^\/thanks$/ },
+  Unsubscribe: { load: () => import('./Unsubscribe.jsx'), match: /^\/unsubscribe$/ },
   GuruTicker: { load: () => import('./GuruTicker.jsx'), match: /^\/guru\/[^/]+\/(?!(?:changes|mix|history|backtest)$)[^/]+$/ },
 };
 

@@ -15,6 +15,7 @@ import CompanyName from '../components/CompanyName.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import { Newspaper, Download, Image } from 'lucide-react';
+import LeadForm from '../components/LeadForm.jsx';
 
 const Sym = ({ r }) => (r.ticker ? <Link to={`/stock/${r.ticker}${r.cusip ? `?cusip=${r.cusip}` : ''}`} className="tk-cell" style={{ fontWeight: 700 }}><TickerLogo ticker={r.ticker} size={18} /> {r.ticker}</Link> : <b><CompanyName name={r.issuer} /></b>);
 
@@ -104,6 +105,7 @@ export default function ReportPage() {
         </div>
       </div>
       <AnswerBox text={answer} />
+      <LeadForm magnet={`report:${id}`} compact className="mt8" title={t('lead.report.title')} text={t('lead.report.text')} />
 
       <div className="grid grid-3">
         {['buys', 'sells', 'moves'].map((c) => (

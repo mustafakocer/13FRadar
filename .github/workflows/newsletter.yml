@@ -1,0 +1,57 @@
+name: Newsletter and guru alerts
+
+# Lead-magnet mail (scripts/send-newsletter.mjs): the weekly Smart Money
+# newsletter on Mondays and single-guru 13F alerts every morning, to
+# confirmed subscribers only (migrations/0007_subscribers). Commits nothing,
+# so it costs no Vercel build. Runs after the nightly data jobs.
+on:
+  schedule:
+    - cron: '41 4 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build and print (addresses masked) without sending'
+        type: boolean
+        default: true
+      force:
+        description: 'Send the newsletter even if today is not Monday'
+        type: boolean
+        default: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      # Missing keys are a configuration state, not a failure: say which and stop green.
+      - name: Check configuration
+        id: cfg
+        env:
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAIL_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.LEAD_FROM || secrets.ALERT_FROM }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        run: |
+          ready=true
+          if [ -z "$SERVICE_KEY" ]; then
+            echo "SUPABASE_SERVICE_ROLE_KEY not configured — skipping."
+            ready=false
+          elif [ "$DRY" != "true" ] && { [ -z "$MAIL_KEY" ] || [ -z "$MAIL_FROM" ]; }; then
+            echo "RESEND_API_KEY / LEAD_FROM not configured — nothing can be sent; skipping."
+            ready=false
+          fi
+          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+      - name: Send
+        if: steps.cfg.outputs.ready == 'true'
+        run: node scripts/send-newsletter.mjs ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ github.event.inputs.force == 'true' && '--force' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LEAD_FROM: ${{ secrets.LEAD_FROM || secrets.ALERT_FROM }}
+          SITE_URL: ${{ secrets.SITE_URL }}

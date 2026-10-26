@@ -8,14 +8,15 @@ export const setAuthToken = (t) => {
 // it passes the fetch is aborted and the page gets an error it can show.
 export const REQUEST_TIMEOUT_MS = 10000;
 
-async function request(url, { method = 'GET', timeoutMs = REQUEST_TIMEOUT_MS } = {}) {
+async function request(url, { method = 'GET', timeoutMs = REQUEST_TIMEOUT_MS, json = undefined } = {}) {
   const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
   let r;
   try {
     r = await fetch(url, {
       method,
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      headers: { ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}), ...(json !== undefined ? { 'Content-Type': 'application/json' } : {}) },
+      ...(json !== undefined ? { body: JSON.stringify(json) } : {}),
       ...(ctrl ? { signal: ctrl.signal } : {}),
     });
   } catch (e) {
@@ -42,6 +43,10 @@ const post = (url, opts) => request(url, { ...opts, method: 'POST' });
 export const api = {
   // meta: lib/metaPixel.js metaParams(), present only with marketing consent
   checkout: (cycle, meta = null) => post(`/api/checkout?${new URLSearchParams({ cycle: cycle === 'y' ? 'y' : 'm', ...(meta || {}) })}`),
+  // lead magnets (api/_handlers/leads.js); the address travels in the body, never the URL
+  subscribe: (payload) => post('/api/subscribe', { json: payload }),
+  unsubscribe: (token) => post(`/api/unsubscribe?t=${encodeURIComponent(token)}`),
+  portfolioMatch: (tickers, grant = null) => get(`/api/portfolio-match?${new URLSearchParams({ t: tickers.join(','), ...(grant ? { g: grant } : {}) })}`),
   metaEvent: (event, meta) => (meta ? post(`/api/meta-event?${new URLSearchParams({ event, ...meta })}`) : Promise.resolve(null)),
   plans: () => get('/api/plans'),
   portal: () => post('/api/portal'),

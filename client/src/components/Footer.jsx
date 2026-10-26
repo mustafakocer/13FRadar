@@ -67,6 +67,7 @@ export default function Footer() {
           <Link to="/pricing">{t('nav.pricing')}</Link>
           <Link to="/report">{t('nav.report')}</Link>
           <Link to="/compare">{t('nav.compare')}</Link>
+          <Link to="/match">{t('match.footer')}</Link>
           {LEGAL.map((l) => (
             <Link key={l.id} to={l.paths[lang]} data-legal-link={l.id}>{l.title[lang]}</Link>
           ))}

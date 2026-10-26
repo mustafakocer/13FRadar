@@ -32,6 +32,7 @@ import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import { useFundFlags, NOTE_KINDS } from '../hooks/useFundFlags.js';
 import { Printer, FlaskConical, Target, Link as LinkIcon, Newspaper, TriangleAlert, TrendingUp } from 'lucide-react';
+import LeadForm from '../components/LeadForm.jsx';
 
 // The same shape as the consensus page: the four numbers that frame the
 // quarter, the segments of the page as pages of their own — /guru/<slug>,
@@ -85,7 +86,7 @@ export default function Manager({ segment = 'portfolio' }) {
   });
   const cik = cikParam || slugQ.data?.cik || null;
   const flagOf = useFundFlags();
-  const { isPro } = useAuth();
+  const { isPro, user } = useAuth();
 
   const tab = TABS.includes(segment) ? segment : 'portfolio';
   const [selAcc, setSelAcc] = useState(null);
@@ -779,6 +780,9 @@ export default function Manager({ segment = 'portfolio' }) {
         <p className="muted small mt16">
           <Ico icon={Newspaper} /> <Link to={`/reports/${mgr.data.latestReport}`}>{t('related.report').replace('{q}', mgr.data.latestReport.toUpperCase())}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
         </p>
+      )}
+      {!user && cik && (
+        <LeadForm magnet={`guru:${cik}`} compact className="mt16" title={t('lead.guru.title')} text={t('lead.guru.text')} cta={t('lead.guru.cta')} />
       )}
       <Faq items={seo.faq} />
       <Disclaimer />

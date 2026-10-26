@@ -19,6 +19,7 @@ export const EVENTS = {
   export: 'export',
   digestOn: 'digest_on',
   digestOff: 'digest_off',
+  lead: 'lead', // a lead-magnet form sent (props: magnet kind)
 };
 
 export function track(name, props) {

@@ -18,6 +18,7 @@ import Ico from '../components/Ico.jsx';
 import UpdatedLine from '../components/UpdatedLine.jsx';
 import InsiderDaySummary from '../components/InsiderDaySummary.jsx';
 import { TrendingUp, Plus, CircleHelp, ArrowRight, Users, UserSearch } from 'lucide-react';
+import LeadForm from '../components/LeadForm.jsx';
 
 // The home page: a headline, the search, three tabs — the superinvestors as
 // cards (who, firm, last year's return, portfolio size, three largest stocks),
@@ -294,6 +295,15 @@ export default function Home() {
       {tab === 'gurus' && <GuruGrid cards={cards.data} />}
       {tab === 'insiders' && <InsiderGrid teaser={teaser.data} />}
       {tab === 'picks' && <PicksGrid consensus={consensus.data} returns={returns.data} />}
+
+      <div className="lead-grid">
+        <div className="card match-cta" data-home-match>
+          <h3 className="lead-title">{t('match.homeTitle')}</h3>
+          <p className="muted small">{t('match.homeText')}</p>
+          <Link to="/match" className="btn" style={{ textDecoration: 'none', alignSelf: 'flex-start', marginTop: 'auto' }}>{t('match.cta')}</Link>
+        </div>
+        <LeadForm magnet="newsletter" title={t('lead.news.title')} text={t('lead.news.text')} cta={t('lead.news.cta')} />
+      </div>
 
       <div className="home-source">
         <UpdatedLine updatedAt={consensus.data?.updatedAt} />

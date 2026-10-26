@@ -46,6 +46,7 @@ const GA_NAMES = {
   signup: 'sign_up',
   watchlist_add: 'add_to_wishlist',
   export: 'file_download',
+  lead: 'generate_lead',
 };
 export function gaProductEvent(name, props = {}) {
   if (name === 'checkout_complete') return; // gaPurchase carries the value

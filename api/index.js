@@ -22,6 +22,8 @@ import diag from './_handlers/diag.js';
 import stripeWebhook from './_handlers/stripe-webhook.js';
 import checkout from './_handlers/checkout.js';
 import metaEvent from './_handlers/meta-event.js';
+import { subscribe, confirm as subscribeConfirm, unsubscribe, leadFile } from './_handlers/leads.js';
+import portfolioMatch from './_handlers/portfolio-match.js';
 import plans from './_handlers/plans.js';
 import portal from './_handlers/portal.js';
 import insiderFeed from './_handlers/insider-feed.js';
@@ -46,6 +48,11 @@ const ROUTES = {
   'stripe-webhook': [stripeWebhook],
   checkout: [checkout],
   'meta-event': [metaEvent],
+  subscribe: [subscribe],
+  'subscribe-confirm': [subscribeConfirm],
+  unsubscribe: [unsubscribe],
+  'lead-file': [leadFile],
+  'portfolio-match': [portfolioMatch],
   plans: [plans],
   'insider-feed': [insiderFeed],
   portal: [portal],

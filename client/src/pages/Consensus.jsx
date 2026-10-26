@@ -21,6 +21,7 @@ import HoldersPanel from '../components/HoldersPanel.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
 import { Compass, ChevronRight, ChevronDown, Download, Users, CalendarDays, Trophy, TrendingUp } from 'lucide-react';
+import LeadForm from '../components/LeadForm.jsx';
 
 // One page, one table, one question at a time.
 //
@@ -403,6 +404,10 @@ export default function Consensus() {
           {expandable && rows.length > 0 && <p className="muted small mt8">{t('consensus.clickHint')}</p>}
         </div>
       )}
+      <div className="lead-grid">
+        <LeadForm magnet="xl-consensus" title={t('lead.xlc.title')} text={t('lead.xlc.text')} />
+        <LeadForm magnet="newsletter" title={t('lead.news.title')} text={t('lead.news.text')} cta={t('lead.news.cta')} />
+      </div>
     </div>
   );
 }

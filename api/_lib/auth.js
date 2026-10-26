@@ -171,6 +171,27 @@ export async function svcUpdate(table, match, fields) {
   if (r.status >= 300) throw new Error(`${table} update HTTP ${r.status}: ${JSON.stringify(r.data)}`);
 }
 
+export async function svcDelete(table, match) {
+  const r = await axios.delete(`${url()}/rest/v1/${table}`, {
+    timeout: 15000,
+    validateStatus: () => true,
+    params: match,
+    headers: { ...svcHeaders(), Prefer: 'return=minimal' },
+  });
+  if (r.status >= 300) throw new Error(`${table} delete HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+}
+
+// One row in, the stored row back (Prefer: return=representation).
+export async function svcInsert(table, row) {
+  const r = await axios.post(`${url()}/rest/v1/${table}`, row, {
+    timeout: 15000,
+    validateStatus: () => true,
+    headers: { ...svcHeaders(), Prefer: 'return=representation' },
+  });
+  if (r.status >= 300) throw new Error(`${table} insert HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+  return Array.isArray(r.data) ? r.data[0] : r.data;
+}
+
 export const hasServiceKey = () => Boolean(service());
 
 export async function findUserByCustomer(customerId) {

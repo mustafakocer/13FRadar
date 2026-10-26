@@ -26,6 +26,7 @@ on:
           - 0004_alerts
           - 0005_job_triggers
           - 0006_digest_marks
+          - 0007_subscribers
 
 permissions:
   contents: read
@@ -115,11 +116,11 @@ jobs:
           set -euo pipefail
           source .github/scripts/db-url.sh
           case "$MIGRATION" in
-            all|0001_rls|0002_constraints|0003_stripe_events|0004_alerts|0005_job_triggers|0006_digest_marks) ;;
+            all|0001_rls|0002_constraints|0003_stripe_events|0004_alerts|0005_job_triggers|0006_digest_marks|0007_subscribers) ;;
             *) echo "::error::unknown migration '$MIGRATION'"; exit 1 ;;
           esac
           if [ "$MIGRATION" = "all" ]; then
-            files="0001_rls 0002_constraints 0003_stripe_events 0004_alerts 0005_job_triggers 0006_digest_marks"
+            files="0001_rls 0002_constraints 0003_stripe_events 0004_alerts 0005_job_triggers 0006_digest_marks 0007_subscribers"
           else
             files="$MIGRATION"
           fi

@@ -172,6 +172,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
    - `TWELVEDATA_API_KEY`, `FINNHUB_API_KEY` → hisse fiyat sağlayıcıları.
    - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).
    - Ölçüm (isteğe bağlı, çerez onayıyla): Meta Pixel + Conversions API `VITE_META_PIXEL_ID`, `META_PIXEL_ID`, `META_CAPI_TOKEN`; Google Analytics 4 `VITE_GA_MEASUREMENT_ID`; Microsoft Clarity `VITE_CLARITY_ID` → [docs/META-KURULUM.md](docs/META-KURULUM.md).
+   - Lead magnet'ler (bülten, rapor PDF, Excel, portföy karşılaştırma, fon uyarısı): `RESEND_API_KEY`, `LEAD_FROM`, `VITE_LEADS_ENABLED=1` → [docs/LEAD-MAGNETS.md](docs/LEAD-MAGNETS.md).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
 
 ### Landing Verisi

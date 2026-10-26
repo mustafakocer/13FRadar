@@ -165,6 +165,7 @@ export function entriesFor(type, ctx = context()) {
       { path: '/report', lastmod, changefreq: 'weekly', priority: '0.5' },
       { path: '/compare', changefreq: 'monthly', priority: '0.3' },
       { path: '/pricing', changefreq: 'monthly', priority: '0.4' },
+      { path: '/match', changefreq: 'monthly', priority: '0.6' },
       ...['0', ...'abcdefghijklmnopqrstuvwxyz'].map((l) => ({ path: `/filers/${l}`, lastmod: latestFiled, changefreq: 'weekly', priority: '0.4' })),
     ];
   }

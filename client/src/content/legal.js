@@ -4,7 +4,7 @@
 // client/vite.config.js) with a placeholder until it is set.
 export const CONTACT_EMAIL = typeof __CONTACT_EMAIL__ !== 'undefined' && __CONTACT_EMAIL__ ? __CONTACT_EMAIL__ : 'hello@fundocap.co';
 export const OPERATOR = 'KOCERLER LTD';
-export const LEGAL_UPDATED = '2026-10-25';
+export const LEGAL_UPDATED = '2026-10-26';
 
 export const LEGAL_CONTENT = {
   privacy: {
@@ -15,6 +15,7 @@ export const LEGAL_CONTENT = {
         { h2: 'Hangi verileri topluyoruz?', p: [
           'Hesap açarsanız e-posta adresiniz ve (şifreyle giriş yapıyorsanız) şifrenizin karması. Google ile giriş yaparsanız Google’dan yalnız adınız, e-postanız ve profil resminizin adresi gelir; şifreniz bize ulaşmaz.',
           'Kullanım verisi: izleme listeniz, plan bilginiz (ücretsiz / Pro) ve e-posta bildirimi tercihiniz. Bildirimi Hesabım sayfasında siz açarsınız (varsayılan kapalı); açarsanız izleme listenizdeki fonların yeni 13F bildirimleri ve takip ettiğiniz usta yatırımcıların Form 4 işlemleri için e-posta gönderilir ve son gönderimin tarihi saklanır. İstediğiniz an kapatabilirsiniz.',
+          'Bülten, rapor, Excel listesi, portföy karşılaştırma veya fon uyarısı için e-posta bırakırsanız (hesap açmadan): e-posta adresiniz, dil tercihiniz, ne istediğiniz, onay zamanı ve onayı verdiğiniz IP adresi. Adresinize önce bir onay linki gider; tıklamazsanız başka hiçbir e-posta gönderilmez. Bülten ayrı bir seçimdir; her e-postadaki tek tıklık bağlantıyla istediğiniz an çıkarsınız, o zaman adresinize bir daha e-posta gönderilmez.',
           'Pro aboneliği alırsanız ödeme kart bilgileriniz Stripe’ta kalır; biz yalnız Stripe müşteri ve abonelik numaralarını ve abonelik durumunu saklarız. Kart numaranızı hiç görmeyiz.',
           'Teknik veri: barındırma sağlayıcımızın (Vercel) standart sunucu günlükleri (IP adresi, tarayıcı, istenen sayfa, zaman) kısa süre tutulur. Ziyaretçinin ülkesi yalnız bölgesel fiyat ve dil seçimi için, anlık olarak kullanılır; saklanmaz.',
         ] },
@@ -24,13 +25,13 @@ export const LEGAL_CONTENT = {
           'Sayfa kullanımını ölçmek için barındırma sağlayıcımızın çerezsiz analitiği (Vercel Web Analytics) çalışır: çerez bırakmaz, kişisel veri veya kimlik göndermez, siteler arası izleme yapmaz; yalnız sayfa görüntülemeleri ve kayıt, Pro, izleme listesi, dışa aktarma gibi az sayıda isimsiz olay sayılır.',
         ] },
         { h2: 'Verileri kim işliyor?', p: [
-          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı), GitHub (günlük veri üretimi), — bildirimi açtıysanız — Resend (e-posta gönderimi) ve — çerezlere izin verdiyseniz — Meta (reklam ölçümü), Google Analytics ve Microsoft Clarity (site kullanımı ölçümü). Her biri kendi gizlilik politikası altında işler. Verilerinizi satmıyoruz; bu üç hizmetle yalnız izin verdiğinizde ve yalnız yukarıdaki ölçüm verileri paylaşılır.',
+          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı), GitHub (günlük veri üretimi), — bildirim, bülten veya indirme için e-posta bıraktıysanız — Resend (e-posta gönderimi) ve — çerezlere izin verdiyseniz — Meta (reklam ölçümü), Google Analytics ve Microsoft Clarity (site kullanımı ölçümü). Her biri kendi gizlilik politikası altında işler. Verilerinizi satmıyoruz; bu üç hizmetle yalnız izin verdiğinizde ve yalnız yukarıdaki ölçüm verileri paylaşılır.',
         ] },
         { h2: 'Sitedeki veriler nereden geliyor?', p: [
           'Portföy ve insider verileri SEC EDGAR’daki kamuya açık bildirimlerden (13F, Form 4, 13D/G) otomatik derlenir. Şirket temel verileri (hisse başı kâr, dolaşımdaki hisse, temettü) SEC’in XBRL verilerinden; fiyat verileri Twelve Data ve Finnhub’dan; menkul kıymet kimlikleri OpenFIGI’den; döviz kurları Federal Reserve H.10 ve ECB’den alınır. Bu veriler kişisel veri değildir; şirket içi işlemlerdeki kişi adları SEC’in yayımladığı kamu kayıtlarıdır.',
         ] },
         { h2: 'Ne kadar süre saklıyoruz?', p: [
-          'Hesap verileri hesabınız açık kaldığı sürece. Hesabınızı silmek isterseniz yazın; hesap, izleme listesi ve kayıtlı uyarılar silinir, Stripe’taki fatura kayıtları yasal süre boyunca Stripe’ta kalır. Sunucu günlükleri sağlayıcının standart süresi (en fazla 30 gün) sonunda silinir.',
+          'Hesap verileri hesabınız açık kaldığı sürece. Hesabınızı silmek isterseniz yazın; hesap, izleme listesi ve kayıtlı uyarılar silinir, Stripe’taki fatura kayıtları yasal süre boyunca Stripe’ta kalır. Sunucu günlükleri sağlayıcının standart süresi (en fazla 30 gün) sonunda silinir. Onaylanmamış e-posta adresleri 30 gün sonra silinir; abonelikten çıkan bir adres, bir daha e-posta almaması için yalnızca “çıktı” işaretiyle tutulur.',
         ] },
         { h2: 'Haklarınız', p: [
           'Verilerinize erişme, düzeltme, silme, taşıma ve işlemeye itiraz etme hakkınız var (UK GDPR ve, Türkiye’deki kullanıcılar için, KVKK). Talebinizi aşağıdaki adrese yazın; 30 gün içinde yanıtlarız. Şikâyet için Birleşik Krallık’ta ICO’ya, Türkiye’de KVKK’ya başvurabilirsiniz.',
@@ -45,6 +46,7 @@ export const LEGAL_CONTENT = {
         { h2: 'What we collect', p: [
           'If you create an account: your email address and, for password sign-in, a hash of your password. If you sign in with Google, we receive only your name, email and profile picture URL from Google; your password never reaches us.',
           'Usage data: your watchlist, your plan (free / Pro) and your email notification preference. You switch notifications on yourself on the account page (off by default); if on, we email you about new 13F filings from funds on your watchlist and Form 4 trades of gurus you follow, and keep the date of the last email. You can switch it off at any time.',
+          'If you leave your email for the newsletter, a report, an Excel list, the portfolio matcher or a fund alert (no account needed): your email address, language, what you asked for, when you confirmed and the IP address you confirmed from. A confirmation link goes out first; if you do not click it, nothing else is ever sent. The newsletter is a separate choice; the one-click link in every email takes you off the list at any time, and nothing is sent to the address after that.',
           'If you subscribe to Pro, your card details stay with Stripe; we store only the Stripe customer and subscription ids and the subscription status. We never see your card number.',
           'Technical data: our hosting provider (Vercel) keeps standard server logs (IP address, browser, requested page, time) for a short period. A visitor’s country is used momentarily for regional pricing and language, and is not stored.',
         ] },
@@ -54,13 +56,13 @@ export const LEGAL_CONTENT = {
           'To measure page usage we run our hosting provider\u2019s cookieless analytics (Vercel Web Analytics): it sets no cookies, sends no personal data or identifier, does no cross-site tracking, and counts only page views and a handful of anonymous events (sign-up, Pro, watchlist, export).',
         ] },
         { h2: 'Who processes the data', p: [
-          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), GitHub (the nightly data builds), — if you switched notifications on — Resend (email delivery) and — if you allowed cookies — Meta (ad measurement), Google Analytics and Microsoft Clarity (site usage measurement). Each processes data under its own privacy policy. We do not sell your data; only the measurement data above is shared with these three services, and only with your consent.',
+          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), GitHub (the nightly data builds), — if you switched notifications on or left your email for the newsletter or a download — Resend (email delivery) and — if you allowed cookies — Meta (ad measurement), Google Analytics and Microsoft Clarity (site usage measurement). Each processes data under its own privacy policy. We do not sell your data; only the measurement data above is shared with these three services, and only with your consent.',
         ] },
         { h2: 'Where the site’s data comes from', p: [
           'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Company fundamentals (earnings per share, shares outstanding, dividends) come from SEC XBRL data; prices from Twelve Data and Finnhub; security identifiers from OpenFIGI; exchange rates from the Federal Reserve H.10 and the ECB. This is not personal data; the names in insider transactions are public records published by the SEC.',
         ] },
         { h2: 'How long we keep it', p: [
-          'Account data for as long as your account exists. Write to us to delete your account: the account, watchlist and saved alerts are removed; invoice records stay with Stripe for the statutory period. Server logs are deleted after the provider’s standard retention (30 days at most).',
+          'Account data for as long as your account exists. Write to us to delete your account: the account, watchlist and saved alerts are removed; invoice records stay with Stripe for the statutory period. Server logs are deleted after the provider’s standard retention (30 days at most). Email addresses that were never confirmed are deleted after 30 days; an address that unsubscribed is kept only with an “unsubscribed” mark, so that it is never emailed again.',
         ] },
         { h2: 'Your rights', p: [
           'You can access, correct, delete and port your data and object to its processing (UK GDPR; KVKK for users in Türkiye). Write to the address below; we answer within 30 days. You may complain to the ICO in the United Kingdom or to KVKK in Türkiye.',

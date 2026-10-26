@@ -99,6 +99,11 @@ export function metaParams(eventId = null) {
   return p;
 }
 
+// Lead: a lead-magnet form sent; the server copy goes out from /api/subscribe
+export function lead(eventId, kind) {
+  fbq('track', 'Lead', { content_name: kind }, { eventID: eventId });
+}
+
 export function initiateCheckout(eventId, { value, currency, cycle }) {
   fbq('track', 'InitiateCheckout', { value, currency, content_ids: [`pro_${cycle}`], content_type: 'product' }, { eventID: eventId });
 }

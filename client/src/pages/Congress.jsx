@@ -12,6 +12,7 @@ import AnswerBox from '../components/AnswerBox.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import CongressTable, { CommitteeBoard, CongressDisclaimer, MemberBoard, TickerBoard, YtdBoard } from '../components/CongressTable.jsx';
+import LeadForm from '../components/LeadForm.jsx';
 
 const TABS = ['latest', 'ytd', 'field', 'bought', 'sold', 'active', 'largest', 'committees'];
 const HOUR = 60 * 60 * 1000;
@@ -182,6 +183,8 @@ export default function Congress() {
         {tab === 'ytd' && <YtdBoard data={d.ytd} />}
         {tab !== 'latest' && tab !== 'committees' && tab !== 'field' && tab !== 'ytd' && <p className="muted small mt8">{t('cg.windowNote').replace('{from}', d.window?.from || '')}</p>}
       </div>
+
+      <LeadForm magnet="newsletter" className="mt16" title={t('lead.news.title')} text={t('lead.news.text')} cta={t('lead.news.cta')} />
 
       <div className="card mt16">
         <h3>{t('cg.howTitle')}</h3>

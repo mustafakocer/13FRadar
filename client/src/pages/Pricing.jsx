@@ -5,6 +5,7 @@ import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
 import { newEventId, metaParams, initiateCheckout, rememberCheckout } from '../lib/metaPixel.js';
+import { gaBeginCheckout } from '../lib/ga.js';
 import { useSeo } from '../seo.jsx';
 import { api } from '../lib/api.js';
 import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
@@ -63,11 +64,10 @@ export default function Pricing() {
     // Meta: the browser InitiateCheckout and the server's share one id
     const eid = newEventId('ic');
     const meta = metaParams(eid);
-    if (meta) {
-      const value = Number(cat[c]) || undefined;
-      initiateCheckout(eid, { value, currency: cat.currency, cycle: c });
-      rememberCheckout({ value, currency: cat.currency, cycle: c });
-    }
+    const value = Number(cat[c]) || undefined;
+    if (meta) initiateCheckout(eid, { value, currency: cat.currency, cycle: c });
+    gaBeginCheckout({ value, currency: cat.currency, cycle: c }); // no-op without consent
+    rememberCheckout({ value, currency: cat.currency, cycle: c }); // read back on /checkout/success
     try {
       const { url } = await api.checkout(c, meta);
       window.location.assign(url);

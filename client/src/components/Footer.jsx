@@ -6,7 +6,7 @@ import { LEGAL } from '../content/registry.js';
 import { CONTACT_EMAIL } from '../content/legal.js';
 import { useSplitsStatus } from '../hooks/useSplitsStatus.js';
 import { reopenConsent } from '../lib/consent.js';
-import { pixelConfigured } from '../lib/metaPixel.js';
+import { tagsConfigured } from '../lib/tags.js';
 
 const EXPLORE = [
   ['/gurus', 'nav.gurus'],
@@ -71,7 +71,7 @@ export default function Footer() {
             <Link key={l.id} to={l.paths[lang]} data-legal-link={l.id}>{l.title[lang]}</Link>
           ))}
           <a href={`mailto:${CONTACT_EMAIL}`}>{t('footer.contact')}</a>
-          {pixelConfigured() && (
+          {tagsConfigured() && (
             <a href="#cookies" onClick={(e) => { e.preventDefault(); reopenConsent(); }} data-consent-prefs>{t('consent.prefs')}</a>
           )}
         </div>

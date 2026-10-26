@@ -114,8 +114,9 @@ export function rememberCheckout(info) {
   }
 }
 
+// returns the remembered plan ({ value, currency, cycle }) for GA4's copy
 export function purchase(sessionId) {
-  if (!/^cs_[A-Za-z0-9_]+$/.test(String(sessionId || ''))) return;
+  if (!/^cs_[A-Za-z0-9_]+$/.test(String(sessionId || ''))) return {};
   let info = {};
   try {
     info = JSON.parse(sessionStorage.getItem(PENDING) || '{}') || {};
@@ -126,6 +127,7 @@ export function purchase(sessionId) {
   const data = { content_ids: ['pro'], content_type: 'product' };
   if (Number.isFinite(info.value) && info.currency) Object.assign(data, { value: info.value, currency: info.currency });
   fbq('track', 'Purchase', data, { eventID: `purchase_${sessionId}` });
+  return info;
 }
 
 // CompleteRegistration, once per new account on this device: the browser

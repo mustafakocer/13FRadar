@@ -8,6 +8,7 @@
 // Enable. Until it is on, the injected script 404s quietly and track() is a
 // no-op — nothing breaks.
 import { track as vercelTrack } from '@vercel/analytics';
+import { gaProductEvent } from './ga.js';
 
 // the five product events the site reports, and nothing else
 export const EVENTS = {
@@ -23,6 +24,7 @@ export const EVENTS = {
 export function track(name, props) {
   try {
     vercelTrack(name, props);
+    gaProductEvent(name, props); // GA4 too, only with cookie consent (lib/ga.js)
   } catch {
     /* analytics unavailable (blocked, SSR, not enabled): never an error */
   }

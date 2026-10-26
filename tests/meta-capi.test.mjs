@@ -233,8 +233,22 @@ test('client: the pixel loads only after consent, carries no personal data, and 
   assert.match(src('components', 'Footer.jsx'), /reopenConsent/);
   assert.match(src('pages', 'Checkout.jsx'), /purchase\(sessionId\)/);
   assert.match(src('pages', 'Pricing.jsx'), /api\.checkout\(c, meta\)/);
+  // GA4 and Clarity: behind the same consent, no personal data to GA
+  const ga = src('lib', 'ga.js');
+  const cl = src('lib', 'clarity.js');
+  assert.match(ga, /VITE_GA_MEASUREMENT_ID/);
+  assert.match(ga, /marketingAllowed\(\)/);
+  assert.match(ga, /send_page_view: false/);
+  assert.match(ga, /transaction_id: sessionId/);
+  assert.doesNotMatch(ga, /user_id|email/);
+  assert.match(cl, /VITE_CLARITY_ID/);
+  assert.match(cl, /marketingAllowed\(\)/);
+  assert.match(src('lib', 'analytics.js'), /gaProductEvent\(name, props\)/);
+  assert.match(src('pages', 'Checkout.jsx'), /gaPurchase\(sessionId, info\)/);
+  assert.match(src('components', 'ConsentBanner.jsx'), /tagsConfigured\(\)/);
   // privacy notice names Meta and the consent, TR and EN
   const legal = src('content', 'legal.js');
   assert.ok(legal.includes('Meta Conversions API'));
   assert.ok(legal.includes('Çerez tercihleri') && legal.includes('Cookie preferences'));
+  assert.ok(legal.includes('Google Analytics 4') && legal.includes('Microsoft Clarity'));
 });

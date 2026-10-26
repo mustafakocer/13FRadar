@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
 import { readConsent, setConsent, onConsentReopen } from '../lib/consent.js';
-import { pixelConfigured, pageView } from '../lib/metaPixel.js';
+import { tagsConfigured, routeChanged } from '../lib/tags.js';
 
-// The marketing-cookie question and the Pixel's page views. Renders nothing
-// on the server and on the first client render (hydration must match), and
-// nothing at all in a build without VITE_META_PIXEL_ID. Accept and Reject
+// The cookie question and the page views of the consent-gated tags (Meta
+// Pixel, GA4, Clarity — lib/tags.js). Renders nothing on the server and on
+// the first client render (hydration must match), and nothing at all in a
+// build with none of them configured. Accept and Reject
 // carry the same weight; the footer's "Cookie preferences" reopens it.
 export default function ConsentBanner() {
   const { t, lang } = useI18n();
@@ -15,16 +16,16 @@ export default function ConsentBanner() {
   const [state, setState] = useState(null);
 
   useEffect(() => {
-    if (!pixelConfigured()) return undefined;
+    if (!tagsConfigured()) return undefined;
     const s = readConsent();
     setState(s);
     if (!s) setOpen(true);
     return onConsentReopen(() => setOpen(true));
   }, []);
 
-  // one PageView per route, once marketing is allowed (SPA navigation)
+  // one page view per route, once allowed (SPA navigation)
   useEffect(() => {
-    if (state === 'granted') pageView();
+    if (state === 'granted') routeChanged();
   }, [state, pathname]);
 
   if (!open) return null;

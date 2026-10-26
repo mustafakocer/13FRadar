@@ -4,6 +4,7 @@ import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
 import { purchase } from '../lib/metaPixel.js';
+import { gaPurchase } from '../lib/ga.js';
 import { useSeo } from '../seo.jsx';
 import Ico from '../components/Ico.jsx';
 import { CircleCheck, CircleX } from 'lucide-react';
@@ -27,7 +28,8 @@ export default function Checkout() {
     if (ok && plan === 'pro' && !reported.current) {
       reported.current = true;
       track(EVENTS.checkoutComplete);
-      purchase(sessionId); // Meta, same event id as the webhook's server copy
+      const info = purchase(sessionId); // Meta, same event id as the webhook's server copy
+      gaPurchase(sessionId, info);
     }
     if (!ok || plan === 'pro' || !refreshPlan || tries >= 12) return undefined;
     const id = setTimeout(() => {

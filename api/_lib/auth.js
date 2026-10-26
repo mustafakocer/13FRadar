@@ -29,7 +29,7 @@ async function planForToken(token) {
     validateStatus: () => true,
     headers: { apikey: anon(), Authorization: `Bearer ${token}` },
   });
-  if (u.status !== 200 || !u.data?.id) return { pro: false, userId: null, email: null };
+  if (u.status !== 200 || !u.data?.id) return { pro: false, userId: null, email: null, createdAt: null };
 
   // The one definition of Pro is public.is_pro() in the database: plan =
   // 'pro' and either no expiry or one still ahead. It runs as the caller
@@ -44,10 +44,10 @@ async function planForToken(token) {
       headers: { apikey: anon(), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     }
   );
-  return { pro: p.status === 200 && p.data === true, userId: u.data.id, email: u.data.email || null };
+  return { pro: p.status === 200 && p.data === true, userId: u.data.id, email: u.data.email || null, createdAt: u.data.created_at || null };
 }
 
-// Signed-in user { id, email, pro } or null. Cached per token for 5 minutes.
+// Signed-in user { id, email, pro, createdAt } or null. Cached per token for 5 minutes.
 export async function getUser(req) {
   if (!authConfigured()) {
     warnOnce();
@@ -57,7 +57,7 @@ export async function getUser(req) {
   if (!token) return null;
   try {
     const r = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
-    return r.userId ? { id: r.userId, email: r.email, pro: r.pro } : null;
+    return r.userId ? { id: r.userId, email: r.email, pro: r.pro, createdAt: r.createdAt || null } : null;
   } catch {
     return null;
   }

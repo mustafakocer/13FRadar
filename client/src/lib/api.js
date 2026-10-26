@@ -40,7 +40,9 @@ const get = (url, opts) => request(url, opts);
 const post = (url, opts) => request(url, { ...opts, method: 'POST' });
 
 export const api = {
-  checkout: (cycle) => post(`/api/checkout?cycle=${cycle === 'y' ? 'y' : 'm'}`),
+  // meta: lib/metaPixel.js metaParams(), present only with marketing consent
+  checkout: (cycle, meta = null) => post(`/api/checkout?${new URLSearchParams({ cycle: cycle === 'y' ? 'y' : 'm', ...(meta || {}) })}`),
+  metaEvent: (event, meta) => (meta ? post(`/api/meta-event?${new URLSearchParams({ event, ...meta })}`) : Promise.resolve(null)),
   plans: () => get('/api/plans'),
   portal: () => post('/api/portal'),
   search: (q) => get(`/api/search?q=${encodeURIComponent(q)}`),

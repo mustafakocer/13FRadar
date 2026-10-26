@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
+import { newEventId, metaParams, initiateCheckout, rememberCheckout } from '../lib/metaPixel.js';
+import { gaBeginCheckout } from '../lib/ga.js';
 import { useSeo } from '../seo.jsx';
 import { api } from '../lib/api.js';
 import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
@@ -59,8 +61,15 @@ export default function Pricing() {
     track(EVENTS.proClick, { cycle: c });
     setBusy(true);
     setErr(null);
+    // Meta: the browser InitiateCheckout and the server's share one id
+    const eid = newEventId('ic');
+    const meta = metaParams(eid);
+    const value = Number(cat[c]) || undefined;
+    if (meta) initiateCheckout(eid, { value, currency: cat.currency, cycle: c });
+    gaBeginCheckout({ value, currency: cat.currency, cycle: c }); // no-op without consent
+    rememberCheckout({ value, currency: cat.currency, cycle: c }); // read back on /checkout/success
     try {
-      const { url } = await api.checkout(c);
+      const { url } = await api.checkout(c, meta);
       window.location.assign(url);
     } catch (e) {
       setErr(e.status === 503 ? t('pricing.soon') : e.status === 409 ? t('pricing.current') : t('pricing.checkoutError'));

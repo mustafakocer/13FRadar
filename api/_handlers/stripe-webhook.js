@@ -8,6 +8,7 @@ import {
   stripePost,
   stripeGet,
 } from '../_lib/stripe.js';
+import { sendMetaEvent } from '../_lib/metaCapi.js';
 
 // Stripe webhook — Stripe dashboard → Developers → Webhooks → Add endpoint:
 //   URL:    https://<site>/api/stripe-webhook
@@ -34,6 +35,11 @@ import {
 // The Supabase user is client_reference_id / metadata.user_id, both set by
 // /api/checkout to the auth uid, with a fallback lookup by the Stripe customer
 // id stored on the profile. Never by e-mail address.
+//
+// A first-time checkout.session.completed that /api/checkout marked with
+// metadata.meta_consent=1 (the buyer accepted marketing cookies) is also
+// reported to Meta as a Purchase, event id purchase_<session id> — the same
+// id the success page's fbq() uses, so Meta counts it once.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EVENT_ID_RE = /^evt_[A-Za-z0-9]+$/;
 
@@ -114,6 +120,27 @@ async function decide(type, obj) {
   return { outcome: 'ignored' };
 }
 
+function reportPurchase(obj, userId, created) {
+  const m = obj.metadata || {};
+  if (m.meta_consent !== '1' || !obj.id) return null;
+  const currency = String(obj.currency || '').toUpperCase();
+  const value = Number.isFinite(obj.amount_total) ? obj.amount_total / 100 : undefined;
+  return sendMetaEvent({
+    name: 'Purchase',
+    id: `purchase_${obj.id}`,
+    time: created,
+    email: obj.customer_details?.email || obj.customer_email,
+    externalId: userId,
+    country: obj.customer_details?.address?.country,
+    ip: m.meta_ip,
+    ua: m.meta_ua,
+    fbp: m.meta_fbp,
+    fbc: m.meta_fbc,
+    url: m.meta_url,
+    custom: { currency: currency || undefined, value, content_type: 'product', content_ids: ['pro'] },
+  });
+}
+
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'POST only' });
@@ -157,6 +184,9 @@ export default async function handler(req, res) {
     if (!duplicate && d.customer && d.userId) {
       // best effort: the customer carries our user id for the billing portal
       stripePost(`/v1/customers/${d.customer}`, { metadata: { user_id: d.userId } }).catch(() => {});
+    }
+    if (!duplicate && type === 'checkout.session.completed' && d.outcome === 'applied') {
+      await reportPurchase(obj, d.userId, event.created); // never throws
     }
     return res.status(200).json({
       ok: true,

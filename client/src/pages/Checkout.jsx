@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../auth.jsx';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
+import { purchase } from '../lib/metaPixel.js';
+import { gaPurchase } from '../lib/ga.js';
 import { useSeo } from '../seo.jsx';
 import Ico from '../components/Ico.jsx';
 import { CircleCheck, CircleX } from 'lucide-react';
@@ -13,6 +15,8 @@ import { CircleCheck, CircleX } from 'lucide-react';
 // cancel says nothing was charged.
 export default function Checkout() {
   const { outcome } = useParams();
+  const [params] = useSearchParams();
+  const sessionId = params.get('session_id');
   const { t } = useI18n();
   const { plan, refreshPlan, user, configured } = useAuth();
   const ok = outcome === 'success';
@@ -24,6 +28,8 @@ export default function Checkout() {
     if (ok && plan === 'pro' && !reported.current) {
       reported.current = true;
       track(EVENTS.checkoutComplete);
+      const info = purchase(sessionId); // Meta, same event id as the webhook's server copy
+      gaPurchase(sessionId, info);
     }
     if (!ok || plan === 'pro' || !refreshPlan || tries >= 12) return undefined;
     const id = setTimeout(() => {
@@ -31,7 +37,7 @@ export default function Checkout() {
       setTries((n) => n + 1);
     }, 2500);
     return () => clearTimeout(id);
-  }, [ok, plan, refreshPlan, tries]);
+  }, [ok, plan, refreshPlan, tries, sessionId]);
 
   if (!ok) {
     return (

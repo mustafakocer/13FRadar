@@ -4,7 +4,7 @@
 // client/vite.config.js) with a placeholder until it is set.
 export const CONTACT_EMAIL = typeof __CONTACT_EMAIL__ !== 'undefined' && __CONTACT_EMAIL__ ? __CONTACT_EMAIL__ : 'hello@fundocap.co';
 export const OPERATOR = 'KOCERLER LTD';
-export const LEGAL_UPDATED = '2026-10-06';
+export const LEGAL_UPDATED = '2026-10-25';
 
 export const LEGAL_CONTENT = {
   privacy: {
@@ -19,11 +19,12 @@ export const LEGAL_CONTENT = {
           'Teknik veri: barındırma sağlayıcımızın (Vercel) standart sunucu günlükleri (IP adresi, tarayıcı, istenen sayfa, zaman) kısa süre tutulur. Ziyaretçinin ülkesi yalnız bölgesel fiyat ve dil seçimi için, anlık olarak kullanılır; saklanmaz.',
         ] },
         { h2: 'Çerezler ve tarayıcı depolaması', p: [
-          'Reklam veya davranış izleme çerezi kullanmıyoruz. Yalnız işlevsel kayıtlar vardır: dil tercihi (çerez), tema ve izleme listenizin cihazdaki kopyası (tarayıcı depolaması) ve giriş yaptıysanız oturum anahtarınız. Reklam ağı yüklenmez.',
+          'İşlevsel kayıtlar her zaman vardır: dil tercihi (çerez), tema, izleme listenizin cihazdaki kopyası ve çerez tercihiniz (tarayıcı depolaması) ve giriş yaptıysanız oturum anahtarınız.',
+          'Analitik ve pazarlama çerezleri yalnız açık rızanızla: çerez bandında “Kabul et” derseniz reklamlarımızın sonucunu ölçmek için Meta Pixel yüklenir (_fbp, _fbc çerezleri) ve ziyaret ettiğiniz sayfalar ile kayıt, ödeme başlatma ve Pro satın alma olayları Meta Platforms Ireland Ltd.’ye gönderilir. Aynı olaylar sunucumuzdan Meta Conversions API ile de iletilir; bu iletimde e-posta adresiniz ve kullanıcı numaranız SHA-256 ile karma alınmış (geri çevrilemez) hâlde, IP adresiniz ve tarayıcı bilginizle birlikte gider. Aynı rızayla Google Analytics 4 (Google Ireland Ltd.; _ga çerezleri — sayfa görüntülemeleri ve yukarıdaki olaylar, kullanıcı numarası veya e-posta olmadan) ve Microsoft Clarity (Microsoft Ireland Operations Ltd.; _clck, _clsk çerezleri — fare hareketleri, tıklamalar ve kaydırma ile oturum kaydı; form alanlarındaki yazılar maskelenir) yüklenir. Meta, Google ve Microsoft bu verileri ABD dahil yurt dışında işleyebilir. “Reddet” derseniz bunların hiçbiri yapılmaz; kararınızı sayfa altındaki “Çerez tercihleri” bağlantısından istediğiniz an değiştirebilirsiniz.',
           'Sayfa kullanımını ölçmek için barındırma sağlayıcımızın çerezsiz analitiği (Vercel Web Analytics) çalışır: çerez bırakmaz, kişisel veri veya kimlik göndermez, siteler arası izleme yapmaz; yalnız sayfa görüntülemeleri ve kayıt, Pro, izleme listesi, dışa aktarma gibi az sayıda isimsiz olay sayılır.',
         ] },
         { h2: 'Verileri kim işliyor?', p: [
-          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı), GitHub (günlük veri üretimi) ve — bildirimi açtıysanız — Resend (e-posta gönderimi). Her biri kendi gizlilik politikası altında, yalnız hizmeti sağlamak için işler. Verilerinizi satmıyor, reklam amacıyla paylaşmıyoruz.',
+          'Supabase (kimlik doğrulama ve veritabanı; AB/ABD bölgeleri), Stripe (ödeme), Vercel (barındırma ve içerik dağıtımı), GitHub (günlük veri üretimi), — bildirimi açtıysanız — Resend (e-posta gönderimi) ve — çerezlere izin verdiyseniz — Meta (reklam ölçümü), Google Analytics ve Microsoft Clarity (site kullanımı ölçümü). Her biri kendi gizlilik politikası altında işler. Verilerinizi satmıyoruz; bu üç hizmetle yalnız izin verdiğinizde ve yalnız yukarıdaki ölçüm verileri paylaşılır.',
         ] },
         { h2: 'Sitedeki veriler nereden geliyor?', p: [
           'Portföy ve insider verileri SEC EDGAR’daki kamuya açık bildirimlerden (13F, Form 4, 13D/G) otomatik derlenir. Şirket temel verileri (hisse başı kâr, dolaşımdaki hisse, temettü) SEC’in XBRL verilerinden; fiyat verileri Twelve Data ve Finnhub’dan; menkul kıymet kimlikleri OpenFIGI’den; döviz kurları Federal Reserve H.10 ve ECB’den alınır. Bu veriler kişisel veri değildir; şirket içi işlemlerdeki kişi adları SEC’in yayımladığı kamu kayıtlarıdır.',
@@ -48,11 +49,12 @@ export const LEGAL_CONTENT = {
           'Technical data: our hosting provider (Vercel) keeps standard server logs (IP address, browser, requested page, time) for a short period. A visitor’s country is used momentarily for regional pricing and language, and is not stored.',
         ] },
         { h2: 'Cookies and browser storage', p: [
-          'We use no advertising or behavioural tracking cookies. Only functional records exist: your language preference (a cookie), your theme and a copy of your watchlist on the device (browser storage), and, when signed in, your session key. No ad network is loaded.',
+          'Functional records are always present: your language preference (a cookie), your theme, a copy of your watchlist on the device and your cookie choice (browser storage), and, when signed in, your session key.',
+          'Analytics and marketing cookies only with your consent: if you press “Accept” on the cookie banner, the Meta Pixel is loaded to measure our ads (cookies _fbp, _fbc) and the pages you visit plus sign-up, checkout-start and Pro purchase events are sent to Meta Platforms Ireland Ltd. The same events are also sent from our server through the Meta Conversions API, with your email address and user id SHA-256 hashed (not reversible), together with your IP address and browser details. With the same consent, Google Analytics 4 (Google Ireland Ltd.; _ga cookies — page views and the events above, without your user id or email) and Microsoft Clarity (Microsoft Ireland Operations Ltd.; _clck, _clsk cookies — session recordings of mouse movement, clicks and scrolling, with form input masked) are loaded. Meta, Google and Microsoft may process this data outside the UK/EU, including in the United States. If you press “Reject”, none of this happens; you can change your choice at any time from “Cookie preferences” at the bottom of every page.',
           'To measure page usage we run our hosting provider\u2019s cookieless analytics (Vercel Web Analytics): it sets no cookies, sends no personal data or identifier, does no cross-site tracking, and counts only page views and a handful of anonymous events (sign-up, Pro, watchlist, export).',
         ] },
         { h2: 'Who processes the data', p: [
-          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), GitHub (the nightly data builds) and — if you switched notifications on — Resend (email delivery). Each processes data only to provide its service, under its own privacy policy. We do not sell your data or share it for advertising.',
+          'Supabase (authentication and database; EU/US regions), Stripe (payments), Vercel (hosting and content delivery), GitHub (the nightly data builds), — if you switched notifications on — Resend (email delivery) and — if you allowed cookies — Meta (ad measurement), Google Analytics and Microsoft Clarity (site usage measurement). Each processes data under its own privacy policy. We do not sell your data; only the measurement data above is shared with these three services, and only with your consent.',
         ] },
         { h2: 'Where the site’s data comes from', p: [
           'Portfolio and insider data is compiled automatically from public filings on SEC EDGAR (13F, Form 4, 13D/G). Company fundamentals (earnings per share, shares outstanding, dividends) come from SEC XBRL data; prices from Twelve Data and Finnhub; security identifiers from OpenFIGI; exchange rates from the Federal Reserve H.10 and the ECB. This is not personal data; the names in insider transactions are public records published by the SEC.',

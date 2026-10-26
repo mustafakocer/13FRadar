@@ -82,6 +82,18 @@ const stripe = http.createServer((req, res) => {
   });
 });
 
+// ---- Meta Graph API stand-in (the Purchase sent for a consenting buyer) ----
+const metaCalls = [];
+const meta = http.createServer((req, res) => {
+  let body = '';
+  req.on('data', (c) => (body += c));
+  req.on('end', () => {
+    metaCalls.push(JSON.parse(body || '{}'));
+    res.writeHead(200, { 'content-type': 'application/json' });
+    res.end('{"events_received":1}');
+  });
+});
+
 const listen = (srv) =>
   new Promise((resolve) => srv.listen(0, '127.0.0.1', () => resolve(`http://127.0.0.1:${srv.address().port}`)));
 
@@ -91,12 +103,16 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'svc-key';
 process.env.STRIPE_SECRET_KEY = 'sk_test_x';
 process.env.STRIPE_WEBHOOK_SECRET = SECRET;
 process.env.STRIPE_API_BASE = await listen(stripe);
+process.env.META_API_BASE = await listen(meta);
+process.env.META_PIXEL_ID = '123456789012345';
+process.env.META_CAPI_TOKEN = 'capi-token';
 
 const { default: handler } = await import('../api/_handlers/stripe-webhook.js');
 
 test.after(() => {
   supabase.close();
   stripe.close();
+  meta.close();
 });
 
 // ---- driving the handler ----------------------------------------------------
@@ -263,6 +279,50 @@ test('the same event delivered twice → 200, duplicate, database unchanged', as
   assert.deepEqual(profile(), before, 'a replayed checkout must not re-grant pro');
   assert.equal(db.events.size, events);
   assert.equal(stripeCalls.length, calls, 'no Stripe call for a duplicate');
+});
+
+test('checkout without marketing consent sends nothing to Meta', () => {
+  assert.equal(metaCalls.length, 0, 'the earlier checkout carried no meta_consent');
+});
+
+test('checkout.session.completed with meta_consent=1 → one Purchase to Meta, id purchase_<session>, value and hashed e-mail', async () => {
+  const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+  const event = {
+    id: 'evt_checkoutmeta',
+    type: 'checkout.session.completed',
+    created: 1761400000,
+    data: {
+      object: {
+        id: 'cs_meta_1',
+        mode: 'subscription',
+        payment_status: 'paid',
+        client_reference_id: USER,
+        customer: 'cus_1',
+        subscription: 'sub_1',
+        amount_total: 19900,
+        currency: 'usd',
+        customer_details: { email: 'Buyer@Example.com', address: { country: 'TR' } },
+        metadata: { user_id: USER, meta_consent: '1', meta_ip: '203.0.113.7', meta_ua: 'UA', meta_fbp: 'fb.1.1761400000000.1234567890', meta_url: 'https://www.fundocap.co/en/pricing' },
+      },
+    },
+  };
+  const r = await deliver(event);
+  assert.equal(r.status, 200);
+  assert.equal(r.body.result, 'applied');
+  assert.equal(metaCalls.length, 1);
+  const ev = metaCalls[0].data[0];
+  assert.equal(ev.event_name, 'Purchase');
+  assert.equal(ev.event_id, 'purchase_cs_meta_1');
+  assert.equal(ev.event_time, 1761400000);
+  assert.deepEqual(ev.custom_data, { currency: 'USD', value: 199, content_type: 'product', content_ids: ['pro'] });
+  assert.deepEqual(ev.user_data.em, [sha('buyer@example.com')]);
+  assert.deepEqual(ev.user_data.external_id, [sha(USER)]);
+  assert.equal(ev.user_data.client_ip_address, '203.0.113.7');
+  assert.equal(ev.user_data.fbp, 'fb.1.1761400000000.1234567890');
+  // a re-delivery is a duplicate: no second Purchase
+  const again = await deliver(event);
+  assert.equal(again.body.duplicate, true);
+  assert.equal(metaCalls.length, 1);
 });
 
 test('an event Stripe sends that we do not act on is recorded and answered 200', async () => {

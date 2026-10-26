@@ -32,7 +32,7 @@ import { execFileSync } from 'node:child_process';
 import { housePdfUrl, linesFromItems, parseHouseIndex, parseHousePtr, parseSenateIndexRow, parseSenatePtr, SENATE_BASE } from '../api/_lib/congressParse.js';
 import { committeeSeats, indexLegislators } from '../api/_lib/congressMembers.js';
 import { buildServed } from '../api/_lib/congressModel.js';
-import { files, readJson, writeJson } from '../api/_lib/congressStore.js';
+import { files, readJson, writeJson, senateBlockState, SENATE_GRACE_DAYS } from '../api/_lib/congressStore.js';
 import { readSeries } from '../api/_lib/priceStore.js';
 import { mapLimit } from '../api/_lib/mapLimit.js';
 import { fetchSecTickers, fetchSectors } from '../api/_lib/marketData.js';
@@ -45,6 +45,7 @@ const UA = process.env.CONGRESS_UA || 'Fundocap congress bot (https://www.fundoc
 const LEGIS = 'https://raw.githubusercontent.com/unitedstates/congress-legislators/gh-pages';
 const now = Date.now();
 const problems = [];
+const warnings = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function get(url, opts = {}, tries = 4) {
@@ -120,17 +121,37 @@ function senateSession() {
     return r;
   };
   return {
+    // The form is posted the way a browser posts it (Origin and Accept
+    // alongside Referer: Django's CSRF check and the bot manager in front of
+    // the site both look at them), and a refused agreement is tried again
+    // from a fresh session after a pause — a 403 there has come and gone.
     async open() {
-      const home = await req(`${SENATE_BASE}/search/home/`);
-      const token = (/name="csrfmiddlewaretoken" value="([^"]+)"/.exec(await home.text()) || [])[1];
-      if (!token) throw new Error(`Senate eFD: no form token (HTTP ${home.status})`);
-      const agree = await req(`${SENATE_BASE}/search/home/`, {
-        method: 'POST',
-        redirect: 'manual',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', Referer: `${SENATE_BASE}/search/home/` },
-        body: new URLSearchParams({ csrfmiddlewaretoken: token, prohibition_agreement: '1' }),
-      });
-      if (agree.status >= 400) throw new Error(`Senate eFD: agreement refused (HTTP ${agree.status})`);
+      let status = 0;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        if (attempt) {
+          jar.clear();
+          await sleep(15000 * attempt);
+        }
+        const home = await req(`${SENATE_BASE}/search/home/`, { headers: { Accept: 'text/html' } });
+        const token = (/name="csrfmiddlewaretoken" value="([^"]+)"/.exec(await home.text()) || [])[1];
+        if (!token) throw new Error(`Senate eFD: no form token (HTTP ${home.status})`);
+        const agree = await req(`${SENATE_BASE}/search/home/`, {
+          method: 'POST',
+          redirect: 'manual',
+          headers: {
+            Accept: 'text/html',
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Origin: SENATE_BASE,
+            Referer: `${SENATE_BASE}/search/home/`,
+          },
+          body: new URLSearchParams({ csrfmiddlewaretoken: token, prohibition_agreement: '1' }),
+        });
+        status = agree.status;
+        if (status < 400) return;
+      }
+      const e = new Error(`Senate eFD: agreement refused (HTTP ${status})`);
+      e.refused = true;
+      throw e;
     },
     async index(since) {
       const [y, m, d] = since.split('-');
@@ -207,6 +228,7 @@ for (let y = Number(SINCE.slice(0, 4)); y <= new Date(now).getUTCFullYear(); y++
 // Senate
 const senate = senateSession();
 const senateTodo = [];
+let senateRefused = null;
 try {
   await senate.open();
   const list = await senate.index(SINCE);
@@ -223,7 +245,8 @@ try {
   }
   console.log(`Senate: ${list.length} PTRs since ${SINCE}`);
 } catch (e) {
-  problems.push(`Senate index: ${e.message}`);
+  if (e.refused) senateRefused = e.message;
+  else problems.push(`Senate index: ${e.message}`);
 }
 
 const budget = { left: MAX_FETCH };
@@ -357,6 +380,12 @@ if (legislators.length) {
 }
 
 const prev = readJson(files.freshness(), {});
+const block = senateBlockState(prev.senate_refused_since, new Date(now).toISOString(), senateRefused);
+if (senateRefused) {
+  const days = Math.floor((now - Date.parse(block.since)) / 86400000);
+  const line = `Senate index: ${senateRefused} — refused since ${block.since.slice(0, 16)}Z (${days}d; a problem after ${SENATE_GRACE_DAYS}d), House data still updated`;
+  (block.problem ? problems : warnings).push(line);
+}
 const served = readJson(files.data(), { rows: [] });
 const all = Object.values(filings);
 writeJson(
@@ -379,11 +408,14 @@ writeJson(
     run: stats,
     last_error: problems.length ? problems.join(' | ') : null,
     last_error_at: problems.length ? new Date().toISOString() : prev.last_error_at || null,
+    last_warning: warnings.length ? warnings.join(' | ') : null,
+    senate_refused_since: block.since,
   },
   { pretty: true },
 );
 
 console.log(JSON.stringify(stats));
+for (const w of warnings) console.log(`::warning::${w}`);
 if (problems.length) {
   for (const p of problems) console.log(`::error::${p}`);
   process.exit(1);

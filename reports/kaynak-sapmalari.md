@@ -10,8 +10,8 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | Kings Path Partners LLC (0002030974) | 4618 | $380.2 mn | $1.0 mn | +37,500% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/2030974/000203097426000010/) |
-|  | Bright Futures Wealth Management, LLC. (0001803980) | 7587 | $144.6 mn | $0.0 mn | +100,411,466% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1803980/000180398026000005/) |
+|  | Kings Path Partners LLC (0002030974) | 4614 | $380.2 mn | $1.0 mn | +37,500% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/2030974/000203097426000010/) |
+|  | Bright Futures Wealth Management, LLC. (0001803980) | 7583 | $144.6 mn | $0.0 mn | +100,411,466% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1803980/000180398026000005/) |
 
 ## İncelendi — fonun kapak hatası
 
@@ -19,29 +19,29 @@ Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor;
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | Sanctuary Advisors, LLC (0001777271) | 349 | $21.59 mlr | $215.85 mlr | -90% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1777271/000177727126000007/) |
+|  | Sanctuary Advisors, LLC (0001777271) | 348 | $21.59 mlr | $215.85 mlr | -90% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1777271/000177727126000007/) |
 |  | PNC FINANCIAL SERVICES GROUP, INC. (0000713676) | 60 | $201.76 mlr | $184.29 mlr | +9.5% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/713676/000119312526339298/) |
-|  | BOWEN HANES & CO INC (0001077583) | 1035 | $4.11 mlr | $4.8 mn | +85,507% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1077583/000107758326000004/) |
-|  | CX Institutional (0001737089) | 1116 | $3.69 mlr | $0.4 mn | +999,901% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1737089/000173708926000006/) |
-|  | Strategic Financial Services, Inc. (0001432539) | 1509 | $2.28 mlr | $0.0 mn | +1,445,053,274% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1432539/000143253926000005/) |
-|  | HOHIMER WEALTH MANAGEMENT, LLC (0001802533) | 2574 | $1.00 mlr | $9.4 mn | +10,562% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1802533/000180253326000004/) |
-|  | Financial Plan, Inc. (0002107584) | 2486 | $1.05 mlr | $105.4 mn | +900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2107584/000210758426000004/) |
-|  | FIRST HORIZON CORP (0000036966) | 1397 | $2.60 mlr | $1.70 mlr | +53.1% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/36966/000003696626000144/) |
-|  | Financial Enhancement Group LLC (0001641438) | 2805 | $870.7 mn | $88.1 mn | +888.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1641438/000164143826000006/) |
-|  | Vickerman Investment Advisors, Inc. (0001898296) | 3829 | $515.1 mn | $0.5 mn | +98,522% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1898296/000189829626000003/) |
-|  | Crestline Management, L.P. (0001536054) | 8605 | $53.5 mn | $534.8 mn | -90% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1536054/000131586326000592/) |
-|  | BIRINYI ASSOCIATES INC (0001079738) | 4349 | $422.7 mn | $0.5 mn | +86,009% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1079738/000107973826000010/) |
-|  | Wealth Group, Ltd. (0002013988) | 4474 | $400.7 mn | $0.1 mn | +334,776% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2013988/000201398826000003/) |
-|  | Silverleafe Capital Partners, LLC (0001535611) | 4838 | $351.3 mn | $3.5 mn | +9900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535611/000153561126000008/) |
-|  | Costello Asset Management, INC (0001760145) | 4977 | $333.2 mn | $2.5 mn | +13,473% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1760145/000176014526000004/) |
-|  | Mirabaud & Cie SA (0001869685) | 5847 | $249.2 mn | $1.1 mn | +22,128% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1869685/000186968526000006/) |
-|  | Darwin Wealth Management, LLC (0001663224) | 4726 | $365.3 mn | $593.5 mn | -38.5% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1663224/000166322426000003/) |
-|  | RIHO Partners, LLC (0002112884) | 6930 | $177.7 mn | $17.8 mn | +900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2112884/000211288426000003/) |
-|  | Rosenthal {-} Henry Capital Advisors, Inc. (0001697539) | 8180 | $114.4 mn | $0.0 mn | +238,238,138% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1697539/000169753926000003/) |
-|  | Hippocratic Financial Advisors, LLC (0002055803) | 5784 | $254.1 mn | $159.2 mn | +59.6% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
-|  | X ADVISORS, LLC (0002139999) | 8667 | $37.6 mn | $1.3 mn | +2861.7% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2139999/000213999926000001/) |
-|  | PURA VIDA INVESTMENTS, LLC (0001590144) | 8670 | $37.0 mn | $16.5 mn | +124% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1590144/000159014426000004/) |
-|  | Future Financial Wealth Managment LLC (0001801892) | 7211 | $163.0 mn | $179.7 mn | -9.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
+|  | BOWEN HANES & CO INC (0001077583) | 1033 | $4.11 mlr | $4.8 mn | +85,507% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1077583/000107758326000004/) |
+|  | CX Institutional (0001737089) | 1114 | $3.69 mlr | $0.4 mn | +999,901% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1737089/000173708926000006/) |
+|  | Strategic Financial Services, Inc. (0001432539) | 1506 | $2.28 mlr | $0.0 mn | +1,445,053,274% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1432539/000143253926000005/) |
+|  | HOHIMER WEALTH MANAGEMENT, LLC (0001802533) | 2571 | $1.00 mlr | $9.4 mn | +10,562% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1802533/000180253326000004/) |
+|  | Financial Plan, Inc. (0002107584) | 2483 | $1.05 mlr | $105.4 mn | +900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2107584/000210758426000004/) |
+|  | FIRST HORIZON CORP (0000036966) | 1394 | $2.60 mlr | $1.70 mlr | +53.1% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/36966/000003696626000144/) |
+|  | Financial Enhancement Group LLC (0001641438) | 2802 | $870.7 mn | $88.1 mn | +888.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1641438/000164143826000006/) |
+|  | Vickerman Investment Advisors, Inc. (0001898296) | 3824 | $515.1 mn | $0.5 mn | +98,522% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1898296/000189829626000003/) |
+|  | Crestline Management, L.P. (0001536054) | 8601 | $53.5 mn | $534.8 mn | -90% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1536054/000131586326000592/) |
+|  | BIRINYI ASSOCIATES INC (0001079738) | 4345 | $422.7 mn | $0.5 mn | +86,009% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1079738/000107973826000010/) |
+|  | Wealth Group, Ltd. (0002013988) | 4470 | $400.7 mn | $0.1 mn | +334,776% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2013988/000201398826000003/) |
+|  | Silverleafe Capital Partners, LLC (0001535611) | 4834 | $351.3 mn | $3.5 mn | +9900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535611/000153561126000008/) |
+|  | Costello Asset Management, INC (0001760145) | 4973 | $333.2 mn | $2.5 mn | +13,473% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1760145/000176014526000004/) |
+|  | Mirabaud & Cie SA (0001869685) | 5843 | $249.2 mn | $1.1 mn | +22,128% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1869685/000186968526000006/) |
+|  | Darwin Wealth Management, LLC (0001663224) | 4722 | $365.3 mn | $593.5 mn | -38.5% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1663224/000166322426000003/) |
+|  | RIHO Partners, LLC (0002112884) | 6926 | $177.7 mn | $17.8 mn | +900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2112884/000211288426000003/) |
+|  | Rosenthal {-} Henry Capital Advisors, Inc. (0001697539) | 8176 | $114.4 mn | $0.0 mn | +238,238,138% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1697539/000169753926000003/) |
+|  | Hippocratic Financial Advisors, LLC (0002055803) | 5780 | $254.1 mn | $159.2 mn | +59.6% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
+|  | X ADVISORS, LLC (0002139999) | 8663 | $37.6 mn | $1.3 mn | +2861.7% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2139999/000213999926000001/) |
+|  | PURA VIDA INVESTMENTS, LLC (0001590144) | 8666 | $37.0 mn | $16.5 mn | +124% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1590144/000159014426000004/) |
+|  | Future Financial Wealth Managment LLC (0001801892) | 7207 | $163.0 mn | $179.7 mn | -9.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
 
 ## İncelendi — fonun tablosu eksik
 
@@ -49,11 +49,11 @@ Fon özet sayfasında, SEC'e yüklediği tablodan çok daha fazla satır beyan e
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | THURSTON, SPRINGER, MILLER, HERD & TITAK, INC. (0000319933) | 8573 | $61.1 mn | $3.40 mlr | -98.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/319933/000031993326000014/) |
-|  | Ascentis Independent Advisors (0001845003) | 8669 | $37.1 mn | $1.71 mlr | -97.8% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1845003/000184500326000005/) |
-|  | Saraza Management, LP (0001894188) | 5826 | $250.9 mn | $669.7 mn | -62.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1894188/000189418826000009/) |
-|  | LIBERTY WEALTH MANAGEMENT LLC (0001769302) | 2945 | $800.4 mn | $911.7 mn | -12.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1769302/000176930226000003/) |
-|  | Oceanic Investment Management LTD (0001438258) | 8489 | $77.9 mn | $118.0 mn | -33.9% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1438258/000143825826000002/) |
+|  | THURSTON, SPRINGER, MILLER, HERD & TITAK, INC. (0000319933) | 8569 | $61.1 mn | $3.40 mlr | -98.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/319933/000031993326000014/) |
+|  | Ascentis Independent Advisors (0001845003) | 8665 | $37.1 mn | $1.71 mlr | -97.8% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1845003/000184500326000005/) |
+|  | Saraza Management, LP (0001894188) | 5822 | $250.9 mn | $669.7 mn | -62.5% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1894188/000189418826000009/) |
+|  | LIBERTY WEALTH MANAGEMENT LLC (0001769302) | 2942 | $800.4 mn | $911.7 mn | -12.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1769302/000176930226000003/) |
+|  | Oceanic Investment Management LTD (0001438258) | 8485 | $77.9 mn | $118.0 mn | -33.9% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1438258/000143825826000002/) |
 
 ## İncelendi — fon önceki çeyreğin tablosunu eklemiş
 
@@ -61,7 +61,7 @@ Fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu eklemiş
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1572 | $2.11 mlr | $2.18 mlr | -3.2% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
+|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1569 | $2.11 mlr | $2.18 mlr | -3.2% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
 
 ## İncelendi — küçük fark, tablo doğru
 
@@ -69,20 +69,20 @@ Fark ±%5 içinde; tablo eksiksiz ve fiyatları dönem sonu kapanışlarıyla ö
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | Quantbot Technologies LP (0001512991) | 1418 | $2.54 mlr | $2.49 mlr | +1.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1512991/000151299126000004/) |
-|  | HSG Holding Ltd (0001470766) | 2281 | $1.20 mlr | $1.24 mlr | -3.7% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1470766/000119312526348168/) |
-|  | One Capital Management, LLC (0001606588) | 1132 | $3.60 mlr | $3.64 mlr | -1.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1606588/000160658826000004/) |
-|  | QVT Financial LP (0001290162) | 1815 | $1.70 mlr | $1.66 mlr | +2.4% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1290162/000119312526351939/) |
-|  | SUMMIT WEALTH GROUP LLC / CO (0002081278) | 2263 | $1.21 mlr | $1.24 mlr | -2.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2081278/000208127826000005/) |
-|  | Drake & Associates, LLC (0001935795) | 3521 | $593.7 mn | $613.1 mn | -3.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1935795/000193579526000003/) |
-|  | Financial Strategies Group, Inc. (0001774343) | 3410 | $627.6 mn | $638.9 mn | -1.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1774343/000198615226000122/) |
-|  | FFT WEALTH MANAGEMENT LLC (0001653199) | 3370 | $638.2 mn | $627.3 mn | +1.7% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1653199/000165319926000004/) |
-|  | ABLE Financial Group, LLC (0001977500) | 3366 | $639.9 mn | $650.1 mn | -1.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1977500/000197750026000004/) |
-|  | Wills Financial Group LLC (0002059579) | 5560 | $274.8 mn | $265.3 mn | +3.5% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2059579/000205957926000005/) |
-|  | TFB Advisors LLC (0001965201) | 6158 | $227.0 mn | $236.2 mn | -3.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1965201/000196520126000003/) |
-|  | CM Management, LLC (0001841857) | 7328 | $157.4 mn | $150.1 mn | +4.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1841857/000184185726000003/) |
-|  | Sequent Asset Management, LLC (0001509550) | 6025 | $237.1 mn | $241.9 mn | -2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1509550/000150955026000005/) |
-|  | PEAK FINANCIAL ADVISORS LLC (0001843309) | 5963 | $241.5 mn | $246.0 mn | -1.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1843309/000184330926000008/) |
-|  | Crestmont Private Wealth LLC (0001873372) | 4792 | $356.5 mn | $352.3 mn | +1.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1873372/000198615226000111/) |
-|  | Elm3 Financial Group, LLC (0002011201) | 7470 | $149.9 mn | $152.8 mn | -1.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2011201/000201120126000005/) |
-|  | LEGACY CAPITAL WEALTH MANAGEMENT, LLC (0002071183) | 6301 | $217.7 mn | $215.0 mn | +1.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2071183/000198615226000127/) |
+|  | Quantbot Technologies LP (0001512991) | 1415 | $2.54 mlr | $2.49 mlr | +1.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1512991/000151299126000004/) |
+|  | HSG Holding Ltd (0001470766) | 2278 | $1.20 mlr | $1.24 mlr | -3.7% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1470766/000119312526348168/) |
+|  | One Capital Management, LLC (0001606588) | 1130 | $3.60 mlr | $3.64 mlr | -1.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1606588/000160658826000004/) |
+|  | QVT Financial LP (0001290162) | 1812 | $1.70 mlr | $1.66 mlr | +2.4% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1290162/000119312526351939/) |
+|  | SUMMIT WEALTH GROUP LLC / CO (0002081278) | 2260 | $1.21 mlr | $1.24 mlr | -2.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2081278/000208127826000005/) |
+|  | Drake & Associates, LLC (0001935795) | 3517 | $593.7 mn | $613.1 mn | -3.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1935795/000193579526000003/) |
+|  | Financial Strategies Group, Inc. (0001774343) | 3406 | $627.6 mn | $638.9 mn | -1.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1774343/000198615226000122/) |
+|  | FFT WEALTH MANAGEMENT LLC (0001653199) | 3366 | $638.2 mn | $627.3 mn | +1.7% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1653199/000165319926000004/) |
+|  | ABLE Financial Group, LLC (0001977500) | 3362 | $639.9 mn | $650.1 mn | -1.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1977500/000197750026000004/) |
+|  | Wills Financial Group LLC (0002059579) | 5556 | $274.8 mn | $265.3 mn | +3.5% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2059579/000205957926000005/) |
+|  | TFB Advisors LLC (0001965201) | 6154 | $227.0 mn | $236.2 mn | -3.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1965201/000196520126000003/) |
+|  | CM Management, LLC (0001841857) | 7324 | $157.4 mn | $150.1 mn | +4.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1841857/000184185726000003/) |
+|  | Sequent Asset Management, LLC (0001509550) | 6021 | $237.1 mn | $241.9 mn | -2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1509550/000150955026000005/) |
+|  | PEAK FINANCIAL ADVISORS LLC (0001843309) | 5959 | $241.5 mn | $246.0 mn | -1.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1843309/000184330926000008/) |
+|  | Crestmont Private Wealth LLC (0001873372) | 4788 | $356.5 mn | $352.3 mn | +1.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1873372/000198615226000111/) |
+|  | Elm3 Financial Group, LLC (0002011201) | 7466 | $149.9 mn | $152.8 mn | -1.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2011201/000201120126000005/) |
+|  | LEGACY CAPITAL WEALTH MANAGEMENT, LLC (0002071183) | 6297 | $217.7 mn | $215.0 mn | +1.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2071183/000198615226000127/) |

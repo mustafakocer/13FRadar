@@ -1,6 +1,6 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-10-27T19:26:10.949Z",
+ "last_run_at": "2026-10-28T01:42:26.177Z",
  "last_success_at": "2026-10-23T00:56:18.773Z",
  "last_filing_date": "2026-10-22",
  "row_count": 13797,
@@ -32,5 +32,5 @@
   }
  },
  "last_error": "Senate index: Senate eFD: agreement refused (HTTP 403)",
- "last_error_at": "2026-10-27T19:26:15.227Z"
+ "last_error_at": "2026-10-28T01:42:31.416Z"
 }

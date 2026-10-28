@@ -1,0 +1,85 @@
+name: Backfill insider trading data (one-off, 2026-04-01 → 2026-05-11)
+
+# One-off copy of insiders-backfill.yml for a work branch: workflow_dispatch
+# needs Actions write, which the session that found the gap does not have.
+# The served insider feed had no row at all for the 28 business days from
+# 2026-04-01 to 2026-05-11 (every other 2026 business day is read). This runs
+# once on the push that adds it, counts first, then reads the days, audits
+# and commits the data to this branch for review before the merge. The file
+# is removed in the next commit.
+on:
+  push:
+    branches:
+      - claude/beautiful-faraday-qv9sap
+    paths:
+      - '.github/workflows/insiders-backfill-once.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: insiders-data
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    env:
+      FROM: '2026-04-01'
+      TO: '2026-05-11'
+      SEC_USER_AGENT: 'Fundocap insider bot (https://www.fundocap.co)'
+      INSIDER_MONTHS: '12'
+      INSIDER_MIN_FORM4: ${{ vars.INSIDER_MIN_FORM4 || '200' }}
+      SEC_RETRY_BACKOFF: '2,4,8,16'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+
+      - name: Count the Form 4s per day first (writes nothing)
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/build-insiders.mjs --from "$FROM" --to "$TO" --dry-run 2>&1 | tee dry-run.log
+
+      - name: Backfill
+        id: build
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -o pipefail
+          node scripts/build-insiders.mjs --from "$FROM" --to "$TO" 2>&1 | tee backfill.log
+
+      - name: Audit the rebuilt data
+        id: audit
+        run: node scripts/audit-data.mjs --only=insiders,insiders-teaser
+
+      - name: Commit if changed
+        if: steps.audit.outcome == 'success'
+        run: |
+          git config user.name 'insider-bot'
+          git config user.email 'actions@github.com'
+          for f in api/_data/insiders.json api/_data/insiders-raw.json api/_data/insider-ingest-errors.json api/_data/freshness api/_data/ticker-meta.json client/public/insiders-teaser.json client/public/data-audit.json; do
+            if [ -e "$f" ]; then git add --all "$f"; fi
+          done
+          if git diff --cached --quiet; then echo "no changes"; exit 0; fi
+          git commit -m "chore: backfill insider trading data (${FROM} → ${TO})"
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "::warning::left uncommitted, set aside before the rebase:"
+            git status --porcelain
+            git stash push --include-untracked --quiet
+          fi
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin "${GITHUB_REF_NAME}" && { node scripts/stale-code-guard.mjs || exit 1; } && git push && exit 0
+            echo "push attempt $i failed, retrying…"; sleep 10
+          done
+          exit 1
+
+      - name: Fail the run if the backfill failed
+        if: steps.build.outcome == 'failure'
+        run: |
+          echo "::error::the backfill reported problems — see the 'Backfill' step"
+          exit 1

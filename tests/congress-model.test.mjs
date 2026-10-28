@@ -80,6 +80,16 @@ test('the served file: matched members, one row per trade, prices on the trade d
   assert.equal(served.rows[0].f, '2026-02-01');
 });
 
+test('a Senate block reaches the overview with the newest Senate disclosure', () => {
+  assert.equal(served.senateBlockedSince, null);
+  assert.equal(served.lastFiledBy.S, '2026-02-01');
+  const blocked = buildServed(FILINGS, { legislators: idx, seriesFor, since: '2025-01-01', now: Date.parse('2026-10-28'), senateBlockedSince: '2026-10-23' });
+  const o = overview({ ...blocked, bySlug: {} }, { days: 400, now: Date.parse('2026-10-28') });
+  assert.equal(o.senateBlockedSince, '2026-10-23');
+  assert.equal(o.lastFiledBy.S, '2026-02-01');
+  assert.equal(o.lastFiledBy.H, blocked.rows.find((r) => r.id.startsWith('H:')).f);
+});
+
 test('views', () => {
   const o = overview(db, { days: 400, now: Date.parse('2026-10-08') });
   assert.equal(o.recentCount, 4);

@@ -44,7 +44,7 @@ export function tickerFromName(a) {
 }
 
 // filings: { key: { ch, id, filed, first, last, stateDst, url, status, tx } }
-export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, sicFor = () => null, nameFor = () => null, since, now = Date.now() }) {
+export function buildServed(filings, { legislators, seats = {}, committeeNames = {}, seriesFor = () => null, sicFor = () => null, nameFor = () => null, since, now = Date.now(), senateBlockedSince = null }) {
   const members = {};
   const rows = [];
   const unmatched = new Set();
@@ -139,6 +139,11 @@ export function buildServed(filings, { legislators, seats = {}, committeeNames =
       unread: unread.length,
     },
     lastFiled: rows[0]?.f || null,
+    // the newest disclosure per chamber: the Senate falls behind on its own
+    // when its eFD site refuses the build (since 2026-10-23)
+    lastFiledBy: { H: rows.find((r) => r.id.startsWith('H:'))?.f || null, S: rows.find((r) => r.id.startsWith('S:'))?.f || null },
+    // the day the Senate eFD site started refusing the build, or null
+    senateBlockedSince: senateBlockedSince || null,
     members,
     committees: usedCommittees,
     px,
@@ -415,6 +420,8 @@ export function overview(db, { days = 90, now = Date.now() } = {}) {
   return {
     updatedAt: db.updatedAt,
     lastFiled: db.lastFiled || db.rows[0]?.f || null,
+    lastFiledBy: db.lastFiledBy || null,
+    senateBlockedSince: db.senateBlockedSince || null,
     since: db.since,
     counts: db.counts,
     window: { days, from },

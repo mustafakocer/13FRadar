@@ -78,6 +78,15 @@ export const CHECKS = [
     // business day; a week with no new report means the build is stuck
     judge: (j, now) => businessDate('newest disclosure', j?.lastFiled, 5, now),
   },
+  {
+    label: 'congress trades (Senate)',
+    file: 'api/_data/congress.json',
+    // the House alone keeps the check above green. Senators file less often
+    // (two-week gaps happen), and the Senate eFD site has refused the build
+    // since 2026-10-23: three weeks with no Senate report is the point to
+    // look at it again rather than forget it
+    judge: (j, now) => businessDate('newest Senate disclosure', j?.lastFiledBy?.S ?? maxOf((j?.rows || []).filter((r) => String(r?.id || '').startsWith('S:')).map((r) => r?.f)), 15, now),
+  },
   { label: 'consensus (public)', file: 'client/public/consensus.json', judge: (j, now) => quarterDate('quarter', j?.quarter, now) },
   { label: 'consensus (pro)', file: 'api/_data/consensus-pro.json', judge: (j, now) => quarterDate('quarter', j?.quarter, now) },
   {

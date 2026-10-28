@@ -93,6 +93,9 @@ export default function Congress() {
         </div>
       </div>
       <AnswerBox text={answer} />
+      {d.senateBlockedSince && (
+        <div className="notice warn small mt8">{t('cg.senateBlocked').replace('{since}', d.senateBlockedSince).replace('{last}', d.lastFiledBy?.S || '—')}</div>
+      )}
 
       <div className="fund-stats mt16">
         <div className="fund-stat">

@@ -130,7 +130,17 @@ function senateSession() {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', Referer: `${SENATE_BASE}/search/home/` },
         body: new URLSearchParams({ csrfmiddlewaretoken: token, prohibition_agreement: '1' }),
       });
-      if (agree.status >= 400) throw new Error(`Senate eFD: agreement refused (HTTP ${agree.status})`);
+      if (agree.status >= 400) {
+        // Since 2026-10-23 the Akamai edge in front of the site answers this
+        // POST (and the index POST) 403 "Access Denied" to anything that is
+        // not a browser, while GETs still pass. Not a lapse to retry and not
+        // a client bug: the run records the block (freshness `senate_block`,
+        // the page's notice) and serves the House as usual.
+        const body = (await agree.text().catch(() => '')).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+        const e = new Error(`Senate eFD: agreement refused (HTTP ${agree.status})${body ? ` — ${body}` : ''}`);
+        e.blocked = agree.status === 403;
+        throw e;
+      }
     },
     async index(since) {
       const [y, m, d] = since.split('-');
@@ -205,6 +215,9 @@ for (let y = Number(SINCE.slice(0, 4)); y <= new Date(now).getUTCFullYear(); y++
 }
 
 // Senate
+const prev = readJson(files.freshness(), {});
+// the day the eFD site started refusing the build (kept across runs), or null
+let senateBlock = null;
 const senate = senateSession();
 const senateTodo = [];
 try {
@@ -223,7 +236,12 @@ try {
   }
   console.log(`Senate: ${list.length} PTRs since ${SINCE}`);
 } catch (e) {
-  problems.push(`Senate index: ${e.message}`);
+  if (e.blocked) {
+    senateBlock = { since: prev.senate_block?.since || new Date(now).toISOString().slice(0, 10), error: e.message };
+    console.log(`::warning::Senate index: ${e.message} — no Senate report read since ${senateBlock.since}; the House is served as usual`);
+  } else {
+    problems.push(`Senate index: ${e.message}`);
+  }
 }
 
 const budget = { left: MAX_FETCH };
@@ -343,7 +361,7 @@ if (legislators.length) {
   // named (api/_lib/congressTickerCheck.js)
   const secNames = readJson(path.join(process.cwd(), 'api', '_data', 'company-names.json'), { names: {} }).names || {};
   const nameFor = (t) => secNames[t] || secNames[t.replace('.', '-')] || null;
-  const served = buildServed(filings, { legislators, seats, committeeNames, seriesFor: readSeries, sicFor, nameFor, since: SINCE, now });
+  const served = buildServed(filings, { legislators, seats, committeeNames, seriesFor: readSeries, sicFor, nameFor, since: SINCE, now, senateBlockedSince: senateBlock?.since || null });
   const wrong = served.rows.filter((r) => r.tf);
   if (wrong.length) {
     const lines = wrong.map((r) => `${r.tf}: filed as "${r.a}", SEC lists ${r.tn} (${r.d}, ${r.src})`);
@@ -356,7 +374,6 @@ if (legislators.length) {
   if (served.unmatched.length) console.log(`unmatched filers (${served.unmatched.length}): ${served.unmatched.join('; ')}`);
 }
 
-const prev = readJson(files.freshness(), {});
 const served = readJson(files.data(), { rows: [] });
 const all = Object.values(filings);
 writeJson(
@@ -377,6 +394,8 @@ writeJson(
     },
     unmatched: served.unmatched?.length || 0,
     run: stats,
+    // { since, error } while the Senate eFD site refuses the build, else null
+    senate_block: senateBlock,
     last_error: problems.length ? problems.join(' | ') : null,
     last_error_at: problems.length ? new Date().toISOString() : prev.last_error_at || null,
   },

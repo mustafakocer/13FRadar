@@ -67,5 +67,23 @@ hepsi süresi içinde.
 
 ## Insider backfill sonucu (1 Nisan–11 Mayıs 2026)
 
-_Doldurulacak: tek seferlik `insiders-backfill-once.yml` çalışması (dal
-`claude/beautiful-faraday-qv9sap`, run 40786274956)._
+Tek seferlik, push ile tetiklenen bir kopya workflow (run 40786274956,
+2026-10-28 23:17 → 2026-10-29 00:53 UTC) `build-insiders.mjs --from
+2026-04-01 --to 2026-05-11` komutunu çalıştırdı; önce kuru sayım, sonra okuma,
+`audit-data.mjs --only=insiders,insiders-teaser` ve commit (832c6bc9).
+
+| | |
+|---|---|
+| Okunan iş günü | 29 / 29 |
+| EDGAR günlük indekslerindeki Form 4 | 39.914 (gün başına 598–4.410; eşik 200) |
+| Çıkarılan işlem satırı | 10.218 |
+| Saklama kurallarından sonra sunulan satır | 5.255 (1.777 alım, 3.057 opsiyon kullanımı, 362 dönüşüm, 59 diğer); satışlar ve gürültü 120/90 gün kuralıyla düşer |
+| Dokunulan hisse | 1.055 |
+| Okunamayan belge | 8 / 39.914: EDGAR'ın indekste listeleyip 404 döndürdüğü (kaldırılmış) dosyalar — `0000899140-26-000403` (3 CIK altında, 30 Nisan), `0001297515-26-000002` (2 CIK, 5 Mayıs) ve 3 benzeri |
+| `insiders.json` | 79.693 → 84.948 satır; 2026'da sıfır satırlı iş günü kalmadı (tatiller hariç) |
+| Denetim | `audit-data.mjs` 20/20 ok; `ingest-errors` 0 |
+
+Çalışma GitHub'da "failure" görünür: 8 kaldırılmış belgeyi "sorun" sayıp
+çıkış kodu 1 verdi, ama veri önce yazılıp denetimden geçirildi ve
+commit'lendi (işin tasarımı: önce yaz, sonra alarm). `freshness/insiders.json`
+`last_error` alanı bir sonraki gece çalışmasında (03:31 UTC) temizlenir.

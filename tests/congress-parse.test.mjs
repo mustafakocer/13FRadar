@@ -7,6 +7,8 @@ import {
   parseHousePtr,
   parseSenatePtr,
   parseSenateIndexRow,
+  parseSenatePage,
+  splitFilerName,
   splitHouseAsset,
   houseKind,
   cleanTicker,
@@ -110,4 +112,25 @@ test('Senate index row and PTR table', () => {
   assert.equal(tx[2].a, 'DELL INTL LLC/EMC CORP');
   assert.equal(tx[3].at, 'other');
   assert.deepEqual([tx[3].lo, tx[3].hi], [50000001, null]);
+});
+
+test('a Senate PTR page saved from a browser: id from its URL, filer and date from the header, the table', () => {
+  const page = `<!-- saved from url=(0084)https://efdsearch.senate.gov/search/view/ptr/0541be4f-4f96-4d84-8d6f-d349f218bb2a/ -->
+<html><body><h1>Periodic Transaction Report for 10/07/2026</h1>
+<h2 class="filedReport">The Honorable John Fetterman</h2>
+<p>Filed 10/07/2026 @ 3:12 PM</p>${fx('senate-ptr.html')}</body></html>`;
+  const r = parseSenatePage(page);
+  assert.equal(r.id, '0541be4f-4f96-4d84-8d6f-d349f218bb2a');
+  assert.equal(r.first, 'John');
+  assert.equal(r.last, 'Fetterman');
+  assert.equal(r.filed, '2026-10-07');
+  assert.equal(r.title, 'Periodic Transaction Report for 10/07/2026');
+  assert.equal(r.tx.length, 4);
+  // a page without its header: the fields come back null, nothing is guessed
+  const bare = parseSenatePage(fx('senate-ptr.html'));
+  assert.deepEqual([bare.id, bare.first, bare.last, bare.filed], [null, null, null, null]);
+  assert.equal(bare.tx.length, 4);
+  assert.deepEqual(splitFilerName('A. Mitchell McConnell, Jr.'), { first: 'A. Mitchell', last: 'McConnell Jr.' });
+  assert.deepEqual(splitFilerName('Tommy Tuberville'), { first: 'Tommy', last: 'Tuberville' });
+  assert.equal(splitFilerName('Cher'), null);
 });

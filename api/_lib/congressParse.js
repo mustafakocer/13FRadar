@@ -348,3 +348,29 @@ export function parseSenatePtr(html) {
   }
   return tx;
 }
+
+// A Senate PTR page saved from a browser ("Webpage, HTML only"), for the
+// manual route while efdsearch.senate.gov refuses the build (since
+// 2026-10-23): the report id from its URL, the filer from the "The Honorable
+// First Last" line, the filing date from the report title (the index lists
+// the same date), and the transaction table. Missing header fields come back
+// null; scripts/import-senate-ptr.mjs then takes them from a manifest.
+const SUFFIXES = new Set(['jr', 'jr.', 'sr', 'sr.', 'ii', 'iii', 'iv']);
+export function splitFilerName(full) {
+  const parts = cleanText(String(full || '')).replace(/,/g, ' ').split(/\s+/).filter(Boolean);
+  if (parts.length < 2) return null;
+  let last = parts.pop();
+  if (SUFFIXES.has(last.toLowerCase()) && parts.length >= 2) last = `${parts.pop()} ${last}`;
+  return { first: parts.join(' '), last };
+}
+
+export function parseSenatePage(html) {
+  const s = String(html);
+  const id = (/\/search\/view\/ptr\/([0-9a-f-]{36})\/?/i.exec(s) || [])[1] || null;
+  const titleMatch = /Periodic Transaction Report(?: Amendment)?\s+for\s+(\d{1,2}\/\d{1,2}\/\d{4})/i.exec(stripTags(s)) || null;
+  const title = titleMatch ? titleMatch[0].replace(/\s+/g, ' ') : null;
+  const filed = isoDate(titleMatch?.[1]) || isoDate((/\bFiled\s+(\d{1,2}\/\d{1,2}\/\d{4})/i.exec(stripTags(s)) || [])[1]);
+  const honorable = /The Honorable\s+([^<\n]+?)\s*(?:<|\n|$)/i.exec(s);
+  const name = honorable ? splitFilerName(honorable[1]) : null;
+  return { id, first: name?.first || null, last: name?.last || null, filed, title, tx: parseSenatePtr(s) };
+}

@@ -64,6 +64,12 @@ hepsi süresi içinde.
   `senate_block` alanına yazılıyor, Kongre sayfası not gösteriyor, freshness
   "congress trades (Senate)" satırı 15 iş günü sonra alarm verir.
   Alternatif kaynak (FMP / Quiver, ücretli) kararı açık.
+- **Elle yol:** bir insan tarayıcıdan eFD'ye girip raporları "Web sayfası,
+  yalnız HTML" olarak kaydeder; `node scripts/import-senate-ptr.mjs <klasör>`
+  sayfaları okuyup `congress-filings.json`'a gece işinin yazdığı biçimde
+  işler (rapor kimliği sayfanın URL'sinden, dosyalayan ve tarih
+  başlıktan; eksikse `manifest.csv`). Sonraki Kongre çalışması bunları
+  sunar ve yeniden çekmez.
 
 ## Insider backfill sonucu (1 Nisan–11 Mayıs 2026)
 

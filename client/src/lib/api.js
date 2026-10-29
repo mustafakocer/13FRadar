@@ -32,6 +32,7 @@ async function request(url, { method = 'GET', timeoutMs = REQUEST_TIMEOUT_MS, js
   if (!r.ok) {
     const err = new Error(data.error || `HTTP ${r.status}`);
     err.status = r.status;
+    if (data.code) err.code = data.code;
     throw err;
   }
   return data;

@@ -145,6 +145,8 @@ const dict = {
     'search.favorites': 'Takip Listeniz',
     'search.noResults': 'Sonuç bulunamadı',
     'search.filings': 'dosyalama',
+    'search.stock': 'Hisse',
+    'search.tracked': 'Takip edilen',
 
     // ---- landing (home) ------------------------------------------------
     // ---- ana sayfa (stockcircle tarzı: başlık, arama, üç sekme, kartlar) ----
@@ -298,6 +300,11 @@ const dict = {
     'rep.indexSub': 'Usta yatırımcıların çeyreklik 13F raporları',
     'rep.open': 'Raporu aç →',
     'rep.notFound': 'Bu çeyrek için rapor üretilmemiş.',
+    'nf.title': 'Sayfa bulunamadı',
+    'nf.text': 'Bu adreste bir sayfa yok. Link eskimiş ya da yanlış yazılmış olabilir.',
+    'nf.home': 'Ana sayfa',
+    'nf.gurus': 'Usta yatırımcılar',
+    'nf.insiders': 'Insider işlemleri',
     'rep.sub': '{m} takip edilen fondan {n} tanesinin {d} tarihli 13F bildirimleri',
     'rep.generated': 'üretim',
     'rep.chartPack': 'Grafik paketi (PNG)',
@@ -594,6 +601,7 @@ const dict = {
     'filers.title': '13F Dosyalayan Kurumlar',
     'filers.subtitle': "SEC'e Form 13F bildirimi yapan tüm kurumsal yatırımcılar, alfabetik",
     'manager.unknownSlug': 'Bu adresle eşleşen bir fon bulunamadı.',
+    'manager.noInfoTable': 'Bu dosyalamanın pozisyon tablosu okunamıyor: 2013 öncesi 13F’ler SEC’e XML değil düz metin olarak verilirdi. Daha yeni bir çeyrek seç.',
     'insig.cluster.desc': 'Son 30 günde aynı şirkette, 10 iş günü içinde en az iki görevli ya da yöneticinin kişi başı en az 10.000 $ tutarında yaptığı açık piyasa alımları. Çalışan planı alımları ve hisse arzına katılımlar ayrı listelenir.',
     'insig.csuite.desc': 'Son 30 günde CEO ve CFO seviyesindeki yöneticilerin kendi şirket hisselerinde yaptığı alımlar.',
     'insig.penny.desc': "Son 30 günde 5 $'ın altındaki hisselerde 10 bin $ üzeri insider alımları.",
@@ -648,6 +656,7 @@ const dict = {
     'topnav.d.screen': '{funds} fonu filtreleyin',
     'topnav.d.compare': 'Fon ve hisse karşılaştırma, backtest',
     'topnav.d.report': 'Çeyreklik piyasa özeti',
+    'topnav.d.emerging': 'Yükselen yeni fon yöneticileri',
 
     'manager.overview': 'Özet',
     'manager.tab.portfolio': 'Pozisyonlar',
@@ -1054,6 +1063,7 @@ const dict = {
     'style.macro': 'Makro / Küresel',
     'style.quant': 'Algoritmik (Quant)',
     'nav.report': 'Çeyrek Raporu',
+    'nav.emerging': 'Yükselen Yöneticiler',
     'report.title': 'Çeyrek Raporu',
     'report.subtitle': 'sezonu özeti',
     'report.funds': 'fon',
@@ -1665,6 +1675,8 @@ const dict = {
     'search.favorites': 'Your Watchlist',
     'search.noResults': 'No results found',
     'search.filings': 'filings',
+    'search.stock': 'Stock',
+    'search.tracked': 'Tracked',
 
     // ---- landing (home) ------------------------------------------------
     // ---- home (stockcircle-style: headline, search, three tabs, cards) ----
@@ -1816,6 +1828,11 @@ const dict = {
     'rep.indexSub': 'Quarterly 13F reports on the tracked superinvestors',
     'rep.open': 'Open report →',
     'rep.notFound': 'No report has been generated for this quarter.',
+    'nf.title': 'Page not found',
+    'nf.text': 'There is no page at this address. The link may be outdated or mistyped.',
+    'nf.home': 'Home',
+    'nf.gurus': 'Superinvestors',
+    'nf.insiders': 'Insider trades',
     'rep.sub': '{n} of {m} tracked funds with 13F filings for {d}',
     'rep.generated': 'generated',
     'rep.chartPack': 'Chart pack (PNG)',
@@ -2072,6 +2089,7 @@ const dict = {
     'filers.title': '13F Filers',
     'filers.subtitle': 'Every institutional investor filing Form 13F with the SEC, alphabetically',
     'manager.unknownSlug': 'No fund matches this address.',
+    'manager.noInfoTable': 'This filing’s holdings table can’t be read: 13Fs filed before 2013 were plain text, not XML. Pick a more recent quarter.',
     'insig.cluster.desc': 'Open-market purchases of at least $10,000 each by at least two officers or directors of the same company within 10 business days, over the last 30 days. Employee plan purchases and offering participation are listed separately.',
     'insig.csuite.desc': 'Purchases of their own company stock by CEOs and CFOs in the last 30 days.',
     'insig.penny.desc': 'Insider purchases above $10K in stocks trading under $5 in the last 30 days.',
@@ -2126,6 +2144,7 @@ const dict = {
     'topnav.d.screen': 'Filter {funds} funds',
     'topnav.d.compare': 'Fund & stock comparison, backtest',
     'topnav.d.report': 'Quarterly market summary',
+    'topnav.d.emerging': 'New managers on the rise',
 
     'manager.overview': 'Overview',
     'manager.tab.portfolio': 'Positions',
@@ -2528,6 +2547,7 @@ const dict = {
     'style.macro': 'Global Macro',
     'style.quant': 'Quantitative',
     'nav.report': 'Quarterly Report',
+    'nav.emerging': 'Emerging Managers',
     'report.title': 'Quarterly Report',
     'report.subtitle': 'season recap',
     'report.funds': 'funds',

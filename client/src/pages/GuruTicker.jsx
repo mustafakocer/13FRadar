@@ -61,7 +61,13 @@ export default function GuruTicker() {
 
   if (slugQ.error) return <div className="error-box">{t('manager.unknownSlug')}</div>;
   if (!cik || pair.isLoading) return <div className="loading"><div className="spinner" />{t('common.loading')}</div>;
-  if (pair.error) return <div className="error-box">{t('hist.none')}</div>;
+  if (pair.error)
+    return (
+      <div className="error-box">
+        {t('hist.none')}{' '}
+        <Link to={`/stock/${tk}`}>{t('pair.backStock')} →</Link>
+      </div>
+    );
 
   return (
     <div>

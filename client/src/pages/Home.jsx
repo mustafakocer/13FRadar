@@ -287,7 +287,7 @@ export default function Home() {
         <p className="home-band"><span className="hl-band">{t('home.band.lead')} <b>{t('home.band.strong')}</b></span></p>
         <h1>{t('home.h1')}</h1>
         <p className="lead">{funds ? t('home.sub').replace('{n}', funds) : t('home.sub.noCount')}</p>
-        <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} placeholder={t('home.search')} />
+        <SearchBox initialText={params.get('q') || ''} onSelect={(m) => navigate(managerPath(m.cik))} onSelectStock={(tk) => navigate(`/stock/${tk}`)} placeholder={t('home.search')} />
       </section>
 
       <Tabs tab={tab} setTab={setTab} />

@@ -9,6 +9,7 @@ import Consensus from './pages/Consensus.jsx';
 import Gurus from './pages/Gurus.jsx';
 import InsiderSignal from './pages/InsiderSignal.jsx';
 import Rankings from './pages/Rankings.jsx';
+import NotFound from './pages/NotFound.jsx';
 import CommandPalette from './components/CommandPalette.jsx';
 import Footer from './components/Footer.jsx';
 import ConsentBanner from './components/ConsentBanner.jsx';
@@ -105,6 +106,7 @@ export default function App() {
           <Route path="/match" element={<Lazy><Match /></Lazy>} />
           <Route path="/thanks" element={<Lazy><LeadThanks /></Lazy>} />
           <Route path="/unsubscribe" element={<Lazy><Unsubscribe /></Lazy>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </ErrorBoundary>
         <Footer />

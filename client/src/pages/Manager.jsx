@@ -113,6 +113,8 @@ export default function Manager({ segment = 'portfolio' }) {
     queryFn: () => api.holdings(cik, acc, isPro ? { full: '1' } : {}),
     enabled: !!acc,
     staleTime: 6 * 60 * 60 * 1000,
+    // a pre-2013 text filing will not grow an XML table on a second try
+    retry: (n, e) => e?.code !== 'no-info-table' && n < 1,
   });
 
   // Previous quarter for change detection. Free users may only fetch the
@@ -507,7 +509,12 @@ export default function Manager({ segment = 'portfolio' }) {
           <div className="mt16"><SkeletonRows rows={7} /></div>
         </>
       )}
-      {holdings.error && <div className="error-box">{t('common.error')}: {String(holdings.error.message)}</div>}
+      {holdings.error &&
+        (holdings.error.code === 'no-info-table' ? (
+          <div className="muted" data-no-info-table>{t('manager.noInfoTable')}</div>
+        ) : (
+          <div className="error-box">{t('common.error')}: {String(holdings.error.message)}</div>
+        ))}
 
       {ready && (
         <>

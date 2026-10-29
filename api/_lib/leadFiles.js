@@ -49,7 +49,9 @@ export function insiderBuysCsv(rows = readServed().rows, now = new Date()) {
       { h: 'Filed', v: (r) => r.f },
       { h: 'Trade date', v: (r) => r.d },
       { h: 'Ticker', v: (r) => r.t },
-      { h: 'Company', v: (r) => companyName(r.t)?.name || '' },
+      // no ticker match (and no stored issuer name): the issuer's SEC CIK,
+      // so the row still says whose stock it is
+      { h: 'Company', v: (r) => companyName(r.t)?.name || (r.ci ? `CIK ${Number(r.ci)}` : '') },
       { h: 'Insider', v: (r) => r.n },
       { h: 'Role', v: (r) => r.ti || ROLE[r.r] || r.r || '' },
       { h: 'Shares', v: (r) => r.s },

@@ -180,7 +180,12 @@ export function deliveryMail({ lang, magnets, links, unsub, site = CANONICAL_SIT
   return { subject: 'İşte istediğin 🎉 · Fundocap', text };
 }
 
+// The button takes the link's place in the text, so "Confirm your email:"
+// is followed by it, not by a blank line with the button after the footer.
 function simpleHtml(text, url, button) {
-  const body = esc(text).replace(esc(url), '').replace(/\n/g, '<br>');
-  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#14182b;max-width:520px">${body}<p style="margin:20px 0"><a href="${esc(url)}" style="background:#1B2A6B;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">${esc(button)}</a></p><p style="font-size:12px;color:#667">${esc(url)}</p></div>`;
+  const cta = `<p style="margin:16px 0"><a href="${esc(url)}" style="background:#1B2A6B;color:#fff;padding:12px 20px;border-radius:999px;text-decoration:none;font-weight:600">${esc(button)}</a></p><p style="font-size:12px;color:#667;margin:0 0 8px">${esc(url)}</p>`;
+  const [before, ...rest] = esc(text).split(esc(url));
+  const br = (s) => s.replace(/^\n+|\n+$/g, '').replace(/\n/g, '<br>');
+  const body = rest.length ? `${br(before)}${cta}${br(rest.join(esc(url)))}` : `${br(before)}${cta}`;
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#14182b;max-width:520px">${body}</div>`;
 }

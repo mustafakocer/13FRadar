@@ -57,8 +57,8 @@
       "key": "insiders",
       "path": "api/_data/insiders.json",
       "metrics": {
-        "rows": 84948,
-        "companies": 4426,
+        "rows": 84659,
+        "companies": 4423,
         "futureDated": 0,
         "duplicateIds": 0
       },
@@ -80,7 +80,7 @@
       "key": "insiders-teaser",
       "path": "client/public/insiders-teaser.json",
       "metrics": {
-        "total": 18141,
+        "total": 16577,
         "penny": 9
       },
       "findings": []
@@ -89,7 +89,7 @@
       "key": "universe",
       "path": "client/public/universe.json",
       "metrics": {
-        "rows": 8953
+        "rows": 8955
       },
       "findings": []
     },
@@ -97,8 +97,8 @@
       "key": "latest-holdings",
       "path": "api/_data/latest-holdings.json",
       "metrics": {
-        "filers": 8953,
-        "withRows": 8953
+        "filers": 8955,
+        "withRows": 8955
       },
       "findings": []
     },
@@ -114,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4124
+        "tickers": 4123
       },
       "findings": []
     },
@@ -122,8 +122,8 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4879,
-        "coveragePct": 98.5
+        "series": 4890,
+        "coveragePct": 98.6
       },
       "findings": []
     },
@@ -156,8 +156,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 9058,
-        "byCik": 9058
+        "bySlug": 9059,
+        "byCik": 9059
       },
       "findings": []
     },
@@ -165,7 +165,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 3207
+        "rows": 3420
       },
       "findings": []
     },
@@ -173,7 +173,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 2811
+        "filers": 3007
       },
       "findings": []
     },

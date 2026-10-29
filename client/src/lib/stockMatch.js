@@ -1,7 +1,9 @@
 // Stock lookup for the home search box, over /stocks.json rows
 // ({ ticker, issuer, funds }): exact ticker, then ticker prefix, then (from
 // three letters on) issuer name; ties go to the more widely held name.
-export const TICKERISH = /^[A-Za-z][A-Za-z.\-]{0,6}$/;
+// one to five letters, optionally a share-class suffix (BRK.B, BF-B):
+// "Buffett" or "Citadel" are never read as a symbol
+export const TICKERISH = /^[A-Za-z]{1,5}(?:[.\-][A-Za-z]{1,2})?$/;
 
 export function matchStocks(rows, q, limit = 5) {
   const qu = q.trim().toUpperCase();

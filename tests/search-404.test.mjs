@@ -33,6 +33,9 @@ test('TICKERISH: symbols with a class suffix pass, sentences do not', () => {
   assert.ok(TICKERISH.test('nvda'));
   assert.ok(!TICKERISH.test('warren buffett'));
   assert.ok(!TICKERISH.test('13F'));
+  assert.ok(!TICKERISH.test('Buffett'), 'seven letters is a name, not a symbol');
+  assert.ok(TICKERISH.test('GOOGL'));
+  assert.ok(TICKERISH.test('BF-B'));
 });
 
 test('search: "Buffett" puts the tracked Berkshire book above EDGAR personal filers', () => {

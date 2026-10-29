@@ -61,6 +61,7 @@ export default function Emerging() {
   );
   if (q.isLoading) return <div className="loading"><div className="spinner" />{t('common.loading')}</div>;
   if (!d) return <div className="error-box">{t('common.error')}</div>;
+  const smallCap = Boolean(d.criteria?.smallCapAvailable);
   return (
     <div>
       <div className="page-head">
@@ -72,7 +73,9 @@ export default function Emerging() {
       <AnswerBox text={answer} />
       <div className="card">
         <p className="muted small" style={{ marginBottom: 10 }}>
-          {t('em.criteria')}{!d.criteria.smallCapAvailable && <> · <b>{t('em.smallCapTodo')}</b></>}
+          {/* the small-cap leg is not computed yet: the screen states only
+              what it applies, and the empty column stays off the table */}
+          {smallCap ? t('em.criteria') : t('em.criteriaBase')}
         </p>
         <div className="table-wrap">
           <table className="data">
@@ -83,7 +86,7 @@ export default function Emerging() {
                 {th('aum', t('manager.aum'))}
                 {th('positions', t('manager.positions'))}
                 {th('top10', t('manager.top10'))}
-                {th('smallCapShare', t('em.smallCap'))}
+                {smallCap && th('smallCapShare', t('em.smallCap'))}
                 {th('filed', t('hist.filed'))}
               </tr>
             </thead>
@@ -95,7 +98,7 @@ export default function Emerging() {
                   <td className="num">{fmtMoney(r.aum)}</td>
                   <td className="num">{fmtNum(r.positions)}</td>
                   <td className="num">{fmtPct(r.top10, { sign: false })}</td>
-                  <td className="num muted">{r.smallCapShare != null ? fmtPct(r.smallCapShare, { sign: false }) : '—'}</td>
+                  {smallCap && <td className="num muted">{r.smallCapShare != null ? fmtPct(r.smallCapShare, { sign: false }) : '—'}</td>}
                   <td className="num muted">{r.filed}</td>
                 </tr>
               ))}

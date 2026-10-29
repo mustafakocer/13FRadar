@@ -212,7 +212,14 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                   <td className="l" data-col="ticker" onClick={(e) => e.stopPropagation()}>
                     {p.ticker ? (
                       <Link
-                        to={`/stock/${p.ticker}?cusip=${p.cusip}`}
+                        // on a guru's page the ticker opens that fund's own
+                        // position history; a fund without tracked history
+                        // (no time-held figure) and option rows go to the stock
+                        to={
+                          guruSlug && !p.putCall && p.held > 0
+                            ? `/guru/${guruSlug}/${p.ticker}`
+                            : `/stock/${p.ticker}?cusip=${p.cusip}`
+                        }
                         className="tk-cell"
                         style={{ fontWeight: 700 }}
                       >

@@ -121,6 +121,9 @@ export default async function handler(req, res) {
       }),
     });
   } catch (err) {
+    if (err?.code === 'NO_INFO_TABLE') {
+      return res.status(404).json({ error: String(err.message), code: 'no-info-table' });
+    }
     res.status(502).json({ error: String(err.message || err) });
   }
 }

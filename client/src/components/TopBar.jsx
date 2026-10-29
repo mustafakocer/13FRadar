@@ -6,7 +6,7 @@ import { useI18n } from '../i18n.jsx';
 import { useAuth } from '../auth.jsx';
 import Ico from './Ico.jsx';
 import Logo from './Logo.jsx';
-import { Search, Landmark, Gavel, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
+import { Search, Landmark, Gavel, UserSearch, Star, Gem, Compass, ChartColumn, Scale, Newspaper, Sprout, UserRound, Moon, Sun, ChevronDown } from 'lucide-react';
 
 // Top navigation: brand · tabs (one of them a drop-down group) · search
 // (opens the ⌘K palette) · theme · TR/EN · account. When the row is too
@@ -132,6 +132,7 @@ export default function TopBar({ theme, onToggleTheme }) {
     { to: '/screen', label: t('nav.screen'), icon: ChartColumn, desc: t('topnav.d.screen').replace('{funds}', fundCount) },
     { to: '/compare', label: t('nav.compare'), icon: Scale, desc: t('topnav.d.compare') },
     { to: '/report', label: t('nav.report'), icon: Newspaper, desc: t('topnav.d.report') },
+    { to: '/emerging-managers', label: t('nav.emerging'), icon: Sprout, desc: t('topnav.d.emerging') },
   ];
   const fundsActive = funds.some((n) => location.pathname.startsWith(n.to)) || location.pathname.startsWith('/manager/');
 

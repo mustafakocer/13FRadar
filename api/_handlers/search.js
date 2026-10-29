@@ -1,5 +1,25 @@
 import { cached, TTL } from '../_lib/cache.js';
 import { ftsSearch, companySearchAtom, getSubmissions, padCik } from '../_lib/sec.js';
+import { GURUS } from '../_lib/gurus.js';
+
+// Tracked superinvestors whose name holds every word of the query. EDGAR's
+// full-text search ranks by filing count, so "Buffett" used to surface the
+// personal filer BUFFETT WARREN E (last 13F in 2007) above Berkshire.
+export function guruMatches(q) {
+  const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return [];
+  return GURUS.filter((g) => {
+    const name = g.name.toLowerCase();
+    return words.every((w) => name.includes(w));
+  }).map((g) => ({ name: g.name, cik: g.cik, filings: null, guru: true }));
+}
+
+// Gurus first, then EDGAR's own list without the CIKs already shown.
+export function withGurusFirst(q, list) {
+  const gurus = guruMatches(q);
+  const seen = new Set(gurus.map((g) => g.cik));
+  return [...gurus, ...list.filter((r) => !seen.has(r.cik))].slice(0, 25);
+}
 
 const parseDisplayName = (dn) => {
   const m = /^(.*?)\s*\(CIK\s+(\d+)\)\s*$/.exec(dn);
@@ -40,14 +60,20 @@ export default async function handler(req, res) {
         const ql = q.toLowerCase();
         const nameMatch = list.filter((r) => r.name.toLowerCase().includes(ql));
         list = (nameMatch.length ? nameMatch : list).sort((a, b) => b.filings - a.filings);
-        if (list.length) return list.slice(0, 25);
+        if (list.length) return withGurusFirst(q, list);
       } catch {
         /* fall through to atom search */
       }
 
       // Fallback: classic EDGAR company search
-      const companies = await companySearchAtom(q);
-      return companies.slice(0, 25).map((c) => ({ ...c, filings: null }));
+      let companies = [];
+      try {
+        companies = await companySearchAtom(q);
+      } catch (err) {
+        // EDGAR down: the tracked list still answers
+        if (!guruMatches(q).length) throw err;
+      }
+      return withGurusFirst(q, companies.map((c) => ({ ...c, filings: null })));
     });
 
     res.setHeader('Cache-Control', 's-maxage=3600, stale-while-revalidate=86400');

@@ -164,7 +164,14 @@ export async function fetchInfoTableXml(cik, acc) {
   const xmls = items.filter(
     (i) => /\.xml$/i.test(i.name) && !/primary_doc/i.test(i.name)
   );
-  if (!xmls.length) throw new Error('No information table XML found in filing');
+  if (!xmls.length) {
+    // 13F-HR filed before the 2013 XML mandate carries its table as plain
+    // text; there is nothing to parse, and the page says so instead of
+    // showing this message raw
+    const err = new Error('No information table XML found in filing');
+    err.code = 'NO_INFO_TABLE';
+    throw err;
+  }
   const pick =
     xmls.find((i) => /info/i.test(i.name)) ||
     xmls.sort((a, b) => (Number(b.size) || 0) - (Number(a.size) || 0))[0];

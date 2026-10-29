@@ -20,7 +20,7 @@ export default function LeadForm({ magnet, title, text, cta, compact = false, of
   const [email, setEmail] = useState('');
   const [website, setWebsite] = useState(''); // honeypot: people never see it
   const [newsletter, setNewsletter] = useState(false);
-  const [state, setState] = useState('idle'); // idle | busy | pending | sent | error | soon
+  const [state, setState] = useState('idle'); // idle | busy | pending | sent | limited | error | soon
   const kind = String(magnet).split(':')[0];
   const isNewsletter = kind === 'newsletter';
   if (!leadsEnabled()) return null;
@@ -35,17 +35,18 @@ export default function LeadForm({ magnet, title, text, cta, compact = false, of
       const r = await api.subscribe({ email, magnet, lang, newsletter: isNewsletter || newsletter, website, ...(meta || {}) });
       track(EVENTS.lead, { magnet: kind });
       if (meta) lead(eid, kind);
-      setState(r.status === 'sent' ? 'sent' : 'pending');
+      setState(r.status === 'sent' || r.status === 'limited' ? r.status : 'pending');
     } catch (err) {
       setState(err.status === 503 ? 'soon' : 'error');
     }
   };
 
-  if (state === 'pending' || state === 'sent') {
+  if (state === 'pending' || state === 'sent' || state === 'limited') {
+    // 'limited': the address hit the day's mail cap, so nothing new went out
     return (
       <div className={`card lead-card no-print ${className}`} data-lead={kind} data-lead-state={state} role="status">
-        <p className="lead-done">{state === 'sent' ? t('lead.sent') : t('lead.pending')}</p>
-        <p className="muted small">{t('lead.spam')}</p>
+        <p className="lead-done">{t(`lead.${state}`)}</p>
+        {state !== 'limited' && <p className="muted small">{t('lead.spam')}</p>}
       </div>
     );
   }

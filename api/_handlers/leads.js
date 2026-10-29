@@ -56,8 +56,27 @@ async function deliver(row, site) {
   const links = grant ? magnetLinks(site, lang, magnets, grant) : {};
   const unsub = unsubscribeUrl(site, row.unsub_token);
   const mail = deliveryMail({ lang, magnets, links, unsub, site });
-  await sendMail({ to: row.email, ...mail, headers: unsubscribeHeaders(site, row.unsub_token) });
-  return grant;
+  const { id } = await sendMail({ to: row.email, ...mail, headers: unsubscribeHeaders(site, row.unsub_token) });
+  return { grant, id };
+}
+
+// A mail the provider refused must not count against the address's daily cap:
+// the counter goes back to what it was, and the error still reaches the caller.
+async function mailOrRollback(rowId, prev, send) {
+  try {
+    return await send();
+  } catch (err) {
+    await svcUpdate('subscribers', { id: `eq.${rowId}` }, prev).catch(() => {});
+    throw err;
+  }
+}
+
+// The rate limit's answer. Under a minute after a mail, "sent"/"pending" is
+// still true (one just went out); at the daily cap nothing goes out, and the
+// form says so instead of pointing at an inbox that stays empty.
+function limited(res, gate, otherwise, magnet) {
+  console.warn(`subscribe: ${magnet.id} not mailed, rate limit (${gate.reason})`);
+  return res.status(200).json({ ok: true, status: gate.reason === 'daily-cap' ? 'limited' : otherwise });
 }
 
 export async function subscribe(req, res) {
@@ -84,18 +103,22 @@ export async function subscribe(req, res) {
       ? sendMetaEvent({ name: 'Lead', id: cleanEventId(b.eid), email, country: String(req.headers['x-vercel-ip-country'] || ''), ...browserContext(req, b), custom: { content_name: magnet.kind } })
       : null;
 
+    // what the counter goes back to if the provider refuses the mail
+    const prev = { confirm_sent_at: row?.confirm_sent_at ?? null, confirm_sends: row?.confirm_sends ?? 0 };
+
     if (row && row.status === 'confirmed') {
       // already confirmed: no new consent needed for what they asked; mail it
       const gate = confirmAllowed(row);
-      if (!gate.ok) return res.status(200).json({ ok: true, status: 'sent' });
+      if (!gate.ok) return limited(res, gate, 'sent', magnet);
       await svcUpdate('subscribers', { id: `eq.${row.id}` }, { ...merged, lang, confirm_sent_at: new Date().toISOString(), confirm_sends: gate.sends });
-      await deliver({ ...row, ...merged, lang, magnets: [magnet.id] }, site);
+      const { id } = await mailOrRollback(row.id, prev, () => deliver({ ...row, ...merged, lang, magnets: [magnet.id] }, site));
+      console.log(`subscribe: ${magnet.id} delivery mail accepted, resend id=${id}`);
       if (lead) await lead;
       return res.status(200).json({ ok: true, status: 'sent' });
     }
 
     const gate = confirmAllowed(row);
-    if (!gate.ok) return res.status(200).json({ ok: true, status: 'pending' });
+    if (!gate.ok) return limited(res, gate, 'pending', magnet);
     const token = newToken();
     const fields = {
       ...merged,
@@ -118,7 +141,8 @@ export async function subscribe(req, res) {
       row = await svcInsert('subscribers', { email, unsub_token: newToken(), ...fields });
     }
     const confirmUrl = `${site}/api/subscribe-confirm?t=${token}`;
-    await sendMail({ to: email, ...confirmMail({ lang, magnet, newsletter: fields.newsletter, confirmUrl, site }) });
+    const { id } = await mailOrRollback(row.id, prev, () => sendMail({ to: email, ...confirmMail({ lang, magnet, newsletter: fields.newsletter, confirmUrl, site }) }));
+    console.log(`subscribe: ${magnet.id} confirmation mail accepted, resend id=${id}`);
     if (lead) await lead;
     return res.status(200).json({ ok: true, status: 'pending' });
   } catch (err) {
@@ -140,7 +164,7 @@ export async function confirm(req, res) {
     const site = siteUrl(req);
     let grant = null;
     try {
-      grant = await deliver({ ...row, status: 'confirmed' }, site);
+      ({ grant } = await deliver({ ...row, status: 'confirmed' }, site));
     } catch (e) {
       console.error(`welcome mail failed: ${String(e.message || e)}`);
       grant = signGrant();

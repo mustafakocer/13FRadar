@@ -33,6 +33,11 @@ Kod: `api/_lib/leads.js`, `api/_handlers/leads.js`, `api/_lib/leadFiles.js`, `ap
 5. Deploy. Kendi adresinle bir form doldur → onay → indir → çık; hepsini dene.
 6. *Newsletter and guru alerts* workflow'unu `dry_run` + `force` ile bir kez çalıştır, çıktıyı oku.
 
+**Mail gelmezse:** Vercel → Logs'ta `subscribe:` satırlarına bak. `accepted, resend id=…` varsa
+mail Resend'e ulaşmıştır; durumunu (delivered / bounced / suppressed) resend.com → Emails'ta o id ile
+izle. `not mailed, rate limit (daily-cap)` ise aynı adrese 24 saatte 3 mail sınırı dolmuştur (form
+bunu söyler); `resend HTTP 403` domain doğrulanmamış demektir. Hiç satır yoksa istek API'ye ulaşmamıştır.
+
 ## Zamanlama
 
 `.github/workflows/newsletter.yml` her gün 04:41 UTC (07:41 TR): pazartesi bülten, her gün fon uyarıları,

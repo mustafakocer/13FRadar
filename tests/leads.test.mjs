@@ -44,8 +44,15 @@ const supabase = http.createServer(async (req, res) => {
 
 // ---- Resend stand-in ----------------------------------------------------------
 const mails = [];
+let resendRefuses = null; // one refusal (an HTTP status) for the next send
 const resend = http.createServer(async (req, res) => {
-  mails.push(JSON.parse(await read(req)));
+  const body = JSON.parse(await read(req));
+  if (resendRefuses) {
+    const code = resendRefuses;
+    resendRefuses = null;
+    return json(res, code, { message: 'domain not verified', name: 'validation_error', statusCode: code });
+  }
+  mails.push(body);
   json(res, 200, { id: `mail-${mails.length}` });
 });
 
@@ -202,6 +209,47 @@ test('a confirmed reader asking again gets the file mailed without a new confirm
   assert.equal((await call(subscribe, { body: { email: 'a@b.co', magnet: 'newsletter' } })).status, 405);
   assert.equal(mails.length, 1);
   assert.ok(![...rows.values()].some((x) => x.email === 'bot@example.com'));
+});
+
+test('the daily cap says so instead of pointing at an empty inbox; a refused mail does not use up the cap', async () => {
+  rows.clear();
+  mails.length = 0;
+  const recent = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+  rows.set('id-cap', { id: 'id-cap', email: 'cap@example.com', lang: 'tr', status: 'confirmed', newsletter: true, gurus: [], magnets: ['newsletter'], unsub_token: 'unsub-token-cap-000000000000', confirm_sent_at: recent, confirm_sends: 3 });
+  const capped = await call(subscribe, { method: 'POST', body: { email: 'cap@example.com', magnet: 'match', lang: 'tr' } });
+  assert.deepEqual(capped.body, { ok: true, status: 'limited' });
+  assert.equal(mails.length, 0, 'nothing sent at the cap');
+  rows.set('id-pend', { id: 'id-pend', email: 'pend@example.com', lang: 'tr', status: 'pending', newsletter: true, gurus: [], magnets: ['newsletter'], unsub_token: 'unsub-token-pend-00000000000', confirm_sent_at: recent, confirm_sends: 3 });
+  assert.equal((await call(subscribe, { method: 'POST', body: { email: 'pend@example.com', magnet: 'newsletter' } })).body.status, 'limited');
+  // under a minute after a mail the answer stays "sent": one really just went out
+  rows.get('id-cap').confirm_sent_at = new Date().toISOString();
+  rows.get('id-cap').confirm_sends = 1;
+  assert.equal((await call(subscribe, { method: 'POST', body: { email: 'cap@example.com', magnet: 'match' } })).body.status, 'sent');
+  assert.equal(mails.length, 0);
+
+  // the provider refuses the confirmation mail: the caller hears about it and
+  // the address's counter is not charged, so the retry a moment later goes out
+  resendRefuses = 403;
+  const refused = await call(subscribe, { method: 'POST', body: { email: 'new@example.com', magnet: 'xl-insiders', lang: 'en' } });
+  assert.equal(refused.status, 502);
+  const row = [...rows.values()].find((r) => r.email === 'new@example.com');
+  assert.ok(row, 'the row exists so the token behind the link is stored');
+  assert.equal(row.confirm_sent_at, null);
+  assert.equal(row.confirm_sends, 0);
+  assert.equal(mails.length, 0);
+  const retry = await call(subscribe, { method: 'POST', body: { email: 'new@example.com', magnet: 'xl-insiders', lang: 'en' } });
+  assert.deepEqual(retry.body, { ok: true, status: 'pending' });
+  assert.equal(mails.length, 1);
+  assert.equal(row.confirm_sends, 1);
+
+  // a confirmed reader whose delivery mail is refused is not charged either
+  rows.set('id-fan', { id: 'id-fan', email: 'fan@example.com', lang: 'en', status: 'confirmed', newsletter: false, gurus: [], magnets: ['newsletter'], unsub_token: 'unsub-token-fan-000000000000', confirm_sent_at: recent, confirm_sends: 1 });
+  resendRefuses = 500;
+  const r2 = await call(subscribe, { method: 'POST', body: { email: 'fan@example.com', magnet: 'match', lang: 'en' } });
+  assert.equal(r2.status, 502);
+  assert.equal(rows.get('id-fan').confirm_sends, 1);
+  assert.equal(rows.get('id-fan').confirm_sent_at, recent);
+  assert.equal(mails.length, 1);
 });
 
 // ---- content ------------------------------------------------------------------

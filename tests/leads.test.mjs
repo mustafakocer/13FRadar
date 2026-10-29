@@ -217,11 +217,13 @@ test('the Excel magnets are the top 50 and the last 30 days of insider buys', ()
       { k: 'P', t: 'BBB', n: 'Y', r: 'director', d: '2026-10-20', f: '2026-10-21', s: 10, p: 50, v: 500 },
       { k: 'S', t: 'CCC', n: 'Z', r: 'ceo', d: '2026-10-20', f: '2026-10-21', s: 10, p: 50, v: 900 },
       { k: 'P', t: 'DDD', n: 'W', r: 'ceo', d: '2026-08-01', f: '2026-08-02', s: 10, p: 50, v: 999 },
+      { k: 'P', t: null, ci: '0001959604', n: 'V', r: 'owner10', d: '2026-10-20', f: '2026-10-21', s: 10, p: 5, v: 40 },
     ],
     now
   );
-  assert.equal(b.rows, 2);
+  assert.equal(b.rows, 3);
   assert.match(b.csv.split('\n')[1], /,BBB,/);
+  assert.match(b.csv, /,,CIK 1959604,V,/, 'an unmapped issuer is named by its CIK, not left blank');
 });
 
 test('portfolio matcher: tickers cleaned, gurus ranked by coverage and weight, three free', () => {
@@ -281,4 +283,15 @@ test('newsletter: this week only, one line per member, no advice words, unsubscr
   assert.match(html, /href="https:\/\/u\/x"/);
   assert.doesNotMatch(text.toLowerCase(), /(^|\s)(al|sat|satın al)[!.]?(\s|$)|tavsiye ediyoruz|hedef fiyat/u);
   assert.match(text, /yatırım tavsiyesi değildir/);
+});
+
+test('confirmation mail: the button sits where the link was, not after the footer', async () => {
+  const { confirmMail } = await import('../api/_lib/leads.js');
+  const url = 'https://www.fundocap.co/api/subscribe-confirm?t=abc';
+  const { html, text } = confirmMail({ lang: 'tr', magnet: { id: 'newsletter', kind: 'newsletter' }, newsletter: true, confirmUrl: url });
+  assert.ok(text.includes(url));
+  const btn = html.indexOf('E-postamı onayla');
+  assert.ok(btn > html.indexOf('E-postanı onayla:'), 'button after the prompt');
+  assert.ok(btn < html.indexOf('Bunu sen istemediysen'), 'button before the rest of the text');
+  assert.ok(!/<br><br><br>/.test(html), 'no blank gap where the link used to be');
 });

@@ -218,12 +218,15 @@ test('the Excel magnets are the top 50 and the last 30 days of insider buys', ()
       { k: 'S', t: 'CCC', n: 'Z', r: 'ceo', d: '2026-10-20', f: '2026-10-21', s: 10, p: 50, v: 900 },
       { k: 'P', t: 'DDD', n: 'W', r: 'ceo', d: '2026-08-01', f: '2026-08-02', s: 10, p: 50, v: 999 },
       { k: 'P', t: null, ci: '0001959604', n: 'V', r: 'owner10', d: '2026-10-20', f: '2026-10-21', s: 10, p: 5, v: 40 },
+      { k: 'P', t: null, ci: '0000885275', n: 'U', r: 'director', d: '2026-10-20', f: '2026-10-21', s: 1, p: 5, v: 5 },
     ],
-    now
+    now,
+    { '0000885275': 'Example Bancorp Inc' }
   );
-  assert.equal(b.rows, 3);
+  assert.equal(b.rows, 4);
   assert.match(b.csv.split('\n')[1], /,BBB,/);
-  assert.match(b.csv, /,,CIK 1959604,V,/, 'an unmapped issuer is named by its CIK, not left blank');
+  assert.match(b.csv, /,,Example Bancorp Inc,U,/, 'a ticker-less issuer gets its stored Form 4 name');
+  assert.match(b.csv, /,,CIK 1959604,V,/, 'and its CIK when no name is stored, never a blank');
 });
 
 test('portfolio matcher: tickers cleaned, gurus ranked by coverage and weight, three free', () => {
@@ -294,4 +297,13 @@ test('confirmation mail: the button sits where the link was, not after the foote
   assert.ok(btn > html.indexOf('E-postanı onayla:'), 'button after the prompt');
   assert.ok(btn < html.indexOf('Bunu sen istemediysen'), 'button before the rest of the text');
   assert.ok(!/<br><br><br>/.test(html), 'no blank gap where the link used to be');
+});
+
+test('issuerNameOf: by ticker from companies, by issuer CIK only for ticker-less lines', async () => {
+  const { issuerNameOf } = await import('../api/_lib/insiderStore.js');
+  const db = { companies: { AAPL: 'Apple Inc.' }, issuers: { '0000885275': 'Example Bancorp Inc', '0000320193': 'WRONG' } };
+  assert.equal(issuerNameOf(db, { t: 'AAPL', ci: '0000320193' }), 'Apple Inc.');
+  assert.equal(issuerNameOf(db, { t: null, ci: '0000885275' }), 'Example Bancorp Inc');
+  assert.equal(issuerNameOf(db, { t: 'ZZZZ', ci: '0000885275' }), null, 'a ticker row never borrows the CIK map');
+  assert.equal(issuerNameOf({}, { t: null, ci: '1' }), null);
 });

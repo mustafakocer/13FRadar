@@ -6,7 +6,7 @@ import { daySummary, sizeBucket, businessDaysBetween, CODES, KEPT_CODES,
   clusterSpanDays,
 } from '../_lib/insiderModel.js';
 import { isPenny } from '../_lib/insiderTeaser.js';
-import { readServed } from '../_lib/insiderStore.js';
+import { readServed, issuerNameOf } from '../_lib/insiderStore.js';
 import { classify } from '../_lib/insiderClassify.js';
 import { filingTotals, signalLevel } from '../_lib/insiderSignal.js';
 import { buysByPerson, hitRate } from '../_lib/insiderOutcome.js';
@@ -130,7 +130,7 @@ const numQ = (v) => {
 // The return since the trade is only meaningful for an open-market buy or
 // sale with a real price; for an exercise at $0.49 or a $0 award it read
 // +4,889% and meant nothing, so it is null there.
-function shape(r, meta, companies, d) {
+function shape(r, meta, companies, d, issuers = {}) {
   const m = (r.t && meta[r.t]) || {};
   // …and not when the price cannot be checked against the market (CEMEX
   // in pesos showed −43.8%, NCT after a reverse split +1,007.5%): the page
@@ -141,7 +141,7 @@ function shape(r, meta, companies, d) {
   const sig = levelOf(r, d, meta);
   return {
     ticker: r.t,
-    company: companyName(r.t)?.name || companies[r.t] || null,
+    company: companyName(r.t)?.name || companies[r.t] || (!r.t && r.ci ? issuers[r.ci] : null) || null,
     cik: r.ci,
     insider: r.n,
     role: r.r,
@@ -408,7 +408,7 @@ export async function answer(rawQuery, { free = true } = {}) {
     if (change === 'inc10' && !(r.oc != null && r.oc >= 10)) continue;
     if (change === 'inc50' && !(r.oc != null && r.oc >= 50)) continue;
     if (change === 'inc100' && !(r.oc != null && r.oc >= 100)) continue;
-    if (q && !(String(r.t || '').includes(q) || String((db.companies || {})[r.t] || '').toUpperCase().includes(q) || r.n?.toUpperCase().includes(q)))
+    if (q && !(String(r.t || '').includes(q) || String(issuerNameOf(db, r) || '').toUpperCase().includes(q) || r.n?.toUpperCase().includes(q)))
       continue;
 
     const m = (r.t && meta[r.t]) || {};
@@ -447,7 +447,7 @@ export async function answer(rawQuery, { free = true } = {}) {
   // open-market buys, the share that beat SPY over the next 90 days
   // (insiderOutcome.hitRate; null for funds, `insufficient` under n = 3).
   const slice = out.slice((page - 1) * perPage, page * perPage).map((r) => {
-    const row = shape(r, meta, companies, d);
+    const row = shape(r, meta, companies, d, db.issuers || {});
     const cl = r.t ? clusterMap.get(r.t) : null;
     if (cl) {
       row.cluster = {

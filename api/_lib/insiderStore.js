@@ -91,7 +91,7 @@ export function computeServed() {
   } catch {
     db = null;
   }
-  db = db || { rows: [], companies: {}, updatedAt: null };
+  db = db || { rows: [], companies: {}, issuers: {}, updatedAt: null };
   // foreign issuers' lines in US dollars per US security, or marked as not
   // convertible (fpiNormalize.js); raw rows are not changed
   // …and a buy whose notes say the shares were pay is not an open-market
@@ -99,6 +99,14 @@ export function computeServed() {
   const raw = readRawServed();
   const rows = markCompensation(normalizeRows(currentRows(db.rows || []), fpiContext({ raw })), (r) => raw[`${r.a}:${r.li}`] || null);
   return { ...db, rows, lastFilingDay: lastFilingDay(rows) };
+}
+
+// The issuer's name for one row: by ticker from `companies`, and for a line
+// whose issuer has no ticker mapping, by issuer CIK from `issuers` (the
+// Form 4 ISSUERNAME the build keeps for exactly those lines).
+export function issuerNameOf(db, r) {
+  if (r?.t) return db?.companies?.[r.t] || null;
+  return (r?.ci && db?.issuers?.[r.ci]) || null;
 }
 
 let served = null;
@@ -160,7 +168,7 @@ export function loadDataset() {
   // it ran five business days past the data. Without a stored checkpoint the
   // newest filing day actually present is the only trustworthy one.
   const checkpoint = db.checkpoint || lastFilingDay(currentRows(rows)) || null;
-  return { ...db, rows, checkpoint, companies: db.companies || {} };
+  return { ...db, rows, checkpoint, companies: db.companies || {}, issuers: db.issuers || {} };
 }
 export const loadRaw = () => readJson(files.raw(), { rows: {} });
 // fields of older lines re-read by scripts/backfill-insider-raw.mjs

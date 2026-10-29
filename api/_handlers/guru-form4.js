@@ -1,5 +1,5 @@
 import { guruForm4Rows, byTicker, foldDays, filerName } from '../_lib/guruForm4.js';
-import { readServed } from '../_lib/insiderStore.js';
+import { readServed, issuerNameOf } from '../_lib/insiderStore.js';
 import { companyName } from '../_lib/companyNames.js';
 import { CODES } from '../_lib/insiderModel.js';
 
@@ -27,7 +27,7 @@ export default function handler(req, res) {
     rows: foldDays(rows).slice(0, MAX_ROWS).map((r) => ({
       t: r.t || null,
       ci: r.ci,
-      company: r.t ? companyName(r.t)?.name || served.companies?.[r.t] || null : null,
+      company: r.t ? companyName(r.t)?.name || served.companies?.[r.t] || null : issuerNameOf(served, r),
       d: r.d,
       f: r.f,
       k: r.k,

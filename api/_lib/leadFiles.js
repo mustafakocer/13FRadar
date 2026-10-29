@@ -38,7 +38,7 @@ export function consensusCsv(table = guruStockTable()) {
 const ROLE = { ceo: 'CEO', cfo: 'CFO', coo: 'COO', president: 'President', director: 'Director', officer: 'Officer', owner10: '10% owner', other: 'Other' };
 
 // Open-market purchases (code P) filed in the last 30 days, largest first.
-export function insiderBuysCsv(rows = readServed().rows, now = new Date()) {
+export function insiderBuysCsv(rows = readServed().rows, now = new Date(), issuers = readServed().issuers || {}) {
   const since = new Date(now.getTime() - 30 * 86400 * 1000).toISOString().slice(0, 10);
   const buys = rows
     .filter((r) => r.k === 'P' && r.f >= since && r.v > 0)
@@ -51,7 +51,7 @@ export function insiderBuysCsv(rows = readServed().rows, now = new Date()) {
       { h: 'Ticker', v: (r) => r.t },
       // no ticker match (and no stored issuer name): the issuer's SEC CIK,
       // so the row still says whose stock it is
-      { h: 'Company', v: (r) => companyName(r.t)?.name || (r.ci ? `CIK ${Number(r.ci)}` : '') },
+      { h: 'Company', v: (r) => companyName(r.t)?.name || (!r.t && r.ci && issuers[r.ci]) || (r.ci ? `CIK ${Number(r.ci)}` : '') },
       { h: 'Insider', v: (r) => r.n },
       { h: 'Role', v: (r) => r.ti || ROLE[r.r] || r.r || '' },
       { h: 'Shares', v: (r) => r.s },

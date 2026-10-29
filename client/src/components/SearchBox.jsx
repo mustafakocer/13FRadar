@@ -45,9 +45,9 @@ export default function SearchBox({ onSelect, onSelectStock = null, placeholder,
   const results = data?.results || [];
   const stocks = onSelectStock ? matchStocks(universe?.rows, q) : [];
   // a ticker the universe does not hold (small caps) still gets a direct jump
-  // (only when nothing in the universe matched and the query is short enough
-  // to be a symbol, so "Buffett" or "Apple" never turns into a fake ticker)
-  const directTicker = onSelectStock && !stocks.length && q.length <= 5 && TICKERISH.test(q) ? q.toUpperCase() : null;
+  // (only when nothing in the universe matched, so "Apple" never turns into
+  // a fake ticker)
+  const directTicker = onSelectStock && !stocks.length && TICKERISH.test(q) ? q.toUpperCase() : null;
 
   // tracked superinvestors first, then stocks, then the rest of EDGAR
   const tracked = results.filter((r) => r.guru);
@@ -92,7 +92,7 @@ export default function SearchBox({ onSelect, onSelectStock = null, placeholder,
           const cur = text.trim().toUpperCase();
           const hits = matchStocks(universe?.rows, cur);
           if (hits[0]?.ticker === cur) pickStock(cur);
-          else if (!hits.length && cur.length <= 5 && TICKERISH.test(cur) && !results.length) pickStock(cur);
+          else if (!hits.length && TICKERISH.test(cur) && !results.length) pickStock(cur);
         }}
       />
       {open && (q.length >= 2 || stocks.length > 0) && (

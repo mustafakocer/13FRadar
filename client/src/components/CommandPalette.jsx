@@ -5,6 +5,7 @@ import { api } from '../lib/api.js';
 import { POPULAR_MANAGERS } from '../data/popular.js';
 import { useI18n } from '../i18n.jsx';
 import { managerPath } from '../lib/paths.js';
+import { TICKERISH, matchStocks } from '../lib/stockMatch.js';
 import Ico from './Ico.jsx';
 import { ChartCandlestick, Landmark } from 'lucide-react';
 
@@ -47,6 +48,12 @@ export default function CommandPalette() {
     queryFn: () => api.search(q),
     enabled: open && q.length >= 2,
   });
+  const { data: universe } = useQuery({
+    queryKey: ['stocks-universe'],
+    queryFn: api.stocksUniverse,
+    enabled: open && q.length >= 1,
+    staleTime: Infinity,
+  });
 
   if (!open) return null;
 
@@ -56,7 +63,19 @@ export default function CommandPalette() {
   };
 
   const results = q.length >= 2 ? data?.results || [] : POPULAR_MANAGERS.slice(0, 8);
-  const tickerish = /^[A-Za-z][A-Za-z.\-]{0,6}$/.test(q);
+  // the same stock lookup as the home search: universe tickers and names,
+  // a bare symbol jump only when the universe has nothing
+  const stocks = matchStocks(universe?.rows, q, 3);
+  const tickerish = TICKERISH.test(q);
+  const direct = tickerish && q && !stocks.length ? q.toUpperCase() : null;
+  const enterTicker = stocks[0]?.ticker === q.toUpperCase() ? stocks[0].ticker : direct;
+  const tracked = results.filter((r) => r.guru);
+  const others = results.filter((r) => !r.guru);
+  const managerItem = (r) => (
+    <button key={r.cik} className="search-result-item" onClick={() => go(managerPath(r.cik))}>
+      <span><Ico icon={Landmark} /> {r.name}</span>
+    </button>
+  );
 
   return (
     <div className="palette-overlay" onMouseDown={() => setOpen(false)}>
@@ -68,23 +87,26 @@ export default function CommandPalette() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === 'Enter' && tickerish && q) go(`/stock/${q.toUpperCase()}`);
+            if (e.key === 'Enter' && enterTicker) go(`/stock/${enterTicker}`);
           }}
         />
         <div className="palette-results">
-          {tickerish && q && (
-            <button className="search-result-item" onClick={() => go(`/stock/${q.toUpperCase()}`)}>
-              <span><Ico icon={ChartCandlestick} /> {t('palette.goStock')} <b>{q.toUpperCase()}</b></span>
+          {tracked.map(managerItem)}
+          {stocks.map((st) => (
+            <button key={`stk-${st.ticker}`} className="search-result-item" onClick={() => go(`/stock/${st.ticker}`)}>
+              <span><Ico icon={ChartCandlestick} /> <b>{st.ticker}</b> {st.issuer}</span>
+              {st.ticker === enterTicker && <span className="cik">Enter ↵</span>}
+            </button>
+          ))}
+          {direct && (
+            <button className="search-result-item" onClick={() => go(`/stock/${direct}`)}>
+              <span><Ico icon={ChartCandlestick} /> {t('palette.goStock')} <b>{direct}</b></span>
               <span className="cik">Enter ↵</span>
             </button>
           )}
           {isFetching && <div className="search-result-item muted">{t('common.loading')}</div>}
-          {results.map((r) => (
-            <button key={r.cik} className="search-result-item" onClick={() => go(managerPath(r.cik))}>
-              <span><Ico icon={Landmark} /> {r.name}</span>
-            </button>
-          ))}
-          {q.length >= 2 && !isFetching && !results.length && (
+          {others.map(managerItem)}
+          {q.length >= 2 && !isFetching && !results.length && !stocks.length && !direct && (
             <div className="search-result-item muted">{t('search.noResults')}</div>
           )}
         </div>

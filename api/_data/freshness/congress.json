@@ -1,7 +1,7 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-10-29T01:56:38.627Z",
- "last_success_at": "2026-10-23T00:56:18.773Z",
+ "last_run_at": "2026-10-29T07:57:34.221Z",
+ "last_success_at": "2026-10-29T07:57:37.919Z",
  "last_filing_date": "2026-10-28",
  "row_count": 13834,
  "member_count": 182,
@@ -31,6 +31,10 @@
    "error": 0
   }
  },
- "last_error": "Senate index: Senate eFD: agreement refused (HTTP 403)",
+ "senate_block": {
+  "since": "2026-10-29",
+  "error": "Senate eFD: agreement refused (HTTP 403) — Access Denied Access Denied You don't have permission to access \"http&#58;&#47;&#47;efdsearch&#46;senate&#46;gov&#47;search&#47;home&#47;\" on this server. Refer"
+ },
+ "last_error": null,
  "last_error_at": "2026-10-29T01:56:43.143Z"
 }

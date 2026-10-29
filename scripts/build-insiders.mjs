@@ -591,9 +591,16 @@ all.sort((a, b) => (a.f === b.f ? (a.a === b.a ? a.li - b.li : a.a < b.a ? -1 : 
 
 const companies = { ...(db.companies || {}) };
 for (const r of [...rows, ...freshRows]) if (r.t && r.c) companies[r.t] = r.c;
+// An issuer without a ticker mapping (a unit, a preferred, a private or
+// delisted company) has no key in `companies`; its Form 4 name is kept by
+// issuer CIK instead, so the feed and the Excel can say whose stock it is.
+const issuers = { ...(db.issuers || {}) };
+for (const r of [...rows, ...freshRows]) if (!r.t && r.ci && r.c) issuers[r.ci] = r.c;
 for (const r of all) delete r.c;
 const live = new Set(all.filter((r) => r.t).map((r) => r.t));
 for (const k of Object.keys(companies)) if (!live.has(k)) delete companies[k];
+const liveIssuers = new Set(all.filter((r) => !r.t && r.ci).map((r) => r.ci));
+for (const k of Object.keys(issuers)) if (!liveIssuers.has(k)) delete issuers[k];
 if (implausible) console.log(`Dropped ${implausible} row(s) dated after their own filing.`);
 
 const dups = duplicateIds(all);
@@ -614,6 +621,24 @@ if (!NO_ENRICH) {
   for (const r of all) if (r.t && r.ci && !cikOf.has(r.t)) cikOf.set(r.t, r.ci);
   meta = await enrich(tickers.slice(0, Number(process.env.INSIDER_ENRICH_MAX || 5000)), cikOf);
   fs.writeFileSync(META, JSON.stringify(meta));
+}
+
+// Lines stored before the build kept these names: the issuer's name from its
+// SEC submissions feed, a capped number per run (each is one EDGAR call).
+if (!NO_ENRICH) {
+  const missing = [...liveIssuers].filter((ci) => !issuers[ci]).slice(0, Number(process.env.INSIDER_ISSUER_NAME_MAX || 300));
+  if (missing.length) {
+    const found = await fetchSectors(missing);
+    let named = 0;
+    for (const ci of missing) {
+      const name = found.get(ci)?.name;
+      if (name) {
+        issuers[ci] = name;
+        named++;
+      }
+    }
+    console.log(`Issuer names: ${named} of ${missing.length} ticker-less issuer(s) named from SEC; ${liveIssuers.size - Object.keys(issuers).length} still unnamed.`);
+  }
 }
 
 // A footnote that says "10b5-1" or "trading plan" marks a planned trade even
@@ -655,6 +680,7 @@ saveDataset({
   lastFilingDay: newest,
   count: all.length,
   companies,
+  issuers,
   rows: all,
 });
 saveRaw({ rows: { ...loadRaw().rows, ...rawAdd } }, new Set(all.map(rowId)));

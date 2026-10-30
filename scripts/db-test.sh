@@ -47,6 +47,21 @@ done
 echo "-- pg_policies AFTER"
 policies
 
+# migrations/verify.sql is what an operator runs on the live database to see
+# which migrations are missing; on a fully migrated one it says so, and it
+# names a missing migration when one is reverted
+verify() { psql "$TEST_URL" -X -A -t -v ON_ERROR_STOP=1 -f migrations/verify.sql | head -1; }
+echo "== verify.sql on the migrated database"
+out=$(verify)
+[ "$out" = "all present|||" ] || { echo "verify.sql reports missing objects on a fully migrated database:"; psql "$TEST_URL" -X -f migrations/verify.sql; exit 1; }
+run migrations/0007_subscribers.down.sql
+run migrations/0006_digest_marks.down.sql
+out=$(verify)
+case "$out" in 0006_digest_marks*) ;; *) echo "verify.sql did not report the reverted 0006: $out"; exit 1;; esac
+run migrations/0006_digest_marks.up.sql
+run migrations/0007_subscribers.up.sql
+[ "$(verify)" = "all present|||" ] || { echo "verify.sql not clean after re-applying 0006/0007"; exit 1; }
+
 for f in $(ls tests/sql/*.test.sql | sort); do
   echo "== test: $f"
   psql "$TEST_URL" -v ON_ERROR_STOP=1 -X -f "$f"

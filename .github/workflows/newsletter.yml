@@ -28,26 +28,32 @@ jobs:
         with:
           node-version: 22
       - run: npm ci
-      # Missing keys are a configuration state, not a failure: say which and stop green.
+      # A missing key used to stop the job green: every run from 2026-10-27
+      # skipped the send without anyone seeing it. Now the run goes red and
+      # names what is missing; a dry run needs no mail keys.
       - name: Check configuration
-        id: cfg
         env:
           SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SB_URL: ${{ secrets.SUPABASE_URL }}
+          SITE: ${{ secrets.SITE_URL }}
           MAIL_KEY: ${{ secrets.RESEND_API_KEY }}
           MAIL_FROM: ${{ secrets.LEAD_FROM || secrets.ALERT_FROM }}
           DRY: ${{ github.event.inputs.dry_run }}
         run: |
-          ready=true
-          if [ -z "$SERVICE_KEY" ]; then
-            echo "SUPABASE_SERVICE_ROLE_KEY not configured — skipping."
-            ready=false
-          elif [ "$DRY" != "true" ] && { [ -z "$MAIL_KEY" ] || [ -z "$MAIL_FROM" ]; }; then
-            echo "RESEND_API_KEY / LEAD_FROM not configured — nothing can be sent; skipping."
-            ready=false
+          missing=""
+          [ -n "$SERVICE_KEY" ] || missing="$missing SUPABASE_SERVICE_ROLE_KEY"
+          [ -n "$SB_URL" ] || missing="$missing SUPABASE_URL"
+          [ -n "$SITE" ] || missing="$missing SITE_URL"
+          if [ "$DRY" != "true" ]; then
+            [ -n "$MAIL_KEY" ] || missing="$missing RESEND_API_KEY"
+            [ -n "$MAIL_FROM" ] || missing="$missing LEAD_FROM (or ALERT_FROM)"
           fi
-          echo "ready=$ready" >> "$GITHUB_OUTPUT"
+          if [ -n "$missing" ]; then
+            echo "::error::Repository secrets not configured:$missing — nothing can be sent. Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "configuration ok"
       - name: Send
-        if: steps.cfg.outputs.ready == 'true'
         run: node scripts/send-newsletter.mjs ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }} ${{ github.event.inputs.force == 'true' && '--force' || '' }}
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}

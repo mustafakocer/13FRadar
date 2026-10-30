@@ -28,12 +28,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci
       # on a pull request: the issue printed to the summary, not opened, and
       # the whole-universe scan cut to the 300 largest funds
@@ -47,12 +47,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci
       - name: Compare ten Form 4s with EDGAR, list ten Congress reports
         run: node scripts/weekly-sample-trades.mjs ${{ github.event_name == 'pull_request' && '--dry-run' || '' }}

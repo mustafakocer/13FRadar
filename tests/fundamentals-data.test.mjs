@@ -23,8 +23,13 @@ test('AAPL: EPS = FY2025 Q4 (7.46 − 2.40 − 1.65 − 1.57) + 2.84 + 2.01 + 2.
   assert.match(rec('AAPL').eps.url, /^https:\/\/www\.sec\.gov\/Archives\/edgar\/data\/320193\//);
 });
 
-test('MSFT: fiscal 2026 = 3.72 + 5.16 + 4.27 + Q4 (17.95 − the three)', () => {
-  near(rec('MSFT').eps.value, 17.95, 'EPS');
+// FY2026 10-K: 17.95 for the year, Q1–Q3 3.72 + 5.16 + 4.27, so Q4 = 4.80;
+// the FY2027 Q1 10-Q (filed 2026-10-28) adds 4.92 and drops Q1 FY2026.
+// A new 10-Q moves this window; re-derive it then, from the filings.
+test('MSFT: TTM to 2026-09-30 = 5.16 + 4.27 + Q4 FY26 (17.95 − 3.72 − 5.16 − 4.27) + 4.92', () => {
+  const q4 = 17.95 - 3.72 - 5.16 - 4.27;
+  near(rec('MSFT').eps.value, 5.16 + 4.27 + q4 + 4.92, 'EPS');
+  assert.equal(rec('MSFT').eps.end, '2026-09-30');
   near(valuationFor(rec('MSFT'), 512.8).marketCap, 7_425_545_491 * 512.8, 'market cap');
 });
 

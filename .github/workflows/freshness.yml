@@ -47,10 +47,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       # notify.mjs needs axios. Without this every alarm step crashed on
       # "Cannot find package 'axios'" (25–28 Sep 2026): a stale feed would
       # have raised no issue, and a healthy one turned the run red.

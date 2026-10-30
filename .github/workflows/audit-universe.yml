@@ -20,16 +20,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       - id: ask
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[audit'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [audit] in the head commit: skipped"; fi
       - if: steps.ask.outputs.run == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - if: steps.ask.outputs.run == 'true'
         run: npm ci
       - if: steps.ask.outputs.run == 'true'

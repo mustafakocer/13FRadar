@@ -46,15 +46,15 @@ jobs:
     outputs:
       run: ${{ steps.decide.outputs.run }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: |
             api/_lib/jobTriggers.js
             scripts/run-guard.mjs
           sparse-checkout-cone-mode: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - id: decide
         run: node scripts/run-guard.mjs
         env:
@@ -74,10 +74,10 @@ jobs:
     env:
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci
       # EDGAR documents read by a previous night (info tables, cover pages,
       # filing indexes under .cache/edgar, api/_lib/edgarCache.js). A filed

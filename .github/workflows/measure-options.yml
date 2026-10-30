@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
       # on a pull request only when the head commit's message carries [measure]
@@ -29,9 +29,9 @@ jobs:
         run: |
           if [ "${{ github.event_name }}" != "pull_request" ] || git log -1 --format=%B | grep -q '\[measure\]'; then echo "run=true" >> "$GITHUB_OUTPUT"; else echo "run=false" >> "$GITHUB_OUTPUT"; echo "no [measure] in the head commit: skipped"; fi
       - if: steps.ask.outputs.run == 'true'
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - if: steps.ask.outputs.run == 'true'
         run: npm ci
       - if: steps.ask.outputs.run == 'true'

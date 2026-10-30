@@ -43,7 +43,7 @@ jobs:
       PSQL: /usr/lib/postgresql/17/bin/psql
       PG_DUMP: /usr/lib/postgresql/17/bin/pg_dump
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Check configuration
         env:

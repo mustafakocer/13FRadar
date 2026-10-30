@@ -77,15 +77,15 @@ jobs:
     outputs:
       run: ${{ steps.decide.outputs.run }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           sparse-checkout: |
             api/_lib/jobTriggers.js
             scripts/run-guard.mjs
           sparse-checkout-cone-mode: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - id: decide
         run: node scripts/run-guard.mjs
         env:
@@ -103,10 +103,10 @@ jobs:
     # a long backlog is capped at INSIDER_MAX_DAYS per run
     timeout-minutes: 350
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version: 22
       - run: npm ci
 
       # The build writes everything it collected, THEN exits non-zero when a

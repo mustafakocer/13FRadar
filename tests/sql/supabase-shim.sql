@@ -82,7 +82,7 @@ language sql as $$ delete from cron.job where jobname = job_name returning true 
 
 create schema if not exists net;
 create table if not exists net.http_request_queue (id bigserial primary key, url text, body jsonb, headers jsonb, timeout_milliseconds int);
-create table if not exists net._http_response (id bigint primary key, status_code int, content text, timed_out boolean, error_msg text, created timestamptz default now());
+create table if not exists net._http_response (id bigint primary key, status_code int, headers jsonb, content text, timed_out boolean, error_msg text, created timestamptz default now());
 create or replace function net.http_post(url text, body jsonb default '{}', params jsonb default '{}', headers jsonb default '{}', timeout_milliseconds int default 5000) returns bigint
 language sql as $$
   insert into net.http_request_queue (url, body, headers, timeout_milliseconds) values (url, body, headers, timeout_milliseconds) returning id

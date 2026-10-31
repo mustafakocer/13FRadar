@@ -14,6 +14,10 @@ on:
         description: 'Who started this run (cron = Supabase pg_cron; leave as manual)'
         type: string
         default: 'manual'
+      token_expires:
+        description: 'When the Vault token github_actions_dispatch expires (ISO 8601; the cron fills this in from GitHub''s last answer; leave empty)'
+        type: string
+        default: ''
   schedule:
     # Started on time by Supabase pg_cron (migrations/0005_job_triggers);
     # these entries are the fallback, and a late fallback run is itself
@@ -58,7 +62,8 @@ jobs:
       # Did every job start within 15 minutes of its slot, and did the morning
       # insider run follow fpi? A late start means the Supabase trigger
       # stopped (token, paused project); the fallback runs the jobs hours
-      # late and the data check above would only notice a day later.
+      # late and the data check above would only notice a day later. Also:
+      # is the trigger's token about to expire (two weeks ahead)?
       - name: Check the job start times
         id: triggers
         continue-on-error: true
@@ -70,6 +75,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # slots before the day the trigger went live are not judged
           TRIGGERS_ACTIVE_FROM: '2026-09-30T00:00:00Z'
+          # the cron passes the token's expiry it last heard from GitHub
+          TOKEN_EXPIRES: ${{ inputs.token_expires }}
       - name: Alert (start times)
         if: steps.triggers.outcome == 'failure'
         run: node scripts/notify.mjs --title "Data jobs started late" --log triggers.log

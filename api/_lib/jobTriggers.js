@@ -33,6 +33,8 @@ export const WINDOWS = {
 export const LATE_AFTER_MIN = 15;
 // the chained insider run should start this soon after fpi finishes
 export const CHAIN_AFTER_MIN = 15;
+// warn this long before the Vault token (github_actions_dispatch) expires
+export const TOKEN_WARN_DAYS = 14;
 
 const MIN = 60_000;
 const DAY = 24 * 60 * MIN;
@@ -127,6 +129,24 @@ export function checkSlots({ now, runsByWorkflow, activeFrom = null }) {
     }
   }
   return out;
+}
+
+// Is the token the Supabase trigger uses about to expire? `expires` is
+// inputs.token_expires of a cron-started freshness run: the expiry GitHub
+// reported in its last answer (migrations/0005, ops.token_expiry), ISO 8601.
+// The first token lived 30 days and died unnoticed on 2026-10-29; every job
+// then ran 5–6 hours late on the GitHub fallback for two days. Null when the
+// run was not started by the cron (nothing known). Returns { ok, what }.
+export function checkToken({ now, expires }) {
+  if (!expires) return null;
+  const at = new Date(expires);
+  if (Number.isNaN(+at)) return { ok: false, what: `Vault token github_actions_dispatch: unreadable expiry "${expires}"` };
+  const days = (+at - +new Date(now)) / DAY;
+  const when = at.toISOString().slice(0, 10);
+  const rotate = 'make a new fine-grained token (Actions read & write, this repository) and run the rotation SQL in migrations/README.md';
+  if (days < 0) return { ok: false, what: `Vault token github_actions_dispatch expired ${when} — ${rotate}` };
+  if (days <= TOKEN_WARN_DAYS) return { ok: false, what: `Vault token github_actions_dispatch expires ${when} (in ${Math.floor(days)} days) — ${rotate}` };
+  return { ok: true, what: `Vault token github_actions_dispatch valid until ${when} (${Math.floor(days)} days)` };
 }
 
 // GitHub REST helpers (fetch; token needs actions:read).

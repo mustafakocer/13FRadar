@@ -64,6 +64,8 @@ with expected(migration, kind, schema_name, tbl, name) as (values
   ('0005_job_triggers', 'table',     'ops', null, 'dispatch_log'),
   ('0005_job_triggers', 'function',  'ops', null, 'dispatch'),
   ('0005_job_triggers', 'function',  'ops', null, 'collect_dispatches'),
+  ('0005_job_triggers', 'function',  'ops', null, 'token_expiry'),
+  ('0005_job_triggers', 'column',    'ops', 'dispatch_log', 'token_expires_at'),
   -- 0006 digest marks
   ('0006_digest_marks', 'column',     'public', 'notification_prefs', 'lang'),
   ('0006_digest_marks', 'column',     'public', 'notification_prefs', 'filings_seen'),

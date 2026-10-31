@@ -14,6 +14,16 @@
 -- token                        Vault secret 'github_actions_dispatch': a
 --                              fine-grained token, this repository only,
 --                              Actions read & write. Never in this file.
+--                              GitHub answers every call with the header
+--                              github-authentication-token-expiration; the
+--                              collector keeps it (dispatch_log.token_expires_at)
+--                              and each freshness.yml dispatch passes it on as
+--                              inputs.token_expires, so check-triggers.mjs
+--                              can warn two weeks before the token dies. The
+--                              first token (30 days) expired unnoticed on
+--                              2026-10-29 and every job ran 5–6 hours late
+--                              on the GitHub fallback until somebody looked.
+--                              Rotation: migrations/README.md.
 --
 -- ops is not exposed through the API: no grants to anon / authenticated.
 -- Applying this file sends one test call (freshness.yml, a 10-minute check).
@@ -57,13 +67,37 @@ create table if not exists ops.dispatch_log (
   retried boolean not null default false
 );
 create index if not exists dispatch_log_open on ops.dispatch_log (requested_at) where checked_at is null or (not retried);
-comment on table ops.dispatch_log is 'One row per call to GitHub workflow_dispatch from pg_cron. status 204 = GitHub accepted it. 401/403: the Vault token github_actions_dispatch expired or lacks Actions write. 422: the workflow does not accept inputs.trigger.';
+alter table ops.dispatch_log add column if not exists token_expires_at timestamptz;
+comment on table ops.dispatch_log is 'One row per call to GitHub workflow_dispatch from pg_cron. status 204 = GitHub accepted it. 401/403: the Vault token github_actions_dispatch expired or lacks Actions write. 422: the workflow does not accept inputs.trigger (or inputs.token_expires, freshness.yml). token_expires_at: when the token used for that call expires, from GitHub''s response header.';
+
+-- When does the token GitHub just answered with expire? From the response
+-- header github-authentication-token-expiration ("2026-10-29 11:02:00 UTC").
+-- Null when the header is missing (a token without expiry, or no answer) or
+-- unreadable.
+create or replace function ops.token_expiry(headers jsonb)
+returns timestamptz language plpgsql stable set search_path = '' as $$
+declare
+  v text;
+begin
+  if headers is null then
+    return null;
+  end if;
+  select value into v from jsonb_each_text(headers) where lower(key) = 'github-authentication-token-expiration' limit 1;
+  if v is null or v = '' then
+    return null;
+  end if;
+  return v::timestamptz;
+exception when others then
+  return null;
+end $$;
 
 create or replace function ops.dispatch(workflow text, attempt int default 1)
 returns bigint language plpgsql security definer set search_path = '' as $$
 declare
   tok text;
   req bigint;
+  inputs jsonb := jsonb_build_object('trigger', 'cron');
+  expires text;
 begin
   if workflow !~ '^[a-z0-9-]+\.yml$' then
     raise exception 'bad workflow name %', workflow;
@@ -74,9 +108,19 @@ begin
       values (workflow, attempt, 'no Vault secret github_actions_dispatch', now(), true);
     return null;
   end if;
+  -- the freshness check hears when the token expires (last answer GitHub
+  -- gave); only freshness.yml declares the input, another workflow would
+  -- answer 422
+  if workflow = 'freshness.yml' then
+    select to_char(token_expires_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"') into expires
+      from ops.dispatch_log where token_expires_at is not null order by id desc limit 1;
+    if expires is not null then
+      inputs := inputs || jsonb_build_object('token_expires', expires);
+    end if;
+  end if;
   req := net.http_post(
     url := 'https://api.github.com/repos/mustafakocer/13FRadar/actions/workflows/' || workflow || '/dispatches',
-    body := jsonb_build_object('ref', 'main', 'inputs', jsonb_build_object('trigger', 'cron')),
+    body := jsonb_build_object('ref', 'main', 'inputs', inputs),
     headers := jsonb_build_object(
       'Authorization', 'Bearer ' || tok,
       'Accept', 'application/vnd.github+json',
@@ -98,6 +142,7 @@ begin
      set status = h.status_code,
          error = case when h.status_code between 200 and 299 then null
                       else coalesce(h.error_msg, case when h.timed_out then 'timed out' end, left(h.content, 300)) end,
+         token_expires_at = ops.token_expiry(h.headers),
          checked_at = now()
     from net._http_response h
    where h.id = l.request_id and l.checked_at is null;

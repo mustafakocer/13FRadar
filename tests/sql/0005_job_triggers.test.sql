@@ -89,6 +89,42 @@ begin
   if n <> 2 then raise exception 'FAIL: lost call not retried (% rows)', n; end if;
 end $$;
 
+-- 7. the token's expiry: read from GitHub's answer, kept, passed to freshness.yml only
+do $$
+declare req bigint; exp timestamptz; q record;
+begin
+  delete from ops.dispatch_log; delete from net.http_request_queue; delete from net._http_response;
+  -- nothing known yet: freshness is dispatched without the input
+  req := ops.dispatch('freshness.yml');
+  select * into q from net.http_request_queue where id = req;
+  if q.body <> '{"ref": "main", "inputs": {"trigger": "cron"}}'::jsonb then raise exception 'FAIL: body before any answer %', q.body; end if;
+  -- GitHub's header (any case) on the answer; the collector keeps it
+  insert into net._http_response (id, status_code, headers, content)
+    values (req, 204, '{"X-GitHub-Request-Id": "abc", "GitHub-Authentication-Token-Expiration": "2026-10-29 11:02:00 UTC"}', '');
+  perform ops.collect_dispatches();
+  select token_expires_at into exp from ops.dispatch_log where request_id = req;
+  if exp is distinct from '2026-10-29T11:02:00Z'::timestamptz then raise exception 'FAIL: token_expires_at is %', exp; end if;
+  -- the next freshness dispatch carries it, ISO 8601 UTC; another workflow does not
+  req := ops.dispatch('freshness.yml');
+  select * into q from net.http_request_queue where id = req;
+  if q.body <> '{"ref": "main", "inputs": {"trigger": "cron", "token_expires": "2026-10-29T11:02:00Z"}}'::jsonb then raise exception 'FAIL: freshness body %', q.body; end if;
+  req := ops.dispatch('insiders.yml');
+  select * into q from net.http_request_queue where id = req;
+  if q.body <> '{"ref": "main", "inputs": {"trigger": "cron"}}'::jsonb then raise exception 'FAIL: insiders body %', q.body; end if;
+  -- a rotated token: the newest answer wins
+  insert into net._http_response (id, status_code, headers, content)
+    values (req, 204, '{"github-authentication-token-expiration": "2027-10-01 00:00:00 UTC"}', '');
+  perform ops.collect_dispatches();
+  req := ops.dispatch('freshness.yml');
+  select * into q from net.http_request_queue where id = req;
+  if q.body -> 'inputs' ->> 'token_expires' <> '2027-10-01T00:00:00Z' then raise exception 'FAIL: rotated token not passed on: %', q.body; end if;
+  -- no header, an unreadable value, a null: nothing recorded, nothing raised
+  if ops.token_expiry('{"content-type": "application/json"}') is not null then raise exception 'FAIL: expiry without the header'; end if;
+  if ops.token_expiry('{"github-authentication-token-expiration": "never"}') is not null then raise exception 'FAIL: unreadable expiry not null'; end if;
+  if ops.token_expiry('{"github-authentication-token-expiration": ""}') is not null then raise exception 'FAIL: empty expiry not null'; end if;
+  if ops.token_expiry(null) is not null then raise exception 'FAIL: null headers'; end if;
+end $$;
+
 -- 6. the API roles see nothing of ops
 do $$
 begin
@@ -107,6 +143,11 @@ begin
   begin
     perform ops.collect_dispatches();
     raise exception 'FAIL: anon can call ops.collect_dispatches';
+  exception when insufficient_privilege then null;
+  end;
+  begin
+    perform ops.token_expiry('{}');
+    raise exception 'FAIL: anon can call ops.token_expiry';
   exception when insufficient_privilege then null;
   end;
   reset role;

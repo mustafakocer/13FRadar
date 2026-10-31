@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { TRIGGERS, WINDOWS, windowStart, decideRun, checkSlots, isAutomatic } from '../api/_lib/jobTriggers.js';
+import { TRIGGERS, WINDOWS, TOKEN_WARN_DAYS, windowStart, decideRun, checkSlots, checkToken, isAutomatic } from '../api/_lib/jobTriggers.js';
 
 const sql = fs.readFileSync(new URL('../migrations/0005_job_triggers.up.sql', import.meta.url), 'utf8');
 
@@ -18,6 +18,40 @@ test('TRIGGERS and the pg_cron schedules in migrations/0005 are the same', () =>
     const yml = fs.readFileSync(new URL(`../.github/workflows/${w}`, import.meta.url), 'utf8');
     assert.match(yml, /workflow_dispatch:\n\s+inputs:\n\s+trigger:/, w);
   }
+});
+
+test('the token expiry travels only to freshness.yml, which declares the input and checks it', () => {
+  // the SQL adds inputs.token_expires for freshness.yml alone (422 elsewhere)
+  assert.match(sql, /if workflow = 'freshness\.yml' then\n[\s\S]*?jsonb_build_object\('token_expires', expires\)/);
+  assert.match(sql, /token_expires_at = ops\.token_expiry\(h\.headers\)/);
+  const yml = fs.readFileSync(new URL('../.github/workflows/freshness.yml', import.meta.url), 'utf8');
+  assert.match(yml, /workflow_dispatch:\n\s+inputs:\n\s+trigger:[\s\S]*?\n\s+token_expires:\n\s+description:[^\n]*\n\s+type: string\n\s+default: ''/);
+  assert.match(yml, /TOKEN_EXPIRES: \$\{\{ inputs\.token_expires \}\}/);
+  const check = fs.readFileSync(new URL('../scripts/check-triggers.mjs', import.meta.url), 'utf8');
+  assert.match(check, /checkToken\(\{ now, expires: TOKEN_EXPIRES \|\| null \}\)/);
+});
+
+test('checkToken: quiet when unknown, green far out, red two weeks ahead and after', () => {
+  const now = '2026-10-31T20:00:00Z';
+  assert.equal(checkToken({ now, expires: null }), null);
+  assert.equal(checkToken({ now, expires: '' }), null);
+  const far = checkToken({ now, expires: '2027-10-01T00:00:00Z' });
+  assert.equal(far.ok, true);
+  assert.match(far.what, /valid until 2027-10-01 \(334 days\)/);
+  // exactly TOKEN_WARN_DAYS ahead counts as soon
+  const soon = checkToken({ now, expires: new Date(+new Date(now) + TOKEN_WARN_DAYS * 86400000).toISOString() });
+  assert.equal(soon.ok, false);
+  assert.match(soon.what, /expires 2026-11-14 \(in 14 days\) — make a new fine-grained token .* migrations\/README\.md/);
+  const tomorrow = checkToken({ now, expires: '2026-11-01T11:02:00Z' });
+  assert.equal(tomorrow.ok, false);
+  assert.match(tomorrow.what, /expires 2026-11-01 \(in 0 days\)/);
+  // the first token: made 2026-09-29, 30 days, no one told
+  const gone = checkToken({ now, expires: '2026-10-29T11:02:00Z' });
+  assert.equal(gone.ok, false);
+  assert.match(gone.what, /expired 2026-10-29 —/);
+  const odd = checkToken({ now, expires: 'next tuesday' });
+  assert.equal(odd.ok, false);
+  assert.match(odd.what, /unreadable expiry "next tuesday"/);
 });
 
 test('the guarded workflows run the guard, and their build job waits for it', () => {

@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-10-31T07:20:12.629Z",
- "count": 434,
+ "updatedAt": "2026-11-01T07:53:05.879Z",
+ "count": 435,
  "corrections": [
   {
    "cik": "0000049969",
@@ -393,6 +393,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001330325",
+   "name": "Opus Capital Group, LLC",
+   "period": "2026-09-30",
+   "acc": "0001330325-26-000007",
+   "filed": "2026-10-30",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001357867",
    "name": "Evensky & Katz LLC",
    "period": "2026-09-30",
@@ -449,7 +459,7 @@
    "acc": "0001413303-26-000004",
    "filed": "2026-10-16",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 16 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3209,7 +3219,7 @@
    "acc": "0002135775-26-000002",
    "filed": "2026-08-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00109 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00109 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

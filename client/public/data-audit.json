@@ -123,7 +123,7 @@
       "path": "api/_data/prices/_index.json",
       "metrics": {
         "series": 4970,
-        "coveragePct": 98.5
+        "coveragePct": 98.6
       },
       "findings": []
     },
@@ -139,7 +139,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6257,
+        "resolved": 6267,
         "unresolved": 79
       },
       "findings": []
@@ -165,7 +165,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 3812
+        "rows": 4067
       },
       "findings": []
     },
@@ -173,7 +173,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 3338
+        "filers": 3565
       },
       "findings": []
     },

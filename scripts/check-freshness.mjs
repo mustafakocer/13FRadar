@@ -9,6 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runChecks } from '../api/_lib/freshnessChecks.js';
+import { PROVIDERS } from '../api/_lib/providerAlarm.js';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const read = (file) => {
@@ -19,11 +20,18 @@ const read = (file) => {
   }
 };
 
-// job health records (api/_data/freshness/<dataset>.json)
+// job health records (api/_data/freshness/<dataset>.json). A provider that
+// is no longer asked (FMP, Yahoo — providerAlarm.js PROVIDERS) keeps no
+// record: its last file would otherwise read as "failing since" forever,
+// as fmp.json did for a month after FMP left the chain (2026-10-02).
 const health = {};
 const dir = path.join(root, 'api', '_data', 'freshness');
 for (const f of fs.existsSync(dir) ? fs.readdirSync(dir) : []) {
-  if (f.endsWith('.json')) health[f.replace(/\.json$/, '')] = read(`api/_data/freshness/${f}`);
+  if (!f.endsWith('.json')) continue;
+  const name = f.replace(/\.json$/, '');
+  const rec = read(`api/_data/freshness/${f}`);
+  if (rec?.kind === 'provider' && !PROVIDERS.includes(name)) continue;
+  health[name] = rec;
 }
 
 const rows = runChecks(read, { health });

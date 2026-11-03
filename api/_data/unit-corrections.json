@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-11-01T07:53:05.879Z",
+ "updatedAt": "2026-11-03T08:16:54.352Z",
  "count": 435,
  "corrections": [
   {
@@ -473,6 +473,26 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001419186",
+   "name": "Cambridge Investment Research Advisors, Inc.",
+   "period": "2026-09-30",
+   "acc": "0001419186-26-000008",
+   "filed": "2026-11-02",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001429390",
+   "name": "Harel Insurance Investments & Financial Services Ltd.",
+   "period": "2026-09-30",
+   "acc": "0001178913-26-004915",
+   "filed": "2026-11-02",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001456228",
    "name": "DekaBank Deutsche Girozentrale",
    "period": "2026-09-30",
@@ -750,6 +770,16 @@
    "filed": "2026-10-08",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001673907",
+   "name": "Premier Fund Managers Ltd",
+   "period": "2026-09-30",
+   "acc": "0001673907-26-000013",
+   "filed": "2026-11-02",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00101 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1090,6 +1120,16 @@
    "filed": "2026-10-28",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001940660",
+   "name": "MONTCHANIN ASSET MANAGEMENT, LLC",
+   "period": "2026-09-30",
+   "acc": "0001940660-26-000005",
+   "filed": "2026-11-02",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1843,16 +1883,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001419186",
-   "name": "Cambridge Investment Research Advisors, Inc.",
-   "period": "2026-06-30",
-   "acc": "0001419186-26-000005",
-   "filed": "2026-07-27",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001426449",
    "name": "Bank of Italy",
    "period": "2026-06-30",
@@ -1870,16 +1900,6 @@
    "filed": "2026-08-06",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001429390",
-   "name": "Harel Insurance Investments & Financial Services Ltd.",
-   "period": "2026-06-30",
-   "acc": "0001178913-26-003625",
-   "filed": "2026-07-29",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2340,16 +2360,6 @@
    "filed": "2026-08-18",
    "factor": 1000,
    "reason": "median implied share price outside any traded price: thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001673907",
-   "name": "Premier Fund Managers Ltd",
-   "period": "2026-06-30",
-   "acc": "0001673907-26-000006",
-   "filed": "2026-07-22",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2910,16 +2920,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001940660",
-   "name": "MONTCHANIN ASSET MANAGEMENT, LLC",
-   "period": "2026-06-30",
-   "acc": "0001940660-26-000004",
-   "filed": "2026-07-30",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

@@ -114,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4125
+        "tickers": 4112
       },
       "findings": []
     },
@@ -122,8 +122,8 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4970,
-        "coveragePct": 98.6
+        "series": 4978,
+        "coveragePct": 98.5
       },
       "findings": []
     },
@@ -165,7 +165,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 4067
+        "rows": 4366
       },
       "findings": []
     },
@@ -173,7 +173,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 3565
+        "filers": 3831
       },
       "findings": []
     },

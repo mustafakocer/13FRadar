@@ -120,6 +120,12 @@
       "acc": "0001977500-26-000004",
       "kind": "small-gap",
       "reason": "2026-09-30: table $639.91M vs cover $650.09M (-1.56%); 221 rows vs 221 cover lines; 125 of 125 priced lines at the period-end close. Earlier filings match their covers (2025-09-30 -0.64%)."
+    },
+    {
+      "cik": "0002040393",
+      "acc": "0002040393-26-000004",
+      "kind": "small-gap",
+      "reason": "2026-09-30: 48 entries on the cover, 48 lines in the table (TriuneFinancialPartners_13f.xml); the table sums to $489,613,386 and its implied prices equal the quarter-end closes (median ratio 1.0000, 25 of 25 priced lines within 1%). The cover's $498,457,378 is 1.8% higher: the filer's software summed the cover apart from the table."
     }
   ]
 }

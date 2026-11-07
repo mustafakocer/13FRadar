@@ -316,6 +316,24 @@
       "declared": 179714391,
       "table": 163005060,
       "reason": "2026-09-30 (filed 2026-10-15): the cover page declares 127 lines worth $179.71M; the 128-row table (13F.xml) sums to $163.01M and 72 of its 72 priced lines sit at the period-end close (2026-06-30 cover: $160.44M): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001569638",
+      "acc": "0001569638-26-000004",
+      "kind": "cover-total",
+      "declared": 2588,
+      "table": 1604786000,
+      "reason": "2026-09-30: the cover page declares $2,588 for a 620-entry table (the entry count matches the table). The table is written in thousands, as this filer's covers have been (2026-06-30: 731,086 for 148 entries; 2026-03-31: 1,478,859 for 289 entries); read as thousands it sums to $1.60B and its implied prices match the quarter-end closes (median ratio 1.03 over 347 priced lines; the build's unit check 0.000995 over the 16 priced top lines, 100% agree). The cover figure matches the table in no unit: the cover is the filer's error."
+    },
+    {
+      "cik": "0001963732",
+      "acc": "0001963732-26-000006",
+      "kind": "incomplete-table",
+      "declared": 424911626,
+      "table": 408484924,
+      "declaredLines": 150,
+      "tableLines": 149,
+      "reason": "2026-09-30: the cover page declares 150 entries and $424,911,626; the attached table (Rooted13FQ3.xml) holds 149 lines summing to $408,484,924. One line worth about $16.43M is missing from the filer's own table; the 149 lines are in the right unit (median implied price ÷ close 1.04 over 82 priced lines). Nothing can be added from our side."
     }
   ]
 }

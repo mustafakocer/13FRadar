@@ -114,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4122
+        "tickers": 4114
       },
       "findings": []
     },

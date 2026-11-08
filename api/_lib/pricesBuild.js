@@ -23,6 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { tdGet, hasTd, hasFinnhub } from './providers.js';
 import { readSeries, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir } from './priceStore.js';
+import { returnsCutoff } from './stockMetaBuild.js';
 import { noteProvider } from './providerAlarm.js';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -365,12 +366,24 @@ export async function buildPrices({
   log(`price cache: ${covered}/${symbols.length} of the universe on file (${summary.coveragePct}%), closes ${oldest} … ${newest}`);
 
   // ---- the return columns, from the same closes ----
+  // A row whose last close is past the shelf life (stockMetaBuild.js
+  // mergeReturns: a security that stopped trading) goes, rather than being
+  // rewritten every night with its final close as "today's".
   const returnsFile = read('client/public/returns.json');
   if (returnsFile?.returns) {
     let refreshed = 0;
+    let dropped = 0;
     const today = isoDay(now);
+    const cutoff = returnsCutoff(now);
     for (const [key, e] of after) {
       const have = returnsFile.returns[key];
+      if (e.asOf && e.asOf < cutoff) {
+        if (have) {
+          delete returnsFile.returns[key];
+          dropped++;
+        }
+        continue;
+      }
       if (have?.asOf && have.asOf >= e.asOf) continue;
       const s = readSeries(key);
       if (!s) continue;
@@ -380,9 +393,15 @@ export async function buildPrices({
       returnsFile.returns[key] = { ret1y: round(r.ret1y), retYtd: round(r.retYtd), ret1d: round(r.ret1d), asOf: r.asOf || today };
       refreshed++;
     }
-    if (refreshed) {
+    for (const [key, have] of Object.entries(returnsFile.returns)) {
+      if (have?.asOf && have.asOf < cutoff) {
+        delete returnsFile.returns[key];
+        dropped++;
+      }
+    }
+    if (refreshed || dropped) {
       fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ ...returnsFile, updatedAt: new Date(now).toISOString() }));
-      log(`returns.json: ${refreshed} rows refreshed from the price cache`);
+      log(`returns.json: ${refreshed} rows refreshed from the price cache, ${dropped} dropped (last close before ${cutoff})`);
     }
   }
   return { plan, ...tally, summary };

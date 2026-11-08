@@ -199,8 +199,14 @@ export function coverage(quarterEnd, filedByCik = new Map()) {
   // not-filed + wide-book, and filed = included + wide-book. A wide book
   // that has not filed is "not filed" (it used to be counted as wide-book
   // either way: "98 tracked · 82 filed · 71 counted · 1 not filed").
+  // A fund whose latest period is AFTER the quarter has filed for it too:
+  // 13F filers file every quarter, and the consensus build reads an early
+  // filer of the next quarter at the panel's quarter. Six early Q3 filers
+  // used to read as "not filed" while their Q2 books were in the roll-up
+  // ("72 managers" in the file, "66 counted" on the page).
   for (const g of tracked) {
-    const hasFiled = filedByCik.get(g.cik) === quarterEnd;
+    const latest = filedByCik.get(g.cik);
+    const hasFiled = Boolean(latest) && latest >= quarterEnd;
     if (!hasFiled) {
       reasons['not-filed']++;
       continue;

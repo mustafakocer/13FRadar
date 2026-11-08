@@ -316,6 +316,92 @@
       "declared": 179714391,
       "table": 163005060,
       "reason": "2026-09-30 (filed 2026-10-15): the cover page declares 127 lines worth $179.71M; the 128-row table (13F.xml) sums to $163.01M and 72 of its 72 priced lines sit at the period-end close (2026-06-30 cover: $160.44M): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001569638",
+      "acc": "0001569638-26-000004",
+      "kind": "cover-total",
+      "declared": 2588,
+      "table": 1604786000,
+      "reason": "2026-09-30 (filed 2026-11-03): the cover page declares $2,588 over 620 lines; the 620-row table sums to $1.60B and its implied prices match the quarter-end closes (347 of 347 priced lines within 0.5–2×, median ratio ≈1.0): the cover total is the filer's error."
+    },
+    {
+      "cik": "0000036966",
+      "acc": "0000036966-26-000179",
+      "kind": "cover-total",
+      "declared": 1672155952,
+      "table": 2622811344,
+      "reason": "2026-09-30 (filed 2026-10-26): the cover page declares $1.67B over 1974 lines; the 1974-row table sums to $2.62B and its implied prices match the quarter-end closes (1237 of 1237 priced lines within 0.5–2×, median ratio ≈1.0): the cover total is 63.8% of the table and matches no part of it (DFND lines $2.16B, OTR lines $0.46B; the 460 repeated CUSIPs are DFND/OTR splits with different share counts, not double entries): the cover figure is the filer's error."
+    },
+    {
+      "cik": "0001506071",
+      "acc": "0001506071-26-000005",
+      "kind": "incomplete-table",
+      "declared": 741268675,
+      "table": 75969247,
+      "declaredLines": 328,
+      "tableLines": 45,
+      "reason": "2026-09-30 (filed 2026-11-03): the cover page declares 328 lines worth $741.27M; the filed table has 45 rows summing to $75.97M, 40 of 40 priced lines at the period-end close: the filer's table is incomplete. The same 45-row table (CMAQ3.26.xml) was attached by both Wellington Shields filers (0001506071 and 0001506073)."
+    },
+    {
+      "cik": "0001772483",
+      "acc": "0001772483-26-000006",
+      "kind": "cover-total",
+      "declared": 3210685,
+      "table": 597344929,
+      "reason": "2026-09-30 (filed 2026-11-06): the cover page declares $3.21M over 220 lines; the 220-row table sums to $597.34M and its implied prices match the quarter-end closes (170 of 170 priced lines within 0.5–2×, median ratio ≈1.0): the cover total is the filer's error."
+    },
+    {
+      "cik": "0001321993",
+      "acc": "0001321993-26-000006",
+      "kind": "incomplete-table",
+      "declared": 4802520053,
+      "table": 4263760311,
+      "declaredLines": 738,
+      "tableLines": 714,
+      "reason": "2026-09-30 (filed 2026-10-29): the cover page declares 738 lines worth $4.80B; the filed table has 714 rows summing to $4.26B, 310 of 310 priced lines at the period-end close: the filer's table is incomplete."
+    },
+    {
+      "cik": "0001506073",
+      "acc": "0001506073-26-000005",
+      "kind": "incomplete-table",
+      "declared": 500012753,
+      "table": 75969247,
+      "declaredLines": 334,
+      "tableLines": 45,
+      "reason": "2026-09-30 (filed 2026-11-03): the cover page declares 334 lines worth $500.01M; the filed table has 45 rows summing to $75.97M, 40 of 40 priced lines at the period-end close: the filer's table is incomplete. The same 45-row table (CMAQ3.26.xml) was attached by both Wellington Shields filers (0001506071 and 0001506073)."
+    },
+    {
+      "cik": "0002030974",
+      "acc": "0002030974-26-000010",
+      "kind": "cover-total",
+      "declared": 1011051,
+      "table": 380155549,
+      "reason": "2026-09-30 (filed 2026-10-21): the cover page declares $1.01M over 376 lines; the 376-row table sums to $380.16M and its implied prices match the quarter-end closes (233 of 233 priced lines within 0.5–2×, median ratio ≈1.0): the cover total is exactly 1/376 of the table."
+    },
+    {
+      "cik": "0002005403",
+      "acc": "0002005403-26-000008",
+      "kind": "cover-total",
+      "declared": 67489259,
+      "table": 337446296,
+      "reason": "2026-09-30 (filed 2026-11-06): the cover page declares $67.49M over 5 lines; the 5-row table sums to $337.45M and its implied prices match the quarter-end closes (4 of 4 priced lines within 0.5–2×, median ratio ≈1.0): the cover total is exactly 1/5 of the table."
+    },
+    {
+      "cik": "0001800358",
+      "acc": "0001800358-26-000004",
+      "kind": "cover-total",
+      "declared": 235,
+      "table": 234506000,
+      "reason": "2026-09-30 (filed 2026-11-04): the cover page declares $235 over 66 lines; the 66-row table sums to $234.51M and its implied prices match the quarter-end closes (49 of 49 priced lines within 0.5–2×, median ratio ≈1.0): the cover was written in millions."
+    },
+    {
+      "cik": "0001803980",
+      "acc": "0001803980-26-000005",
+      "kind": "cover-total",
+      "declared": 144,
+      "table": 144592655,
+      "reason": "2026-09-30 (filed 2026-10-23): the cover page declares $144 over 195 lines; the 195-row table sums to $144.59M and its implied prices match the quarter-end closes (93 of 93 priced lines within 0.5–2×, median ratio ≈1.0): the cover was written in millions."
     }
   ]
 }

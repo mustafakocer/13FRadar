@@ -44,22 +44,37 @@ const round = (x) => (x == null || !Number.isFinite(x) ? null : Number(x.toFixed
 // Today's numbers over yesterday's file. A symbol the provider answered
 // replaces its old row; one it did not keeps the old row while that is
 // recent enough to still be roughly right, and drops out after that rather
-// than showing a "1D" move from a week ago as today's.
-export function mergeReturns(previous, snapshots, { now = Date.now(), maxAgeDays = 7 } = {}) {
+// than showing a "1D" move from a week ago as today's. The same shelf life
+// applies to a snapshot whose last close is old: a security that stopped
+// trading (WBD, QRVO, KVUE… taken over in 2026 Q4) keeps its final close in
+// the price store for good, and its row used to come back every night with
+// a month-old "1D" move. Dropping it is the point: a return column is a
+// statement about today's price.
+export const RETURNS_MAX_AGE_DAYS = 7;
+export const returnsCutoff = (now = Date.now(), maxAgeDays = RETURNS_MAX_AGE_DAYS) => day(now - maxAgeDays * 86400 * 1000);
+export function mergeReturns(previous, snapshots, { now = Date.now(), maxAgeDays = RETURNS_MAX_AGE_DAYS } = {}) {
   const out = {};
   const prevDate = previous?.updatedAt ? String(previous.updatedAt).slice(0, 10) : null;
-  const cutoff = day(now - maxAgeDays * 86400 * 1000);
+  const cutoff = returnsCutoff(now, maxAgeDays);
   for (const [sym, r] of Object.entries(previous?.returns || {})) {
     const asOf = r?.asOf || prevDate;
     if (asOf && asOf >= cutoff) out[sym] = { ...r, asOf };
   }
   let fresh = 0;
+  let expired = 0;
   for (const [sym, s] of snapshots) {
     if (!s) continue;
+    if (!s.asOf || s.asOf < cutoff) {
+      // the store's last close is past the shelf life: no row, whatever
+      // yesterday's file said
+      if (sym in out) delete out[sym];
+      expired++;
+      continue;
+    }
     out[sym] = { ret1y: round(s.ret1y), retYtd: round(s.retYtd), ret1d: round(s.ret1d), asOf: s.asOf };
     fresh++;
   }
-  return { returns: out, fresh };
+  return { returns: out, fresh, expired };
 }
 
 export async function buildStockMeta({
@@ -97,7 +112,7 @@ export async function buildStockMeta({
     log(`returns.json: nothing fetched — keeping the previous file (${Object.keys(previousReturns.returns || {}).length} tickers)`);
   } else {
     write('client/public/returns.json', { updatedAt: new Date(now).toISOString(), returns: merged.returns });
-    log(`returns.json: ${total} tickers (${merged.fresh} refreshed today, ${total - merged.fresh} carried over)`);
+    log(`returns.json: ${total} tickers (${merged.fresh} refreshed today, ${total - merged.fresh} carried over, ${merged.expired} dropped: last close older than ${RETURNS_MAX_AGE_DAYS} days)`);
   }
 
   // ---- sectors: SEC's SIC code per filer, cached for good ----

@@ -111,7 +111,7 @@ test('buildPrices runs the plan through the providers in order, drops a provider
   fs.mkdirSync(path.join(root, 'client/public'), { recursive: true });
   const stocks = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA'].map((ticker) => ({ ticker }));
   fs.writeFileSync(path.join(root, 'api/_data/guru-stocks.json'), JSON.stringify({ stocks, exited: [] }));
-  fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ updatedAt: '2026-09-01T00:00:00Z', returns: { AAPL: { ret1y: 1, retYtd: 1, ret1d: 1, asOf: '2026-09-01' } } }));
+  fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ updatedAt: '2026-09-01T00:00:00Z', returns: { AAPL: { ret1y: 1, retYtd: 1, ret1d: 1, asOf: '2026-09-01' }, OLDCO: { ret1y: 5, retYtd: 5, ret1d: 0, asOf: '2026-09-01' } } }));
   const now = Date.parse('2026-09-22T22:00:00Z');
   const calls = { yahoo: [], twelvedata: [], finnhub: [] };
   const full = (sym) => series('2016-09-22', '2026-09-22', { start: 50 + sym.length, seed: sym.length });
@@ -138,6 +138,8 @@ test('buildPrices runs the plan through the providers in order, drops a provider
   const returns = JSON.parse(fs.readFileSync(path.join(root, 'client/public/returns.json'), 'utf8')).returns;
   assert.equal(returns.AAPL.asOf, '2026-09-22', 'the stale AAPL row was refreshed from the cache');
   assert.ok(Number.isFinite(returns.AAPL.ret1y) && returns.AAPL.ret1y !== 1);
+  assert.equal('OLDCO' in returns, false, "a row whose last close is three weeks old and has no series to refresh it is dropped, not kept as today's");
+  assert.ok(log.some((m) => /returns\.json: \d+ rows refreshed from the price cache, 1 dropped \(last close before 2026-09-15\)/.test(m)), log.filter((m) => /returns\.json/.test(m)).join(' | '));
   // a second run has nothing to do for the fresh files
   const log2 = [];
   const again = await buildPrices({ root, now, providers, log: (m) => log2.push(m), dryRun: true });

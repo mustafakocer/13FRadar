@@ -40,6 +40,21 @@ test('an old row past its shelf life drops out instead of posing as today', () =
   assert.deepEqual(returns, {});
 });
 
+test('a snapshot whose last close is past the shelf life is no row either — a delisted name does not come back every night', () => {
+  // WBD's series ends 2026-10-06 (taken over); the store keeps that close
+  // for good, and the row used to be rewritten nightly with a month-old "1D"
+  const previous = { updatedAt: '2026-11-07T03:00:00Z', returns: { WBD: { ret1y: 34.68, retYtd: 7.39, ret1d: 0, asOf: '2026-10-06' }, AAPL: { ret1y: 1, retYtd: 1, ret1d: 1, asOf: '2026-11-05' } } };
+  const now = Date.parse('2026-11-08T03:00:00Z');
+  const { returns, fresh, expired } = mergeReturns(previous, new Map([['WBD', snap(34.68, '2026-10-06')], ['AAPL', snap(2, '2026-11-06')]]), { now });
+  assert.equal('WBD' in returns, false, 'dropped, not carried over and not re-added');
+  assert.equal(returns.AAPL.asOf, '2026-11-06');
+  assert.equal(fresh, 1);
+  assert.equal(expired, 1);
+  // a close from exactly a week ago is still inside the shelf life
+  const edge = mergeReturns({ returns: {} }, new Map([['X', snap(1, '2026-11-01')]]), { now });
+  assert.equal(edge.returns.X.asOf, '2026-11-01');
+});
+
 test('a CINS is asked about as a CINS', () => {
   assert.equal(figiIdType('037833100'), 'ID_CUSIP'); // Apple
   assert.equal(figiIdType('L8681T102'), 'ID_CINS'); // Spotify

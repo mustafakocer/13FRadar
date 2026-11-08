@@ -136,6 +136,24 @@ test('coverage explains tracked → filed → counted with reasons', () => {
   assert.deepEqual(coverage('2026-06-30', new Map()).excluded, { 'not-filed': 98, 'wide-book': 0 });
 });
 
+test('coverage: a fund that already filed the next quarter has filed for this one (its book is in the roll-up)', () => {
+  // Markel, Smead, Yacktman… filed 2026 Q3 in October while the panel's
+  // quarter was still Q2: the build reads their Q2 books, so the line must
+  // count them, not list them as "not filed" (72 managers vs "66 counted").
+  const panel = consensusPanel();
+  const filed = new Map(panel.slice(0, 60).map((g) => [g.cik, '2026-06-30']));
+  const early = panel.slice(60, 66);
+  for (const g of early) filed.set(g.cik, '2026-09-30');
+  const c = coverage('2026-06-30', filed);
+  assert.equal(c.filed, 66);
+  assert.equal(c.included, 66, 'the six early filers are counted');
+  assert.equal(c.excluded['not-filed'], 98 - 66);
+  assert.equal(c.included + c.excluded['not-filed'] + c.excluded['wide-book'], c.tracked);
+  // and a fund whose latest book is OLDER than the quarter has not filed
+  filed.set(early[0].cik, '2026-03-31');
+  assert.equal(coverage('2026-06-30', filed).included, 65);
+});
+
 // The integration check: build the three datasets the pages read over the
 // offline fixtures and compare a ticker's net dollars across them.
 test('home, rankings and report quote the same net activity per ticker', async () => {

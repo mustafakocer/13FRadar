@@ -53,8 +53,13 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
   // whole page into "Q3 · 1 of 98 filed" over 71 Q2 books.
   const quarter = panelQuarter(listed.map((x) => x.fl[0].reportDate));
   const per = await mapLimit(listed, 5, async ({ m, fl: all }) => {
-    // an early filer of the next quarter is read at the panel's quarter
-    const fl = all.slice(Math.max(0, all.findIndex((f) => f.reportDate <= quarter)));
+    // an early filer of the next quarter is read at the panel's quarter; a
+    // fund whose every book is newer than the quarter (its first 13F ever)
+    // has nothing to say about it and is left out rather than read at the
+    // wrong period
+    const at = all.findIndex((f) => f.reportDate <= quarter);
+    if (at < 0) return null;
+    const fl = all.slice(at);
     // effective snapshots: the original with its 13F-HR/A amendments applied,
     // never an amendment standing in for a quarter
     let cur = await getEffectiveHoldings(m.cik, fl[0]);

@@ -59,6 +59,19 @@ test('two builds in one run add up; a later clean step does not mask an earlier 
   }
 });
 
+test('the freshness check flags a return row priced more than a week before the newest close', () => {
+  const file = { updatedAt: '2026-11-08T03:31:06Z', returns: { AAPL: { ret1y: 1, retYtd: 1, ret1d: 1, asOf: '2026-11-06' }, ISCO: { ret1y: 1, retYtd: 1, ret1d: 1, asOf: '2026-11-05' }, WBD: { ret1y: 1, retYtd: 1, ret1d: 0, asOf: '2026-10-06' }, KVUE: { ret1y: 1, retYtd: 1, ret1d: 0, asOf: '2026-10-29' }, EDGE: { ret1y: 1, retYtd: 1, ret1d: 0, asOf: '2026-10-30' } } };
+  const read = (f) => (f === 'client/public/returns.json' ? file : null);
+  const row = runChecks(read, { now: Date.parse('2026-11-08T06:00:00Z') }).find((r) => r.label === 'price returns (rows)');
+  assert.equal(row.status, 'STALE');
+  assert.match(row.detail, /2 row\(s\) priced before 2026-10-30: WBD 2026-10-06, KVUE 2026-10-29/);
+  delete file.returns.WBD;
+  delete file.returns.KVUE;
+  const ok = runChecks(read, { now: Date.parse('2026-11-08T06:00:00Z') }).find((r) => r.label === 'price returns (rows)');
+  assert.equal(ok.status, 'ok');
+  assert.match(ok.detail, /all 3 rows priced within 7 days of 2026-11-06/, 'a close exactly a week before the newest is still inside the shelf life');
+});
+
 test('the freshness check shows a refusing provider as WARN, never as a failure', () => {
   const health = { fmp: { ...rec('fmp', { refusals: 3 }), last_error_at: '2026-09-28T08:00:00Z', last_success_at: '2026-09-17T08:00:00Z' } };
   const out = runChecks(() => null, { health }).find((r) => r.label === 'provider: fmp');

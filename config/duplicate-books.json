@@ -1,4 +1,10 @@
 {
   "_readme": "Filers whose 13F book is another filer's book: a parent and a subsidiary (or two entities of one manager) filing the same table. The home page total counts each such book once (api/_lib/universeSummary.js). Only pairs that are plainly the same manager go here; a pair that merely overlaps stays out. Found by scripts/audit-universe.mjs (more than 90% of lines equal by CUSIP, put/call and shares, both ways).",
-  "pairs": []
+  "pairs": [
+    {
+      "keep": "0001506071",
+      "drop": "0001506073",
+      "reason": "2026-09-30: Wellington Shields Capital Management, LLC and Wellington Shields & Co., LLC each filed the same 45-row table (CMAQ3.26.xml, $75.97M, 100% of lines both ways; scripts/audit-universe.mjs 2026-11-08). Two entities of one firm; the Capital Management book is counted, the broker-dealer copy is not."
+    }
+  ]
 }

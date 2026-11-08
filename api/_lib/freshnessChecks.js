@@ -13,6 +13,9 @@
 import { businessDaysBehind, dataFreshness, isoDay } from '../../client/src/lib/secCalendar.js';
 
 const DAY = 86400000;
+// the shelf life of a return row (stockMetaBuild.js RETURNS_MAX_AGE_DAYS;
+// repeated here so this module stays free of the build's imports)
+const RETURNS_ROW_MAX_AGE_DAYS = 7;
 const maxOf = (list) => list.reduce((m, v) => (v && v > m ? v : m), '') || null;
 
 // The newest quarter whose 13F deadline (45 days after quarter end) passed at
@@ -99,6 +102,26 @@ export const CHECKS = [
     file: 'client/public/returns.json',
     // the newest close any ticker was priced at; the job runs after the US close
     judge: (j, now) => businessDate('newest close', maxOf(Object.values(j?.returns || {}).map((r) => r?.asOf)), 1, now),
+  },
+  {
+    label: 'price returns (rows)',
+    file: 'client/public/returns.json',
+    // every row's close within a week of the newest: the builds drop a
+    // security that stopped trading (stockMetaBuild.js mergeReturns), so a
+    // row left behind is a build that forgot to. Eight takeover names (WBD,
+    // QRVO, KVUE…) sat in the file for up to six weeks with their final
+    // close as "1D" before this check existed.
+    judge: (j) => {
+      const rows = Object.entries(j?.returns || {});
+      const newest = maxOf(rows.map(([, r]) => r?.asOf));
+      if (!newest) return { ok: false, detail: 'no close dates in the data' };
+      const cutoff = isoDay(Date.parse(`${newest}T00:00:00Z`) - RETURNS_ROW_MAX_AGE_DAYS * DAY);
+      const stale = rows.filter(([, r]) => !r?.asOf || r.asOf < cutoff).map(([sym, r]) => `${sym} ${r?.asOf || '—'}`);
+      return {
+        ok: stale.length === 0,
+        detail: stale.length ? `${stale.length} row(s) priced before ${cutoff}: ${stale.slice(0, 10).join(', ')}${stale.length > 10 ? '…' : ''}` : `all ${rows.length} rows priced within ${RETURNS_ROW_MAX_AGE_DAYS} days of ${newest}`,
+      };
+    },
   },
   {
     label: '13F universe',

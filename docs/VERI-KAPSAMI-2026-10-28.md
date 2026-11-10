@@ -87,3 +87,19 @@ Tek seferlik, push ile tetiklenen bir kopya workflow (run 40786274956,
 çıkış kodu 1 verdi, ama veri önce yazılıp denetimden geçirildi ve
 commit'lendi (işin tasarımı: önce yaz, sonra alarm). `freshness/insiders.json`
 `last_error` alanı bir sonraki gece çalışmasında (03:31 UTC) temizlenir.
+
+## Güncelleme (2026-11-10): Senato engeli kalktı
+
+- eFD sitesi 9 Kasım 23:26 UTC çalışmasından beri onay formunu yeniden kabul
+  ediyor (`freshness/congress.json` `senate_block: null`). Kod değişmedi; engel
+  17 gün sürdü (23 Ekim → 9 Kasım).
+- Birikim okundu: Senato indeksi 309 PTR, `congress.json` 2.617 Senato satırı,
+  en yeni Senato bildirimi 4 Kasım (26 Ekim, 29 Ekim, 2 Kasım ve 4 Kasım
+  bildirimleri dahil). 153 okunmayan kayıt iki meclisin taranmış (kâğıt)
+  dosyalarıdır.
+- Engel boyunca alarm çalmadı: tek iz bir workflow uyarısıydı, tarih kontrolü
+  ise 15 iş günü bekliyor. Artık engelin kendisi bir tazelik satırı:
+  "congress source (Senate eFD)" 3 gün süren engelde kırmızıya döner ve
+  alarm issue'su açar (`api/_lib/freshnessChecks.js`, `SENATE_BLOCK_MAX_DAYS`).
+- Açık kalan karar: engel tekrarlarsa ikinci kaynak (FMP / Quiver, ücretli).
+  Alarm üçüncü günde geldiğinde verilecek.

@@ -9,7 +9,9 @@
 //   node scripts/check-site.mjs https://www.fundocap.co
 //
 // Prints a report (markdown) and exits 1 on any failed check.
-const base = String(process.argv[2] || '').replace(/\/$/, '');
+import { misfiledBooks, misfiledState } from '../api/_lib/misfiledBooks.js';
+
+const base =String(process.argv[2] || '').replace(/\/$/, '');
 if (!/^https?:\/\//.test(base)) {
   console.error('usage: node scripts/check-site.mjs <base url>');
   process.exit(2);
@@ -235,23 +237,76 @@ else {
   check(page.status === 200 && !/veri sağlayıcıdan alınamıyor|Ort\. Hedef Fiyat/.test(page.text), 'stock page: no provider banner, no average target price');
 }
 
-// A filer whose newest 13F carries another filer's table opens on its newest
-// valid quarter, with a note (config/misfiled-books.json, pageFiling).
+// A filing that carries another filer's table (config/misfiled-books.json) is
+// held to where it stands in the filer's list today (misfiledState), read
+// from the same /api/manager answer the page is built from:
+//   its newest period, as filed   the page opens on an older valid quarter
+//                                 and carries the "Son geçerli bildirim" note;
+//   a later period filed          the page opens on the newest filing and the
+//                                 note is gone: the fallback is retired;
+//   restated by the filer         (`correctedBy`) the quarter is served with
+//                                 the 13F-HR/A applied, no banner, no note.
+// Every entry is checked and none is named here, so a filer that files its
+// next quarter moves from the first line to the second without a change to
+// this script (KMT Wealth, 2026-11-10).
 {
-  for (const [cik, label] of [['0002058235', 'KMT Wealth'], ['0001812095', 'Sixth Street']]) {
-    const r = await get(`/api/manager/${cik}`);
+  const money = (v) => (v >= 1e9 ? `$${(v / 1e9).toFixed(2)}B` : `$${(v / 1e6).toFixed(1)}M`);
+  for (const entry of misfiledBooks) {
+    const r = await get(`/api/manager/${entry.cik}`);
     if (r.status !== 200) {
-      out.push(`- ${label}: /api/manager → HTTP ${r.status}`);
+      out.push(`- CIK ${entry.cik} (${entry.acc}): /api/manager → HTTP ${r.status}`);
       continue;
     }
     const m = JSON.parse(r.text);
-    const fb = m.fallback;
-    const shown = (m.filings || []).find((f) => f.acc === m.defaultAcc);
-    check(Boolean(fb) && m.defaultAcc && m.defaultAcc !== fb.misfiled.acc, `${label}: page opens on ${shown?.reportDate || '?'} (${m.defaultAcc}); ${fb ? `${fb.misfiled.reportDate} ${fb.misfiled.acc} carries ${fb.misfiled.copyOfName || fb.misfiled.copyOf}'s table` : 'no fallback'}`);
-    const page = await get(`/tr${m.path || `/manager/${cik}`}`);
+    const label = m.name || `CIK ${entry.cik}`;
+    const filings = m.filings || [];
+    const fb = m.fallback || null;
+    const shown = filings.find((f) => f.acc === m.defaultAcc);
+    const st = misfiledState(entry, filings);
+    if (st.state === 'absent') {
+      out.push(`- ${label}: ${entry.acc} is not among the ${filings.length} filings /api/manager lists (source: ${m.source}); not judged`);
+      continue;
+    }
+    const bad = `${st.filing.reportDate} ${entry.acc} (${entry.copyOfName || entry.copyOf}'s table)`;
+    const opens = `page opens on ${shown?.reportDate || '?'} (${m.defaultAcc})`;
+    const page = await get(`/tr${m.path || `/manager/${entry.cik}`}`);
     const plain = page.text.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
     const note = plain.match(/Son geçerli bildirim: [^.]+\.[^;]+;/)?.[0];
-    check(page.status === 200 && Boolean(note), `${label} page (/tr${m.path}): ${note || '(note not in the server HTML)'}`);
+    const where = `${label} page (/tr${m.path})`;
+    if (st.state === 'fallback') {
+      check(
+        fb?.misfiled?.acc === entry.acc && Boolean(shown) && m.defaultAcc !== entry.acc && shown.reportDate < st.filing.reportDate,
+        `${label}: ${opens}; ${fb ? `its newest, ${bad}, is not used` : `no fallback, though its newest is ${bad}`}`
+      );
+      check(page.status === 200 && Boolean(note), `${where}: ${note || '(note not in the server HTML)'}`);
+    } else if (st.state === 'retired') {
+      // another entry of the same filer may hold a fallback of its own; this one no longer does
+      check(
+        fb ? fb.misfiled?.acc !== entry.acc : m.defaultAcc === filings[0]?.acc && filings[0].reportDate > st.filing.reportDate,
+        `${label}: fallback retired — ${opens}, a later period than ${bad}`
+      );
+      if (!fb) check(page.status === 200 && !note, `${where}: ${note ? `still says "${note}"` : 'no fallback note'}`);
+    } else if (st.state === 'corrected') {
+      check(m.defaultAcc === entry.acc && !fb && !m.misfiled, `${label}: ${opens}; ${bad} restated by the filer (${entry.correctedBy})${m.misfiled ? ', yet still marked misfiled' : ''}`);
+      check(page.status === 200 && !note, `${where}: ${note ? `still says "${note}"` : 'no fallback note'}`);
+    } else {
+      // nothing older is valid: the filing is shown as EDGAR has it, under its banner
+      check(m.defaultAcc === entry.acc && !fb && m.misfiled?.acc === entry.acc, `${label}: ${opens}; ${bad} is all there is to show, marked misfiled`);
+    }
+    // a restated quarter is the filer's own book: what its accession answers
+    // has the 13F-HR/A applied, and nothing marks the filer any more
+    if (st.corrected) {
+      const h = await get(`/api/holdings/${entry.cik}/${entry.acc}`);
+      if (h.status !== 200) out.push(`- ${label}: /api/holdings/${entry.cik}/${entry.acc} → HTTP ${h.status}; the restated quarter is not judged`);
+      else {
+        const j = JSON.parse(h.text);
+        const applied = (j.amendments || []).some((a) => a.acc === entry.correctedBy);
+        check(
+          applied && !m.misfiled,
+          `${label}: ${st.filing.reportDate} is served ${applied ? 'from' : 'WITHOUT'} the filer's 13F-HR/A ${entry.correctedBy}: ${j.count} positions, ${money(j.aum || 0)}${m.misfiled ? '; still marked misfiled' : ''}`
+        );
+      }
+    }
   }
 }
 

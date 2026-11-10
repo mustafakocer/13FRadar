@@ -142,6 +142,7 @@ export function universeRow({ cik, name }, snap) {
     // the filer's own declared total (cover page), for the nightly check
     ...(Number.isFinite(snap.declared) ? { declared: Math.round(snap.declared) } : {}),
     ...(snap.declaredAlt?.length ? { declaredAlt: snap.declaredAlt.map(Math.round) } : {}),
+    ...amendedBy(snap),
     // the reference quarter's filing, when the newest is a later period
     ...(snap.ref ? { ref: referenceRow(snap.ref) } : {}),
     positions: positions.length,
@@ -157,10 +158,20 @@ export function referenceRow(snap) {
     reportDate: snap.reportDate,
     acc: snap.acc,
     filed: snap.filed,
+    ...amendedBy(snap),
     aum: Math.round(snap.aum),
     putCallValue: Math.round(positions.reduce((s, p) => s + (p.putCall ? p.value : 0), 0)),
     positions: positions.length,
   };
+}
+
+// The 13F-HR/A documents applied to a row's figures (accessions, in filing
+// order). `acc` stays the period's base document; this says the numbers are
+// not that document's alone — a misfiled original the filer restated is read
+// as its own book by it (misfiledBooks.js `correctedBy`).
+function amendedBy(snap) {
+  const list = (snap.amendments || []).map((a) => a?.acc).filter(Boolean);
+  return list.length ? { amendedBy: list } : {};
 }
 
 // the label every page states the count with

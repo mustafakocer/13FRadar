@@ -6,6 +6,7 @@ import { cashLikeWeight } from '../_lib/cashLike.js';
 import { companyName } from '../_lib/companyNames.js';
 import { closeOn } from '../_lib/valueUnits.js';
 import { readSeries } from '../_lib/priceStore.js';
+import { lacksCorrection } from '../_lib/misfiledBooks.js';
 
 // GET /api/holdings/:cik/:acc?light=1&full=1&cusips=A,B,C
 //   light=1   skip CUSIP->ticker resolution (comparisons / previous quarter)
@@ -44,7 +45,11 @@ export default async function handler(req, res) {
     // The free view — the ten largest rows and the true totals — is what the
     // universe build stored for this filing, when it is the filer's latest.
     // That answers without EDGAR; everything else reads the filing.
-    const snap = !wantFull && !cusipFilter.length ? latestHoldings(cik, acc) : null;
+    // …unless it was stored before the filer restated a misfiled original
+    // (config/misfiled-books.json `correctedBy`): that snapshot is another
+    // filer's table, and the period is read again with the 13F-HR/A applied.
+    const stored = !wantFull && !cusipFilter.length ? latestHoldings(cik, acc) : null;
+    const snap = stored && !lacksCorrection(cik, acc, stored.amendments) ? stored : null;
     let holdings = snap;
     let meta = { filingDate: snap?.filingDate || null, reportDate: snap?.reportDate || null };
     let filing = null;
@@ -59,6 +64,11 @@ export default async function handler(req, res) {
       if (filing) meta = { filingDate: filing.filingDate, reportDate: filing.reportDate };
     }
     if (!holdings) holdings = filing ? await getEffectiveHoldings(cik, filing) : await getHoldings(cik, acc, null);
+    // the restatement could not be applied (EDGAR down, its table unreadable):
+    // no answer is better than the other filer's table under this name
+    if (lacksCorrection(cik, filing?.acc || acc, holdings.amendments)) {
+      return res.status(502).json({ error: 'The restatement of this filing could not be read from EDGAR' });
+    }
     const { aum, positions, count: snapCount } = holdings;
     const amended = Boolean(holdings.amended || snap?.amended);
     const amendments = holdings.amendments || snap?.amendments || (filing?.amendments || []).map((a) => ({ acc: a.acc, filingDate: a.filingDate }));

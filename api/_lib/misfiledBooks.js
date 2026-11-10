@@ -9,7 +9,8 @@
 // affected.
 //
 // A filer that corrects the slip files a 13F-HR/A restating its own book
-// (KMT Wealth, 2026-11-10). Once that amendment has been read by hand the
+// (Sixth Street the same day, 2026-08-14; KMT Wealth three months later,
+// 2026-11-10). Once that amendment has been read by hand the
 // entry names it in `correctedBy`; a filing that has it applied is the
 // filer's own again — no stamp, no note, the quarter in every total — while
 // the original read on its own (a snapshot stored before the amendment) is

@@ -4,10 +4,11 @@
     {
       "cik": "0001812095",
       "acc": "0001752724-26-000051",
+      "correctedBy": "0001752724-26-000055",
       "copyOf": "0000884546",
       "copyOfName": "Charles Schwab Investment Management, Inc.",
       "declared": 579182557,
-      "reason": "The 2026-06-30 information table is Charles Schwab Investment Management's (3,439 identical lines, $751.32B); Sixth Street's own cover page declares $579.2M."
+      "reason": "The 2026-06-30 information table is Charles Schwab Investment Management's (3,439 identical lines, $751.32B); Sixth Street's own cover page declares $579.2M. The filer corrected it the same day, 2026-08-14: 13F-HR/A 0001752724-26-000055 (amendment no. 1, RESTATEMENT) restates 2026-06-30 as Sixth Street's own book, 9 table entries (7 securities) and $579,182,557, equal to its cover. They are the seven names of its 2026-03-31 filing 0001752724-26-000034 (7 securities, $710,721,530): four at the same share count (PG&E 13,609,288, MasterBrand 4,905,383, Sixth Street Specialty Lending 2,714,226, Sprinklr 5,670,000), three lower (Caris Life Sciences 14,385,399 -> 7,327,041, Atlanta Braves Holdings 1,553,822 -> 1,551,322, Essent Group 400,000 -> 200,000). Entered 2026-11-10: until then the quarter was read with the amendment applied (its figures were right) yet stayed marked and the page fell back to 2026-03-31. The quarter is Sixth Street's own (`correctedBy`); the original 0001752724-26-000051 on its own is still Schwab's table."
     },
     {
       "cik": "0002058235",

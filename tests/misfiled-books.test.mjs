@@ -42,12 +42,15 @@ test('summarizeUniverse: a misfiled row is not in the total even when its book i
   assert.equal(s.totalAum, 1000);
 });
 
-test('universe.json: Sixth Street is stamped, and no other row is', () => {
+test('universe.json: a row is stamped exactly when the list marks the filing its figures were read from', () => {
   const U = JSON.parse(fs.readFileSync(new URL('../client/public/universe.json', import.meta.url), 'utf8'));
-  const stamped = U.rows.filter((r) => r.misfiled);
-  for (const r of stamped) assert.ok(misfiledFor(r.cik, r.acc), r.cik);
-  const sixth = U.rows.find((r) => r.cik === SIXTH);
-  if (sixth?.acc === ACC) assert.ok(sixth.misfiled);
+  // `amendedBy` (the 13F-HR/A applied to the row) decides: a row read with the
+  // filer's restatement is its own book; one built before rows carried the
+  // field, or read without the amendment, is the original and stays stamped
+  for (const r of U.rows) {
+    assert.equal(Boolean(r.misfiled), Boolean(misfiledFor(r.cik, r.acc, undefined, r.amendedBy)), `${r.cik} ${r.acc}`);
+    if (r.ref) assert.equal(Boolean(r.ref.misfiled), Boolean(misfiledFor(r.cik, r.ref.acc, undefined, r.ref.amendedBy)), `${r.cik} ref ${r.ref.acc}`);
+  }
 });
 
 test('every size listing leaves a misfiled row out', () => {
@@ -85,9 +88,12 @@ test('pageFiling: a misfiled newest quarter opens the page on the newest valid o
   const p = pageFiling(K, filings);
   assert.equal(p.acc, '0001104659-26-059198');
   assert.deepEqual(p.fallback, { reportDate: '2026-03-31', misfiled: { reportDate: '2026-06-30', acc: '0001104659-26-091013', copyOf: '0001927315', copyOfName: 'Kingsbury Capital Investment Advisors LLC' } });
-  // Sixth Street: the same rule
+  // Sixth Street: the same rule for the original read on its own…
   const s = pageFiling(SIXTH, [{ acc: ACC, reportDate: '2026-06-30' }, { acc: '0001752724-26-000020', reportDate: '2026-03-31' }]);
   assert.deepEqual([s.acc, s.fallback.misfiled.copyOf], ['0001752724-26-000020', '0000884546']);
+  // …and none once its same-day restatement is attached, as EDGAR's feed has it
+  const fixed = [{ acc: ACC, reportDate: '2026-06-30', amendments: [{ acc: '0001752724-26-000055', form: '13F-HR/A', filingDate: '2026-08-14' }] }, { acc: '0001752724-26-000034', reportDate: '2026-03-31' }];
+  assert.deepEqual(pageFiling(SIXTH, fixed), { acc: ACC, fallback: null });
   // a valid newest filing: no fallback; only a misfiled one and nothing earlier: no fallback
   assert.deepEqual(pageFiling(K, [{ acc: 'x-new', reportDate: '2026-09-30' }, ...filings]), { acc: 'x-new', fallback: null });
   assert.deepEqual(pageFiling(K, filings.slice(0, 1)), { acc: '0001104659-26-091013', fallback: null });
@@ -111,6 +117,9 @@ const kmtAfter = [
 ];
 const kmtBefore = [period(KMT_BAD, '2026-08-05', '2026-06-30'), ...kmtAfter.slice(2)];
 const entryOf = (cik, acc) => misfiledBooks.find((b) => b.cik === cik && b.acc === acc);
+const SIXTH_FIX = '0001752724-26-000055';
+const SCHEAR = '0001962838';
+const SCHEAR_BAD = '0001962838-26-000005';
 
 test('config: KMT restated its 2026-06-30 book on 2026-11-10; the entry names the amendment', () => {
   const e = entryOf(KMT, KMT_BAD);
@@ -118,8 +127,11 @@ test('config: KMT restated its 2026-06-30 book on 2026-11-10; the entry names th
   assert.match(e.reason, /corrected it on 2026-11-10/);
   // every correctedBy is an accession, and never the misfiled filing itself
   for (const b of misfiledBooks) if (b.correctedBy != null) assert.ok(/^\d{10}-\d{2}-\d{6}$/.test(b.correctedBy) && b.correctedBy !== b.acc, b.cik);
-  // Sixth Street and Schear carry no such field: their entries stand as filed
-  assert.equal(entryOf(SIXTH, ACC).correctedBy, undefined);
+  // Sixth Street restated its book the day it misfiled it (2026-08-14)
+  assert.equal(entryOf(SIXTH, ACC).correctedBy, SIXTH_FIX);
+  assert.match(entryOf(SIXTH, ACC).reason, /corrected it the same day, 2026-08-14/);
+  // Schear has filed no amendment: its entry stands as filed
+  assert.equal(entryOf(SCHEAR, SCHEAR_BAD).correctedBy, undefined);
 });
 
 test('misfiledFor: the entry stands for the original alone, and lapses once the filer\'s restatement is applied', async () => {
@@ -133,12 +145,16 @@ test('misfiledFor: the entry stands for the original alone, and lapses once the 
   assert.equal(misfiledFor(KMT, KMT_BAD, undefined, [{ acc: KMT_FIX, filingDate: '2026-11-10', type: 'RESTATEMENT' }]), null);
   assert.equal(misfiledFor(KMT, KMT_BAD, undefined, [KMT_FIX]), null);
   assert.equal(corrected(e, [KMT_FIX]), true);
-  assert.equal(corrected(entryOf(SIXTH, ACC), [{ acc: '0001752724-26-000055' }]), false, 'an amendment nobody entered as the correction changes nothing');
+  assert.equal(corrected(entryOf(SIXTH, ACC), [{ acc: SIXTH_FIX }]), true);
+  assert.equal(corrected(entryOf(SCHEAR, SCHEAR_BAD), [{ acc: '0001962838-26-000009' }]), false, 'an amendment nobody entered as the correction changes nothing');
   // what may be served under the misfiled accession
   assert.equal(lacksCorrection(KMT, KMT_BAD, null), true, 'a snapshot stored before the amendment');
   assert.equal(lacksCorrection(KMT, KMT_BAD, [{ acc: KMT_FIX }]), false);
   assert.equal(lacksCorrection(KMT, KMT_Q3, null), false, 'another filing of the same filer');
-  assert.equal(lacksCorrection(SIXTH, ACC, null), false, 'an entry without correctedBy is served as EDGAR has it, under its banner');
+  assert.equal(lacksCorrection(SCHEAR, SCHEAR_BAD, null), false, 'an entry without correctedBy is served as EDGAR has it, under its banner');
+  // Sixth Street's stored snapshot was built with its amendment applied: it may be served
+  assert.equal(lacksCorrection(SIXTH, ACC, [{ acc: SIXTH_FIX, filingDate: '2026-08-14', type: 'RESTATEMENT' }]), false);
+  assert.equal(lacksCorrection(SIXTH, ACC, null), true);
 });
 
 test('pageFiling: a newer valid filing after a misfiled one opens the page there, with no fallback', async () => {
@@ -181,11 +197,12 @@ test('misfiledState: what the site check holds each entry to', async () => {
   const plain = { cik: KMT, acc: KMT_BAD, copyOf: '0001927315' };
   const r = misfiledState(plain, kmtAfter, [plain]);
   assert.deepEqual([r.state, r.corrected], ['retired', false]);
-  // Sixth Street and Schear today: the misfiled quarter is still the newest
-  const sixth = [period(ACC, '2026-08-14', '2026-06-30', [{ acc: '0001752724-26-000055', form: '13F-HR/A', filingDate: '2026-08-14' }]), period('0001752724-26-000034', '2026-05-15', '2026-03-31')];
-  assert.equal(state(entryOf(SIXTH, ACC), sixth), 'fallback');
-  const schear = [period('0001962838-26-000005', '2026-10-14', '2026-09-30'), period('0001962838-26-000003', '2026-07-27', '2026-06-30')];
-  assert.equal(state(entryOf('0001962838', '0001962838-26-000005'), schear), 'fallback');
+  // Sixth Street today: its newest period is the misfiled one, restated the same day
+  const sixth = [period(ACC, '2026-08-14', '2026-06-30', [{ acc: SIXTH_FIX, form: '13F-HR/A', filingDate: '2026-08-14' }]), period('0001752724-26-000034', '2026-05-15', '2026-03-31')];
+  assert.equal(state(entryOf(SIXTH, ACC), sixth), 'corrected');
+  // Schear today: the misfiled quarter is the newest and nothing restates it
+  const schear = [period(SCHEAR_BAD, '2026-10-14', '2026-09-30'), period('0001962838-26-000003', '2026-07-27', '2026-06-30')];
+  assert.equal(state(entryOf(SCHEAR, SCHEAR_BAD), schear), 'fallback');
   // the site check reads its filers from the list, not from two CIKs in the script
   const src = fs.readFileSync(new URL('../scripts/check-site.mjs', import.meta.url), 'utf8');
   assert.match(src, /for \(const entry of misfiledBooks\)/);

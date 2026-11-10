@@ -73,7 +73,7 @@ Herkese açık her sayfa sunucuda render edilir; tarayıcı tam HTML (başlıkla
 | `VITE_BRANDFETCH_CLIENT_ID` | opsiyonel | Hisse logoları için Brandfetch Logo Link istemci kimliği (build'de gömülür). Boşsa logolar kendi sunduğumuz ikonlar / iki-harf rozet olur. Dolu olduğunda footer'a zorunlu "Brandfetch" atfı eklenir; `VITE_BRANDFETCH_URL` ile CDN URL şablonu (`{domain} {px} {id}`) değiştirilebilir. Ticker→domain eşlemesi `client/public/domains.json`: `scripts/build-domains.mjs`, günde üç kez `domains.yml` (SEC kaynaklı, ETF/fon sponsor haritası, warrant/unit/preferred türevleri ana hisseyi alır, kök domain'e indirgenir; sitede geçen tüm ticker'lar, koşu başına `DOMAINS_BATCH`=1500). CDN'in tanımadığı markalar için kendi sunduğumuz ikonlar: `scripts/build-logos.mjs`, günlük `logos.yml`, domain evreni üzerinde `LOGOS_BATCH`=400/koşu. |
 | `BRANDFETCH_API_KEY` / `BRANDFETCH_CLIENT_ID` | opsiyonel (GitHub secret) | `logos.yml` önce Brandfetch'ten çeker: logosu olmayan (ya da yalnızca .ico'su olan) her ticker için domain'le Brand API (anahtar varsa) ya da Logo Link CDN (client id), koşu başına `BRANDFETCH_BATCH`=2000, 60 günde bir tekrar. 401/403/ikinci 429'da o kaynak koşu boyunca kapanır. |
 | Stripe | ödeme için | bkz. docs/STRIPE-KURULUM.md |
-| `RESEND_API_KEY`, `ALERT_FROM` | şu an gerekmez | kullanıcı e-posta uyarıları 2026-09'da kaldırıldı (`docs/EMAIL_ALERTS.md`); ops alarmları GitHub issue + `@ALERT_MENTION` (repo variable, varsayılan `mustafakocer`) ile gelir |
+| `RESEND_API_KEY`, `ALERT_FROM` | e-posta gönderen işler için | takip listesi özeti (`docs/EMAIL_ALERTS.md`), bülten ve fon uyarıları (`LEAD_FROM`, `docs/LEAD-MAGNETS.md`), haftalık rakamlar (`METRICS_TO`, `docs/METRIKLER.md`). Eksikse ilgili iş kırmızı biter ve eksik anahtarı yazar. Ops alarmları GitHub issue + `@ALERT_MENTION` (repo variable, varsayılan `mustafakocer`) ile gelir |
 | `SUPABASE_SERVICE_ROLE_KEY` | alert işi için | digest her kullanıcının alert'lerini okur, RLS ile çalışamaz |
 | `HISTORY_STORE`, `HISTORY_SUPABASE_URL`, `HISTORY_SUPABASE_KEY` | tarihsel depo için | `HISTORY_STORE=1` olmadan okuma yolu dosyalardan devam eder |
 | `SEC_FIXTURE_DIR`, `GURU_HISTORY_FILE`, `GURU_STOCKS_FILE`, `FILINGS_FILE` | yalnız test | çevrimdışı fixture'lar (`tests/fixtures`) |
@@ -173,6 +173,7 @@ SEC_FIXTURE_DIR=$PWD/tests/fixtures/sec npm run dev
    - Ödeme (Stripe): `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_YEARLY`, `STRIPE_PRICE_MONTHLY_TR`, `STRIPE_PRICE_YEARLY_TR`, `SUPABASE_SERVICE_ROLE_KEY` → adım adım kurulum: [docs/STRIPE-KURULUM.md](docs/STRIPE-KURULUM.md).
    - Ölçüm (isteğe bağlı, çerez onayıyla): Meta Pixel + Conversions API `VITE_META_PIXEL_ID`, `META_PIXEL_ID`, `META_CAPI_TOKEN`; Google Analytics 4 `VITE_GA_MEASUREMENT_ID`; Microsoft Clarity `VITE_CLARITY_ID` → [docs/META-KURULUM.md](docs/META-KURULUM.md).
    - Lead magnet'ler (bülten, rapor PDF, Excel, portföy karşılaştırma, fon uyarısı): `RESEND_API_KEY`, `LEAD_FROM`, `VITE_LEADS_ENABLED=1` → [docs/LEAD-MAGNETS.md](docs/LEAD-MAGNETS.md).
+   - Haftalık iş rakamları (hesap, Pro, abone; yalnız e-postayla): GitHub secret `METRICS_TO` → [docs/METRIKLER.md](docs/METRIKLER.md).
 6. Domain bağlamak isterseniz: Project → Settings → Domains.
 
 ### Landing Verisi

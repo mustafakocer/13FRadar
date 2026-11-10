@@ -104,9 +104,13 @@ test('a real run sends once and moves the reader’s filing mark to the newest d
   }
 });
 
-test('the digest workflow is scheduled again and gated on both keys', () => {
+// A missing key used to end the run green and the digest went unsent for a
+// month; the workflow now names what is missing and fails.
+test('the digest workflow is scheduled again and goes red, naming the missing secrets', () => {
   const yml = fs.readFileSync(path.join(root, '.github', 'workflows', 'alerts.yml'), 'utf8');
   assert.match(yml, /^\s*schedule:/m);
-  assert.match(yml, /RESEND_API_KEY \/ ALERT_FROM not configured/);
+  for (const key of ['SUPABASE_SERVICE_ROLE_KEY', 'SUPABASE_URL', 'SITE_URL', 'RESEND_API_KEY', 'ALERT_FROM'])
+    assert.match(yml, new RegExp(`missing="\\$missing ${key}"`), `${key} is checked`);
+  assert.match(yml, /Repository secrets not configured:\$missing[\s\S]{0,200}?exit 1/);
   assert.ok(!/removed in 2026-09/.test(yml));
 });

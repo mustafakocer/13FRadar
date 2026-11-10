@@ -1,6 +1,6 @@
 # E-posta bildirimleri — ikinci sürüm (2026-10-06)
 
-**Durum:** Kod hazır; gönderim, GitHub Actions secret'ları eklenince başlar. Eksik secret varken iş yeşil biter ve hangi anahtarın eksik olduğunu yazar.
+**Durum:** Kod hazır; gönderim, GitHub Actions secret'ları eklenince başlar. Eksik secret varken iş **kırmızı** biter ve hangi anahtarın eksik olduğunu yazar (yeşil bitip atladığı dönemde özet bir ay gönderilmedi: 2026-09-28 → 10-30).
 
 ## Ne gönderilir
 
@@ -18,7 +18,7 @@ Sıklık: her gün (yeni bir şey varsa) ya da haftada bir. Dil: hesabın UI dil
 |---|---|
 | Eşleştirme, metin, kadans | `api/_lib/alerts.js` (`matchFilings`, `matchForm4`, `matchInsiders`, `renderDigest`, `dueForPrefs`, `maskEmail`) |
 | Gönderim işi | `scripts/send-alerts.mjs` — `--dry-run` (adresler maskeli, işaret ilerlemez), `--force` |
-| Zamanlama | `.github/workflows/alerts.yml` — her gün 08:23 UTC; iki anahtar da yoksa atlar |
+| Zamanlama | `.github/workflows/alerts.yml` — her gün 08:23 UTC; eksik anahtar varsa kırmızı biter (`dry_run` posta anahtarı istemez) |
 | Okuyucu başına işaret | `notification_prefs.filings_seen / filings_seen_acc / form4_seen / last_sent_at` — `migrations/0006_digest_marks` |
 | Arayüz | `client/src/pages/Account.jsx` (kutu + sıklık), `client/src/hooks/useNotificationPrefs.js`, `Watchlist.jsx` ipucu |
 | Testler | `tests/email-alerts.test.mjs` (anahtarsız gerçek çalışma = exit 1 ve hiç okuma yok; dry run; gerçek gönderim + işaret), `tests/alerts.test.mjs`, `tests/sql/0006_digest_marks.test.sql` |

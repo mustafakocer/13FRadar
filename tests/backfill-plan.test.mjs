@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import { root } from './helpers.mjs';
 import {
   quartersToBackfill,
   advanceCursor,
@@ -97,4 +99,31 @@ test('positions become rows the store can hold, and junk is dropped', () => {
   // the pair shares a CUSIP and differs only by side — the primary key has to
   // keep both, which is why put_call is part of it
   assert.equal(rows[0].cusip, rows[1].cusip);
+});
+
+// The script sends the store key on every request. An AxiosError carries the
+// request it came from and Node prints an uncaught error whole.
+test('the backfill script against a store that cannot be reached: one line, exit 1, and the key is not in it', async () => {
+  const run = (env) =>
+    new Promise((resolve) => {
+      const p = spawn(process.execPath, ['scripts/backfill-13f.mjs'], {
+        cwd: root,
+        env: { ...process.env, HISTORY_SUPABASE_URL: '', HISTORY_SUPABASE_KEY: '', SUPABASE_URL: '', SUPABASE_SERVICE_ROLE_KEY: '', BACKFILL_DRY: '1', ...env },
+      });
+      let out = '';
+      p.stdout.on('data', (d) => (out += d));
+      p.stderr.on('data', (d) => (out += d));
+      p.on('close', (code) => resolve({ code, out }));
+    });
+  const key = 'store-key-secret-0123456789';
+  for (const env of [
+    { HISTORY_SUPABASE_URL: 'http://127.0.0.1:9', HISTORY_SUPABASE_KEY: key },
+    { SUPABASE_URL: 'http://127.0.0.1:9', SUPABASE_SERVICE_ROLE_KEY: key },
+  ]) {
+    const r = await run(env);
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /^could not read the backfill state: store GET \/backfill_state: .*ECONNREFUSED/);
+    assert.equal(r.out.trim().split('\n').length, 1, r.out);
+    assert.ok(!r.out.includes(key), r.out);
+  }
 });

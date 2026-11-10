@@ -28,6 +28,13 @@ const SITE = (process.env.SITE_URL || CANONICAL_SITE).replace(/\/$/, '');
 // Resend's default limit is 2 requests a second
 const GAP_MS = Number(process.env.MAIL_GAP_MS ?? 600);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// A database call that fails ends the run on one line. The message only: the
+// workflow log is public, and an error object printed whole can carry the
+// request it came from (api/_lib/auth.js strips it; this keeps it to a line).
+const fatal = (what) => (e) => {
+  console.error(`${what}: ${String(e?.message || e)}`);
+  process.exit(1);
+};
 
 if (!hasServiceKey()) {
   console.error('SUPABASE_SERVICE_ROLE_KEY is not set — nobody to read.');
@@ -63,7 +70,7 @@ async function confirmed() {
 }
 
 const now = new Date();
-const subs = await confirmed();
+const subs = await confirmed().catch(fatal('could not read the subscribers'));
 const stats = { newsletter: 0, gurus: 0, failed: 0, skipped: 0 };
 
 async function deliver(sub, mail) {
@@ -106,7 +113,7 @@ if (ONLY !== 'gurus' && (monday || FORCE)) {
     const { text, html } = renderNewsletter(issues[lang], { unsub, footer: mailFooter(lang, unsub) });
     if (await deliver(sub, { subject: issues[lang].subject, text, html })) {
       stats.newsletter++;
-      if (!DRY) await svcUpdate('subscribers', { id: `eq.${sub.id}` }, { newsletter_sent_at: now.toISOString() });
+      if (!DRY) await svcUpdate('subscribers', { id: `eq.${sub.id}` }, { newsletter_sent_at: now.toISOString() }).catch(fatal('could not save a newsletter mark'));
     }
   }
 }
@@ -144,14 +151,14 @@ if (ONLY !== 'newsletter') {
         moved = true;
       }
     }
-    if (moved && !DRY) await svcUpdate('subscribers', { id: `eq.${sub.id}` }, { guru_seen: seen });
+    if (moved && !DRY) await svcUpdate('subscribers', { id: `eq.${sub.id}` }, { guru_seen: seen }).catch(fatal('could not save a guru mark'));
   }
 }
 
 // addresses that never confirmed are not kept: gone after 30 days
 if (!DRY) {
   const cutoff = new Date(now.getTime() - 30 * 86400 * 1000).toISOString();
-  await svcDelete('subscribers', { status: 'eq.pending', created_at: `lt.${cutoff}` }).catch((e) => console.error(`purge failed: ${e.message}`));
+  await svcDelete('subscribers', { status: 'eq.pending', created_at: `lt.${cutoff}` }).catch((e) => console.error(`purge failed: ${String(e?.message || e)}`));
 }
 
 console.log(`${DRY ? '[dry run] ' : ''}${subs.length} confirmed subscribers · newsletter ${stats.newsletter} · guru alerts ${stats.gurus} · not due ${stats.skipped} · failed ${stats.failed}`);

@@ -28,13 +28,15 @@ const newest = filings[0];
 const dayBefore = new Date(Date.parse(`${newest.filed}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
 
 // A stand-in Supabase REST + Resend that records every request.
-function stub() {
+function stub({ dropWrites = false } = {}) {
   const hits = [];
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', (d) => (body += d));
     req.on('end', () => {
       hits.push({ method: req.method, url: req.url, body });
+      // a write that never gets an answer: the socket is cut
+      if (dropWrites && req.method === 'PATCH') return req.socket.destroy();
       res.setHeader('content-type', 'application/json');
       if (req.url.startsWith('/rest/v1/notification_prefs') && req.method === 'GET')
         return res.end(JSON.stringify([{ user_id: USER, email_digest: true, digest_frequency: 'daily', lang: 'tr', filings_seen: dayBefore, filings_seen_acc: [], form4_seen: dayBefore, last_sent_at: null }]));
@@ -99,6 +101,38 @@ test('a real run sends once and moves the reader’s filing mark to the newest d
     assert.equal(fields.filings_seen, newest.filed);
     assert.ok(fields.filings_seen_acc.includes(newest.acc));
     assert.ok(fields.last_sent_at);
+  } finally {
+    server.close();
+  }
+});
+
+// An AxiosError carries the request it came from, service key included, and
+// Node prints an uncaught error whole: the workflow log is public.
+test('a database that cannot be reached: one line, exit 1, and the service key is not in it', async () => {
+  for (const args of [['--dry-run'], []]) {
+    const r = await run(args, {
+      SUPABASE_URL: 'http://127.0.0.1:9', SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret-0123456789',
+      RESEND_API_KEY: 're_test', ALERT_FROM: 'Fundocap <alerts@example.test>',
+    });
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /^could not read the digest preferences: notification_prefs read: .*ECONNREFUSED/);
+    assert.equal(r.out.trim().split('\n').length, 1, r.out);
+    assert.ok(!r.out.includes('service-role-secret-0123456789'), r.out);
+  }
+});
+
+test('marks that cannot be written after a send: one line, exit 1, no request in the log', async () => {
+  const { server, hits, url } = await stub({ dropWrites: true });
+  try {
+    const r = await run([], {
+      SUPABASE_URL: url, SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'service-role-secret-0123456789',
+      RESEND_API_KEY: 're_test_secret', ALERT_FROM: 'Fundocap <alerts@example.test>', RESEND_BASE_URL: url,
+    });
+    assert.equal(r.code, 1, r.out);
+    assert.equal(hits.filter((h) => h.url.startsWith('/emails')).length, 1, 'the mail had gone out');
+    assert.match(r.out, /^could not save a reader’s marks: notification_prefs update: /);
+    assert.equal(r.out.trim().split('\n').length, 1, r.out);
+    assert.ok(!r.out.includes('service-role-secret-0123456789') && !r.out.includes('re_test_secret') && !r.out.includes('reader@example.test'), r.out);
   } finally {
     server.close();
   }

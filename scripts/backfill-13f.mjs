@@ -24,6 +24,7 @@
 import axios from 'axios';
 import { parse13F, aggregatePositions, fetchInfoTableXml, fetchCoverPage } from '../api/_lib/sec.js';
 import { parseFilingIndex } from '../api/_lib/filings.js';
+import { networkReason } from '../api/_lib/auth.js';
 import {
   quartersToBackfill,
   advanceCursor,
@@ -53,6 +54,17 @@ const db = axios.create({
   timeout: 60000,
   validateStatus: () => true,
 });
+// A request that never gets an answer rejects with an AxiosError that holds
+// the headers above; printed whole (an uncaught error is), it puts the store
+// key in the log. What leaves here is the path and the reason, nothing else.
+db.interceptors.response.use(undefined, (e) =>
+  Promise.reject(new Error(`store ${String(e?.config?.method || 'request').toUpperCase()} ${e?.config?.url || ''}: ${networkReason(e, dbKey)}`))
+);
+// a store failure outside the per-filing loop ends the run on one line
+const fatal = (what) => (e) => {
+  console.error(`${what}: ${String(e?.message || e)}`);
+  process.exit(1);
+};
 
 async function upsert(table, rows, onConflict) {
   if (DRY || !rows.length) return;
@@ -106,7 +118,7 @@ async function quarterIndex({ y, q }) {
   throw new Error(`form.idx ${y}Q${q} unavailable`);
 }
 
-const state = await readState();
+const state = await readState().catch(fatal('could not read the backfill state'));
 const quarters = quartersToBackfill({ from: state?.cursor, max: MAX_QUARTERS });
 if (!quarters.length) {
   console.log(`Nothing left to backfill (cursor ${state?.cursor || 'unset'}, done=${state?.done ?? false}).`);
@@ -128,7 +140,7 @@ for (const key of quarters) {
     continue;
   }
   const listed = parseFilingIndex(idx);
-  const already = await storedAccessions(listed);
+  const already = await storedAccessions(listed).catch(fatal(`could not read the stored filings of ${key}`));
   let todo = missingFilings(listed, already);
   if (MAX_FILINGS > 0) todo = todo.slice(0, MAX_FILINGS);
   console.log(`  ${key}: ${listed.length} filings listed, ${already.length} stored, reading ${todo.length}`);
@@ -136,7 +148,7 @@ for (const key of quarters) {
   // Filers first: the filings table references them.
   const filers = new Map();
   for (const f of todo) filers.set(f.cik, { cik: f.cik, name: f.name, updated_at: new Date().toISOString() });
-  await upsert('filers', [...filers.values()], 'cik');
+  await upsert('filers', [...filers.values()], 'cik').catch(fatal(`could not store the filers of ${key}`));
 
   let quarterOk = true;
   for (const f of todo) {
@@ -190,7 +202,7 @@ if (cursor) {
     filings: totalFilings,
     positions: totalPositions,
     failed,
-  });
+  }).catch(fatal('could not save the backfill cursor'));
 }
 console.log(
   `${DRY ? '[dry] ' : ''}${totalFilings} filings, ${totalPositions} positions, ${failed} failed. Cursor → ${cursor || 'unchanged'}${finished ? ' (backfill complete)' : ''}`

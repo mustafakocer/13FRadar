@@ -1,13 +1,13 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-11-10T04:18:57.735Z",
- "last_success_at": "2026-11-10T04:19:06.197Z",
- "last_filing_date": "2026-11-06",
- "row_count": 13930,
- "member_count": 182,
+ "last_run_at": "2026-11-10T20:49:10.351Z",
+ "last_success_at": "2026-11-10T20:49:17.198Z",
+ "last_filing_date": "2026-11-09",
+ "row_count": 13933,
+ "member_count": 183,
  "filings": {
-  "total": 1284,
-  "ok": 1131,
+  "total": 1286,
+  "ok": 1133,
   "scan": 153,
   "empty": 0,
   "error": 0
@@ -15,9 +15,9 @@
  "unmatched": 0,
  "run": {
   "house": {
-   "indexed": 975,
-   "fetched": 0,
-   "ok": 0,
+   "indexed": 977,
+   "fetched": 2,
+   "ok": 2,
    "scan": 0,
    "empty": 0,
    "error": 0

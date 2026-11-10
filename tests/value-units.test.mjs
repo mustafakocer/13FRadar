@@ -46,8 +46,14 @@ test('aggregatePositions with a period: thousands written into a 2024 filing com
   assert.equal(Math.round(ok.aum), 12 * 150_000);
 });
 
+// Up to the consensus table's quarter, as the stock page reads it
+// (guru-stocks.js passes that quarter's row as `current`, which drops
+// anything newer). From 1 October to 14 November the history also holds the
+// next quarter for the few funds that filed early: two funds' AAPL beside
+// eighteen's is a quarter still being filed, not a unit error.
+const consensusQuarter = json('api/_data/guru-stocks.json').quarter;
 const jumps = (ticker) => {
-  const q = ownershipTrend({ ticker })?.quarters || [];
+  const q = (ownershipTrend({ ticker })?.quarters || []).filter((x) => x.reportDate <= consensusQuarter);
   const out = [];
   for (let i = 1; i < q.length; i++) {
     const r = q[i].value / q[i - 1].value;

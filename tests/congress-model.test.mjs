@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { committeeSeats, filerName, indexLegislators, matchHouse, matchSenate, normName } from '../api/_lib/congressMembers.js';
 import { buildServed, feed, memberView, overview, rowReturn, tickerView } from '../api/_lib/congressModel.js';
+import { runChecks, SENATE_BLOCK_MAX_DAYS } from '../api/_lib/freshnessChecks.js';
 
 const LEG = [
   { id: { bioguide: 'W000816' }, name: { first: 'Roger', last: 'Williams', official_full: 'Roger Williams' }, terms: [{ type: 'rep', state: 'TX', district: 25, party: 'Republican', start: '2023-01-03', end: '2027-01-03' }] },
@@ -84,6 +85,25 @@ test('a Senate block reaches the overview with the newest Senate disclosure', ()
   assert.equal(served.senateBlockedSince, null);
   assert.equal(served.lastFiledBy.S, '2026-02-01');
   const blocked = buildServed(FILINGS, { legislators: idx, seriesFor, since: '2025-01-01', now: Date.parse('2026-10-28'), senateBlockedSince: '2026-10-23' });
+
+// 2026-10-23 → 11-09: seventeen days of 403 from the Senate site, a warning
+// in a workflow log and no alarm, because the date check waits fifteen
+// business days. The block itself is now a check.
+test('freshness: a Senate block is an alarm after three days, not after three weeks', () => {
+  const senate = (since, day) => {
+    const files = { 'api/_data/congress.json': { lastFiled: day, lastFiledBy: { H: day, S: '2026-10-22' }, senateBlockedSince: since, rows: [] } };
+    return runChecks((f) => files[f] ?? null, { now: Date.parse(`${day}T12:00:00Z`) }).find((r) => r.label === 'congress source (Senate eFD)');
+  };
+  assert.equal(SENATE_BLOCK_MAX_DAYS, 3);
+  assert.equal(senate(null, '2026-10-22').status, 'ok');
+  assert.equal(senate('2026-10-23', '2026-10-23').status, 'ok', 'a refusal on the day is not an alarm yet');
+  assert.equal(senate('2026-10-23', '2026-10-25').status, 'ok');
+  const third = senate('2026-10-23', '2026-10-26');
+  assert.equal(third.status, 'STALE');
+  assert.match(third.detail, /since 2026-10-23 \(3d, limit 3d\); Senate data through 2026-10-22/);
+  assert.equal(senate('2026-10-23', '2026-11-09').status, 'STALE', 'and stays one until the site answers again');
+  assert.equal(senate('not-a-date', '2026-11-09').status, 'STALE');
+});
   const o = overview({ ...blocked, bySlug: {} }, { days: 400, now: Date.parse('2026-10-28') });
   assert.equal(o.senateBlockedSince, '2026-10-23');
   assert.equal(o.lastFiledBy.S, '2026-02-01');

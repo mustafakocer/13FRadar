@@ -1,0 +1,66 @@
+name: Weekly business figures
+
+# Accounts, Pro subscriptions and newsletter readers, counted from Supabase
+# and mailed to the owner (scripts/send-metrics.mjs, docs/METRIKLER.md).
+#
+# This repository is public: its logs, run summaries and issues can be read
+# by anyone. The figures therefore go out by mail only, to the address in the
+# METRICS_TO secret, and the script prints none of them here.
+#
+# Mondays 05:13 UTC, after the newsletter run. Commits nothing, so it costs
+# no Vercel build.
+on:
+  schedule:
+    - cron: '13 5 * * 1'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Read the tables and build the mail without sending (nothing is printed: the log is public)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm ci
+      # Red, and naming what is missing: a job that skipped quietly is how the
+      # digest and the newsletter each went unsent for weeks.
+      - name: Check configuration
+        env:
+          SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SB_URL: ${{ secrets.SUPABASE_URL }}
+          MAIL_KEY: ${{ secrets.RESEND_API_KEY }}
+          MAIL_FROM: ${{ secrets.LEAD_FROM || secrets.ALERT_FROM }}
+          MAIL_TO: ${{ secrets.METRICS_TO }}
+          DRY: ${{ github.event.inputs.dry_run }}
+        run: |
+          missing=""
+          [ -n "$SERVICE_KEY" ] || missing="$missing SUPABASE_SERVICE_ROLE_KEY"
+          [ -n "$SB_URL" ] || missing="$missing SUPABASE_URL"
+          if [ "$DRY" != "true" ]; then
+            [ -n "$MAIL_KEY" ] || missing="$missing RESEND_API_KEY"
+            [ -n "$MAIL_FROM" ] || missing="$missing LEAD_FROM (or ALERT_FROM)"
+            [ -n "$MAIL_TO" ] || missing="$missing METRICS_TO"
+          fi
+          if [ -n "$missing" ]; then
+            echo "::error::Repository secrets not configured:$missing — the weekly figures cannot be sent. Add them under Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "configuration ok"
+      - name: Count and mail
+        run: node scripts/send-metrics.mjs ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          LEAD_FROM: ${{ secrets.LEAD_FROM || secrets.ALERT_FROM }}
+          METRICS_TO: ${{ secrets.METRICS_TO }}

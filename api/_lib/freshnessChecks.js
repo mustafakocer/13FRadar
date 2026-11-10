@@ -16,6 +16,8 @@ const DAY = 86400000;
 // the shelf life of a return row (stockMetaBuild.js RETURNS_MAX_AGE_DAYS;
 // repeated here so this module stays free of the build's imports)
 const RETURNS_ROW_MAX_AGE_DAYS = 7;
+// how long the Senate site may refuse the build before the alarm speaks
+export const SENATE_BLOCK_MAX_DAYS = 3;
 const maxOf = (list) => list.reduce((m, v) => (v && v > m ? v : m), '') || null;
 
 // The newest quarter whose 13F deadline (45 days after quarter end) passed at
@@ -85,10 +87,29 @@ export const CHECKS = [
     label: 'congress trades (Senate)',
     file: 'api/_data/congress.json',
     // the House alone keeps the check above green. Senators file less often
-    // (two-week gaps happen), and the Senate eFD site has refused the build
-    // since 2026-10-23: three weeks with no Senate report is the point to
-    // look at it again rather than forget it
+    // (two-week gaps happen), and the Senate eFD site refused the build
+    // from 2026-10-23 to 2026-11-09: three weeks with no Senate report is
+    // the point to look at it again rather than forget it
     judge: (j, now) => businessDate('newest Senate disclosure', j?.lastFiledBy?.S ?? maxOf((j?.rows || []).filter((r) => String(r?.id || '').startsWith('S:')).map((r) => r?.f)), 15, now),
+  },
+  {
+    label: 'congress source (Senate eFD)',
+    file: 'api/_data/congress.json',
+    // The date check above cannot tell a quiet fortnight from a refused
+    // build, so it waits fifteen business days. The build knows the
+    // difference: it records the day the site began answering 403
+    // (build-congress.mjs senate_block → senateBlockedSince). That block ran
+    // seventeen days behind a workflow warning nobody was sent, and ended
+    // before the date check would have spoken. A refusal that clears by the
+    // next run is noise; one that lasts three days needs a decision (wait,
+    // or a second source).
+    judge: (j, now) => {
+      const since = j?.senateBlockedSince;
+      if (!since) return { ok: true, detail: 'the Senate site answers the build' };
+      const days = Math.floor((now - Date.parse(`${since}T00:00:00Z`)) / DAY);
+      if (!Number.isFinite(days)) return { ok: false, detail: `refused since "${since}" (not a date)` };
+      return { ok: days < SENATE_BLOCK_MAX_DAYS, detail: `refusing the build since ${since} (${days}d, limit ${SENATE_BLOCK_MAX_DAYS}d); Senate data through ${j?.lastFiledBy?.S ?? '—'}` };
+    },
   },
   { label: 'consensus (public)', file: 'client/public/consensus.json', judge: (j, now) => quarterDate('quarter', j?.quarter, now) },
   { label: 'consensus (pro)', file: 'api/_data/consensus-pro.json', judge: (j, now) => quarterDate('quarter', j?.quarter, now) },

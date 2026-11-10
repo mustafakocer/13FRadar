@@ -170,9 +170,9 @@ async function main() {
     try {
       const f = list13F(await getSubmissions(e.cik)).find((x) => x.reportDate === REF);
       if (!f) return snap;
-      const { aum, positions } = await getEffectiveHoldings(e.cik, f);
+      const { aum, positions, amendments } = await getEffectiveHoldings(e.cik, f);
       referenced++;
-      return { ...snap, ref: { reportDate: REF, acc: f.acc, filed: f.filingDate, aum, positions } };
+      return { ...snap, ref: { reportDate: REF, acc: f.acc, filed: f.filingDate, aum, positions, amendments: amendments || null } };
     } catch {
       return snap;
     }
@@ -217,8 +217,9 @@ async function main() {
             cashLikePrev: cashLikePrev(lastSnapshot[e.cik.padStart(10, '0')], snap.reportDate),
           });
           // whale-heatmap aggregate across ALL filers (equity positions only);
-          // a filing carrying another filer's table is not counted twice
-          if (!misfiledFor(e.cik, snap.acc)) for (const p of positions) {
+          // a filing carrying another filer's table is not counted twice (one
+          // the filer restated is its own book: snap.amendments)
+          if (!misfiledFor(e.cik, snap.acc, undefined, snap.amendments)) for (const p of positions) {
             if (p.putCall) continue;
             const a = stockAgg.get(p.cusip) || { issuer: p.issuer, value: 0, funds: 0 };
             a.value += p.value;

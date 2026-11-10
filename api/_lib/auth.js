@@ -99,23 +99,45 @@ const svcHeaders = () => ({
   'Content-Type': 'application/json',
 });
 
+// Every service-role request goes through here. A request that never gets an
+// answer (refused, DNS, timeout) rejects with an AxiosError whose `config` and
+// `request` hold the headers above; left uncaught at the top level of a job,
+// Node prints the whole object — service key included — into a workflow log
+// that is public. So nothing axios throws leaves this file: the caller gets a
+// plain Error naming the table, the operation and the reason, and the key is
+// cut out of the reason should a transport ever echo it. An HTTP answer, any
+// status, is returned as before for the caller to judge.
+export function networkReason(e, secret = service()) {
+  const msg = String(e?.message || e?.code || 'request failed').split('\n')[0];
+  return secret ? msg.split(secret).join('[redacted]') : msg;
+}
+
+async function svcRequest(what, config) {
+  try {
+    return await axios({ timeout: 8000, validateStatus: () => true, ...config, headers: { ...svcHeaders(), ...config.headers } });
+  } catch (e) {
+    throw new Error(`${what}: ${networkReason(e)}`);
+  }
+}
+const rest = (table) => `${url()}/rest/v1/${table}`;
+
 async function svcPatch(userId, fields) {
-  const r = await axios.patch(`${url()}/rest/v1/profiles`, fields, {
-    timeout: 8000,
-    validateStatus: () => true,
+  const r = await svcRequest('profiles update', {
+    method: 'patch',
+    url: rest('profiles'),
+    data: fields,
     params: { id: `eq.${userId}` },
-    headers: { ...svcHeaders(), Prefer: 'return=minimal' },
+    headers: { Prefer: 'return=minimal' },
   });
   if (r.status >= 300) throw new Error(`profiles update HTTP ${r.status}: ${JSON.stringify(r.data)}`);
 }
 
 // Stripe webhook bookkeeping (service role). Has this delivery been seen?
 export async function stripeEventSeen(eventId) {
-  const r = await axios.get(`${url()}/rest/v1/stripe_events`, {
-    timeout: 8000,
-    validateStatus: () => true,
+  const r = await svcRequest('stripe_events read', {
+    method: 'get',
+    url: rest('stripe_events'),
     params: { id: `eq.${eventId}`, select: 'id' },
-    headers: svcHeaders(),
   });
   if (r.status !== 200) throw new Error(`stripe_events read HTTP ${r.status}: ${JSON.stringify(r.data)}`);
   return Array.isArray(r.data) && r.data.length > 0;
@@ -125,21 +147,20 @@ export async function stripeEventSeen(eventId) {
 // (public.apply_stripe_event). Resolves to 'duplicate' when another delivery
 // of the same id got there first, otherwise to the outcome passed in.
 export async function applyStripeEvent({ id, type, userId = null, patch = {}, outcome = 'applied' }) {
-  const r = await axios.post(
-    `${url()}/rest/v1/rpc/apply_stripe_event`,
-    { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome },
-    { timeout: 8000, validateStatus: () => true, headers: svcHeaders() }
-  );
+  const r = await svcRequest('apply_stripe_event', {
+    method: 'post',
+    url: rest('rpc/apply_stripe_event'),
+    data: { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome },
+  });
   if (r.status !== 200) throw new Error(`apply_stripe_event HTTP ${r.status}: ${JSON.stringify(r.data)}`);
   return String(r.data);
 }
 
 export async function getProfile(userId, select = 'plan,plan_expires') {
-  const r = await axios.get(`${url()}/rest/v1/profiles`, {
-    timeout: 8000,
-    validateStatus: () => true,
+  const r = await svcRequest('profiles read', {
+    method: 'get',
+    url: rest('profiles'),
     params: { id: `eq.${userId}`, select },
-    headers: svcHeaders(),
   });
   if (r.status !== 200) throw new Error(`profiles read HTTP ${r.status}`);
   return r.data?.[0] || null;
@@ -151,42 +172,42 @@ export async function getProfile(userId, select = 'plan,plan_expires') {
 // to the table-and-filter form the callers actually need rather than a
 // general-purpose client.
 export async function svcSelect(table, params) {
-  const r = await axios.get(`${url()}/rest/v1/${table}`, {
-    timeout: 15000,
-    validateStatus: () => true,
-    params,
-    headers: svcHeaders(),
-  });
+  const r = await svcRequest(`${table} read`, { method: 'get', url: rest(table), timeout: 15000, params });
   if (r.status !== 200) throw new Error(`${table} read HTTP ${r.status}: ${JSON.stringify(r.data)}`);
   return r.data || [];
 }
 
 export async function svcUpdate(table, match, fields) {
-  const r = await axios.patch(`${url()}/rest/v1/${table}`, fields, {
+  const r = await svcRequest(`${table} update`, {
+    method: 'patch',
+    url: rest(table),
     timeout: 15000,
-    validateStatus: () => true,
+    data: fields,
     params: match,
-    headers: { ...svcHeaders(), Prefer: 'return=minimal' },
+    headers: { Prefer: 'return=minimal' },
   });
   if (r.status >= 300) throw new Error(`${table} update HTTP ${r.status}: ${JSON.stringify(r.data)}`);
 }
 
 export async function svcDelete(table, match) {
-  const r = await axios.delete(`${url()}/rest/v1/${table}`, {
+  const r = await svcRequest(`${table} delete`, {
+    method: 'delete',
+    url: rest(table),
     timeout: 15000,
-    validateStatus: () => true,
     params: match,
-    headers: { ...svcHeaders(), Prefer: 'return=minimal' },
+    headers: { Prefer: 'return=minimal' },
   });
   if (r.status >= 300) throw new Error(`${table} delete HTTP ${r.status}: ${JSON.stringify(r.data)}`);
 }
 
 // One row in, the stored row back (Prefer: return=representation).
 export async function svcInsert(table, row) {
-  const r = await axios.post(`${url()}/rest/v1/${table}`, row, {
+  const r = await svcRequest(`${table} insert`, {
+    method: 'post',
+    url: rest(table),
     timeout: 15000,
-    validateStatus: () => true,
-    headers: { ...svcHeaders(), Prefer: 'return=representation' },
+    data: row,
+    headers: { Prefer: 'return=representation' },
   });
   if (r.status >= 300) throw new Error(`${table} insert HTTP ${r.status}: ${JSON.stringify(r.data)}`);
   return Array.isArray(r.data) ? r.data[0] : r.data;
@@ -195,11 +216,10 @@ export async function svcInsert(table, row) {
 export const hasServiceKey = () => Boolean(service());
 
 export async function findUserByCustomer(customerId) {
-  const r = await axios.get(`${url()}/rest/v1/profiles`, {
-    timeout: 8000,
-    validateStatus: () => true,
+  const r = await svcRequest('profiles read', {
+    method: 'get',
+    url: rest('profiles'),
     params: { stripe_customer_id: `eq.${customerId}`, select: 'id' },
-    headers: svcHeaders(),
   });
   if (r.status !== 200) return null;
   return r.data?.[0]?.id || null;

@@ -76,6 +76,14 @@ const form4Of = (cik) => {
   return form4Cache.get(cik);
 };
 
+// A database call that fails ends the run on one line. The message only: the
+// workflow log is public, and an error object printed whole can carry the
+// request it came from (api/_lib/auth.js strips it; this keeps it to a line).
+const fatal = (what) => (e) => {
+  console.error(`${what}: ${String(e?.message || e)}`);
+  process.exit(1);
+};
+
 async function send(to, subject, text) {
   const r = await axios.post(
     `${RESEND}/emails`,
@@ -91,7 +99,7 @@ async function send(to, subject, text) {
 const prefs = await svcSelect('notification_prefs', {
   select: 'user_id,email_digest,digest_frequency,lang,filings_seen,filings_seen_acc,form4_seen,last_sent_at',
   email_digest: 'is.true',
-});
+}).catch(fatal('could not read the digest preferences'));
 const wanted = recipients(prefs);
 if (!wanted.size) {
   console.log(`${DRY ? '[dry run] ' : ''}0 readers have opted into the digest — nothing to send.`);
@@ -102,7 +110,7 @@ const [watchlists, alerts, profiles] = await Promise.all([
   svcSelect('watchlists', { select: 'user_id,cik,name', user_id: ids }),
   svcSelect('alerts', { select: 'id,user_id,kind,target,label,filters,last_seen,last_fired_at', user_id: ids }),
   svcSelect('profiles', { select: 'id,email', id: ids }),
-]);
+]).catch(fatal('could not read the watchlists, alerts and addresses'));
 const emailOf = new Map(profiles.map((p) => [p.id, p.email]));
 const prefOf = new Map(prefs.map((p) => [p.user_id, p]));
 const group = (rows) => {
@@ -204,11 +212,11 @@ for (const [userId] of wanted) {
 if (!DRY) {
   for (const m of prefMarks) {
     const { user_id, ...fields } = m;
-    await svcUpdate('notification_prefs', { user_id: `eq.${user_id}` }, fields);
+    await svcUpdate('notification_prefs', { user_id: `eq.${user_id}` }, fields).catch(fatal('could not save a reader’s marks'));
   }
   for (const m of alertMarks) {
     const { id, ...fields } = m;
-    await svcUpdate('alerts', { id: `eq.${id}` }, { ...fields, last_fired_at: now.toISOString() });
+    await svcUpdate('alerts', { id: `eq.${id}` }, { ...fields, last_fired_at: now.toISOString() }).catch(fatal('could not save an alert mark'));
   }
 }
 

@@ -5,7 +5,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import util from 'node:util';
+import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
+import { root } from './helpers.mjs';
 
 const read = (req) => new Promise((resolve) => {
   let b = '';
@@ -20,8 +23,10 @@ const json = (res, code, data) => {
 // ---- Supabase stand-in: just the subscribers table ---------------------------
 const rows = new Map();
 let seq = 0;
+let dropWrites = false; // a write that never gets an answer: the socket is cut
 const supabase = http.createServer(async (req, res) => {
   const body = await read(req);
+  if (dropWrites && req.method !== 'GET') return req.socket.destroy();
   const u = new URL(req.url, 'http://x');
   if (req.headers.authorization !== 'Bearer svc-key') return json(res, 401, {});
   if (u.pathname !== '/rest/v1/subscribers') return json(res, 404, {});
@@ -250,6 +255,94 @@ test('the daily cap says so instead of pointing at an empty inbox; a refused mai
   assert.equal(rows.get('id-fan').confirm_sends, 1);
   assert.equal(rows.get('id-fan').confirm_sent_at, recent);
   assert.equal(mails.length, 1);
+});
+
+// ---- a database that does not answer ------------------------------------------
+// An AxiosError carries the request it came from, service key included, and
+// Node prints an uncaught error whole. Nothing of it may leave the helpers.
+const UNREACHABLE = 'http://127.0.0.1:9';
+const SECRET_KEY = 'service-role-secret-0123456789';
+
+test('the service-role helpers turn a network failure into a plain Error: table, operation, reason, no request', async () => {
+  const A = await import('../api/_lib/auth.js');
+  const before = { url: process.env.SUPABASE_URL, key: process.env.SUPABASE_SERVICE_ROLE_KEY };
+  try {
+    // an HTTP answer is judged exactly as it was
+    await assert.rejects(A.svcSelect('nope', { select: '*' }), { message: 'nope read HTTP 404: {}' });
+
+    process.env.SUPABASE_URL = UNREACHABLE;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = SECRET_KEY;
+    const calls = {
+      read: () => A.svcSelect('subscribers', { select: '*' }),
+      update: () => A.svcUpdate('subscribers', { id: 'eq.1' }, { lang: 'en' }),
+      delete: () => A.svcDelete('subscribers', { id: 'eq.1' }),
+      insert: () => A.svcInsert('subscribers', { email: 'a@b.co' }),
+    };
+    for (const [op, fn] of Object.entries(calls)) {
+      const e = await fn().then(() => null, (err) => err);
+      assert.ok(e, `${op} rejects`);
+      assert.equal(Object.getPrototypeOf(e), Error.prototype, `${op}: a plain Error, not an AxiosError`);
+      assert.match(e.message, new RegExp(`^subscribers ${op}: .*ECONNREFUSED`));
+      assert.deepEqual(Object.keys(e), [], `${op}: no config, request or response on it`);
+      assert.equal(e.cause, undefined, `${op}: the original error is not carried along`);
+      // what Node would print for it uncaught
+      assert.ok(!util.inspect(e, { depth: 12, showHidden: true }).includes(SECRET_KEY), `${op}: the key is not in the printed error`);
+    }
+    for (const fn of [() => A.getProfile('u1'), () => A.stripeEventSeen('evt_1'), () => A.applyStripeEvent({ id: 'evt_1', type: 't' }), () => A.findUserByCustomer('cus_1')]) {
+      const e = await fn().then(() => null, (err) => err);
+      assert.equal(Object.getPrototypeOf(e), Error.prototype);
+      assert.ok(!util.inspect(e, { depth: 12, showHidden: true }).includes(SECRET_KEY));
+    }
+    // should a transport ever echo the key in its message, it is cut out
+    assert.equal(A.networkReason(new Error(`proxy refused Bearer ${SECRET_KEY}\nsecond line`)), 'proxy refused Bearer [redacted]');
+
+    // the handler answers as it did for any failure: 502, nothing of the error
+    const r = await call(subscribe, { method: 'POST', body: { email: 'down@example.com', magnet: 'newsletter', lang: 'en' } });
+    assert.equal(r.status, 502);
+    assert.deepEqual(r.body, { error: 'subscribe-failed' });
+  } finally {
+    process.env.SUPABASE_URL = before.url;
+    process.env.SUPABASE_SERVICE_ROLE_KEY = before.key;
+  }
+});
+
+// scripts/send-newsletter.mjs, the way the workflow runs it
+function newsletter(args, env) {
+  return new Promise((resolve) => {
+    const p = spawn(process.execPath, ['scripts/send-newsletter.mjs', ...args], { cwd: root, env: { ...process.env, MAIL_GAP_MS: '0', ...env } });
+    let out = '';
+    p.stdout.on('data', (d) => (out += d));
+    p.stderr.on('data', (d) => (out += d));
+    p.on('close', (code) => resolve({ code, out }));
+  });
+}
+
+test('the newsletter job against a database that cannot be reached: one line, exit 1, and the service key is not in it', async () => {
+  for (const args of [['--dry-run'], ['--force']]) {
+    const r = await newsletter(args, { SUPABASE_URL: UNREACHABLE, SUPABASE_SERVICE_ROLE_KEY: SECRET_KEY });
+    assert.equal(r.code, 1, r.out);
+    assert.match(r.out, /^could not read the subscribers: subscribers read: .*ECONNREFUSED/);
+    assert.equal(r.out.trim().split('\n').length, 1, r.out);
+    assert.ok(!r.out.includes(SECRET_KEY), r.out);
+  }
+});
+
+test('the newsletter job when a mark cannot be written after a send: one line, exit 1, no request in the log', async () => {
+  rows.clear();
+  mails.length = 0;
+  rows.set('id-n', { id: 'id-n', email: 'weekly@example.com', lang: 'en', status: 'confirmed', newsletter: true, gurus: [], guru_seen: {}, magnets: ['newsletter'], unsub_token: 'unsub-token-weekly-000000000', newsletter_sent_at: null });
+  dropWrites = true;
+  try {
+    const r = await newsletter(['--force', '--only=newsletter'], {});
+    assert.equal(r.code, 1, r.out);
+    assert.equal(mails.length, 1, 'the mail had gone out');
+    assert.match(r.out, /^could not save a newsletter mark: subscribers update: /);
+    assert.equal(r.out.trim().split('\n').length, 1, r.out);
+    assert.ok(!r.out.includes('svc-key') && !r.out.includes('re_test') && !r.out.includes('weekly@example.com'), r.out);
+    assert.equal(rows.get('id-n').newsletter_sent_at, null);
+  } finally {
+    dropWrites = false;
+  }
 });
 
 // ---- content ------------------------------------------------------------------

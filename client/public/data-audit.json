@@ -1,5 +1,5 @@
 {
-  "worst": "ok",
+  "worst": "warn",
   "datasets": [
     {
       "key": "consensus",
@@ -32,7 +32,7 @@
         "options": 57,
         "withTicker": 1916,
         "withSector": 1735,
-        "withCap": 1508
+        "withCap": 1671
       },
       "findings": []
     },
@@ -114,9 +114,15 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4109
+        "tickers": 4087
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "split",
+          "severity": "warn",
+          "message": "4 ticker(s) with a one-day move over 300% — a share split inside the series? (ARAY 3372.73%, INM 789.14%, NXTS 387.16%, STKH 557.99%)"
+        }
+      ]
     },
     {
       "key": "prices",
@@ -139,7 +145,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6295,
+        "resolved": 6300,
         "unresolved": 79
       },
       "findings": []

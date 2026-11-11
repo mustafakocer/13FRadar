@@ -74,6 +74,11 @@ export function laggingManagers(managers, { quarters = 1 } = {}) {
 //
 // A dataset whose size is seasonal rather than stable opts out of both, and
 // says why where it is declared.
+// Sanity lines for the checks below: values no real security reaches.
+export const MAX_PLAUSIBLE_1D = 300; // percent
+export const MAX_PLAUSIBLE_CAP = 8e12; // dollars
+export const MAX_UNVERIFIED_DAYS = 5;
+
 export const DATASETS = [
   {
     key: 'consensus',
@@ -113,6 +118,12 @@ export const DATASETS = [
     // build stayed green: the provider had quietly stopped answering. These
     // do not block — sector and cap are best-effort columns — but they say so.
     warnFloors: { withTicker: 800, withSector: 500, withCap: 500 },
+    // no company is worth this: a share count in other units than the price
+    // (ordinary shares × the price of an ADS made TSMC $11.8 trillion)
+    checks: (d) => {
+      const bad = (Array.isArray(d.stocks) ? d.stocks : []).filter((s) => s?.marketCap > MAX_PLAUSIBLE_CAP);
+      return bad.length ? [{ severity: 'warn', rule: 'cap', message: `${bad.length} market cap(s) above $${MAX_PLAUSIBLE_CAP / 1e12} trillion (${bad.slice(0, 8).map((s) => `${s.ticker} $${(s.marketCap / 1e12).toFixed(1)}T`).join(', ')})` }] : [];
+    },
   },
   {
     key: 'guru-history',
@@ -178,6 +189,12 @@ export const DATASETS = [
     }),
     floors: { rows: 3000, members: 50 },
     ceilings: { futureDated: 0, orphanRows: 0, duplicateIds: 0 },
+    // an exact amount with cents read as two numbers ("$710.52" → 710–52):
+    // the build re-reads such a filing, so one still here means it could not
+    checks: (d) => {
+      const bad = (Array.isArray(d.rows) ? d.rows : []).filter((r) => r?.lo != null && r?.hi != null && r.lo > r.hi);
+      return bad.length ? [{ severity: 'warn', rule: 'amount', message: `${bad.length} trade(s) with an amount range that runs backwards (${bad.slice(0, 5).map((r) => `${r.id} ${r.lo}–${r.hi}`).join(', ')})` }] : [];
+    },
   },
   {
     key: 'insiders-teaser',
@@ -216,6 +233,14 @@ export const DATASETS = [
     require: ['updatedAt', 'returns'],
     metrics: (d) => ({ tickers: size(d.returns) }),
     floors: { tickers: 100 },
+    // A stock does not quadruple in a day; a series with a share split in
+    // it does (Accuray, +3,372.73% on the day of its 1-for-40). The price
+    // store withholds such a series (priceStore.js), so a row like this is
+    // a break it did not catch.
+    checks: (d) => {
+      const bad = Object.entries(isObj(d.returns) ? d.returns : {}).filter(([, r]) => Math.abs(r?.ret1d) > MAX_PLAUSIBLE_1D);
+      return bad.length ? [{ severity: 'warn', rule: 'split', message: `${bad.length} ticker(s) with a one-day move over ${MAX_PLAUSIBLE_1D}% — a share split inside the series? (${bad.slice(0, 8).map(([t, r]) => `${t} ${r.ret1d}%`).join(', ')})` }] : [];
+    },
   },
   {
     // the nightly price cache's summary (the series themselves are one file
@@ -227,6 +252,15 @@ export const DATASETS = [
     metrics: (d) => ({ series: d.count || 0, coveragePct: d.coveragePct || 0 }),
     floors: { series: 50 },
     drift: false,
+    // a series with an unverified split-sized break is fetched again whole
+    // the next night; one waiting longer means that is not happening (no
+    // history provider, no budget) and its pages show a short series
+    checks: (d) => {
+      const u = d.unverified;
+      if (!u?.count || !u.oldest || !d.updatedAt) return [];
+      const days = Math.floor((Date.parse(d.updatedAt) - Date.parse(`${u.oldest}T00:00:00Z`)) / 86400000);
+      return days > MAX_UNVERIFIED_DAYS ? [{ severity: 'warn', rule: 'split', message: `${u.count} price series with an unverified split-sized break, the oldest from ${u.oldest} (${days} days): ${(u.symbols || []).join(', ')}` }] : [];
+    },
   },
   {
     key: 'splits',

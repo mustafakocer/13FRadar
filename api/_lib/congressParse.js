@@ -29,14 +29,24 @@ export function isoDate(s) {
 }
 
 // "$1,001 - $15,000" → {lo:1001, hi:15000}; "Over $50,000,000" → {lo:50000001, hi:null}
+// A member who writes the exact figure writes it with cents ("$710.52"): the
+// decimal point belongs to the number. Read without it, the dollars and the
+// cents came out as two amounts — {lo: 710, hi: 52}, a "range" whose midpoint
+// (381) then went into every volume total.
+const AMOUNT = /\$?\d[\d,]*(?:\.\d+)?/g;
 export function parseAmount(s) {
   const text = String(s || '').replace(/\s+/g, ' ').trim();
-  const nums = (text.match(/\$?\d[\d,]*/g) || []).map((x) => Number(x.replace(/[$,]/g, ''))).filter((n) => n > 0);
+  const nums = (text.match(AMOUNT) || []).map((x) => Number(x.replace(/[$,]/g, ''))).filter((n) => n > 0);
   if (!nums.length) return { lo: null, hi: null };
   if (/over|\+|more than/i.test(text) && nums.length === 1) return { lo: nums[0] + 1, hi: null };
   if (nums.length === 1) return { lo: nums[0], hi: nums[0] };
   return { lo: nums[0], hi: nums[nums.length - 1] };
 }
+
+// A stored range that runs backwards (lo above hi) is one exact amount read
+// by the parser above before it knew cents. The build re-reads such a filing
+// (scripts/build-congress.mjs) and the audit counts them (dataAudit.js).
+export const backwardsAmount = (tx) => tx?.lo != null && tx?.hi != null && tx.lo > tx.hi;
 
 // The dollar figure a range stands for: its midpoint (an "Over" range: the floor).
 export const amountMid = (r) => (r.lo == null ? null : r.hi == null ? r.lo : (r.lo + r.hi) / 2);

@@ -12,7 +12,13 @@
 // closes with the precision a price needs, which is a fifth of that — and
 // still plain text, so a night's append is a small diff for git.
 //
-//   { symbol, src, from, asOf, updatedAt, d: [gap, gap, …], c: [close, …] }
+//   { symbol, src, from, asOf, updatedAt, hist, rb, d: [gap, gap, …], c: [close, …] }
+//
+// `hist` is the date up to which the closes are known to be in one unit: the
+// last close of the newest history a provider answered whole (its history is
+// split-adjusted). Closes appended after it are single quotes, in whatever
+// shares the security traded in that day — see "split-sized breaks" below.
+// `rb` counts the nights a break was re-checked and still stood.
 //
 // PRICES_DIR points the store somewhere else (tests, a dry run).
 import fs from 'node:fs';
@@ -96,20 +102,57 @@ export function mergeSeries(older, newer) {
     .sort((a, b) => (a.date < b.date ? -1 : 1));
 }
 
-const memo = new Map();
-export const clearSeriesCache = () => memo.clear();
+// ------------------------------------------------- split-sized breaks
+// A series is a provider's history (split-adjusted on the day it was
+// fetched) with one quote appended per night after it. The first quote
+// after a share split is in the new shares and everything before it in the
+// old: Accuray's 1-for-40 reverse split (9 November 2026) put a $0.11 close
+// next to a $3.82 one, and every reader took the pair for a +3,372.73% day —
+// about fifty series a quarter, most of them reverse splits of penny stocks.
+// A split cannot be told from a real move by the two closes alone, so a
+// close SPLIT_JUMP times the one before it (or a third of it), after `hist`,
+// is treated as unverified until the history provider has been asked again:
+//   · readers get the series from the break on (`held` says how many rows
+//     are withheld) — a short series and no return, never a false one;
+//   · the nightly build re-fetches the whole history (pricesBuild.js), which
+//     comes back adjusted, or with the same move when it was real.
+// A file from before `hist` existed is checked over its last
+// UNVERIFIED_WINDOW_DAYS days.
+export const SPLIT_JUMP = 3;
+export const UNVERIFIED_WINDOW_DAYS = 90;
+export const splitSized = (a, b) => a > 0 && b > 0 && (b / a >= SPLIT_JUMP || a / b >= SPLIT_JUMP);
 
-// { symbol, src, from, asOf, updatedAt, prices: [{date, close}] } or null
-// when no build has priced the symbol. Memoised per process: the files only
-// change with a deploy (or, in the build, through writeSeries below).
-export function readSeries(symbol) {
+// The date through which a series needs no checking.
+export const verifiedThrough = ({ hist = null, asOf = null } = {}) => hist || (asOf ? isoDay(parseDay(asOf) - UNVERIFIED_WINDOW_DAYS * DAY) : null);
+
+// Index of the newest row after `after` that is split-sized away from the
+// row before it; -1 when the series has none.
+export function lastBreak(prices, after = null) {
+  for (let i = (prices?.length || 0) - 1; i > 0; i--) {
+    if (after && prices[i].date <= after) break;
+    if (splitSized(prices[i - 1].close, prices[i].close)) return i;
+  }
+  return -1;
+}
+
+const memo = new Map();
+const views = new Map();
+export const clearSeriesCache = () => {
+  memo.clear();
+  views.clear();
+};
+
+// Everything on file for a symbol, breaks and all: what the price build
+// merges into and writes back. Pages and the other builds read readSeries.
+// { symbol, src, from, asOf, updatedAt, hist, rb, prices } or null.
+export function readSeriesRaw(symbol) {
   const key = seriesKey(symbol);
   if (!key) return null;
   if (memo.has(key)) return memo.get(key);
   let out = null;
   try {
     const file = JSON.parse(fs.readFileSync(path.join(pricesDir(), `${key}.json`), 'utf8'));
-    out = { symbol: file.symbol || key, src: file.src || null, from: file.from, asOf: file.asOf, updatedAt: file.updatedAt || null, prices: decodeSeries(file) };
+    out = { symbol: file.symbol || key, src: file.src || null, from: file.from, asOf: file.asOf, updatedAt: file.updatedAt || null, hist: file.hist || null, rb: file.rb || 0, prices: decodeSeries(file) };
   } catch {
     out = null;
   }
@@ -117,19 +160,41 @@ export function readSeries(symbol) {
   return out;
 }
 
-export function writeSeries(symbol, prices, { src = null, now = Date.now() } = {}) {
+// { symbol, src, from, asOf, updatedAt, held, prices: [{date, close}] } or
+// null when no build has priced the symbol. The closes are in one unit: a
+// series with an unverified split-sized break starts at the break (`held`
+// rows before it are withheld). Memoised per process: the files only change
+// with a deploy (or, in the build, through writeSeries below).
+export function readSeries(symbol) {
+  const key = seriesKey(symbol);
+  if (!key) return null;
+  if (views.has(key)) return views.get(key);
+  const raw = readSeriesRaw(key);
+  let out = raw;
+  if (raw) {
+    const i = lastBreak(raw.prices, verifiedThrough(raw));
+    out = i > 0 ? { ...raw, from: raw.prices[i].date, held: i, prices: raw.prices.slice(i) } : { ...raw, held: 0 };
+  }
+  views.set(key, out);
+  return out;
+}
+
+// hist: the date the closes are verified through (see the file shape); rb:
+// nights a break was re-checked. Both are dropped from the file when empty.
+export function writeSeries(symbol, prices, { src = null, now = Date.now(), hist = null, rb = 0 } = {}) {
   const key = seriesKey(symbol);
   const enc = encodeSeries(prices);
   if (!enc.c.length) return null;
   const dir = pricesDir();
   fs.mkdirSync(dir, { recursive: true });
-  const file = { symbol: key, src, from: enc.from, asOf: enc.asOf, updatedAt: new Date(now).toISOString(), d: enc.d, c: enc.c };
+  const file = { symbol: key, src, from: enc.from, asOf: enc.asOf, updatedAt: new Date(now).toISOString(), ...(hist ? { hist: hist > enc.asOf ? enc.asOf : hist } : {}), ...(rb > 0 ? { rb } : {}), d: enc.d, c: enc.c };
   fs.writeFileSync(path.join(dir, `${key}.json`), JSON.stringify(file));
   memo.delete(key);
+  views.delete(key);
   return file;
 }
 
-// What the directory holds, without decoding: Map key → { asOf, from, rows, src }.
+// What the directory holds, without decoding: Map key → { asOf, from, rows, src, hist }.
 export function seriesIndex() {
   const dir = pricesDir();
   const out = new Map();
@@ -143,7 +208,7 @@ export function seriesIndex() {
     if (!name.endsWith('.json') || name.startsWith('_')) continue;
     try {
       const file = JSON.parse(fs.readFileSync(path.join(dir, name), 'utf8'));
-      out.set(name.slice(0, -5), { asOf: file.asOf, from: file.from, rows: file.c?.length || 0, src: file.src || null });
+      out.set(name.slice(0, -5), { asOf: file.asOf, from: file.from, rows: file.c?.length || 0, src: file.src || null, hist: file.hist || null });
     } catch {
       /* a half-written file is rebuilt next run */
     }

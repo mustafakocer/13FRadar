@@ -40,7 +40,7 @@ import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import axios from 'axios';
 import { classifyTransaction, cleanSymbol, KEPT_CODES, plausibleDates } from '../api/_lib/insiderModel.js';
-import { makeRow, normDate, num, truthy } from '../api/_lib/insiderForm4.js';
+import { applyDirection, makeRow, normDate, num, truthy } from '../api/_lib/insiderForm4.js';
 import { normalizeRows } from '../api/_lib/fpiNormalize.js';
 import { markCompensation } from '../api/_lib/insiderNotes.js';
 import { fpiContext, toUsdWith, isForeignWith, loadFpi } from '../api/_lib/fpiContext.js';
@@ -288,7 +288,7 @@ async function fromQuarterlyDatasets() {
       const owned = num(tr.SHRS_OWND_FOLWNG_TRANS);
       const p5 = truthy(tr.TRANS_10B5_1 ?? tr.AFF10B5ONE ?? s.aff10b5);
       rows.push(
-        makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc: tr.ACCESSION_NUMBER, li, formType: s.formType, ownerCik: o.cik })
+        makeRow({ s, o, code, ad: tr.TRANS_ACQUIRED_DISP_CD, cl, p5, d, shares, price, owned, acc: tr.ACCESSION_NUMBER, li, formType: s.formType, ownerCik: o.cik })
       );
       kept++;
     }
@@ -640,6 +640,11 @@ if (!NO_ENRICH) {
     console.log(`Issuer names: ${named} of ${missing.length} ticker-less issuer(s) named from SEC; ${liveIssuers.size - Object.keys(issuers).length} still unnamed.`);
   }
 }
+
+// Lines stored before the form's acquired/disposed box was read (insiderForm4
+// applyDirection): the direction and the ownership change, from the raw fields.
+const redirected = applyDirection(all, (r) => rawAll[rowId(r)] || null);
+if (redirected) console.log(`Direction: ${redirected} line(s) corrected from the form's acquired/disposed box.`);
 
 // A footnote that says "10b5-1" or "trading plan" marks a planned trade even
 // when the filing's checkbox is empty (`pn`; the classifier reads p5 || pn).

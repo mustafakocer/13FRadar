@@ -22,7 +22,7 @@ import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
 import { tdGet, hasTd, hasFinnhub } from './providers.js';
-import { readSeries, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir } from './priceStore.js';
+import { readSeries, readSeriesRaw, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir, lastBreak, verifiedThrough } from './priceStore.js';
 import { returnsCutoff } from './stockMetaBuild.js';
 import { noteProvider } from './providerAlarm.js';
 
@@ -94,6 +94,62 @@ export function planFetch(symbols, index, { now = Date.now(), maxAgeDays = 1, ca
   const tonight = Number.isFinite(capacity) ? jobs.slice(0, Math.max(0, capacity)) : jobs;
   const nights = jobs.length === 0 ? 0 : Number.isFinite(capacity) && capacity > 0 ? Math.ceil(jobs.length / capacity) : 1;
   return { jobs: tonight, total: jobs.length, missing: missing.length, stale: stale.length, fresh, nights };
+}
+
+// ------------------------------------------------------------- rebase
+// A series with a split-sized break after its verified history
+// (priceStore.js) is fetched again whole: the history provider answers it
+// in today's shares. These jobs go first — a wrong series costs more than a
+// missing one — and carry what the settling needs:
+//   breakPrev / breakDate   the two rows the break sits between
+//   stale                   the series also needs tonight's close
+// A provider that still shows the same move may not have booked the split
+// yet, so the answer is believed on the REBASE_TRIES-th night: until then
+// the series stays unverified (readers keep getting it from the break on).
+// A symbol no history provider knows is cut at the break for good on that
+// same night — closes that cannot be restated are not kept beside ones in
+// other shares; until then every row stays in the file.
+export const REBASE_TRIES = 2;
+
+export function rebaseJobs(index, { symbols = [], now = Date.now(), maxAgeDays = 1, read = readSeriesRaw } = {}) {
+  const asked = new Map(symbols.map((sym) => [seriesKey(sym), sym]));
+  const jobs = [];
+  for (const [key, e] of index) {
+    // only the tail is unverified: skip the decode when nothing was appended
+    if (e.hist && e.hist >= e.asOf) continue;
+    const s = read(key);
+    const i = s ? lastBreak(s.prices, verifiedThrough(s)) : -1;
+    if (i <= 0) continue;
+    jobs.push({ symbol: asked.get(key) || s.symbol || key, from: null, reason: 'rebase', breakPrev: s.prices[i - 1].date, breakDate: s.prices[i].date, asOf: s.asOf, stale: seriesAgeDays(s.asOf, now) > maxAgeDays });
+  }
+  return jobs;
+}
+
+// A history just fetched for a rebase job → what to write.
+//   { prices, hist, rb, fixed }  fixed: the break is gone (or believed)
+export function settleRebase(job, have, series) {
+  const last = series[series.length - 1].date;
+  // closes stored after the provider's last bar are post-break quotes, in the
+  // same shares as the adjusted history: kept
+  const tail = last >= job.breakPrev ? (have?.prices || []).filter((p) => p.date > last) : [];
+  const prices = tail.length ? mergeSeries(series, tail) : series;
+  const i = lastBreak(prices, isoDay(Date.parse(`${job.breakPrev}T00:00:00Z`) - 7 * DAY));
+  const tries = (have?.rb || 0) + 1;
+  if (i > 0 && tries < REBASE_TRIES) return { prices, hist: prices[i - 1].date, rb: tries, fixed: false };
+  return { prices, hist: prices[prices.length - 1].date, rb: 0, fixed: true };
+}
+
+// The same day in the stored series and in a provider's answer, more than a
+// fifth apart: the provider restated its history (a 2-for-1, a 3-for-2 —
+// splits too small for lastBreak), so the answer cannot be appended.
+export function restated(have, series) {
+  if (!have?.length || !series?.length) return false;
+  const byDate = new Map(series.map((p) => [p.date, p.close]));
+  for (let i = have.length - 1; i >= 0 && have[i].date >= series[0].date; i--) {
+    const c = byDate.get(have[i].date);
+    if (c > 0) return Math.abs(c / have[i].close - 1) > 0.2;
+  }
+  return false;
 }
 
 // ------------------------------------------------------------- fetchers
@@ -270,6 +326,14 @@ export async function buildPrices({
   // budget: history (TwelveData) for the symbols without one, then the last
   // close (Finnhub) for the series already on file
   const plan = planFetch(symbols, index, { now, maxAgeDays });
+  // series with an unverified split-sized break: their history, first
+  const rebase = rebaseJobs(index, { symbols, now, maxAgeDays });
+  if (rebase.length) {
+    const first = new Set(rebase.map((j) => seriesKey(j.symbol)));
+    plan.jobs = [...rebase, ...plan.jobs.filter((j) => !first.has(seriesKey(j.symbol)))];
+    log(`price cache: ${rebase.length} series with a split-sized break since their last full history — fetched again whole first: ${rebase.slice(0, 40).map((j) => `${j.symbol} (${j.breakDate})`).join(', ')}${rebase.length > 40 ? ', …' : ''}`);
+  }
+  plan.rebase = rebase.length;
   const historyBudget = providers.filter((p) => !p.appendOnly).reduce((s, p) => s + p.budget, 0);
   const quoteBudget = providers.filter((p) => p.appendOnly).reduce((s, p) => s + p.budget, 0);
   plan.nights = plan.missing === 0 ? 0 : historyBudget > 0 ? Math.max(1, Math.ceil(plan.missing / historyBudget)) : Infinity;
@@ -282,15 +346,33 @@ export async function buildPrices({
   if (!providers.length) log('  no price provider is enabled (no TWELVEDATA/FINNHUB key) — nothing fetched');
   if (dryRun) return { plan, written: 0, unknown: 0, failed: 0, bySource: {}, dryRun: true };
 
-  const tally = { written: 0, unknown: 0, failed: 0, bySource: {} };
+  const tally = { written: 0, unknown: 0, failed: 0, bySource: {}, rebased: 0, unsettled: 0, cut: 0 };
+  // keys whose history changed tonight: their return row is recomputed
+  const restatedKeys = new Set();
+  const history = (job, series, p) => {
+    const have = readSeriesRaw(job.symbol);
+    if (job.reason !== 'rebase') {
+      writeSeries(job.symbol, series, { src: p.name, now, hist: series[series.length - 1].date });
+      if (have) restatedKeys.add(seriesKey(job.symbol));
+      return;
+    }
+    const r = settleRebase(job, have, series);
+    writeSeries(job.symbol, r.prices, { src: p.name, now, hist: r.hist, rb: r.rb });
+    job.settled = true;
+    restatedKeys.add(seriesKey(job.symbol));
+    if (r.fixed) tally.rebased++;
+    else tally.unsettled++;
+  };
   let pending = plan.jobs;
   for (const p of providers) {
     if (!pending.length) break;
     const leftover = [];
     let queue = pending;
     if (p.appendOnly) {
-      queue = pending.filter((j) => j.from);
-      leftover.push(...pending.filter((j) => !j.from));
+      // a rebase job no history provider settled still wants tonight's close
+      const appendable = (j) => j.from || (j.reason === 'rebase' && j.stale && !j.settled);
+      queue = pending.filter(appendable);
+      leftover.push(...pending.filter((j) => !appendable(j)));
     }
     const mine = queue.slice(0, Number.isFinite(p.budget) ? p.budget : queue.length);
     let spent = 0;
@@ -307,10 +389,28 @@ export async function buildPrices({
           noteProvider(p.name, { ok: true });
           if (series === null) {
             unknownHere++;
+            if (job.reason === 'rebase' && !p.appendOnly) job.unknown = true;
             leftover.push(job);
+          } else if (!p.appendOnly && !job.from) {
+            history(job, series, p);
+            ok++;
           } else {
-            const have = job.from ? readSeries(job.symbol)?.prices || [] : [];
-            writeSeries(job.symbol, have.length ? mergeSeries(have, series) : series, { src: p.name, now });
+            const have = readSeriesRaw(job.symbol);
+            if (!have?.prices?.length) {
+              writeSeries(job.symbol, series, { src: p.name, now, ...(p.appendOnly ? {} : { hist: series[series.length - 1].date }) });
+            } else if (!p.appendOnly && restated(have.prices, series)) {
+              // the provider's history is in other shares than the file's:
+              // take it whole instead of joining the two
+              spent++;
+              const whole = await p.fetch(job.symbol, null, { now });
+              if (whole === null) throw new Error(`${job.symbol}: history restated, the whole series did not come back`);
+              history({ ...job, from: null }, whole, p);
+            } else {
+              // an append: `hist` stays where the last whole history left it,
+              // unless this provider's own rows overlap the file and agree
+              const joined = !p.appendOnly && series[0].date <= have.asOf;
+              writeSeries(job.symbol, mergeSeries(have.prices, series), { src: p.name, now, hist: joined ? series[series.length - 1].date : have.hist, rb: have.rb });
+            }
             ok++;
           }
         } catch (e) {
@@ -336,6 +436,23 @@ export async function buildPrices({
     const seen = new Set();
     pending = [...leftover, ...queue.slice(mine.length)].filter((j) => !seen.has(j.symbol) && seen.add(j.symbol));
   }
+  // rebase jobs the history provider does not know: counted, and after
+  // REBASE_TRIES nights cut at the break
+  for (const job of rebase) {
+    if (!job.unknown || job.settled) continue;
+    const have = readSeriesRaw(job.symbol);
+    const i = have ? lastBreak(have.prices, verifiedThrough(have)) : -1;
+    if (i <= 0) continue;
+    const tries = (have.rb || 0) + 1;
+    if (tries < REBASE_TRIES) {
+      writeSeries(job.symbol, have.prices, { src: have.src, now, hist: have.hist, rb: tries });
+    } else {
+      writeSeries(job.symbol, have.prices.slice(i), { src: have.src, now, hist: have.asOf });
+      restatedKeys.add(seriesKey(job.symbol));
+      tally.cut++;
+    }
+  }
+  if (plan.rebase) log(`price cache: of ${plan.rebase} series with a break — ${tally.rebased} restated, ${tally.unsettled} still showing it (asked again tomorrow), ${tally.cut} cut at the break (no provider has their history)`);
   tally.unknown = pending.length;
   log(`price cache: ${tally.written} series written tonight, ${pending.length} left for another night, ${tally.failed} transient failures`);
 
@@ -349,6 +466,14 @@ export async function buildPrices({
     if (!newest || e.asOf > newest) newest = e.asOf;
     bySrc[e.src || 'unknown'] = (bySrc[e.src || 'unknown'] || 0) + 1;
   }
+  // series readers still get from a break on (not settled tonight), for the audit
+  const unverified = [];
+  for (const [key, e] of after) {
+    if (e.hist && e.hist >= e.asOf) continue;
+    const s = readSeries(key);
+    if (s?.held) unverified.push({ key, since: s.from });
+  }
+  unverified.sort((a, b) => (a.since < b.since ? -1 : a.since > b.since ? 1 : 0));
   const covered = symbols.filter((s) => after.has(seriesKey(s))).length;
   const summary = {
     updatedAt: new Date(now).toISOString(),
@@ -359,7 +484,8 @@ export async function buildPrices({
     oldestAsOf: oldest,
     newestAsOf: newest,
     bySource: bySrc,
-    tonight: { jobs: plan.jobs.length, written: tally.written, leftover: pending.length, nightsToFill: plan.nights },
+    tonight: { jobs: plan.jobs.length, written: tally.written, leftover: pending.length, nightsToFill: plan.nights, rebased: tally.rebased, cut: tally.cut },
+    unverified: { count: unverified.length, oldest: unverified[0]?.since || null, symbols: unverified.slice(0, 20).map((u) => u.key) },
   };
   fs.mkdirSync(pricesDir(), { recursive: true });
   fs.writeFileSync(path.join(pricesDir(), '_index.json'), JSON.stringify(summary));
@@ -384,9 +510,18 @@ export async function buildPrices({
         }
         continue;
       }
-      if (have?.asOf && have.asOf >= e.asOf) continue;
       const s = readSeries(key);
       if (!s) continue;
+      // an unverified break: the closes before it are withheld, so there is
+      // no return to state — and the row on file was computed across it
+      if (s.held) {
+        if (have) {
+          delete returnsFile.returns[key];
+          dropped++;
+        }
+        continue;
+      }
+      if (have?.asOf && have.asOf >= e.asOf && !restatedKeys.has(key)) continue;
       const r = returnsFromSeries(key, s.prices, now);
       if (r.ret1y == null && r.retYtd == null) continue;
       const round = (x) => (x == null ? null : Number(x.toFixed(2)));
@@ -401,7 +536,7 @@ export async function buildPrices({
     }
     if (refreshed || dropped) {
       fs.writeFileSync(path.join(root, 'client/public/returns.json'), JSON.stringify({ ...returnsFile, updatedAt: new Date(now).toISOString() }));
-      log(`returns.json: ${refreshed} rows refreshed from the price cache, ${dropped} dropped (last close before ${cutoff})`);
+      log(`returns.json: ${refreshed} rows refreshed from the price cache, ${dropped} dropped (last close before ${cutoff}, or an unverified split-sized break)`);
     }
   }
   return { plan, ...tally, summary };
@@ -429,8 +564,10 @@ export async function topUpCloses(symbols, { budget = 0, now = Date.now(), maxAg
       noteProvider('finnhub', { ok: true });
       if (!rows) unknown++;
       else {
-        const have = readSeries(job.symbol)?.prices || [];
-        writeSeries(job.symbol, have.length ? mergeSeries(have, rows) : rows, { src: have.length ? readSeries(job.symbol)?.src || 'finnhub' : 'finnhub', now });
+        // the whole file, not the reader's view: an append must not drop
+        // the rows a break withholds, nor the file's verified-through date
+        const have = readSeriesRaw(job.symbol);
+        writeSeries(job.symbol, have?.prices?.length ? mergeSeries(have.prices, rows) : rows, { src: have?.prices?.length ? have.src || 'finnhub' : 'finnhub', now, hist: have?.hist || null, rb: have?.rb || 0 });
         written++;
       }
     } catch (e) {

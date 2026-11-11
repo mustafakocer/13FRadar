@@ -38,9 +38,34 @@
 export const CATEGORIES = ['open_buy', 'compensation', 'open_sell', 'exercise', 'award', 'tax', 'gift', 'conversion', 'preferred', 'other_security', 'other'];
 export const OPEN_MARKET = new Set(['open_buy', 'open_sell']);
 
-// Which way the shares moved, for the buy/sell tabs when "other types" are on.
-const SELL_SIDE = new Set(['open_sell', 'tax', 'gift']);
-const SELL_CODES = new Set(['S', 'D', 'F', 'G']);
+// Which way the shares moved. Form 4 says it outright in the box beside the
+// amount (transactionAcquiredDisposedCode, A or D; `ad` on a row). The
+// transaction code alone does not: a gift (G) is given or received, "other"
+// (J) and a conversion (C) go either way. Reading the direction off the code
+// showed David Reed's 531 WM shares arriving in a family account (G, box A)
+// as a sale that cut the holding 8.3%.
+//   P / S    the code is the direction — a purchase is an acquisition by
+//            definition, and where the box disagrees the box is the slip
+//            (Forager's RPAY buys are ticked D beside "shares were purchased")
+//   others   the box when the row has one; without it the code's usual side
+const DISPOSAL_CODES = new Set(['S', 'D', 'F', 'G']);
+export function isDisposal(code, ad) {
+  const k = String(code || '').trim().toUpperCase();
+  if (k === 'P') return false;
+  if (k === 'S') return true;
+  const box = String(ad || '').trim().toUpperCase();
+  if (box === 'A') return false;
+  if (box === 'D') return true;
+  return DISPOSAL_CODES.has(k);
+}
+// The box, when it says something the code does not: stored as `ad` on
+// exactly those rows (most lines need no extra field).
+export function directionBox(code, ad) {
+  const k = String(code || '').trim().toUpperCase();
+  const box = String(ad || '').trim().toUpperCase();
+  if (k === 'P' || k === 'S' || (box !== 'A' && box !== 'D')) return null;
+  return (box === 'D') !== DISPOSAL_CODES.has(k) ? box : null;
+}
 
 const price = (r) => Number(r?.p);
 export const hasPrice = (r) => Number.isFinite(price(r)) && price(r) > 0;
@@ -87,12 +112,12 @@ export function categorize(r) {
   }
 }
 
-// 'buy' or 'sell' for the tab a line belongs to; a P/S without a price
-// ("other") still follows its code.
+// 'buy' or 'sell' for the tab a line belongs to: an open-market trade by its
+// category, every other line by the way its shares moved.
 export function sideOf(r, category = categorize(r)) {
-  if (SELL_SIDE.has(category)) return 'sell';
-  if (category === 'other' || category === 'preferred' || category === 'other_security') return SELL_CODES.has(String(r?.k || '').toUpperCase()) ? 'sell' : 'buy';
-  return 'buy';
+  if (category === 'open_buy' || category === 'compensation') return 'buy';
+  if (category === 'open_sell') return 'sell';
+  return isDisposal(r?.k, r?.ad) ? 'sell' : 'buy';
 }
 
 // Is the reporting owner a fund or company rather than a person? Form 4 has

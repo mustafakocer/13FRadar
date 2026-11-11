@@ -29,7 +29,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { housePdfUrl, linesFromItems, parseHouseIndex, parseHousePtr, parseSenateIndexRow, parseSenatePtr, SENATE_BASE } from '../api/_lib/congressParse.js';
+import { backwardsAmount, housePdfUrl, linesFromItems, parseHouseIndex, parseHousePtr, parseSenateIndexRow, parseSenatePtr, SENATE_BASE } from '../api/_lib/congressParse.js';
 import { committeeSeats, indexLegislators } from '../api/_lib/congressMembers.js';
 import { buildServed } from '../api/_lib/congressModel.js';
 import { files, readJson, writeJson } from '../api/_lib/congressStore.js';
@@ -190,9 +190,13 @@ const state = readJson(files.filings(), { filings: {} });
 const filings = state.filings || {};
 const stats = { house: { indexed: 0, fetched: 0, ok: 0, scan: 0, empty: 0, error: 0 }, senate: { indexed: 0, fetched: 0, ok: 0, paper: 0, empty: 0, error: 0 } };
 
+// A filing read before the amount parser knew cents holds "ranges" that run
+// backwards ($710.52 stored as 710–52): it is read again, once — the parser
+// cannot produce one any more, so the second reading never asks for a third.
+const misread = (f) => (f?.tx || []).some(backwardsAmount);
 const want = (key) => {
   const f = filings[key];
-  return !f || (f.status === 'error' && (f.tries || 0) < MAX_TRIES);
+  return !f || (f.status === 'error' && (f.tries || 0) < MAX_TRIES) || misread(f);
 };
 
 // House: every year the window touches
@@ -257,7 +261,11 @@ const record = (f, res, chamber) => {
   const { key, ...base } = f;
   filings[key] = { ...base, ...res, readAt: new Date().toISOString() };
 };
-const fail = (f, e, chamber) => record(f, { status: 'error', err: String(e.message || e).slice(0, 200), tries: (filings[f.key]?.tries || 0) + 1, tx: [] }, chamber);
+// a re-read that fails keeps the reading on file: its other lines are right
+const fail = (f, e, chamber) =>
+  filings[f.key]?.status === 'ok'
+    ? console.log(`  re-read of ${f.key} failed (${String(e.message || e).slice(0, 120)}) — the earlier reading is kept`)
+    : record(f, { status: 'error', err: String(e.message || e).slice(0, 200), tries: (filings[f.key]?.tries || 0) + 1, tx: [] }, chamber);
 
 if (!DRY) {
   await mapLimit(houseNow, 3, async (f) => {

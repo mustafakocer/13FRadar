@@ -203,6 +203,15 @@ export function weightedShares(facts) {
 // off by a thousand. With no referee (no EPS or net income), a gap of 100×
 // or more is a scaling slip and the cover page, which states the count
 // outright, wins.
+//
+// Still with no referee, the direction of the gap says which count is whole.
+// A cover count well ABOVE the period's average, stated after that period,
+// is the company: shares outstanding do not fall to a fraction of their
+// average, so the average is one class of several (Shift4's only undimensioned
+// weighted count is its 1.3 million Class C shares; the cover says 74.9
+// million, and the page priced the company at $60 million). A cover count
+// well BELOW the average stays suspect — one class of several, or a tenth of
+// the ordinary shares (Alibaba) — and the average is used, as before.
 export function impliedShares(facts, { asOf = new Date().toISOString().slice(0, 10) } = {}) {
   const eps = trailingOf(facts, EPS_CONCEPTS, { asOf });
   const ni = trailingOf(facts, NET_INCOME_CONCEPTS, { asOf, unit: (u) => (/^[A-Z]{3}$/.test(u) ? u : null) });
@@ -230,6 +239,7 @@ export function sharesOutstanding(facts, classRule = null, { asOf = new Date().t
     return null;
   }
   if (coverOk && wv && (cover.value / wv >= 100 || wv / cover.value >= 100)) return cover;
+  if (coverOk && wv && cover.value >= wv * 2 && cover.asOf >= w.end) return cover;
   if (weighted) return weighted;
   return coverOk ? cover : null;
 }

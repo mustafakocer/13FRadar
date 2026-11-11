@@ -139,7 +139,7 @@ test('buildPrices runs the plan through the providers in order, drops a provider
   assert.equal(returns.AAPL.asOf, '2026-09-22', 'the stale AAPL row was refreshed from the cache');
   assert.ok(Number.isFinite(returns.AAPL.ret1y) && returns.AAPL.ret1y !== 1);
   assert.equal('OLDCO' in returns, false, "a row whose last close is three weeks old and has no series to refresh it is dropped, not kept as today's");
-  assert.ok(log.some((m) => /returns\.json: \d+ rows refreshed from the price cache, 1 dropped \(last close before 2026-09-15\)/.test(m)), log.filter((m) => /returns\.json/.test(m)).join(' | '));
+  assert.ok(log.some((m) => /returns\.json: \d+ rows refreshed from the price cache, 1 dropped \(last close before 2026-09-15, or an unverified split-sized break\)/.test(m)), log.filter((m) => /returns\.json/.test(m)).join(' | '));
   // a second run has nothing to do for the fresh files
   const log2 = [];
   const again = await buildPrices({ root, now, providers, log: (m) => log2.push(m), dryRun: true });

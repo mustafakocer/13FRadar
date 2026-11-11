@@ -6,6 +6,7 @@
 // and steps over — one malformed document never stops a day.
 import { parseStringPromise, processors } from 'xml2js';
 import { classifyRole, classifyTransaction, cleanSymbol, KEPT_CODES } from './insiderModel.js';
+import { directionBox, isDisposal } from './insiderClassify.js';
 
 export class BadFilingError extends Error {
   constructor(message) {
@@ -56,15 +57,24 @@ export function normDate(s) {
 //   ow  reporting-owner CIK (10 digits), used to match 4/A amendments
 //   fa  '4/A' on rows that come from an amendment (absent on a plain 4)
 //   sb  accession of the 4/A that superseded this row (set by the store)
+//   ad  the form's acquired/disposed box ('A' | 'D'), only on a line whose
+//       box differs from its code's usual side (a gift received: G with A)
 // Share counts keep up to four decimals: a dividend reinvestment of 0.07
 // shares (SXI, 2026-08-21) is not a 0-share trade. Whole counts are unchanged.
 const shareCount = (x) => Number(Number(x).toFixed(4));
 
-export function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc, li, formType, ownerCik }) {
+// The holding's change in percent: the shares owned after the line against
+// the shares owned before it. `out` is the direction (insiderClassify.isDisposal).
+export function ownershipChange(shares, owned, out) {
+  if (owned == null || !(shares > 0)) return null;
+  const prev = out ? owned + shares : owned - shares;
+  return prev > 0 ? Number((((owned - prev) / prev) * 100).toFixed(1)) : null;
+}
+
+export function makeRow({ s, o, code, ad = null, cl, p5, d, shares, price, owned, acc, li, formType, ownerCik }) {
   const value = price != null ? shares * price : null;
-  const acquired = ['P', 'M', 'X', 'C', 'A', 'G', 'W', 'J', 'I', 'L'].includes(code) && code !== 'G';
-  const prev = owned != null ? owned - (acquired ? shares : -shares) : null;
-  const oc = prev && prev > 0 ? ((owned - prev) / prev) * 100 : null;
+  const oc = ownershipChange(shares, owned, isDisposal(code, ad));
+  const box = directionBox(code, ad);
   return {
     t: s.ticker,
     c: s.issuer, // stripped again once the ticker -> name map is built
@@ -81,12 +91,37 @@ export function makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc, li, 
     p: price != null ? Number(price.toFixed(4)) : null,
     v: value != null ? Math.round(value) : null,
     o: owned != null ? shareCount(owned) : null,
-    oc: oc != null ? Number(oc.toFixed(1)) : null,
+    oc,
+    ...(box ? { ad: box } : {}),
     a: acc,
     ...(li != null ? { li } : {}),
     ...(ownerCik ? { ow: ownerCik } : {}),
     ...(formType === '4/A' ? { fa: '4/A' } : {}),
   };
+}
+
+// Rows stored before the box was read took the direction from the code:
+// `oc` has the wrong sign on every gift received and every J or C that went
+// out, and none carries `ad`. The raw fields kept per row (insiders-raw.json,
+// `ad`) put both right — in the nightly build, and when the served rows are
+// computed, so a deploy does not wait for the night. Returns the number of
+// rows changed; a row with no raw fields on file is left as it is.
+export function applyDirection(rows, rawOf) {
+  let changed = 0;
+  for (const r of rows || []) {
+    const filed = rawOf(r)?.ad;
+    if (!filed) continue;
+    const box = directionBox(r.k, filed);
+    // a line whose box agrees with its code was stored right: not touched
+    if (!box && !r.ad) continue;
+    const oc = ownershipChange(r.s, r.o, isDisposal(r.k, filed));
+    if ((r.ad || null) === box && (r.oc ?? null) === oc) continue;
+    if (box) r.ad = box;
+    else delete r.ad;
+    r.oc = oc;
+    changed++;
+  }
+  return changed;
 }
 
 const padCik = (x) => {
@@ -197,7 +232,7 @@ export async function parseForm4Submission(body, { filed, path = '', formType: i
     const owned = num(val(tx.postTransactionAmounts?.sharesOwnedFollowingTransaction));
     if (!d || !shares || shares <= 0) return;
     const cl = classifyTransaction(code, { sameFilingSale });
-    const row = makeRow({ s, o, code, cl, p5, d, shares, price, owned, acc: accession, li, formType, ownerCik });
+    const row = makeRow({ s, o, code, ad: val(amounts.transactionAcquiredDisposedCode), cl, p5, d, shares, price, owned, acc: accession, li, formType, ownerCik });
     rows.push(row);
 
     const ids = new Set([

@@ -18,6 +18,8 @@ const short = (n) => {
 export function fmtRange(lo, hi) {
   if (lo == null) return '—';
   if (hi == null) return `> ${short(lo - 1)}`;
+  // a member who states the exact figure ($710.52): one number, not a range
+  if (lo === hi) return short(lo);
   return `${short(lo)} – ${short(hi)}`;
 }
 

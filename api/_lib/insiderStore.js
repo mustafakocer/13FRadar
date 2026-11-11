@@ -18,6 +18,7 @@ import { normalizeRows } from './fpiNormalize.js';
 import { markCompensation } from './insiderNotes.js';
 import { fpiContext, loadFpi, resetFpiCache } from './fpiContext.js';
 import { refreshRole } from './insiderModel.js';
+import { applyDirection } from './insiderForm4.js';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', '..');
@@ -97,7 +98,11 @@ export function computeServed() {
   // …and a buy whose notes say the shares were pay is not an open-market
   // buy (insiderNotes.markCompensation)
   const raw = readRawServed();
-  const rows = markCompensation(normalizeRows(currentRows(db.rows || []), fpiContext({ raw })), (r) => raw[`${r.a}:${r.li}`] || null);
+  const rawOf = (r) => raw[`${r.a}:${r.li}`] || null;
+  // rows stored before the acquired/disposed box was read: put right here
+  // too, so the fix does not wait for the nightly build to rewrite the file
+  applyDirection(db.rows || [], rawOf);
+  const rows = markCompensation(normalizeRows(currentRows(db.rows || []), fpiContext({ raw })), rawOf);
   return { ...db, rows, lastFilingDay: lastFilingDay(rows) };
 }
 

@@ -28,12 +28,24 @@ export function closeOnOrAfter(series, day) {
   return lo < series.length ? series[lo] : null;
 }
 
+// A bar counts for a day when it is that day or the next session, a long
+// weekend included: more than a week later the series has a hole there (or
+// starts after it), and the bar says nothing about that day.
+const MAX_BAR_LAG = 7 * DAY;
+const barFor = (series, day) => {
+  const bar = closeOnOrAfter(series, day);
+  return bar && Date.parse(bar.date) - Date.parse(day) <= MAX_BAR_LAG ? bar : null;
+};
+
+// The start bar is held to the same week as the end bar. It was not: a
+// series that begins after the trade (BOT listed on 11 May 2026, the buy was
+// on 7 April) answered its first close for the start AND for the end 30 days
+// on, the stock's return came out as exactly 0, and "−11 points against SPY"
+// was SPY's own rise.
 const ret = (series, from, to) => {
-  const a = closeOnOrAfter(series, from);
-  const b = closeOnOrAfter(series, to);
-  if (!a || !b || !(a.close > 0) || b.date < to) return null;
-  // the end bar must be within a week of the target, or the series has a hole
-  if (Date.parse(b.date) - Date.parse(to) > 7 * DAY) return null;
+  const a = barFor(series, from);
+  const b = barFor(series, to);
+  if (!a || !b || !(a.close > 0)) return null;
   return b.close / a.close - 1;
 };
 
@@ -45,6 +57,22 @@ export function forwardExcess(series, spy, day, horizonDays) {
   const m = ret(spy, day, to);
   if (s == null || m == null) return null;
   return Number(((s - m) * 100).toFixed(1));
+}
+
+// What the start-bar bug above stored for a buy the series does not reach
+// back to: the return from the series' first usable bar, whenever that was.
+// Only used to recognise those values in the dataset and remove them
+// (annotateOutcomes) — a value from a series that DID cover the trade is
+// kept when tonight's shorter series cannot recompute it, and the two can
+// only be told apart by the number itself.
+export function lateBaseExcess(series, spy, day, horizonDays) {
+  if (!series?.length || !spy?.length || !day || barFor(series, day)) return null;
+  const to = addDays(day, horizonDays);
+  const a = closeOnOrAfter(series, day);
+  const b = barFor(series, to);
+  const m = ret(spy, day, to);
+  if (!a || !b || !(a.close > 0) || m == null) return null;
+  return Number(((b.close / a.close - 1 - m) * 100).toFixed(1));
 }
 
 // Does the price on the form match the market? More than 25% away from the
@@ -81,7 +109,8 @@ export function checkPriceUnits(rows, seriesFor) {
 
 // Store x30/x90 on every open-market buy line whose horizon has passed.
 // `seriesFor(ticker)` → ascending [{date, close}] or null. A value already
-// stored is kept when the series this run cannot compute it.
+// stored is kept when the series this run cannot compute it — unless it is
+// the value the start-bar bug produced (lateBaseExcess).
 export function annotateOutcomes(rows, seriesFor, spy, { horizons = SIGNAL.horizons } = {}) {
   let done = 0;
   const cache = new Map();
@@ -94,6 +123,9 @@ export function annotateOutcomes(rows, seriesFor, spy, { horizons = SIGNAL.horiz
       if (x != null) {
         r[`x${h}`] = x;
         done++;
+      } else if (r[`x${h}`] != null && r[`x${h}`] === lateBaseExcess(series, spy, r.d, h)) {
+        // stored by the start-bar bug: there is no close for the trade day
+        delete r[`x${h}`];
       }
     }
   }

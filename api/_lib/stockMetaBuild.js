@@ -7,7 +7,8 @@
 //   api/_data/sector-map.json   { updatedAt, bySymbol, caps, etf } — the cache.
 //                               Sectors never expire (a company's SIC code
 //                               changes about as often as its name); market
-//                               caps carry the date they were priced.
+//                               caps carry the date they were priced and the
+//                               count behind them (screenerCap below).
 //   client/public/returns.json  { updatedAt, returns: { SYM: {ret1y, retYtd,
 //                               ret1d, asOf} } } — merged with the previous
 //                               file, so a symbol that failed today keeps
@@ -23,6 +24,7 @@ import {
   fetchSharesOutstanding,
   marketCap,
 } from './marketData.js';
+import { adrResolver } from './adrResolve.js';
 
 const day = (ms) => new Date(ms).toISOString().slice(0, 10);
 
@@ -75,6 +77,34 @@ export function mergeReturns(previous, snapshots, { now = Date.now(), maxAgeDays
     fresh++;
   }
   return { returns: out, fresh, expired };
+}
+
+// The screener's market cap for one symbol: { v, src }, null for "there is
+// no count to price" (a cap on file is withdrawn), undefined for "nothing to
+// say tonight" (a cap on file stays).
+//
+// The count is the one the stock page already uses — the fundamentals
+// record (secFundamentals.js): per US-listed security, every share class in
+// the listed share's units, restated for splits, and refused when the
+// filer's own figures disagree. The screener used to multiply the raw cover
+// count from SEC's frames by the price instead, with none of that: BeOne's
+// 1.48 billion ordinary shares times the price of an ADS of thirteen put a
+// $48 billion company at $620 billion and in the "mega" bucket, on the same
+// day its own page said $47.7 billion. A symbol the fundamentals build has no
+// record for still falls back to the frames — through the ADR ratio, and
+// not at all for an ADS whose ratio nobody has documented.
+//   rec          api/_data/fundamentals.json byTicker[sym]
+//   frameShares  the filer's cover count from the XBRL frames
+//   adr          adrResolve.js: { ratio, unknown }
+export function screenerCap({ price, rec = null, frameShares = null, adr = null } = {}) {
+  if (!(Number.isFinite(price) && price > 0)) return undefined;
+  if (rec) {
+    const v = marketCap(rec.shares?.value, price);
+    return v ? { v, src: 'fundamentals' } : null;
+  }
+  if (adr?.unknown) return null;
+  const v = marketCap(frameShares > 0 ? frameShares / (adr?.ratio > 0 ? adr.ratio : 1) : null, price);
+  return v ? { v, src: 'sec' } : undefined;
 }
 
 export async function buildStockMeta({
@@ -146,7 +176,7 @@ export async function buildStockMeta({
   }
   map = mergeSectors(map, found);
 
-  // ---- market caps: SEC share count × the stored close ----
+  // ---- market caps: the share count × the stored close (screenerCap) ----
   let shares = new Map();
   if (secIndex.size) {
     try {
@@ -155,20 +185,27 @@ export async function buildStockMeta({
       log(`  SEC shares outstanding: ${e.message}`);
     }
   }
+  const fundamentals = read('api/_data/fundamentals.json')?.byTicker || {};
+  const adrOf = adrResolver(root);
   let priced = 0;
+  let fromFrames = 0;
+  let withdrawn = 0;
   for (const s of stocks) {
     const sym = s.ticker ? String(s.ticker).toUpperCase() : null;
     if (!sym) continue;
     const snap = snapshots.get(sym);
     const cik = secIndex.get(sym)?.cik;
-    const sh = cik ? shares.get(cik) : null;
-    const v = marketCap(sh?.shares, snap?.price);
-    if (v) {
-      map.caps[sym] = { v, asOf: snap.asOf, src: 'sec' };
+    const cap = screenerCap({ price: snap?.price, rec: fundamentals[sym], frameShares: cik ? shares.get(cik)?.shares : null, adr: adrOf(sym, cik) });
+    if (cap) {
+      map.caps[sym] = { v: cap.v, asOf: snap.asOf, src: cap.src };
       priced++;
+      if (cap.src === 'sec') fromFrames++;
+    } else if (cap === null && map.caps[sym]) {
+      delete map.caps[sym];
+      withdrawn++;
     }
   }
-  log(`  market caps: ${priced} from SEC share counts (${shares.size} filers in the frames)`);
+  log(`  market caps: ${priced} priced (${priced - fromFrames} from the fundamentals file, ${fromFrames} from SEC's share-count frames), ${withdrawn} withdrawn (no share count to stand on)`);
 
   write('api/_data/sector-map.json', map);
 

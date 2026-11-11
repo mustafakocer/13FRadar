@@ -32,7 +32,7 @@
         "options": 57,
         "withTicker": 1916,
         "withSector": 1735,
-        "withCap": 1671
+        "withCap": 1672
       },
       "findings": []
     },
@@ -114,24 +114,24 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4087
+        "tickers": 4059
       },
-      "findings": [
-        {
-          "rule": "split",
-          "severity": "warn",
-          "message": "4 ticker(s) with a one-day move over 300% — a share split inside the series? (ARAY 3372.73%, INM 789.14%, NXTS 387.16%, STKH 557.99%)"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 4998,
+        "series": 5002,
         "coveragePct": 98.6
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "split",
+          "severity": "warn",
+          "message": "59 price series with an unverified split-sized break, the oldest from 2026-07-15 (119 days): TBRG, VII, VYNE, VPLM, CAPT, JUNS, TNON, KIDZ, BYND, YYAI, IPST, PFSA, DAIC, BRCC, GAME, GPUS, SKYE, REAX, LGVN, NVX"
+        }
+      ]
     },
     {
       "key": "splits",
@@ -145,7 +145,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6300,
+        "resolved": 6317,
         "unresolved": 79
       },
       "findings": []
@@ -171,7 +171,7 @@
       "key": "filings",
       "path": "client/public/filings.json",
       "metrics": {
-        "rows": 5546
+        "rows": 5946
       },
       "findings": []
     },
@@ -179,7 +179,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 4846
+        "filers": 5205
       },
       "findings": []
     },

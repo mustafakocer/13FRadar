@@ -1,5 +1,5 @@
 {
-  "worst": "warn",
+  "worst": "ok",
   "datasets": [
     {
       "key": "consensus",
@@ -114,7 +114,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4059
+        "tickers": 4125
       },
       "findings": []
     },
@@ -122,16 +122,10 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 5002,
+        "series": 5006,
         "coveragePct": 98.6
       },
-      "findings": [
-        {
-          "rule": "split",
-          "severity": "warn",
-          "message": "59 price series with an unverified split-sized break, the oldest from 2026-07-15 (119 days): TBRG, VII, VYNE, VPLM, CAPT, JUNS, TNON, KIDZ, BYND, YYAI, IPST, PFSA, DAIC, BRCC, GAME, GPUS, SKYE, REAX, LGVN, NVX"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "splits",
@@ -145,7 +139,7 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6317,
+        "resolved": 6326,
         "unresolved": 79
       },
       "findings": []

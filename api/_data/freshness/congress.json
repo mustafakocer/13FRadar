@@ -1,7 +1,7 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-11-12T03:21:10.110Z",
- "last_success_at": "2026-11-11T02:14:47.772Z",
+ "last_run_at": "2026-11-12T21:28:21.398Z",
+ "last_success_at": "2026-11-12T21:28:30.227Z",
  "last_filing_date": "2026-11-10",
  "row_count": 13999,
  "member_count": 183,
@@ -16,14 +16,14 @@
  "run": {
   "house": {
    "indexed": 980,
-   "fetched": 3,
-   "ok": 2,
-   "scan": 1,
+   "fetched": 0,
+   "ok": 0,
+   "scan": 0,
    "empty": 0,
    "error": 0
   },
   "senate": {
-   "indexed": 0,
+   "indexed": 309,
    "fetched": 0,
    "ok": 0,
    "paper": 0,
@@ -32,6 +32,6 @@
   }
  },
  "senate_block": null,
- "last_error": "Senate index: Senate eFD: no form token (HTTP 403)",
+ "last_error": null,
  "last_error_at": "2026-11-12T03:21:16.395Z"
 }

@@ -334,16 +334,6 @@
       "reason": "2026-09-30 (filed 2026-10-26): the cover page declares $1.67B over 1974 lines; the 1974-row table sums to $2.62B and its implied prices match the quarter-end closes (1237 of 1237 priced lines within 0.5–2×, median ratio ≈1.0): the cover total is 63.8% of the table and matches no part of it (DFND lines $2.16B, OTR lines $0.46B; the 460 repeated CUSIPs are DFND/OTR splits with different share counts, not double entries): the cover figure is the filer's error."
     },
     {
-      "cik": "0001506071",
-      "acc": "0001506071-26-000005",
-      "kind": "incomplete-table",
-      "declared": 741268675,
-      "table": 75969247,
-      "declaredLines": 328,
-      "tableLines": 45,
-      "reason": "2026-09-30 (filed 2026-11-03): the cover page declares 328 lines worth $741.27M; the filed table has 45 rows summing to $75.97M, 40 of 40 priced lines at the period-end close: the filer's table is incomplete. The same 45-row table (CMAQ3.26.xml) was attached by both Wellington Shields filers (0001506071 and 0001506073)."
-    },
-    {
       "cik": "0001772483",
       "acc": "0001772483-26-000006",
       "kind": "cover-total",
@@ -360,16 +350,6 @@
       "declaredLines": 738,
       "tableLines": 714,
       "reason": "2026-09-30 (filed 2026-10-29): the cover page declares 738 lines worth $4.80B; the filed table has 714 rows summing to $4.26B, 310 of 310 priced lines at the period-end close: the filer's table is incomplete."
-    },
-    {
-      "cik": "0001506073",
-      "acc": "0001506073-26-000005",
-      "kind": "incomplete-table",
-      "declared": 500012753,
-      "table": 75969247,
-      "declaredLines": 334,
-      "tableLines": 45,
-      "reason": "2026-09-30 (filed 2026-11-03): the cover page declares 334 lines worth $500.01M; the filed table has 45 rows summing to $75.97M, 40 of 40 priced lines at the period-end close: the filer's table is incomplete. The same 45-row table (CMAQ3.26.xml) was attached by both Wellington Shields filers (0001506071 and 0001506073)."
     },
     {
       "cik": "0002030974",

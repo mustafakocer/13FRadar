@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-11-12T01:44:25.468Z",
+ "updatedAt": "2026-11-13T01:41:21.142Z",
  "count": 422,
  "corrections": [
   {
@@ -679,7 +679,7 @@
    "acc": "0001361974-26-000013",
    "filed": "2026-11-04",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -800,6 +800,16 @@
    "filed": "2026-11-02",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001439805",
+   "name": "Greenwich Wealth Management LLC",
+   "period": "2026-09-30",
+   "acc": "0001439805-26-000007",
+   "filed": "2026-11-12",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -959,7 +969,7 @@
    "acc": "0001570253-26-000004",
    "filed": "2026-10-20",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1289,7 +1299,7 @@
    "acc": "0001695658-26-000009",
    "filed": "2026-11-10",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2059,7 +2069,7 @@
    "acc": "0001076809-26-000096",
    "filed": "2026-08-17",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2300,16 +2310,6 @@
    "filed": "2026-08-17",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001439805",
-   "name": "Greenwich Wealth Management LLC",
-   "period": "2026-06-30",
-   "acc": "0001439805-26-000004",
-   "filed": "2026-08-12",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

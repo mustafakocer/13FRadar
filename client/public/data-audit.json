@@ -89,7 +89,7 @@
       "key": "universe",
       "path": "client/public/universe.json",
       "metrics": {
-        "rows": 8989
+        "rows": 8990
       },
       "findings": []
     },
@@ -97,8 +97,8 @@
       "key": "latest-holdings",
       "path": "api/_data/latest-holdings.json",
       "metrics": {
-        "filers": 8989,
-        "withRows": 8989
+        "filers": 8990,
+        "withRows": 8990
       },
       "findings": []
     },
@@ -156,8 +156,8 @@
       "key": "slugs",
       "path": "api/_data/slugs.json",
       "metrics": {
-        "bySlug": 9082,
-        "byCik": 9082
+        "bySlug": 9086,
+        "byCik": 9086
       },
       "findings": []
     },

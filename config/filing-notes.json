@@ -402,6 +402,14 @@
       "declared": 144,
       "table": 144592655,
       "reason": "2026-09-30 (filed 2026-10-23): the cover page declares $144 over 195 lines; the 195-row table sums to $144.59M and its implied prices match the quarter-end closes (93 of 93 priced lines within 0.5–2×, median ratio ≈1.0): the cover was written in millions."
+    },
+    {
+      "cik": "0001808389",
+      "acc": "0001808389-26-000011",
+      "kind": "cover-total",
+      "declared": 16037984,
+      "table": 2469849605,
+      "reason": "2026-09-30 (filed 2026-11-10): the cover page declares $16.04M over 155 lines; the 154-row table sums to $2.47B, $2.46B of it put/call lines at the underlying value, as in each of the filer's five previous filings, whose covers matched their tables ($1.60B–$2.71B; 2026-06-30: $2.50B both). All 25 share lines and 103 of 129 option lines sit within ±10% of the period-end close; no line is off by a factor of ten. The cover total is the filer's error."
     }
   ]
 }

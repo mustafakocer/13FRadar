@@ -5,6 +5,7 @@ import path from 'node:path';
 import { parseStringPromise, processors } from 'xml2js';
 import { cached, TTL } from './cache.js';
 import { storedHoldings } from './holdingsStore.js';
+import { withLineFixes } from './lineCorrections.js';
 import { effectiveFilings, effectiveSnapshot, isAmendmentForm, parseCoverPage } from './amendments.js';
 import { RateClock } from './edgarClock.js';
 import { cacheGet, cachePut, cacheStats } from './edgarCache.js';
@@ -344,8 +345,10 @@ export function aggregatePositions(rows, filingDate, { period = null, closeOf } 
 // dependency.
 export function getHoldings(cik, acc, filingDate, period = null) {
   return cached(`hold:${numCik(cik)}:${acc}${period ? `:${period}` : ''}`, TTL.DAY_7, async () => {
+    // lines the filer wrote ×10, corrected by the nightly check
+    // (lineCorrections.js); applied once, on both paths
     const stored = await storedHoldings(cik, acc);
-    if (stored) return stored;
+    if (stored) return withLineFixes(stored, cik, acc);
     const xml = await fetchInfoTableXml(cik, acc);
     const rows = await parse13F(xml);
     let fd = filingDate;
@@ -353,7 +356,7 @@ export function getHoldings(cik, acc, filingDate, period = null) {
       const sub = await getSubmissions(cik);
       fd = list13FAll(sub).find((f) => f.acc === acc)?.filingDate;
     }
-    return aggregatePositions(rows, fd, { period });
+    return withLineFixes(aggregatePositions(rows, fd, { period }), cik, acc);
   });
 }
 

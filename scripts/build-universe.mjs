@@ -11,6 +11,7 @@ import path from 'node:path';
 import axios from 'axios';
 import { fetchInfoTableXml, fetchCoverPage, parse13F, aggregatePositions, getSubmissions, list13F, getEffectiveHoldings } from '../api/_lib/sec.js';
 import { declaredCandidates, lineKey, overlapPairs } from '../api/_lib/universeAudit.js';
+import { withLineFixes } from '../api/_lib/lineCorrections.js';
 import { mapCusipsToTickers } from '../api/_lib/figi.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { snapshotEntry } from '../api/_lib/latestHoldings.js';
@@ -183,7 +184,7 @@ async function main() {
       const xml = await fetchInfoTableXml(e.cik, e.acc);
       const parsed = await parse13F(xml);
       const period = inferPeriod(e.filed);
-      const { aum, positions, unitFix } = aggregatePositions(parsed, e.filed, { period });
+      const { aum, positions, unitFix } = withLineFixes(aggregatePositions(parsed, e.filed, { period }), e.cik, e.acc);
       const [declared = null, ...declaredAlt] = await declaredTotal(e.cik, e.acc, null);
       return { acc: e.acc, filed: e.filed, reportDate: period, periodFrom: 'filing-date', aum, positions, amendments: null, unitFix, declared, declaredAlt };
     }

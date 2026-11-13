@@ -8,12 +8,23 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const pad = (cik) => String(cik || '').replace(/\D/g, '').padStart(10, '0');
 
-function load() {
+const read = (f, key) => {
   try {
-    return (require('../../config/filing-notes.json').notes || []).map((n) => ({ ...n, cik: pad(n.cik) }));
+    return require(f)[key] || [];
   } catch {
     return [];
   }
+};
+// the hand-checked notes, then the cover errors the nightly check closed by
+// itself (api/_data/auto-reviews.json, api/_lib/deviationFix.js autoReview);
+// a hand note on the same filing wins
+function load() {
+  const hand = read('../../config/filing-notes.json', 'notes').map((n) => ({ ...n, cik: pad(n.cik) }));
+  const have = new Set(hand.map((n) => `${n.cik}|${n.acc}`));
+  const auto = read('../_data/auto-reviews.json', 'reviews')
+    .filter((a) => a.kind === 'cover-total' && !have.has(`${pad(a.cik)}|${a.acc}`))
+    .map((a) => ({ cik: pad(a.cik), acc: a.acc, kind: 'cover-total', declared: a.declared ?? null, table: a.table ?? null, reason: a.reason, auto: true }));
+  return [...hand, ...auto];
 }
 export const filingNotes = load();
 

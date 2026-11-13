@@ -173,7 +173,7 @@ export const filingUrl = (cik, acc) => `https://www.sec.gov/Archives/edgar/data/
 // A hint, not a verdict: which side to look at first.
 export function likelyCause({ aum, declared }) {
   const r = aum / declared;
-  if (near(r, 10) || near(r, 0.1)) return '×10 birim kayması olabilir';
+  if (near(r, 10) || near(r, 0.1)) return '×10 fark: kapakta basamak hatası ya da tabloda ×10 yazılmış satır olabilir';
   return r > 1 ? 'Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır' : 'Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir';
 }
 
@@ -205,11 +205,27 @@ export const REVIEWED_KINDS = {
     text: 'Fark ±%5 içinde; tablo eksiksiz ve fiyatları dönem sonu kapanışlarıyla örtüşüyor. Fonun yazılımı özet toplamı tablodan ayrı hesaplamış. Fon sayfasına not konmadı.',
     cause: 'Küçük fark (incelendi)',
   },
+  // closed by the nightly check itself (api/_lib/deviationFix.js autoReview),
+  // listed apart so a person can still read what was closed
+  'auto-cover-total': {
+    title: 'Otomatik kapatıldı — fonun kapak hatası',
+    text: 'Gece kontrolü kendisi kapattı: tablodaki satır sayısı kapakla birebir aynı, fiyatlı satırların en az %95\'i dönem sonu kapanışının ±%10\'u içinde ve toplam fonun bir önceki bildirimiyle tutarlı (×0,5–×2). Sitede tablonun toplamı gösteriliyor ve fon sayfasında not var. Gerekçe api/_data/auto-reviews.json\'da.',
+    cause: 'Fonun kapak hatası (otomatik)',
+  },
+  'auto-small-gap': {
+    title: 'Otomatik kapatıldı — küçük fark, tablo doğru',
+    text: 'Gece kontrolü kendisi kapattı: fark ±%2 içinde, satır sayısı kapakla aynı ve fiyatlı satırların en az %90\'ı dönem sonu kapanışında. Gerekçe api/_data/auto-reviews.json\'da.',
+    cause: 'Küçük fark (otomatik)',
+  },
 };
 
-export function deviationReport(deviations, { quarter, fresh = [], notes = [], reviewed = [] } = {}) {
+//   auto: closed by the nightly check ([{ cik, acc, kind, reason }]);
+//   lineFixes: lines it divided by ten ([{ cik, name, acc, lines, before, after }])
+export function deviationReport(deviations, { quarter, fresh = [], notes = [], reviewed = [], auto = [], lineFixes = [] } = {}) {
   const isNew = new Set(fresh.map((d) => `${d.cik}|${d.acc}`));
-  const kindOf = new Map([...reviewed, ...notes].filter((n) => REVIEWED_KINDS[n.kind]).map((n) => [`${pad(n.cik)}|${n.acc}`, n.kind]));
+  const kindOf = new Map(
+    [...auto.map((a) => ({ ...a, kind: `auto-${a.kind}` })), ...reviewed, ...notes].filter((n) => REVIEWED_KINDS[n.kind]).map((n) => [`${pad(n.cik)}|${n.acc}`, n.kind])
+  );
   const sorted = [...deviations].sort((a, b) => Math.abs(b.aum - b.declared) - Math.abs(a.aum - a.declared));
   const kind = (d) => kindOf.get(`${pad(d.cik)}|${d.acc}`) || null;
   const open = sorted.filter((d) => !kind(d));
@@ -224,7 +240,8 @@ export function deviationReport(deviations, { quarter, fresh = [], notes = [], r
     `**İncelenecek: ${open.length} fon. İncelendi: ${closed} fon** (${Object.keys(REVIEWED_KINDS).map((k) => `${REVIEWED_KINDS[k].cause.replace(' (incelendi)', '').toLowerCase()} ${sorted.filter((d) => kind(d) === k).length}`).join(', ')}).`,
     '',
   ];
-  if (!sorted.length) return `${lines.join('\n')}Sapma yok.\n`;
+  const fixed = lineFixSection(lineFixes);
+  if (!sorted.length) return `${lines.join('\n')}Sapma yok.\n${fixed.length ? `\n${fixed.join('\n')}\n` : ''}`;
   const table = (rows, cause) => {
     const out = ['| | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |', '|---|---|---|---|---|---|---|---|'];
     for (const d of rows) {
@@ -243,5 +260,27 @@ export function deviationReport(deviations, { quarter, fresh = [], notes = [], r
     lines.push('', `## ${v.title}`, '', v.text, '');
     lines.push(...table(rows, () => v.cause));
   }
+  if (fixed.length) lines.push('', ...fixed);
   return `${lines.join('\n')}\n`;
+}
+
+// The lines the nightly check divided by ten, filing by filing.
+function lineFixSection(lineFixes) {
+  if (!lineFixes.length) return [];
+  const pctOf = (x) => `${x > 0 ? '+' : ''}${(x * 100).toFixed(1)}%`;
+  const out = [
+    '## Otomatik düzeltildi — fonun tablosunda ×10 yazılmış satırlar',
+    '',
+    "Bu satırların hisse başına fiyatı dönem sonu kapanışının (fiyat yoksa fonun bir önceki bildirimindeki fiyatın) 8–12,5 katı; 10'a bölününce tablo fonun kapak toplamıyla örtüşüyor. Sitede düzeltilmiş değer gösteriliyor. Kayıt api/_data/line-corrections.json'da.",
+    '',
+    '| Fon | Satır | Fonun yazdığı | Düzeltilmiş | Kanıt | Fark (önce → sonra) | Bildirim |',
+    '|---|---|---|---|---|---|---|',
+  ];
+  for (const c of lineFixes) {
+    for (const l of c.lines || []) {
+      const ev = l.by === 'close' ? `kapanışın ${l.ratio}×` : `önceki bildirimin ${l.ratio}×`;
+      out.push(`| ${String(c.name || c.cik).replace(/\|/g, '/')} (${c.cik}) | ${String(l.issuer || l.cusip).trim().replace(/\|/g, '/')} (${l.cusip}) | ${usd(l.value)} | ${usd(l.value * l.factor)} | ${ev} | ${pctOf(c.before)} → ${pctOf(c.after)} | [SEC](${filingUrl(c.cik, c.acc)}) |`);
+    }
+  }
+  return out;
 }

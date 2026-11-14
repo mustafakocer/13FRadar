@@ -1,0 +1,23 @@
+{
+ "_readme": "Deviations from reports/kaynak-sapmalari.md closed by the nightly check itself (api/_lib/deviationFix.js autoReview). A hand entry in config/filing-notes.json or config/reviewed-deviations.json for the same filing wins. Dropped when the filer sends a newer filing or the total changes.",
+ "reviews": [
+  {
+   "cik": "0002052594",
+   "acc": "0002052594-26-000006",
+   "kind": "small-gap",
+   "declared": 3046967595,
+   "table": 3042974099,
+   "reason": "2026-09-30: table $3.04B vs cover $3.05B (-0.13%); 188 rows = 188 cover lines; 179 of 183 priced lines within ±10% of the period-end close. Closed automatically.",
+   "at": "2026-11-14"
+  },
+  {
+   "cik": "0002110677",
+   "acc": "0002110677-26-000005",
+   "kind": "small-gap",
+   "declared": 131143455,
+   "table": 132542811,
+   "reason": "2026-09-30: table $132.54M vs cover $131.14M (+1.07%); 90 rows = 90 cover lines; 54 of 54 priced lines within ±10% of the period-end close; the cover matches the table without its options lines. Closed automatically.",
+   "at": "2026-11-14"
+  }
+ ]
+}

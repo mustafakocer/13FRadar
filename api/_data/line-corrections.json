@@ -1,0 +1,36 @@
+{
+ "_readme": "Lines a filer wrote ten times too large, divided by ten by the nightly check (api/_lib/deviationFix.js findLineSlips) and applied wherever the filing is read (sec.js getHoldings). One entry per filing.",
+ "corrections": [
+  {
+   "cik": "0002052594",
+   "name": "BLI - Banque de Luxembourg Investments",
+   "acc": "0002052594-26-000006",
+   "period": "2026-09-30",
+   "before": 0.033,
+   "after": -0.0013,
+   "lines": [
+    {
+     "cusip": "902252105",
+     "putCall": "",
+     "value": 95915052,
+     "shares": 30328,
+     "factor": 0.1,
+     "by": "close",
+     "ratio": 9.927,
+     "issuer": "TYLER TECHNOLOGIES INC"
+    },
+    {
+     "cusip": "056525108",
+     "putCall": "",
+     "value": 20156609,
+     "shares": 16000,
+     "factor": 0.1,
+     "by": "close",
+     "ratio": 10.197,
+     "issuer": "BADGER METER INC"
+    }
+   ],
+   "at": "2026-11-14"
+  }
+ ]
+}

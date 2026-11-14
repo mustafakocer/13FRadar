@@ -1,6 +1,6 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-11-14T02:41:03.665Z",
+ "last_run_at": "2026-11-14T19:10:14.573Z",
  "last_success_at": "2026-11-14T02:41:10.278Z",
  "last_filing_date": "2026-11-12",
  "row_count": 14022,
@@ -23,7 +23,7 @@
    "error": 0
   },
   "senate": {
-   "indexed": 309,
+   "indexed": 0,
    "fetched": 0,
    "ok": 0,
    "paper": 0,
@@ -32,6 +32,6 @@
   }
  },
  "senate_block": null,
- "last_error": null,
- "last_error_at": "2026-11-12T03:21:16.395Z"
+ "last_error": "Senate index: Senate eFD: no form token (HTTP 403)",
+ "last_error_at": "2026-11-14T19:10:19.693Z"
 }

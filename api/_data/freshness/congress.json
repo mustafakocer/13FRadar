@@ -1,6 +1,6 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-11-15T02:07:23.328Z",
+ "last_run_at": "2026-11-15T19:46:43.525Z",
  "last_success_at": "2026-11-15T02:07:30.696Z",
  "last_filing_date": "2026-11-12",
  "row_count": 14022,
@@ -23,7 +23,7 @@
    "error": 0
   },
   "senate": {
-   "indexed": 309,
+   "indexed": 0,
    "fetched": 0,
    "ok": 0,
    "paper": 0,
@@ -32,6 +32,6 @@
   }
  },
  "senate_block": null,
- "last_error": null,
- "last_error_at": "2026-11-14T19:10:19.693Z"
+ "last_error": "Senate index: HTTP 503",
+ "last_error_at": "2026-11-15T19:47:18.731Z"
 }

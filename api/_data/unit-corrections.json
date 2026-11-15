@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-11-14T01:48:03.779Z",
- "count": 420,
+ "updatedAt": "2026-11-15T01:52:58.276Z",
+ "count": 416,
  "corrections": [
   {
    "cik": "0000019475",
@@ -53,6 +53,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0000104889",
+   "name": "Graham Holdings Co",
+   "period": "2026-09-30",
+   "acc": "0001628280-26-073846",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0000314969",
    "name": "NEW YORK STATE TEACHERS RETIREMENT SYSTEM",
    "period": "2026-09-30",
@@ -100,6 +110,16 @@
    "filed": "2026-11-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0000728100",
+   "name": "LORD, ABBETT & CO. LLC",
+   "period": "2026-09-30",
+   "acc": "0000930413-26-003314",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -263,6 +283,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0000918504",
+   "name": "BIRMINGHAM CAPITAL MANAGEMENT CO INC/AL",
+   "period": "2026-09-30",
+   "acc": "0000918504-26-000005",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0000919192",
    "name": "AMALGAMATED BANK",
    "period": "2026-09-30",
@@ -313,6 +343,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001018331",
+   "name": "NATIXIS ADVISORS, LLC",
+   "period": "2026-09-30",
+   "acc": "0001018331-26-000013",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001019754",
    "name": "Smithfield Trust Co",
    "period": "2026-09-30",
@@ -360,6 +400,16 @@
    "filed": "2026-11-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001046192",
+   "name": "CANADA LIFE ASSURANCE Co",
+   "period": "2026-09-30",
+   "acc": "0001046192-26-000015",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.000999 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -450,6 +500,16 @@
    "filed": "2026-10-28",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00142 over 16 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001061768",
+   "name": "BAUPOST GROUP LLC/MA",
+   "period": "2026-09-30",
+   "acc": "0001061768-26-000015",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -583,6 +643,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001097362",
+   "name": "SUN LIFE FINANCIAL INC",
+   "period": "2026-09-30",
+   "acc": "0001104659-26-126705",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 14 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001110806",
    "name": "PHILADELPHIA TRUST CO",
    "period": "2026-09-30",
@@ -610,6 +680,16 @@
    "filed": "2026-10-07",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001124841",
+   "name": "LATHROP INVESTMENT MANAGEMENT CO",
+   "period": "2026-09-30",
+   "acc": "0001124841-26-000006",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -680,6 +760,16 @@
    "filed": "2026-10-20",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001176347",
+   "name": "TEXAS TREASURY SAFEKEEPING TRUST CO",
+   "period": "2026-09-30",
+   "acc": "0001176347-26-000010",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -803,6 +893,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001376879",
+   "name": "AKO CAPITAL LLP",
+   "period": "2026-09-30",
+   "acc": "0000919574-26-007690",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001380137",
    "name": "HUNTER ASSOCIATES INVESTMENT MANAGEMENT LLC",
    "period": "2026-09-30",
@@ -820,6 +920,16 @@
    "filed": "2026-11-10",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001388443",
+   "name": "Palisades Hudson Asset Management, L.P.",
+   "period": "2026-09-30",
+   "acc": "0001388443-26-000015",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -913,6 +1023,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001430681",
+   "name": "Hayek Kallen Investment Management",
+   "period": "2026-09-30",
+   "acc": "0001430681-26-000004",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001439805",
    "name": "Greenwich Wealth Management LLC",
    "period": "2026-09-30",
@@ -933,6 +1053,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001466697",
+   "name": "FLOW TRADERS U.S. LLC",
+   "period": "2026-09-30",
+   "acc": "0001466697-26-000030",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 7 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001469589",
    "name": "Q Global Advisors, LLC",
    "period": "2026-09-30",
@@ -950,6 +1080,16 @@
    "filed": "2026-11-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001475597",
+   "name": "HRT FINANCIAL LP",
+   "period": "2026-09-30",
+   "acc": "0001475597-26-000249",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1003,6 +1143,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001513779",
+   "name": "Bullseye Asset Management LLC",
+   "period": "2026-09-30",
+   "acc": "0001513779-26-000006",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001524408",
    "name": "Van Berkom & Associates Inc.",
    "period": "2026-09-30",
@@ -1050,6 +1200,16 @@
    "filed": "2026-11-05",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 16 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001556218",
+   "name": "Bollard Group LLC",
+   "period": "2026-09-30",
+   "acc": "0000929638-26-004282",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1130,6 +1290,26 @@
    "filed": "2026-10-15",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001571075",
+   "name": "Cunning Capital Partners, LP",
+   "period": "2026-09-30",
+   "acc": "0001571075-26-000004",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001594167",
+   "name": "JABODON PT CO",
+   "period": "2026-09-30",
+   "acc": "0001594167-26-000006",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 4 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1453,6 +1633,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001681662",
+   "name": "Athos Capital Ltd",
+   "period": "2026-09-30",
+   "acc": "0001681662-26-000006",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001694126",
    "name": "Harvest Fund Management Co., Ltd",
    "period": "2026-09-30",
@@ -1500,6 +1690,16 @@
    "filed": "2026-10-28",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001701879",
+   "name": "Acorns Advisers, LLC",
+   "period": "2026-09-30",
+   "acc": "0001701879-26-000006",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1590,6 +1790,16 @@
    "filed": "2026-11-10",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001730299",
+   "name": "Banco de Sabadell, S.A",
+   "period": "2026-09-30",
+   "acc": "0001730299-26-000004",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1700,6 +1910,16 @@
    "filed": "2026-11-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001773368",
+   "name": "Wesleyan Assurance Society",
+   "period": "2026-09-30",
+   "acc": "0001773368-26-000005",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1953,6 +2173,26 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0001846311",
+   "name": "Vancity Investment Management Ltd",
+   "period": "2026-09-30",
+   "acc": "0001846311-26-000006",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001863523",
+   "name": "CSM Advisors, LLC",
+   "period": "2026-09-30",
+   "acc": "0001863523-26-000004",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0001875645",
    "name": "JTC Employer Solutions Trustee Ltd",
    "period": "2026-09-30",
@@ -2053,6 +2293,26 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0002011050",
+   "name": "MOSAIC FINANCIAL GROUP, LLC",
+   "period": "2026-09-30",
+   "acc": "0002011050-26-000007",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 19 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002012933",
+   "name": "TrueNorth Wealth & Impact, LLC",
+   "period": "2026-09-30",
+   "acc": "0002012933-26-000001",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0002013988",
    "name": "Wealth Group, Ltd.",
    "period": "2026-09-30",
@@ -2070,6 +2330,16 @@
    "filed": "2026-11-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 9 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002044901",
+   "name": "Investor's Fiduciary Advisor Network, LLC",
+   "period": "2026-09-30",
+   "acc": "0002044901-26-000004",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 14 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2110,6 +2380,16 @@
    "filed": "2026-10-26",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0002059344",
+   "name": "Wood Tarver Financial Group, LLC",
+   "period": "2026-09-30",
+   "acc": "0002059344-26-000004",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2193,6 +2473,16 @@
    "source": "latest-holdings"
   },
   {
+   "cik": "0002140776",
+   "name": "Steelhead Wealth Management LLC",
+   "period": "2026-09-30",
+   "acc": "0002140776-26-000003",
+   "filed": "2026-11-13",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 5 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
    "cik": "0002142299",
    "name": "Stonebridge Financial Group, LLC/CA",
    "period": "2026-09-30",
@@ -2223,36 +2513,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0000104889",
-   "name": "Graham Holdings Co",
-   "period": "2026-06-30",
-   "acc": "0001628280-26-057130",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 6 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0000728100",
-   "name": "LORD, ABBETT & CO. LLC",
-   "period": "2026-06-30",
-   "acc": "0000930413-26-002509",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0000918504",
-   "name": "BIRMINGHAM CAPITAL MANAGEMENT CO INC/AL",
-   "period": "2026-06-30",
-   "acc": "0000918504-26-000004",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0000936936",
    "name": "DOHENY ASSET MANAGEMENT /CA",
    "period": "2026-06-30",
@@ -2263,16 +2523,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001018331",
-   "name": "NATIXIS ADVISORS, LLC",
-   "period": "2026-06-30",
-   "acc": "0001018331-26-000006",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001042063",
    "name": "WELCH CAPITAL PARTNERS LLC/NY",
    "period": "2026-06-30",
@@ -2280,16 +2530,6 @@
    "filed": "2026-08-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 21 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001046192",
-   "name": "CANADA LIFE ASSURANCE Co",
-   "period": "2026-06-30",
-   "acc": "0001046192-26-000012",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.000998 over 24 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2313,16 +2553,6 @@
    "source": "guru-history"
   },
   {
-   "cik": "0001061768",
-   "name": "BAUPOST GROUP LLC/MA",
-   "period": "2026-06-30",
-   "acc": "0001061768-26-000010",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001076809",
    "name": "GLAZER CAPITAL, LLC",
    "period": "2026-06-30",
@@ -2343,26 +2573,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001097362",
-   "name": "SUN LIFE FINANCIAL INC",
-   "period": "2026-06-30",
-   "acc": "0001104659-26-094558",
-   "filed": "2026-08-12",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001103887",
-   "name": "NWI MANAGEMENT LP",
-   "period": "2026-06-30",
-   "acc": "0001103887-26-000006",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001108831",
    "name": "STONERIDGE INVESTMENT PARTNERS LLC",
    "period": "2026-06-30",
@@ -2380,26 +2590,6 @@
    "filed": "2026-08-11",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001124841",
-   "name": "LATHROP INVESTMENT MANAGEMENT CO",
-   "period": "2026-06-30",
-   "acc": "0001124841-26-000003",
-   "filed": "2026-08-10",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001176347",
-   "name": "TEXAS TREASURY SAFEKEEPING TRUST CO",
-   "period": "2026-06-30",
-   "acc": "0001176347-26-000009",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00102 over 4 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2463,26 +2653,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001376879",
-   "name": "AKO CAPITAL LLP",
-   "period": "2026-06-30",
-   "acc": "0001376879-26-000006",
-   "filed": "2026-08-12",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001388443",
-   "name": "Palisades Hudson Asset Management, L.P.",
-   "period": "2026-06-30",
-   "acc": "0001388443-26-000007",
-   "filed": "2026-08-07",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001389223",
    "name": "Mathes Company, Inc.",
    "period": "2026-06-30",
@@ -2500,16 +2670,6 @@
    "filed": "2026-07-21",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001430681",
-   "name": "Hayek Kallen Investment Management",
-   "period": "2026-06-30",
-   "acc": "0001430681-26-000003",
-   "filed": "2026-08-17",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2533,36 +2693,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001466697",
-   "name": "FLOW TRADERS U.S. LLC",
-   "period": "2026-06-30",
-   "acc": "0001466697-26-000026",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001475597",
-   "name": "HRT FINANCIAL LP",
-   "period": "2026-06-30",
-   "acc": "0001475597-26-000199",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001512020",
-   "name": "Kepos Capital LP",
-   "period": "2026-06-30",
-   "acc": "0001512020-26-000013",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied share price outside any traded price: thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001512162",
    "name": "COOPER CREEK PARTNERS MANAGEMENT LLC",
    "period": "2026-06-30",
@@ -2570,16 +2700,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001513779",
-   "name": "Bullseye Asset Management LLC",
-   "period": "2026-06-30",
-   "acc": "0001513779-26-000003",
-   "filed": "2026-08-12",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2613,26 +2733,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001556218",
-   "name": "Bollard Group LLC",
-   "period": "2026-06-30",
-   "acc": "0000929638-26-003007",
-   "filed": "2026-08-12",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001571075",
-   "name": "Cunning Capital Partners, LP",
-   "period": "2026-06-30",
-   "acc": "0001571075-26-000003",
-   "filed": "2026-08-11",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (96% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001583092",
    "name": "Main Management LLC",
    "period": "2026-06-30",
@@ -2650,16 +2750,6 @@
    "filed": "2026-08-13",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (96% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001594167",
-   "name": "JABODON PT CO",
-   "period": "2026-06-30",
-   "acc": "0001594167-26-000004",
-   "filed": "2026-07-21",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2743,16 +2833,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001681662",
-   "name": "Athos Capital Ltd",
-   "period": "2026-06-30",
-   "acc": "0001681662-26-000005",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001695214",
    "name": "Polianta Ltd",
    "period": "2026-06-30",
@@ -2780,16 +2860,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 12 priced rows (92% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001701879",
-   "name": "Acorns Advisers, LLC",
-   "period": "2026-06-30",
-   "acc": "0001701879-26-000004",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 8 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2833,16 +2903,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001730299",
-   "name": "Banco de Sabadell, S.A",
-   "period": "2026-06-30",
-   "acc": "0001730299-26-000003",
-   "filed": "2026-08-04",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001735513",
    "name": "Claret Asset Management Corp",
    "period": "2026-06-30",
@@ -2873,16 +2933,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001764049",
-   "name": "SlateStone Wealth, LLC",
-   "period": "2026-06-30",
-   "acc": "0001764049-26-000007",
-   "filed": "2026-07-20",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001768375",
    "name": "Aspex Management (HK) Ltd",
    "period": "2026-06-30",
@@ -2890,26 +2940,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001773368",
-   "name": "Wesleyan Assurance Society",
-   "period": "2026-06-30",
-   "acc": "0001773368-26-000003",
-   "filed": "2026-07-28",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001808919",
-   "name": "Hunter Perkins Capital Management, LLC",
-   "period": "2026-06-30",
-   "acc": "0001808919-26-000003",
-   "filed": "2026-07-16",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2940,16 +2970,6 @@
    "filed": "2026-08-14",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 20 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001846311",
-   "name": "Vancity Investment Management Ltd",
-   "period": "2026-06-30",
-   "acc": "0001846311-26-000005",
-   "filed": "2026-08-24",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2993,16 +3013,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001863523",
-   "name": "CSM Advisors, LLC",
-   "period": "2026-06-30",
-   "acc": "0001863523-26-000003",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001897612",
    "name": "T. Rowe Price Investment Management, Inc.",
    "period": "2026-06-30",
@@ -3023,16 +3033,6 @@
    "source": "latest-holdings"
   },
   {
-   "cik": "0001911472",
-   "name": "Granite Bay Wealth Management, LLC",
-   "period": "2026-06-30",
-   "acc": "0001911472-26-000003",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 15 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0001953324",
    "name": "Aquamarine (Guy Spier)",
    "period": "2026-06-30",
@@ -3043,16 +3043,6 @@
    "source": "guru-history"
   },
   {
-   "cik": "0002011050",
-   "name": "MOSAIC FINANCIAL GROUP, LLC",
-   "period": "2026-06-30",
-   "acc": "0002011050-26-000006",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 18 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
    "cik": "0002011314",
    "name": "LM Advisors LLC",
    "period": "2026-06-30",
@@ -3060,26 +3050,6 @@
    "filed": "2026-08-12",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (94% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0002044901",
-   "name": "Investor's Fiduciary Advisor Network, LLC",
-   "period": "2026-06-30",
-   "acc": "0002044901-26-000003",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0002059344",
-   "name": "Wood Tarver Financial Group, LLC",
-   "period": "2026-06-30",
-   "acc": "0002059344-26-000003",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 7 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -3100,16 +3070,6 @@
    "filed": "2026-07-29",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0002140776",
-   "name": "Steelhead Wealth Management LLC",
-   "period": "2026-06-30",
-   "acc": "0002140776-26-000002",
-   "filed": "2026-08-14",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 4 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

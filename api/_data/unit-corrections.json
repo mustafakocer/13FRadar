@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-11-15T01:52:58.276Z",
+ "updatedAt": "2026-11-16T01:44:32.205Z",
  "count": 416,
  "corrections": [
   {
@@ -1129,7 +1129,7 @@
    "acc": "0001511291-26-000004",
    "filed": "2026-10-21",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 12 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1149,7 +1149,7 @@
    "acc": "0001513779-26-000006",
    "filed": "2026-11-13",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -1389,7 +1389,7 @@
    "acc": "0001606152-26-000004",
    "filed": "2026-10-30",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 22 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 23 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

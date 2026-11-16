@@ -14,7 +14,7 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 |  | Gemsstock Ltd. (0001724140) | 1057 | $2.33 mlr | $804.7 mn | +189.1% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1724140/000172414026000015/) |
 |  | Advisors Preferred, LLC (0001598841) | 1985 | $915.5 mn | $705.6 mn | +29.7% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1598841/000159884126000004/) |
 |  | M3 Wealth Management, LLC (0002109365) | 5796 | $158.4 mn | $15.8 mn | +902.2% | ×10 fark: kapakta basamak hatası ya da tabloda ×10 yazılmış satır olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2109365/000176538026000452/) |
-| 🆕 | SPRUCEGROVE INVESTMENT MANAGEMENT LTD (0001234074) | 3300 | $428.5 mn | $372.9 mn | +14.9% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1234074/000119312526459728/) |
+|  | SPRUCEGROVE INVESTMENT MANAGEMENT LTD (0001234074) | 3300 | $428.5 mn | $372.9 mn | +14.9% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1234074/000119312526459728/) |
 |  | Crestmont Private Wealth LLC (0001873372) | 3700 | $355.9 mn | $335.9 mn | +6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1873372/000198615226000184/) |
 
 ## İncelendi — fonun kapak hatası

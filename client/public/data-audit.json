@@ -173,7 +173,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 6611
+        "filers": 6794
       },
       "findings": []
     },

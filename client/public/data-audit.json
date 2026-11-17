@@ -1,5 +1,5 @@
 {
-  "worst": "ok",
+  "worst": "warn",
   "datasets": [
     {
       "key": "consensus",
@@ -21,18 +21,29 @@
         "topSold": 20,
         "newPositions": 40
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "lagging",
+          "severity": "warn",
+          "message": "Oaktree Capital (Howard Marks) last reported 2026-06-30, panel median 2026-09-30"
+        },
+        {
+          "rule": "lagging",
+          "severity": "warn",
+          "message": "Cantillon Capital Management last reported 2026-06-30, panel median 2026-09-30"
+        }
+      ]
     },
     {
       "key": "guru-stocks",
       "path": "api/_data/guru-stocks.json",
       "metrics": {
         "managers": 72,
-        "stocks": 1921,
-        "options": 57,
-        "withTicker": 1916,
-        "withSector": 1735,
-        "withCap": 1672
+        "stocks": 1982,
+        "options": 60,
+        "withTicker": 1980,
+        "withSector": 1791,
+        "withCap": 1709
       },
       "findings": []
     },
@@ -114,7 +125,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4116
+        "tickers": 4124
       },
       "findings": []
     },
@@ -139,10 +150,16 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 6663,
-        "unresolved": 99
+        "resolved": 7476,
+        "unresolved": 144
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "drift",
+          "severity": "warn",
+          "message": "unresolved moved +45.5%, 99 → 144"
+        }
+      ]
     },
     {
       "key": "related",
@@ -173,7 +190,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 6794
+        "filers": 7166
       },
       "findings": []
     },
@@ -181,7 +198,7 @@
       "key": "sector-map",
       "path": "api/_data/sector-map.json",
       "metrics": {
-        "symbols": 1746
+        "symbols": 1907
       },
       "findings": []
     }

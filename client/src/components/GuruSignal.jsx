@@ -4,6 +4,7 @@ import { useI18n } from '../i18n.jsx';
 import { managerPath } from '../lib/paths.js';
 import Ico from './Ico.jsx';
 import { TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react';
+import AsOfTag from './AsOfTag.jsx';
 
 // One-glance superinvestor signal for a stock: how many gurus bought/sold it
 // this quarter and who holds it. Free feature — it is the discovery hook.
@@ -66,6 +67,7 @@ export default function GuruSignal({ ticker, cusip }) {
                 <span key={h.cik}>
                   {i > 0 && ', '}
                   <Link to={managerPath(h.cik, h.path)}>{h.name}</Link>
+                  <AsOfTag asOf={h.asOf} />
                 </span>
               ))}
               {held.holderCount > 4 && ` +${held.holderCount - 4}`}

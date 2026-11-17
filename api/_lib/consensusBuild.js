@@ -154,6 +154,11 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
     exiters: a.exiters,
     ...(a.listedOn ? { listedOn: a.listedOn, preListing: a.preListing, preListingValue: Math.round(a.preListingValue) } : {}),
   });
+  // A fund still on an older book than the panel's quarter (it has not filed
+  // yet) carries that period as `asOf`, so the UI can say whose line is last
+  // quarter's — Cantillon's Q2 "−95% GOOGL" read as a Q3 sale otherwise.
+  const lagging = new Map(managers.filter((m) => m.reportDate && m.reportDate < quarter).map((m) => [m.cik, m.reportDate]));
+  const asOf = (cik) => (lagging.has(cik) ? { asOf: lagging.get(cik) } : {});
   const holdersOf = (a, n) =>
     a.holders.slice(0, n).map((h) => ({
       cik: h.cik,
@@ -163,6 +168,7 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
       value: Math.round(h.value),
       change: h.change == null ? null : Number(h.change.toFixed(2)),
       activity: h.activity,
+      ...asOf(h.cik),
     }));
 
   // Full per-security table: every name at least one fund still holds,
@@ -191,7 +197,7 @@ export async function build({ stocksTickers = 0, listedOn = null } = {}) {
       holders: o.holders
         .sort((x, y) => y.value - x.value)
         .slice(0, HOLDERS_PER_STOCK)
-        .map((h) => ({ cik: h.cik, name: h.name, weight: Number(h.weight.toFixed(2)), value: Math.round(h.value) })),
+        .map((h) => ({ cik: h.cik, name: h.name, weight: Number(h.weight.toFixed(2)), value: Math.round(h.value), ...asOf(h.cik) })),
     }));
 
   // the legacy lists have always shown a handful of holders inline

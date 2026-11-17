@@ -954,6 +954,7 @@ const dict = {
     'consensus.clickHint': 'Bir satıra tıklayarak o hisseyi tutan fonların tamamını açabilirsiniz.',
     'consensus.activity': 'Bu çeyrek',
     'consensus.noHolders': 'Takip edilen fonlardan hiçbiri bu menkulü tutmuyor.',
+    'consensus.asOfTip': 'Bu fon yeni çeyreği henüz dosyalamadı; satır {q} verisidir.',
     'consensus.moreHolders': 'Tutan {n} fonun tamamı Pro planda',
     'consensus.universeTop': "Tüm Wall Street'in Favorileri",
     'consensus.universeNote':
@@ -2442,6 +2443,7 @@ const dict = {
     'consensus.clickHint': 'Click a row to open every fund holding that security.',
     'consensus.activity': 'This quarter',
     'consensus.noHolders': 'None of the tracked funds hold this security.',
+    'consensus.asOfTip': 'This fund has not filed the new quarter yet; the line is its {q} book.',
     'consensus.moreHolders': 'All {n} holding funds are on Pro',
     'consensus.universeTop': "All of Wall Street's Favorites",
     'consensus.universeNote':

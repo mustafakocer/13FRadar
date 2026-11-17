@@ -274,8 +274,9 @@ export const DATASETS = [
     path: 'api/_data/security-master.json',
     optional: true,
     require: ['byCusip'],
-    metrics: (d) => ({ resolved: size(d.byCusip), unresolved: size(d.unresolved) }),
+    metrics: (d) => ({ resolved: size(d.byCusip), unresolved: size(d.unresolved), classified: size(d.classified) }),
     floors: { resolved: 3000 },
+    lowerIsBetter: ['unresolved'],
   },
   {
     key: 'related',
@@ -410,6 +411,9 @@ export function auditDataset({ spec, current, baseline = null, allowDrift = fals
   for (const [name, value] of Object.entries(metrics)) {
     const v = driftVerdict(value, before[name]);
     if (!v) continue;
+    // a backlog metric (identifiers still unmapped): shrinking is the goal,
+    // only growth is worth saying
+    if (spec.lowerIsBetter?.includes(name) && v.change < 0) continue;
     // An override exists because a real change — the guru bench going from 20
     // names to 99 — looks exactly like a bad day to this rule, and a gate with
     // no way past it is a gate that gets deleted.

@@ -14,6 +14,7 @@ import { Disclaimer } from '../components/Faq.jsx';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
 import { Search } from 'lucide-react';
+import AsOfTag from '../components/AsOfTag.jsx';
 
 const CAPS = ['mega', 'large', 'mid', 'small', 'micro'];
 const MIN_HOLDERS = ['2', '3', '5', '10'];
@@ -182,7 +183,7 @@ export default function StockScreen() {
                       <td className={`num ${deltaClass(ret)}`}>{ret != null ? fmtPct(ret) : '—'}</td>
                       <td className="l small">
                         {(r.holders || []).map((h, j) => (
-                          <span key={h.cik}>{j > 0 && ', '}<Link to={managerPath(h.cik)}>{h.name}</Link></span>
+                          <span key={h.cik}>{j > 0 && ', '}<Link to={managerPath(h.cik)}>{h.name}</Link><AsOfTag asOf={h.asOf} /></span>
                         ))}
                       </td>
                     </tr>

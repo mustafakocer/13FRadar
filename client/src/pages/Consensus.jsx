@@ -22,6 +22,7 @@ import { managerPath } from '../lib/paths.js';
 import Ico from '../components/Ico.jsx';
 import { Compass, ChevronRight, ChevronDown, Download, Users, CalendarDays, Trophy, TrendingUp } from 'lucide-react';
 import LeadForm from '../components/LeadForm.jsx';
+import AsOfTag from '../components/AsOfTag.jsx';
 
 // One page, one table, one question at a time.
 //
@@ -380,6 +381,7 @@ export default function Consensus() {
                               {j > 0 && ', '}
                               {/* the row toggles on click; a fund link must not */}
                               <Link to={managerPath(h.cik, h.path)} onClick={(e) => e.stopPropagation()}>{h.name}</Link>
+                              <AsOfTag asOf={h.asOf} />
                             </span>
                           ))}
                           {r.holderCount > 2 && <span className="muted"> +{fmtNum(r.holderCount - 2)}</span>}

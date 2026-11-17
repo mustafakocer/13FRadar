@@ -7,7 +7,18 @@
 //     updatedAt,
 //     byCusip:    { [cusip]: { ticker, name, exchange, figi, validFrom, validTo, source, resolvedAt } },
 //     unresolved: { [cusip]: { name, attempts, lastTried, lastError } }
+//     classified: { [cusip]: { kind, name, reason, source, classifiedAt,
+//                              putCall?, underlying?, underlyingTicker?, lastTicker? } }
 //   }
+//
+// `classified` holds identifiers that were looked at and have no tradable
+// ticker of their own: an option line filed under the CALL/PUT code of the
+// SEC 13(f) list, a warrant, right, unit or note, a security the SEC list
+// marks deleted with no listing left, or a code that is not a CUSIP at all
+// (a typo, an ISIN fragment, a placeholder). They are not "unknown" any
+// more, so they leave `unresolved` and are not retried against OpenFIGI;
+// tickerFor() still answers null for them, so nothing is priced or rolled
+// up under the wrong symbol (secSecurities.js, cusip-overrides.json).
 //
 // Every CUSIP → ticker lookup on the site goes through here: the holdings
 // endpoints, the consensus and history builds, the universe build, the
@@ -47,7 +58,7 @@ function load() {
     raw = null;
   }
   if (raw?.byCusip) {
-    table = { updatedAt: raw.updatedAt || null, byCusip: raw.byCusip, unresolved: raw.unresolved || {} };
+    table = { updatedAt: raw.updatedAt || null, byCusip: raw.byCusip, unresolved: raw.unresolved || {}, classified: raw.classified || {} };
     return table;
   }
   // first run: seed from the flat map the universe build used to write
@@ -61,7 +72,7 @@ function load() {
   for (const [c, t] of Object.entries(flat)) {
     if (t) byCusip[upper(c)] = { ticker: String(t).toUpperCase(), name: null, exchange: null, figi: null, validFrom: null, validTo: null, source: 'static', resolvedAt: null };
   }
-  table = { updatedAt: null, byCusip, unresolved: {} };
+  table = { updatedAt: null, byCusip, unresolved: {}, classified: {} };
   return table;
 }
 
@@ -80,8 +91,38 @@ export const isCusipLike = (s) => /^[A-Z0-9]{8,9}$/.test(String(s || ''));
 // known — the identifier itself.
 export function labelFor(cusip, issuer = null) {
   const e = securityEntry(cusip);
-  return e?.ticker || issuer || e?.name || load().unresolved[upper(cusip)]?.name || upper(cusip);
+  if (e?.ticker) return e.ticker;
+  const k = load().classified[upper(cusip)];
+  if (k?.kind === 'option' && k.underlyingTicker) return `${k.underlyingTicker} ${k.putCall || ''}`.trim();
+  return issuer || e?.name || k?.name || load().unresolved[upper(cusip)]?.name || upper(cusip);
 }
+
+export const classifiedEntry = (cusip) => load().classified[upper(cusip)] || null;
+
+// File an identifier as examined-and-not-a-ticker (see the header). A later
+// ticker from record() takes precedence and removes it again.
+export function classify(cusip, info, { source = 'sec' } = {}) {
+  const t = load();
+  const c = upper(cusip);
+  if (!c || t.byCusip[c]?.ticker) return false;
+  const name = info.name || t.unresolved[c]?.name || null;
+  t.classified[c] = {
+    kind: info.kind,
+    name,
+    reason: info.reason || null,
+    ...(info.putCall ? { putCall: info.putCall } : {}),
+    ...(info.underlying ? { underlying: info.underlying } : {}),
+    ...(info.underlyingTicker ? { underlyingTicker: info.underlyingTicker } : {}),
+    ...(info.lastTicker ? { lastTicker: info.lastTicker } : {}),
+    source,
+    classifiedAt: isoNow(),
+  };
+  delete t.unresolved[c];
+  dirty = true;
+  return true;
+}
+
+export const unresolvedEntries = () => Object.entries(load().unresolved).map(([cusip, u]) => ({ cusip, ...u }));
 
 // Record an answer from the resolver. `hit` is { ticker, name, exchange,
 // figi } or null; a null keeps the identifier in the unresolved table with
@@ -101,7 +142,9 @@ export function record(cusip, hit, { source = 'openfigi', name = null } = {}) {
       resolvedAt: isoNow(),
     };
     delete t.unresolved[c];
+    delete t.classified[c];
   } else {
+    if (t.classified[c]) return; // examined already; an OpenFIGI miss changes nothing
     const u = t.unresolved[c] || { name: null, attempts: 0, lastTried: null, lastError: null };
     u.attempts += 1;
     u.lastTried = isoNow();
@@ -120,7 +163,7 @@ export function needsLookup(cusips, { now = Date.now(), retryAfterMs = RETRY_AFT
   const seen = new Set();
   for (const raw of cusips) {
     const c = upper(raw);
-    if (!c || seen.has(c) || t.byCusip[c]) continue;
+    if (!c || seen.has(c) || t.byCusip[c] || t.classified[c]) continue;
     seen.add(c);
     const u = t.unresolved[c];
     if (u?.lastTried && now - Date.parse(u.lastTried) < retryAfterMs) continue;
@@ -141,7 +184,7 @@ export function retryQueue({ now = Date.now(), retryAfterMs = RETRY_AFTER_MS, li
 
 export function stats() {
   const t = load();
-  return { resolved: Object.keys(t.byCusip).length, unresolved: Object.keys(t.unresolved).length, updatedAt: t.updatedAt };
+  return { resolved: Object.keys(t.byCusip).length, unresolved: Object.keys(t.unresolved).length, classified: Object.keys(t.classified).length, updatedAt: t.updatedAt };
 }
 
 // Write the master and the derived flat map. Builds call this once at the

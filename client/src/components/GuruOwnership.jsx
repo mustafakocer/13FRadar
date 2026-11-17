@@ -6,6 +6,7 @@ import { managerPath } from '../lib/paths.js';
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
 import Ico from './Ico.jsx';
 import { Users, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import AsOfTag from './AsOfTag.jsx';
 
 // Who among the curated funds owns this security, and what they did with it
 // last quarter. Two orderings of the same holder list sit side by side on
@@ -22,6 +23,7 @@ export default function GuruOwnership({ stock, byConviction, byValue, truncated,
     <tr key={`${h.cik}-${showWeight ? 'w' : 'v'}`}>
       <td className="l">
         <Link to={managerPath(h.cik)}>{h.name}</Link>
+        <AsOfTag asOf={h.asOf} />
       </td>
       <td className="num">{showWeight ? fmtPct(h.weight, { sign: false }) : fmtMoney(h.value)}</td>
       <td className="num">

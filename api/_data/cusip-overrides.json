@@ -1,0 +1,20 @@
+{
+  "_doc": "Hand-checked answers for identifiers OpenFIGI and the automatic SEC pass cannot settle (api/_lib/secSecurities.js). Tickers are confirmed in SEC company_tickers_exchange.json or the SEC investment-company series/class file; checked 2026-11-17.",
+  "316092121": { "ticker": "FDIF", "name": "Fidelity Disruptors ETF", "note": "13(f) list: FIDELITY COVINGTON TRUST DISRUPTORS ETF; SEC series/class file: Fidelity Disruptors ETF = FDIF" },
+  "316092147": { "ticker": "FMED", "name": "Fidelity Disruptive Medicine ETF", "note": "13(f) list: DISRU MEDIC ETF; SEC series/class file: FMED" },
+  "316092154": { "ticker": "FDFF", "name": "Fidelity Disruptive Finance ETF", "note": "13(f) list: DISRUPTIVE FIN E; SEC series/class file: FDFF" },
+  "316092188": { "ticker": "FMET", "name": "Fidelity Metaverse ETF", "note": "13(f) list: METAVERSE ETF; SEC series/class file: FMET" },
+  "500767330": { "ticker": "KPDD", "name": "KraneShares 2x Long PDD Daily ETF", "note": "13(f) list: 2X LNG PDD ETF; SEC series/class file: KPDD" },
+  "500767397": { "ticker": "KCAI", "name": "KraneShares China Alpha Index ETF", "note": "13(f) list: CHIN ALPH IN ETF; SEC series/class file: KCAI" },
+  "552939100": { "ticker": "MGF", "name": "Aberdeen Government Markets Income Fund", "note": "13(f) list: ABERDEEN GOVT MARKETS INCOME SH BEN INT; SEC tickers: MGF (CIK 811922)" },
+  "457637700": { "ticker": "MTRI", "name": "InMed Pharmaceuticals Inc.", "note": "13(f) list: INMED PHARMACEUTICALS COM NEW; SEC tickers list MTRI first and INM for CIK 1728328" },
+  "485859110": { "ticker": "KPLT", "name": "Katapult Holdings, Inc.", "note": "issuer name in the filing; SEC tickers: KPLT (CIK 1785424)" },
+  "676118201": { "ticker": "OMEX", "name": "Odyssey Marine Exploration Inc", "note": "13(f) list: ODYSSEY MARINE EXPL COM NEW; SEC tickers: OMEX (CIK 798528)" },
+  "38741L107": { "ticker": "GPMT", "name": "Granite Point Mortgage Trust Inc.", "note": "13(f) list: GRANITE PT MTG TR COM STK; SEC tickers: GPMT (CIK 1703644)" },
+  "00534B100": { "ticker": "ADGM", "name": "Adagio Medical Holdings, Inc.", "note": "13(f) list: ADAGIO MED HLDGS COM; SEC tickers: ADGM (CIK 2006986)" },
+  "04351P101": { "ticker": "ASND", "name": "Ascendis Pharma A/S", "note": "issuer name in the filing (ADS); SEC tickers: ASND (CIK 1612042)" },
+  "307359885": { "ticker": "FFAI", "name": "Faraday Future Intelligent Electric Inc.", "note": "13(f) list: FARADAY FUTURE INTLGT ELEC COM NEW CL A (deleted: pre-reverse-split CUSIP); SEC tickers: FFAI (CIK 1805521)" },
+  "38259P706": { "ticker": "GOOG", "name": "Alphabet Inc. Class C", "note": "the Google Inc. Class C CUSIP from before the 2015 Alphabet reorganisation; SEC tickers: GOOG (CIK 1652044)" },
+  "CREST6610": { "ticker": "SUNB", "name": "Sunbelt Rentals Holdings, Inc.", "note": "a CREST code, not a CUSIP; the filing names Sunbelt Rentals Holdings ORD; SEC tickers: SUNB (CIK 2083785)" },
+  "554489104": { "kind": "delisted", "name": "Veris Residential Inc", "lastTicker": "VRE", "reason": "no longer in SEC company_tickers_exchange.json" }
+}

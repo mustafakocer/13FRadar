@@ -3,6 +3,7 @@ import { useI18n } from '../i18n.jsx';
 import { useGuruStock } from '../hooks/useGuruStock.js';
 import { managerPath } from '../lib/paths.js';
 import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
+import AsOfTag from './AsOfTag.jsx';
 
 // The funds behind one row, opened in place.
 //
@@ -46,6 +47,7 @@ export default function HoldersPanel({ ticker, cusip, holders: inline = [], hold
                   <tr key={h.cik}>
                     <td className="l">
                       <Link to={managerPath(h.cik, h.path)}>{h.name}</Link>
+                      <AsOfTag asOf={h.asOf} />
                     </td>
                     <td className="num">{h.weight != null ? fmtPct(h.weight, { sign: false }) : '—'}</td>
                     {useFull && <td className="num">{fmtMoney(h.value)}</td>}

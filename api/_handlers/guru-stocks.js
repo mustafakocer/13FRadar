@@ -43,7 +43,7 @@ const summarise = (s) => ({
   cap: s.cap ?? null,
   // the first few names keep the "held by" column working on list views;
   // the full roll of holders stays behind the per-security call
-  holders: (s.holders || []).slice(0, 3).map((h) => ({ cik: h.cik, name: h.name })),
+  holders: (s.holders || []).slice(0, 3).map((h) => ({ cik: h.cik, name: h.name, ...(h.asOf ? { asOf: h.asOf } : {}) })),
 });
 
 // Narrow the ranked table. A row with no sector or market cap yet is dropped

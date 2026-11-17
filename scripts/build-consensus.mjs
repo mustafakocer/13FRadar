@@ -9,6 +9,7 @@ import path from 'node:path';
 import { build } from '../api/_lib/consensusBuild.js';
 import { buildStockMeta } from '../api/_lib/stockMetaBuild.js';
 import { retryUnresolved } from '../api/_lib/figi.js';
+import { resolveFromSec } from '../api/_lib/secSecurities.js';
 import { persist as persistMaster, stats as masterStats } from '../api/_lib/securityMaster.js';
 import { flushProviderHealth } from '../api/_lib/providerAlarm.js';
 import { buildNewListings, writeNewListings } from '../api/_lib/newListings.js';
@@ -87,10 +88,19 @@ console.log(
 {
   const before = masterStats();
   const r = await retryUnresolved({ limit: Number(process.env.FIGI_RETRY_BUDGET || 200) });
+  // what OpenFIGI still cannot map: the SEC 13(f) list, its tickers file and
+  // the hand-checked overrides settle it, or file it as option / warrant /
+  // delisted / invalid (api/_lib/secSecurities.js)
+  try {
+    const s = await resolveFromSec();
+    console.log(`security master, SEC pass (list ${s.list || '—'}): ${s.pending} pending → ${s.resolved} resolved, ${s.classified} classified ${JSON.stringify(s.byKind)}, ${s.left} left`);
+  } catch (e) {
+    console.warn(`security master, SEC pass skipped: ${e.message}`);
+  }
   persistMaster({ force: true });
   const after = masterStats();
   console.log(
-    `security master: ${after.resolved} resolved, ${after.unresolved} unresolved (before: ${before.resolved}/${before.unresolved}; retried ${r.due}, recovered ${r.resolved}); ${stocks.filter((s) => !s.ticker).length} of ${stocks.length} table rows without a ticker`
+    `security master: ${after.resolved} resolved, ${after.unresolved} unresolved, ${after.classified} classified (before: ${before.resolved}/${before.unresolved}; retried ${r.due}, recovered ${r.resolved}); ${stocks.filter((s) => !s.ticker).length} of ${stocks.length} table rows without a ticker`
   );
 }
 

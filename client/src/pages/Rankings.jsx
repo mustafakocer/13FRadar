@@ -19,6 +19,7 @@ import { securityLabel } from '../lib/label.js';
 import FilterSelect from '../components/FilterSelect.jsx';
 import Ico from '../components/Ico.jsx';
 import { Trophy } from 'lucide-react';
+import AsOfTag from '../components/AsOfTag.jsx';
 
 // Indexable ranking pages over the securities the curated funds hold. The
 // per-security table (/api/guru-stocks) covers every name they own; the
@@ -198,7 +199,7 @@ export default function Rankings() {
                     {!isOptions && <td className={`num ${deltaClass(ret)}`}>{ret != null ? fmtPct(ret) : '—'}</td>}
                     <td className="l small">
                       {(r.holders || []).slice(0, 3).map((h, j) => (
-                        <span key={h.cik}>{j > 0 && ', '}<Link to={managerPath(h.cik, h.path)}>{h.name}</Link></span>
+                        <span key={h.cik}>{j > 0 && ', '}<Link to={managerPath(h.cik, h.path)}>{h.name}</Link><AsOfTag asOf={h.asOf} /></span>
                       ))}
                     </td>
                   </tr>

@@ -43,7 +43,7 @@
         "options": 60,
         "withTicker": 1980,
         "withSector": 1791,
-        "withCap": 1709
+        "withCap": 1727
       },
       "findings": []
     },
@@ -125,7 +125,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4124
+        "tickers": 4174
       },
       "findings": []
     },
@@ -133,8 +133,8 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 5030,
-        "coveragePct": 98.6
+        "series": 5090,
+        "coveragePct": 98.9
       },
       "findings": []
     },
@@ -150,16 +150,10 @@
       "key": "security-master",
       "path": "api/_data/security-master.json",
       "metrics": {
-        "resolved": 7476,
-        "unresolved": 144
+        "resolved": 7530,
+        "unresolved": 151
       },
-      "findings": [
-        {
-          "rule": "drift",
-          "severity": "warn",
-          "message": "unresolved moved +45.5%, 99 → 144"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "related",
@@ -190,7 +184,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 7166
+        "filers": 7527
       },
       "findings": []
     },

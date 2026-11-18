@@ -1,12 +1,12 @@
 {
  "dataset": "openfigi",
  "kind": "provider",
- "run_id": "43998087573",
- "last_run_at": "2026-11-17T03:53:11.935Z",
- "last_success_at": "2026-11-17T03:53:11.935Z",
+ "run_id": "44220348049",
+ "last_run_at": "2026-11-18T04:08:25.110Z",
+ "last_success_at": "2026-11-18T04:08:25.110Z",
  "last_error": null,
  "last_error_at": null,
- "calls_ok": 12,
+ "calls_ok": 14,
  "refusals": 0,
  "transient_errors": 0
 }

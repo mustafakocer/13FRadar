@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-11-18T02:02:30.131Z",
- "count": 404,
+ "updatedAt": "2026-11-18T04:09:00.634Z",
+ "count": 405,
  "corrections": [
   {
    "cik": "0000019475",
@@ -2400,6 +2400,16 @@
    "filed": "2026-11-13",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 25 priced rows (100% agree): thousands written into a dollars filing",
+   "source": "latest-holdings"
+  },
+  {
+   "cik": "0001862787",
+   "name": "Main Management Fund Advisors LLC",
+   "period": "2026-09-30",
+   "acc": "0001862787-26-000005",
+   "filed": "2026-11-16",
+   "factor": 1000,
+   "reason": "median implied price ÷ close = 0.00100 over 3 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

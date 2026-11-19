@@ -18,6 +18,15 @@
    "table": 132542811,
    "reason": "2026-09-30: table $132.54M vs cover $131.14M (+1.07%); 90 rows = 90 cover lines; 54 of 54 priced lines within ±10% of the period-end close; the cover matches the table without its options lines. Closed automatically.",
    "at": "2026-11-14"
+  },
+  {
+   "cik": "0001119032",
+   "acc": "0001119032-26-000014",
+   "kind": "small-gap",
+   "declared": 511261812,
+   "table": 516485359,
+   "reason": "2026-09-30: table $516.49M vs cover $511.26M (+1.02%); 91 rows = 91 cover lines; 83 of 83 priced lines within ±10% of the period-end close. Closed automatically.",
+   "at": "2026-11-19"
   }
  ]
 }

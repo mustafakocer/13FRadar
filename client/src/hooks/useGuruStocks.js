@@ -9,25 +9,34 @@ const SIX_HOURS = 6 * 60 * 60 * 1000;
 //
 // Filtering happens on the server so the sector list the page offers is the
 // one the table can actually honour.
-export function useGuruStocks({ limit = 500, sector, cap, minHolders, strongBuy } = {}) {
+//
+// `standIn` is an answer the caller already holds for exactly this question
+// (a ranking page's server seed: the same response, cut to the rows that
+// page lists). While there is one, and the table itself is not in cache, the
+// table is not fetched.
+export function useGuruStocks({ limit = 500, sector, cap, minHolders, strongBuy, standIn = null } = {}) {
   const q = useQuery({
     queryKey: ['guru-stocks', limit, sector || '', cap || '', minHolders || 0, strongBuy ? 1 : 0],
     queryFn: () => api.guruStocks({ limit, sector, cap, minHolders, strongBuy }),
+    enabled: !standIn,
     staleTime: SIX_HOURS,
     retry: 1,
   });
 
-  const ready = q.data?.available === true;
+  const data = q.data ?? standIn ?? undefined;
+  const ready = data?.available === true;
   return {
     ...q,
+    data,
+    isLoading: q.isLoading && !data,
     ready,
-    stocks: ready ? q.data.stocks || [] : [],
-    sectors: ready ? q.data.sectors || [] : [],
-    matched: q.data?.matched ?? 0,
-    universe: q.data?.universe ?? null,
-    reportDate: q.data?.reportDate ?? null,
-    managers: q.data?.managers ?? 0,
-    coverage: q.data?.coverage ?? null,
+    stocks: ready ? data.stocks || [] : [],
+    sectors: ready ? data.sectors || [] : [],
+    matched: data?.matched ?? 0,
+    universe: data?.universe ?? null,
+    reportDate: data?.reportDate ?? null,
+    managers: data?.managers ?? 0,
+    coverage: data?.coverage ?? null,
   };
 }
 

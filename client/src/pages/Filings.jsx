@@ -26,18 +26,36 @@ export default function Filings() {
   const [perPage, setPerPage] = useState(20);
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  // The server's seed: the first rows and the feed's totals
+  // (lib/filingsHead.js). Never fetched — the file below is the source.
+  const head = useQuery({ queryKey: ['filings-head'], queryFn: () => null, enabled: false, staleTime: Infinity });
+  const filtering = Boolean(quarter || form || q.trim());
+  // the whole feed is needed once the reader asks for something the head
+  // cannot answer: a filter, a search, or a page past its rows
+  const needFull = !head.data || filtering || page * perPage > (head.data.rows?.length || 0);
+  const full = useQuery({
     queryKey: ['filings'],
     queryFn: async () => {
       const r = await fetch('/filings.json');
       if (!r.ok) throw new Error('no-filings');
       return r.json();
     },
+    enabled: needFull,
     staleTime: HOUR,
     retry: 1,
   });
+  const data = full.data ?? head.data ?? null;
+  const isLoading = !data && full.isLoading;
+  // rows are on their way: nothing computed from the head alone may be shown
+  // as the answer to a filter or a later page
+  const pending = needFull && !full.data && !full.isError;
 
   const all = data?.rows || [];
+  const total = full.data ? all.length : (data?.total ?? all.length);
+  const amendments = useMemo(
+    () => (!full.data && data?.amendments != null ? data.amendments : all.filter((r) => r.amended).length),
+    [full.data, data, all]
+  );
   const rows = useMemo(() => {
     const needle = q.trim().toUpperCase();
     return all.filter((r) => {
@@ -49,17 +67,18 @@ export default function Filings() {
     });
   }, [all, form, quarter, q]);
 
-  const shown = rows.slice((page - 1) * perPage, page * perPage);
-  const pages = Math.max(1, Math.ceil(rows.length / perPage));
+  // unfiltered, the head stands for the whole feed: its count is the feed's
+  const matched = filtering || full.data ? rows.length : total;
+  const shown = pending ? [] : rows.slice((page - 1) * perPage, page * perPage);
+  const pages = Math.max(1, Math.ceil(matched / perPage));
   const newest = all[0]?.filed || null;
 
   const answer = useMemo(() => {
     if (!all.length) return null;
-    const amendments = all.filter((r) => r.amended).length;
     return lang === 'tr'
-      ? `Son ${fmtNum(all.length)} adet 13F bildirimi ${newest} tarihine kadar listelenir; ${fmtNum(amendments)} tanesi düzeltme (13F-HR/A). Her satır bildirilen dönemi, dosyalama tarihini ve — ölçülebildiğinde — portföy büyüklüğü ile pozisyon sayısını gösterir.`
-      : `The ${fmtNum(all.length)} most recent 13F filings through ${newest}, ${fmtNum(amendments)} of them amendments (13F-HR/A). Each row carries the period reported, the date filed and — where it has been measured — portfolio value and position count.`;
-  }, [all, newest, lang]);
+      ? `Son ${fmtNum(total)} adet 13F bildirimi ${newest} tarihine kadar listelenir; ${fmtNum(amendments)} tanesi düzeltme (13F-HR/A). Her satır bildirilen dönemi, dosyalama tarihini ve — ölçülebildiğinde — portföy büyüklüğü ile pozisyon sayısını gösterir.`
+      : `The ${fmtNum(total)} most recent 13F filings through ${newest}, ${fmtNum(amendments)} of them amendments (13F-HR/A). Each row carries the period reported, the date filed and — where it has been measured — portfolio value and position count.`;
+  }, [all.length, total, amendments, newest, lang]);
 
   useSeo(
     useMemo(
@@ -132,7 +151,7 @@ export default function Filings() {
             ]}
           />
           <span className="muted small" style={{ marginLeft: 'auto' }}>
-            {fmtNum(rows.length)} {t('filings.results')}
+            {pending ? '…' : fmtNum(matched)} {t('filings.results')}
           </span>
           {(quarter || form || q) && (
             <button className="btn ghost sm" onClick={reset}>{t('screen.reset')}</button>
@@ -158,6 +177,11 @@ export default function Filings() {
                 </tr>
               </thead>
               <tbody>
+                {pending && (
+                  <tr>
+                    <td className="l muted" colSpan={6}><div className="loading"><div className="spinner" />{t('common.loading')}</div></td>
+                  </tr>
+                )}
                 {shown.map((r) => (
                   <tr key={r.acc}>
                     <td className="l">

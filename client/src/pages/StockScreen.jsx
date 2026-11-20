@@ -32,7 +32,6 @@ export default function StockScreen() {
   const [sort, setSort] = useState({ key: 'rank', dir: 1 });
 
   const table = useGuruStocks({ limit: 500, sector, cap, minHolders, strongBuy });
-  const returns = useStaticReturns();
 
   const rows = useMemo(() => {
     const needle = q.trim().toUpperCase();
@@ -50,6 +49,8 @@ export default function StockScreen() {
       return (av - bv) * dir;
     });
   }, [table.stocks, q, sort]);
+  // the rows on screen: the server HTML carries their returns and no others
+  const returns = useStaticReturns(useMemo(() => rows.map((r) => r.ticker), [rows]));
 
   const answer = useMemo(() => {
     if (!table.ready || !rows.length) return null;

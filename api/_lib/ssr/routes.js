@@ -23,6 +23,9 @@ import { URL_SYMBOL_SRC } from '../urlSymbol.js';
 import { knownSymbol, priceUnavailable } from '../priceSnapshot.js';
 import { guruStock } from '../guruStocks.js';
 import { withCompanyName } from '../companyNames.js';
+import { filingsHead } from '../../../client/src/lib/filingsHead.js';
+import { RANKING_ROWS } from '../../../client/src/lib/rankingKinds.js';
+import { consensusLite } from '../../../client/src/lib/consensusLite.js';
 
 const require = createRequire(import.meta.url);
 // A static data file, read from the deployment's built site first
@@ -86,14 +89,28 @@ export const CACHE = {
 
 const ok = (r) => (r && r.status === 200 && r.body && !r.body.error ? r.body : null);
 
+// Page weight. The dehydrated state is most of a page's HTML, so a seed
+// carries what the page renders and not the file it came from:
+//   returns.json   the render reads the whole table, the HTML keeps the
+//                  symbols it looked up (entry-server.jsx `accessed`); the
+//                  browser fetches the file when it needs another one
+//   consensus.json without `updates` everywhere but the consensus page
+//   filings.json   the first rows and the totals (loadFilings)
+// tests/page-weight.test.mjs holds the pages to a byte budget.
+const returnsSeed = () => {
+  const r = staticReturns();
+  return r ? [['static-returns-seed'], r.returns || {}, { accessed: true }] : null;
+};
+const liteSeed = (c) => [['consensus-lite'], consensusLite(c)];
+
 async function loadHome() {
   const seeds = [];
   const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  if (c) seeds.push(liteSeed(c));
   const t = staticTeaser();
   if (t) seeds.push([['insiders-teaser'], t]);
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const r = returnsSeed();
+  if (r) seeds.push(r);
   const s = staticSummary();
   if (s) seeds.push([['universe-summary'], s]);
   const g = staticGuruCards();
@@ -178,7 +195,7 @@ async function loadStock({ ticker, cusip }) {
   if (!priced && !knownSymbol(ticker) && !guruStock({ ticker, cusip })) return { seeds, status: 404 };
   seeds.push([['stock', ticker], stock || withCompanyName(priceUnavailable(ticker), ticker)]);
   const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  if (c) seeds.push(liteSeed(c));
   // The guru standing is the free hook and the answer an assistant quotes, so
   // it has to be in the HTML rather than arrive after hydration. Anonymous
   // render = the free payload, which is what the CDN may keep.
@@ -187,10 +204,10 @@ async function loadStock({ ticker, cusip }) {
   return { seeds };
 }
 
-async function loadConsensus() {
+async function loadConsensus({ full = false } = {}) {
   const seeds = [];
   const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  if (c) seeds.push(full ? [['consensus'], c] : liteSeed(c));
   const s = staticStocks();
   if (s) seeds.push([['stocksUniverse'], { ...s, rows: (s.rows || []).slice(0, 60) }]);
   return seeds;
@@ -200,9 +217,8 @@ async function loadConsensus() {
 // table its default segment renders, under the exact key the unfiltered page
 // asks for — a seed only counts when the key matches.
 async function loadConsensusPage() {
-  const seeds = await loadConsensus();
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  // the one page that reads the per-fund cards, so the one that gets them
+  const seeds = await loadConsensus({ full: true });
   const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
   if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
   const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
@@ -233,14 +249,17 @@ async function loadFilers({ letter }) {
   const r = ok(await invoke(slugHandler, { letter }));
   return r ? [[['filers', letter], r]] : [];
 }
-async function loadRankings() {
+async function loadRankings({ kind } = {}) {
   const seeds = await loadConsensus();
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
-  // The full ranked table, under the key the unfiltered page asks for, so a
-  // crawler sees the whole list rather than the thirty public rows.
+  const r = returnsSeed();
+  if (r) seeds.push(r);
+  // The ranked table, so a crawler sees the whole list rather than the
+  // thirty public rows — cut to the rows this ranking lists, under a key of
+  // its own (the page falls back to the table's key for any other question).
   const g = ok(await invoke(guruStocksHandler, { limit: '300' }));
-  if (g?.available) seeds.push([['guru-stocks', 300, '', '', 0, 0], g]);
+  const rowsOf = RANKING_ROWS[kind];
+  if (g?.available && rowsOf) seeds.push([['guru-stocks-ranking', kind], { ...g, stocks: (g.stocks || []).filter(rowsOf) }]);
+  else if (g?.available) seeds.push([['guru-stocks', 300, '', '', 0, 0], g]);
   const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
   if (o?.available) seeds.push([['guru-options'], o]);
   return seeds;
@@ -250,16 +269,17 @@ async function loadRankings() {
 // seed only counts when its key matches exactly.
 async function loadStockScreen() {
   const seeds = [];
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const r = returnsSeed();
+  if (r) seeds.push(r);
   const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
   if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
   return seeds;
 }
 
 async function loadFilings() {
+  // the rows the page opens on and the feed's totals, not the whole feed
   const f = staticFilings();
-  return f ? [[['filings'], f]] : [];
+  return f ? [[['filings-head'], filingsHead(f)]] : [];
 }
 
 async function loadCalendar() {
@@ -321,9 +341,8 @@ async function loadInsiders({ tab }) {
 // HTML. The stock tab is not the default and is fetched after hydration.
 const COMPARE_SAMPLE = ['0001067983', '0001709323'];
 async function loadCompare() {
+  // (no returns: only the stock tab reads them, and it is not the default)
   const seeds = [];
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
   await Promise.all(
     COMPARE_SAMPLE.map(async (cik) => {
       const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 6000));
@@ -367,7 +386,7 @@ export const ROUTES = [
   { kind: 'congress', re: /^\/congress$/, load: loadCongress, cache: 'hour' },
   { kind: 'congress-committee', re: /^\/congress\/committee\/([a-z0-9-]{1,160})$/, params: (m) => ({ slug: m[1] }), load: loadCongressCommittee, cache: 'hour' },
   { kind: 'congress-member', re: /^\/congress\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1] }), load: loadCongressMember, cache: 'hour' },
-  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
+  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, params: (m) => ({ kind: m[1] }), load: loadRankings, cache: 'hour' },
   { kind: 'stock', re: new RegExp(`^/stock/(${URL_SYMBOL_SRC})$`), params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, params: (m, qs) => ({ tab: qs.get('tab') }), load: loadInsiders, cache: 'hour' },

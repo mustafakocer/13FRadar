@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import { ssr } from './helpers.mjs';
 import { deadlineFor, currentPeriod, nextDeadline, inFilingSeason } from '../api/_lib/calendar.js';
 import { contentByPath, GUIDES, COMPARES } from '../client/src/content/registry.js';
@@ -76,7 +77,9 @@ test('guides and comparison pages: real copy in both languages, question H2s, pe
 test('Phase 5 linking: guru page has related managers, latest report and calendar links, dateModified', async () => {
   const { html } = await ssr('/en/guru/berkshire-hathaway-warren-buffett');
   assert.match(html, /Related managers/);
-  assert.match(html, /href="\/en\/reports\/2026-q2"/);
+  // the newest archived report (api/_data/reports/index.json), whichever quarter that is
+  const latestReport = JSON.parse(fs.readFileSync(new URL('../api/_data/reports/index.json', import.meta.url), 'utf8')).reports[0];
+  assert.ok(html.includes(`href="/en/reports/${latestReport}"`), `no link to ${latestReport}`);
   assert.match(html, /href="\/en\/calendar"/);
   assert.match(html, /property="article:modified_time" content="2026-08-14"/);
   const rank = await ssr('/tr/rankings/most-bought');

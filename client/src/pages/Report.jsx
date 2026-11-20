@@ -170,8 +170,8 @@ export default function Report() {
     const bottom = sells[0];
     if (!top || !bottom) return null;
     return lang === 'tr'
-      ? `${qLabel} çeyreğinde takip edilen ${fundCount || ''} usta yatırımcı en çok ${top.t} aldı (${fmtMoney(top.nv)} net, ${top.b} fon alıcı) ve en çok ${bottom.t} sattı (${fmtMoney(Math.abs(bottom.nv))} net, ${bottom.s} fon satıcı). Tabloda ${all.length} hisse, SEC 13F bildirimlerinden çeyrek bazında hesaplandı.`
-      : `In ${qLabel} the tracked superinvestors bought ${top.t} most (${fmtMoney(top.nv)} net across ${top.b} funds) and sold ${bottom.t} most (${fmtMoney(Math.abs(bottom.nv))} net across ${bottom.s} funds). The table covers ${all.length} holdings, computed quarter over quarter from SEC 13F filings.`;
+      ? `${qLabel} çeyreğinde konsensüse dahil ${fundCount || ''} usta yatırımcı en çok ${top.t} aldı (${fmtMoney(top.nv)} net, ${top.b} fon alıcı) ve en çok ${bottom.t} sattı (${fmtMoney(Math.abs(bottom.nv))} net, ${bottom.s} fon satıcı). Tabloda ${all.length} hisse, SEC 13F bildirimlerinden çeyrek bazında hesaplandı.`
+      : `In ${qLabel} the ${fundCount || ''} superinvestors counted in the consensus bought ${top.t} most (${fmtMoney(top.nv)} net across ${top.b} funds) and sold ${bottom.t} most (${fmtMoney(Math.abs(bottom.nv))} net across ${bottom.s} funds). The table covers ${all.length} holdings, computed quarter over quarter from SEC 13F filings.`;
   }, [all, qLabel, fundCount, lang]);
 
   const faq = useMemo(() => {

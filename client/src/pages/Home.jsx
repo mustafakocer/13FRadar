@@ -272,13 +272,14 @@ export default function Home() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [tab, setTab] = useState(TABS.includes(params.get('tab')) ? params.get('tab') : 'gurus');
-  useSeo(useMemo(() => homeSeo({ lang }), [lang]));
+  const summary = useUniverseSummary();
+  useSeo(useMemo(() => homeSeo({ lang, fundCount: summary?.count }), [lang, summary?.count]));
 
   const cards = useStaticJson('guru-cards', '/guru-cards.json');
   const teaser = useStaticJson('insiders-teaser', '/insiders-teaser.json');
   const consensus = useConsensusStatic();
   const returns = useStaticReturns();
-  const funds = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
+  const funds = fundCountLabel(summary?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
 
   return (
     <div className="home">

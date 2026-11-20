@@ -16,6 +16,7 @@ import { useSeo } from '../seo.jsx';
 import Faq, { Disclaimer } from '../components/Faq.jsx';
 import AnswerBox from '../components/AnswerBox.jsx';
 import { managerSeo } from '../lib/seoTemplates.js';
+import { reportLink } from '../lib/reportLink.js';
 import { portfolioValue } from '../lib/answerBox.js';
 import { managerPath } from '../lib/paths.js';
 import { securityLabel } from '../lib/label.js';
@@ -304,6 +305,8 @@ export default function Manager({ segment = 'portfolio' }) {
 
   // the H1 is the entity's full name (SEO and the tests read it as such)
   const shown = mgr.data.displayName || mgr.data.name;
+  // the archived report while it is the current quarter's, else the live quarter page
+  const report = reportLink({ latest: mgr.data.latestReport, quarterEnd: mgr.data.consensusQuarter });
   // last year: the chained 13F return when the nightly job has one, else the
   // current book's weighted 1Y
   const y1 = perf.data?.horizons?.y1;
@@ -783,9 +786,9 @@ export default function Manager({ segment = 'portfolio' }) {
           </div>
         </div>
       )}
-      {mgr.data.latestReport && (
+      {report && (
         <p className="muted small mt16">
-          <Ico icon={Newspaper} /> <Link to={`/reports/${mgr.data.latestReport}`}>{t('related.report').replace('{q}', mgr.data.latestReport.toUpperCase())}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
+          <Ico icon={Newspaper} /> <Link to={report.to}>{report.id ? t('related.report').replace('{q}', report.id.toUpperCase()) : t('related.reportLive')}</Link> · <Link to="/calendar">{t('cal.title')}</Link>
         </p>
       )}
       {!user && cik && (

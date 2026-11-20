@@ -4,6 +4,7 @@ import { guruHistory } from '../_lib/history.js';
 import { latestHoldingsTable } from '../_lib/latestHoldings.js';
 import { createRequire } from 'node:module';
 import { reportIndex } from './report.js';
+import { guruStockTable } from '../_lib/guruStocks.js';
 import { misfiledAmong, misfiledMark, pageFiling } from '../_lib/misfiledBooks.js';
 import { notesFor } from '../_lib/filingNotes.js';
 
@@ -82,6 +83,9 @@ export default async function handler(req, res) {
     path: filerPath(cik),
     update: updateCard(padCik(cik)),
     latestReport: reportIndex()[0] || null,
+    // the quarter the consensus is on: the page links the archived report
+    // only while it is this quarter's (client/src/lib/reportLink.js)
+    consensusQuarter: guruStockTable()?.quarter || null,
     city: sub.addresses?.business?.city || null,
     state: sub.addresses?.business?.stateOrCountry || null,
     source,

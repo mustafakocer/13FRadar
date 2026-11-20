@@ -197,6 +197,9 @@ async function loadConsensus() {
 // asks for — a seed only counts when the key matches.
 async function loadConsensusPage() {
   const seeds = await loadConsensus();
+  // the universe tab and its meta description state the number of 13F filers
+  const s = staticSummary();
+  if (s) seeds.push([['universe-summary'], s]);
   const r = staticReturns();
   if (r) seeds.push([['static-returns'], r.returns || {}]);
   const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
@@ -342,6 +345,18 @@ async function loadPricing({ _country } = {}) {
   return [...(p ? [[['plans'], p]] : []), ...(s ? [[['universe-summary'], s]] : [])];
 }
 
+// The counts a page states in its title or description, so they are in the
+// HTML rather than a number typed into the source: the 13F universe's size
+// (/screen) and the tracked superinvestors (/match).
+async function loadSummaryOnly() {
+  const s = staticSummary();
+  return s ? [[['universe-summary'], s]] : [];
+}
+async function loadGuruCoverage() {
+  const c = staticConsensus()?.coverage;
+  return c ? [[['guru-coverage'], c]] : [];
+}
+
 // Public routes rendered on the server. Anything else renders the shell
 // (client-only pages) with a no-store header.
 export const ROUTES = [
@@ -370,12 +385,12 @@ export const ROUTES = [
   { kind: 'pricing', re: /^\/pricing$/, load: loadPricing, cache: 'none' },
   { kind: 'checkout', re: /^\/checkout\/(success|cancel)$/, load: async () => [], cache: 'none' },
   { kind: 'report', re: /^\/report$/, params: (m, qs) => ({ quarter: qs.get('q') }), load: loadReport, cache: 'hour' },
-  { kind: 'screen', re: /^\/screen$/, load: async () => [], cache: 'hour' },
+  { kind: 'screen', re: /^\/screen$/, load: loadSummaryOnly, cache: 'hour' },
   { kind: 'compare', re: /^\/compare$/, load: loadCompare, cache: 'hour' },
   { kind: 'watchlist', re: /^\/watchlist$/, load: async () => [], cache: 'none' },
   { kind: 'account', re: /^\/account$/, load: async () => [], cache: 'none' },
   // the portfolio matcher's empty form is a public, indexable page; results load client-side
-  { kind: 'match', re: /^\/match$/, load: async () => [], cache: 'day' },
+  { kind: 'match', re: /^\/match$/, load: loadGuruCoverage, cache: 'day' },
 ];
 
 // static content: language-specific slugs; a slug from the other language

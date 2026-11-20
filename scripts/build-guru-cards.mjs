@@ -71,6 +71,9 @@ function main() {
       count: h.count,
       y1: y1?.port ?? null,
       spy1: y1?.spy ?? null,
+      // the window the figure covers (whole quarters + the stub to today),
+      // so the card can print the dates next to the number
+      ...(y1?.port != null && y1.from && y1.to ? { y1From: y1.from, y1To: y1.to } : {}),
       top,
     });
   }

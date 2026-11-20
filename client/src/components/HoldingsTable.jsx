@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { fmtMoney, fmtNum, fmtPct, fmtPx, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtPx, deltaClass, quarterLabel, fmtDay } from '../lib/format.js';
 import { exportHoldingsToExcel } from '../lib/exportExcel.js';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
@@ -77,6 +77,10 @@ function HistoryPanel({ cik, cusip, t }) {
 // count moved inside the quarter, before the next 13F.
 export default function HoldingsTable({ positions, prevPositions, returns, cik, exportName, total, locked, timeHeld = null, cost = null, form4 = null, guruSlug = null, reportDate = null }) {
   const { t, lang } = useI18n();
+  // "since quarter end" names its start date wherever there is room: the
+  // column is measured from the report date, not from the filing day
+  const sinceDay = fmtDay(reportDate, lang);
+  const sinceTitle = sinceDay ? `${t('tips.sinceReport')} ${t('tips.sinceReportFrom').replace('{date}', sinceDay)}` : t('tips.sinceReport');
   // a first line in a security that listed inside this quarter: held before the IPO
   const listedOn = useListedOn();
   const { isPro } = useAuth();
@@ -188,7 +192,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
           <thead>
             <tr>
               {cols.map((c) => (
-                <th key={c.key} className={c.left ? 'l' : ''} data-col={c.key} onClick={() => onSort(c.key)} title={c.tip ? t(c.tip) : undefined}>
+                <th key={c.key} className={c.left ? 'l' : ''} data-col={c.key} onClick={() => onSort(c.key)} title={c.key === 'sinceReport' ? sinceTitle : c.tip ? t(c.tip) : undefined}>
                   {t(c.tKey)}
                   {sort.key === c.key ? (sort.dir === -1 ? ' ↓' : ' ↑') : ''}
                 </th>
@@ -310,7 +314,7 @@ export default function HoldingsTable({ positions, prevPositions, returns, cik, 
                   )}
                   <td className={`num ${deltaClass(p.ret1y)}`} data-col="ret1y">{fmtPct(p.ret1y)}</td>
                   <td className={`num ${deltaClass(p.retYtd)}`} data-col="retYtd">{fmtPct(p.retYtd)}</td>
-                  <td className={`num ${deltaClass(p.sinceReport)}`} data-col="sinceReport" title={t('tips.sinceReport')}>{fmtPct(p.sinceReport)}</td>
+                  <td className={`num ${deltaClass(p.sinceReport)}`} data-col="sinceReport" title={sinceTitle}>{fmtPct(p.sinceReport)}</td>
                 </tr>,
                 cik && expanded === rowKey ? (
                   <tr key={`${rowKey}-hist`}>

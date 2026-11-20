@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
-import { fmtMoney, fmtNum, fmtPct, fmtTurnover, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtTurnover, deltaClass, quarterLabel, fmtDayRange } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
 import FavoriteButton from '../components/FavoriteButton.jsx';
@@ -41,6 +41,8 @@ import LeadForm from '../components/LeadForm.jsx';
 // and the backtest in a single scroll and then repeated the table on another
 // tab; a reader looking for one number had to pass every other one.
 const TABS = ['portfolio', 'changes', 'mix', 'history', 'backtest'];
+// the horizons of api/_lib/performance.js the comparison chart draws
+const BENCH_HORIZONS = ['y1', 'y3', 'y5', 'y10'];
 
 function Loading({ t }) {
   return (
@@ -263,31 +265,26 @@ export default function Manager({ segment = 'portfolio' }) {
   const latest = history[history.length - 1];
   const top10 = positions.slice(0, 10).reduce((s, p) => s + p.weight, 0);
 
-  // Current-portfolio weighted 1Y/YTD return over resolved top-50 tickers.
-  // The 1D figure the header used to carry is gone: a one-day move on a
-  // portfolio disclosed 45 days late is noise dressed as a number.
-  let port1y = null;
-  let portYtd = null;
-  if (returns.data && positions.length) {
-    let w1 = 0, a1 = 0, w2 = 0, a2 = 0;
-    for (const p of positions.slice(0, 50)) {
-      const r = returns.data[p.ticker];
-      if (r?.ret1y != null) { w1 += p.weight; a1 += p.weight * r.ret1y; }
-      if (r?.retYtd != null) { w2 += p.weight; a2 += p.weight * r.retYtd; }
-    }
-    if (w1 > 10) port1y = a1 / w1;
-    if (w2 > 10) portYtd = a2 / w2;
-  }
-  const spy1y = returns.data?.SPY?.ret1y ?? null;
-  const benchSeries =
-    port1y != null && returns.data
-      ? [
-          { label: t('manager.portfolioSeries'), ret1y: port1y, retYtd: portYtd },
-          ...['SPY', 'QQQ', 'IWM']
-            .filter((s) => returns.data[s])
-            .map((s) => ({ label: s, ret1y: returns.data[s].ret1y, retYtd: returns.data[s].retYtd })),
-        ]
-      : null;
+  // The fund's return has ONE source: the chained 13F return of the nightly
+  // job (api/_lib/performance.js), the same figure the home card prints.
+  // The page used to carry a second one — today's weights × each stock's
+  // 365-day return over the rows the viewer's plan was sent — which gave a
+  // different number for the same fund (and another one per plan). It is
+  // gone: where the chained figure is missing nothing is shown in its place.
+  const horizons = perf.data?.horizons || null;
+  const y1 = horizons?.y1?.port != null ? horizons.y1 : null;
+  const y1Range = y1 ? fmtDayRange(y1.from, y1.to || perf.data?.asOf, lang) : null;
+  // portfolio vs SPY, each bar pair over that horizon's own window — the
+  // one the chain measured both sides on
+  const benchPeriods = BENCH_HORIZONS.filter((k) => horizons?.[k]?.port != null && horizons[k].spy != null).map((k) => ({
+    period: t(`perf.${k}`),
+    [t('manager.portfolioSeries')]: horizons[k].port,
+    SPY: horizons[k].spy,
+  }));
+  const benchSeries = benchPeriods.length ? [t('manager.portfolioSeries'), 'SPY'] : null;
+  // only a curated guru has a chained return; another filer's strip has
+  // three cells rather than a cell that can never fill
+  const showYear = mgr.data.kind === 'guru' || !!y1;
 
   const ms = mstats.data?.quarters >= 2 ? mstats.data : null;
   const ready = !holdings.isLoading && !holdings.error;
@@ -304,11 +301,6 @@ export default function Manager({ segment = 'portfolio' }) {
 
   // the H1 is the entity's full name (SEO and the tests read it as such)
   const shown = mgr.data.displayName || mgr.data.name;
-  // last year: the chained 13F return when the nightly job has one, else the
-  // current book's weighted 1Y
-  const y1 = perf.data?.horizons?.y1;
-  const lastYear = y1?.port != null ? { v: y1.port, spy: y1.spy, chained: true } : port1y != null ? { v: port1y, spy: spy1y, chained: false } : null;
-
   return (
     <div className="fund">
       <div className="fund-head">
@@ -365,12 +357,18 @@ export default function Manager({ segment = 'portfolio' }) {
 
         {/* ---- the strip: last year, size, lines, concentration ---------- */}
         {ready && (
-          <div className="fund-stats">
-            <div className="fund-stat">
-              <span className="k"><Ico icon={TrendingUp} size={16} /> {lastYear?.chained ? t('fund.lastYear') : t('manager.ret1y')}</span>
-              <b className={lastYear ? deltaClass(lastYear.v) : ''}>{lastYear ? fmtPct(lastYear.v) : '—'}</b>
-              <span className="s">{lastYear?.spy != null ? `SPY ${fmtPct(lastYear.spy)}` : lastYear ? t('manager.ret1yNote') : t('common.na')}</span>
-            </div>
+          <div className={`fund-stats${showYear ? '' : ' three'}`}>
+            {showYear && (
+              <div className="fund-stat" data-y1={y1 ? y1.port : ''}>
+                <span className="k"><Ico icon={TrendingUp} size={16} /> {t('fund.lastYear')}</span>
+                <b className={y1 ? deltaClass(y1.port) : ''}>{y1 ? fmtPct(y1.port) : '—'}</b>
+                <span className="s wrap">
+                  {y1
+                    ? [y1.spy != null ? `SPY ${fmtPct(y1.spy)}` : null, y1Range].filter(Boolean).join(' · ')
+                    : perf.isLoading ? '' : t('common.na')}
+                </span>
+              </div>
+            )}
             <div className="fund-stat">
               <span className="k">{t('manager.aum')}<InfoTip tip="tips.aum" /></span>
               {/* the shares' value; an option line's 13F value is the
@@ -565,8 +563,11 @@ export default function Manager({ segment = 'portfolio' }) {
               {benchSeries && (
                 <div className="card mt16">
                   <h3>{t('manager.benchmark')}</h3>
-                  <ChartBox height={240}><BenchmarkBars series={benchSeries} /></ChartBox>
-                  <p className="muted small mt8">{t('manager.benchmarkNote')}</p>
+                  <ChartBox height={240}><BenchmarkBars periods={benchPeriods} series={benchSeries} /></ChartBox>
+                  <p className="muted small mt8">
+                    {t('manager.benchmarkNote')}
+                    {y1Range ? ` ${t('perf.y1')}: ${y1Range}.` : ''}
+                  </p>
                 </div>
               )}
               {optionRows.length > 0 && (

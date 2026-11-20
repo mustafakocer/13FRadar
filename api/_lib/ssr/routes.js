@@ -9,6 +9,7 @@ import stockHandler from '../../_handlers/stock.js';
 import guruStocksHandler from '../../_handlers/guru-stocks.js';
 import slugHandler from '../../_handlers/slug.js';
 import guruHistoryHandler from '../../_handlers/guru-history.js';
+import guruPerformanceHandler from '../../_handlers/guru-performance.js';
 import calendarHandler from '../../_handlers/calendar.js';
 import emergingHandler from '../../_handlers/emerging.js';
 import reportHandler from '../../_handlers/report.js';
@@ -144,6 +145,16 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
   // the client — keeping them out trims ~40 KB from every guru page
   const h = await invoke(guruHistoryHandler, { cik });
   if (h.status === 200) seeds.push([['guru-history', cik], h.body]);
+  // the header's one-year figure is the chained 13F return and nothing
+  // else, so it has to be in the HTML (a curated guru only; a file read).
+  // The quarter-by-quarter rows stay out: no part of the page reads them.
+  if (mgr.kind === 'guru') {
+    const pf = await invoke(guruPerformanceHandler, { cik });
+    if (pf.status === 200 && pf.body?.horizons) {
+      const { periods: _periods, ...lean } = pf.body;
+      seeds.push([['guru-performance', cik], lean]);
+    }
+  }
   const rel = await invoke(relatedHandler, { cik });
   if (rel.status === 200) seeds.push([['related', cik], rel.body]);
   return { seeds };

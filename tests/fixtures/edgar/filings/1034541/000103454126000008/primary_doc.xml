@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>true</returnCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0001034541</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>09-30-2026</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>09-30-2026</reportCalendarOrQuarter>
+      <filingManager>
+        <name>TIMUCUAN ASSET MANAGEMENT INC/FL</name>
+        <address>
+          <com:street1>PO BOX 52898</com:street1>
+          <com:city>JACKSONVILLE</com:city>
+          <com:stateOrCountry>FL</com:stateOrCountry>
+          <com:zipCode>32201</com:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F HOLDINGS REPORT</reportType>
+      <form13FFileNumber>028-06184</form13FFileNumber>
+      <provideInfoForInstruction>N</provideInfoForInstruction>
+    </coverPage>
+    <signatureBlock>
+      <name>Michele Vadala</name>
+      <title>Chief Compliance Officer</title>
+      <phone>904-356-1739</phone>
+      <signature>Michele Vadala</signature>
+      <city>Jacksonville</city>
+      <stateOrCountry>FL</stateOrCountry>
+      <signatureDate>11-13-2026</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>0</otherIncludedManagersCount>
+      <tableEntryTotal>29</tableEntryTotal>
+      <tableValueTotal>2703605931</tableValueTotal>
+      <isConfidentialOmitted>false</isConfidentialOmitted>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

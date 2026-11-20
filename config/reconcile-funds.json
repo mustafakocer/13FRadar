@@ -1,0 +1,20 @@
+{
+ "_readme": "The funds whose 13F books are reconciled against the SEC filing itself: offline in tests/edgar-reconcile.test.mjs (fixtures made by tests/fixtures/make-edgar-fixtures.mjs) and live by scripts/reconcile-edgar.mjs. Picked for the ways a 13F table goes wrong, not at random; `why` says which. `fixture: false` keeps a book that is too large to commit out of the fixtures; the live check still reads it.",
+ "funds": [
+  { "cik": "0001067983", "why": "Berkshire: the same CUSIP on many lines (one per co-manager), summed into one position" },
+  { "cik": "0001061768", "why": "Baupost: thousands written into a dollars filing, rescaled x1000" },
+  { "cik": "0001536411", "why": "Duquesne: thousands written into a dollars filing, rescaled x1000" },
+  { "cik": "0001709323", "why": "Himalaya: a small book, foreign issuers and ADRs" },
+  { "cik": "0001112520", "why": "Akre: a small ordinary book" },
+  { "cik": "0001656456", "why": "Appaloosa: a small book" },
+  { "cik": "0001040273", "why": "Third Point: put/call option rows next to the shares" },
+  { "cik": "0001167483", "why": "Tiger Global: foreign issuers, filed by an agent" },
+  { "cik": "0001029160", "why": "Soros: a few hundred rows, options and convertible notes (principal amounts)" },
+  { "cik": "0001764403", "why": "Vision Capital: a 13F-HR/A that restates the whole table" },
+  { "cik": "0000858877", "why": "Cisco: a 13F-HR/A that adds new holdings to the original" },
+  { "cik": "0001316580", "why": "Luxor: an ordinary filer with option rows" },
+  { "cik": "0001034541", "why": "Timucuan: an ordinary filer" },
+  { "cik": "0001350694", "why": "Bridgewater: about a thousand positions", "fixture": false },
+  { "cik": "0001037389", "why": "Renaissance: about three thousand positions", "fixture": false }
+ ]
+}

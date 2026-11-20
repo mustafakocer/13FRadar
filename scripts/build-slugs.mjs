@@ -73,13 +73,19 @@ for (const r of [...uni.rows].sort((a, b) => b.aum - a.aum)) assign(r.cik, r.nam
 // (api/_lib/slugs.mergeAliases).
 const PINNED = path.join(root, 'config', 'slug-aliases.json');
 const pinned = fs.existsSync(PINNED) ? JSON.parse(fs.readFileSync(PINNED, 'utf8')).aliases || {} : {};
+// A curated fund is also reachable by the slug of its EDGAR registrant name
+// (berkshire-hathaway-inc → berkshire-hathaway-warren-buffett): that is the
+// address every other filer has, so it is the one people guess and link to.
+const edgarName = new Map(uni.rows.map((r) => [String(r.cik).padStart(10, '0'), r.name]));
 const derived = {};
 for (const m of GURUS) {
   const cik = String(m.cik).padStart(10, '0');
   const stored = byCik[cik];
   if (!stored) continue;
-  const slug = slugify(m.name);
-  if (slug && slug !== stored.slug) derived[slug] = stored.slug;
+  for (const name of [m.name, edgarName.get(cik)]) {
+    const slug = name ? slugify(name) : '';
+    if (slug && slug !== stored.slug && !derived[slug]) derived[slug] = stored.slug;
+  }
 }
 const aliases = mergeAliases({ bySlug, pinned, previous: prev.aliases, derived });
 const unpinned = Object.keys(aliases).filter((a) => !pinned[a]);

@@ -1,5 +1,6 @@
 import { createRequire } from 'node:module';
 import { slugTable } from '../_lib/slugs.js';
+import { isUrlSymbol } from '../_lib/urlSymbol.js';
 import { siteUrl } from '../_lib/site.js';
 import { historyTable } from '../_lib/history.js';
 import { guruStockTable } from '../_lib/guruStocks.js';
@@ -94,8 +95,15 @@ export function entriesFor(type, ctx = context()) {
         const g = v.kind === 'guru' && hist?.gurus?.[v.cik];
         if (!g) continue;
         const lastmod = day(g.quarters[g.quarters.length - 1]?.filed) || latestFiled;
+        // Only a symbol the page route accepts (a bond's or a preferred
+        // share's "ticker" has spaces and no page), and once per fund: two
+        // share classes or CUSIPs under one symbol are one address.
+        const listed = new Set();
         for (const e of Object.values(g.positions)) {
-          if (e.ticker && e.heldQuarters > 0) entries.push({ path: `/guru/${slug}/${e.ticker}`, lastmod, changefreq: 'weekly', priority: '0.6' });
+          const sym = String(e.ticker || '').toUpperCase();
+          if (!(e.heldQuarters > 0) || !isUrlSymbol(sym) || listed.has(sym)) continue;
+          listed.add(sym);
+          entries.push({ path: `/guru/${slug}/${sym}`, lastmod, changefreq: 'weekly', priority: '0.6' });
         }
       }
     }
@@ -109,7 +117,7 @@ export function entriesFor(type, ctx = context()) {
     const entries = [];
     const add = (ticker, lastmod, priority) => {
       const sym = String(ticker || '').toUpperCase();
-      if (!sym || !/^[A-Z0-9.\-]{1,12}$/.test(sym) || seen.has(sym)) return;
+      if (!isUrlSymbol(sym) || seen.has(sym)) return;
       seen.add(sym);
       entries.push({ path: `/stock/${sym}`, lastmod, changefreq: 'weekly', priority });
     };

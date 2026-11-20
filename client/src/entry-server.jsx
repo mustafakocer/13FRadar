@@ -19,13 +19,14 @@ export function preload() {
 //     lang    'en' | 'tr'
 //     url     path WITHOUT the language prefix, query string included
 //     seeds   [[queryKey, data], …] — pre-fetched data keyed like the pages' useQuery calls
+//     notFound  the loader found no such entity: render the not-found page at this URL
 // Returns { html, head, state } for the template.
-export function render({ lang, url, seeds = [], siteUrl }) {
+export function render({ lang, url, seeds = [], siteUrl, notFound = false }) {
   const queryClient = new QueryClient(queryDefaults);
   for (const [key, data] of seeds) queryClient.setQueryData(key, data);
   const seo = { spec: null };
   const html = renderToString(
-    <Root queryClient={queryClient} lang={lang} seo={seo} router={StaticRouter} routerProps={{ location: withLang(lang, url) }} />
+    <Root queryClient={queryClient} lang={lang} seo={seo} notFound={notFound} router={StaticRouter} routerProps={{ location: withLang(lang, url) }} />
   );
   const head = buildHead({ ...(seo.spec || {}), lang }, { siteUrl });
   const state = dehydrate(queryClient);

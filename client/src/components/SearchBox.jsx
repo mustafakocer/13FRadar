@@ -9,12 +9,22 @@ import { TICKERISH, matchStocks } from '../lib/stockMatch.js';
 // onSelectStock(ticker) — optional; when given, tickers and issuer names from
 // the stock universe are offered above the managers and Enter on a
 // ticker-shaped query opens that stock.
+// initialText — a query the page was opened with (/?q=apple, the address the
+// site's SearchAction names): the box starts filled in and, once the page is
+// interactive, its results are shown without the reader having to click.
 export default function SearchBox({ onSelect, onSelectStock = null, placeholder, small = false, autoFocus = false, initialText = '' }) {
   const { t } = useI18n();
   const [text, setText] = useState(initialText);
   const [q, setQ] = useState(initialText.trim());
   const [open, setOpen] = useState(false);
   const wrapRef = useRef(null);
+
+  // after mount only: the server HTML and the first client render both have
+  // the list closed, so hydration matches
+  useEffect(() => {
+    if (initialText.trim()) setOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     const id = setTimeout(() => setQ(text.trim()), 350);

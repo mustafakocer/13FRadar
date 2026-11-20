@@ -7,6 +7,7 @@ import { splitLang, withLang, isLang } from './lib/locale.js';
 import { preloadPagesFor } from './pages/lazyPages.js';
 import { preloadCharts } from './components/Charts/index.js';
 import { inject } from '@vercel/analytics';
+import { setFormatLang } from './lib/format.js';
 import './styles/tokens.css';
 import './styles/app.css';
 
@@ -34,6 +35,8 @@ if (!lang) {
   window.history.replaceState(null, '', withLang(lang, path) + window.location.search + window.location.hash);
 }
 document.documentElement.lang = lang;
+// numbers in the page language, before the first render (lib/format.js)
+setFormatLang(lang);
 
 // Cookieless page analytics (Vercel Web Analytics; lib/analytics.js has the
 // event wrapper). Client entry only — the server never loads it. inject()

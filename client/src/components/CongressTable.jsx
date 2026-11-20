@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useI18n } from '../i18n.jsx';
-import { fmtMoney, fmtNum, fmtPct } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtRatio, locNum } from '../lib/format.js';
 import TickerLogo from './TickerLogo.jsx';
 
 // Congress trades are disclosed as ranges ("$15,001 – $50,000"), never as
@@ -10,7 +10,7 @@ import TickerLogo from './TickerLogo.jsx';
 // round numbers people read them as: $1K – $15K, > $50M.
 const short = (n) => {
   const v = n % 1000 === 1 ? n - 1 : n;
-  const trim = (x) => String(Number(x.toFixed(1)));
+  const trim = (x) => locNum(String(Number(x.toFixed(1))));
   if (v >= 1e6) return `$${trim(v / 1e6)}M`;
   if (v >= 1e3) return `$${trim(v / 1e3)}K`;
   return `$${v}`;
@@ -301,7 +301,7 @@ export function YtdBoard({ data }) {
                   </td>
                   <td className="num"><b>{pctCell(m.ret)}</b></td>
                   <td className="num muted">{fmtPct(m.spy * 100)}</td>
-                  <td className="num">{m.excess == null ? '—' : <span className={m.excess >= 0 ? 'delta-pos' : 'delta-neg'}>{`${m.excess >= 0 ? '+' : ''}${(m.excess * 100).toFixed(1)} pp`}</span>}</td>
+                  <td className="num">{m.excess == null ? '—' : <span className={m.excess >= 0 ? 'delta-pos' : 'delta-neg'}>{`${m.excess >= 0 ? '+' : ''}${fmtRatio(m.excess * 100, 1)} pp`}</span>}</td>
                   <td className="num">{fmtNum(m.open)} / {fmtNum(m.positions)}</td>
                   <td className="l">{m.best ? <><Link to={`/stock/${m.best.t}`}>{m.best.t}</Link> <span className="small">{pctCell(m.best.r, 0)}</span></> : '—'}</td>
                   <td className="l">{m.worst ? <><Link to={`/stock/${m.worst.t}`}>{m.worst.t}</Link> <span className="small">{pctCell(m.worst.r, 0)}</span></> : '—'}</td>

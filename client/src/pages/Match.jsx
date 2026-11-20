@@ -7,6 +7,7 @@ import { api } from '../lib/api.js';
 import { readGrant, saveGrant } from '../lib/leadGrant.js';
 import LeadForm from '../components/LeadForm.jsx';
 import { Disclaimer } from '../components/Faq.jsx';
+import { fmtPct, locNum } from '../lib/format.js';
 
 // "Compare your portfolio with the superinvestors" — a lead magnet. The
 // reader types tickers; /api/portfolio-match scores every tracked guru
@@ -114,11 +115,11 @@ export default function Match() {
                 </div>
                 <div className="match-bar"><span style={{ width: `${Math.max(4, m.score)}%` }} /></div>
                 <p className="small muted">
-                  {t('match.coverage').replace('{n}', m.shared.length).replace('{m}', d.tickers.length)} · {t('match.weight').replace('{p}', m.guruWeight)}
+                  {t('match.coverage').replace('{n}', m.shared.length).replace('{m}', d.tickers.length)} · {t('match.weight').replace('{p}', locNum(m.guruWeight))}
                 </p>
                 <div className="match-chips">
                   {m.shared.map((s) => (
-                    <Link key={s.ticker} to={`/stock/${s.ticker}`} className="chip">{s.ticker} <small>%{s.weight.toFixed(1)}</small></Link>
+                    <Link key={s.ticker} to={`/stock/${s.ticker}`} className="chip">{s.ticker} <small>{fmtPct(s.weight, { sign: false })}</small></Link>
                   ))}
                 </div>
               </article>

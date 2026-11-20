@@ -41,7 +41,7 @@ export default function Footer() {
   const splitsDate = splitsDay ? new Date(`${splitsDay}T00:00:00Z`).toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { day: 'numeric', month: lang === 'tr' ? '2-digit' : 'short', year: 'numeric', timeZone: 'UTC' }) : null;
   return (
     <footer className="site-footer no-print">
-      <nav aria-label="Footer">
+      <nav aria-label={t('a11y.footer')}>
         <div>
           <b>{t('footer.learn')}</b>
           {LEARN.map(([en, tr, k]) => (

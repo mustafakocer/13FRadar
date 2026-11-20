@@ -55,6 +55,67 @@ export function confirmAllowed(row, now = Date.now()) {
   return { ok: true, sends };
 }
 
+// The same form, seen from the sender's side. The per-address cap stops one
+// inbox being flooded; it does nothing about one client walking through a
+// list of addresses, each of which gets "only" one confirmation mail. So the
+// number of addresses a single client may start a confirmation for is capped
+// too, counted from the rows already on file (subscribers.consent_ip +
+// confirm_sent_at): no new table, no new service.
+//
+// An IPv6 client owns a whole /64 and can change the rest at will, so it is
+// counted by its /64 prefix; an IPv4 client by its address.
+export const IP_MAX_PER_HOUR = 5;
+export const IP_MAX_PER_DAY = 20;
+
+// The first address of X-Forwarded-For (what Vercel puts there is the
+// client), reduced to something safe to store and to filter on. Null when
+// there is none or it is not an IP address.
+export function clientIp(req) {
+  const raw = String(req?.headers?.['x-forwarded-for'] || req?.headers?.['x-real-ip'] || '').split(',')[0].trim().toLowerCase();
+  if (!raw || raw.length > 45) return null;
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(raw)) return raw;
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/.exec(raw);
+  if (mapped) return mapped[1];
+  return /^[0-9a-f:]+$/.test(raw) && raw.includes(':') ? raw : null;
+}
+
+// The PostgREST filter on consent_ip that selects "this client": the address
+// itself for IPv4, every spelling inside the /64 for IPv6. Null when the
+// address cannot be read (the limit is then not applied).
+export function ipFilter(ip) {
+  if (!ip) return null;
+  if (!ip.includes(':')) return `eq.${ip}`;
+  const halves = ip.split('::');
+  if (halves.length > 2) return null;
+  const head = halves[0] ? halves[0].split(':') : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(':') : [];
+  const fill = halves.length === 2 ? 8 - head.length - tail.length : 0;
+  if (fill < 0 || (halves.length === 1 && head.length !== 8)) return null;
+  const groups = [...head, ...Array(fill).fill('0'), ...tail];
+  if (groups.length !== 8 || groups.some((g) => !/^[0-9a-f]{1,4}$/.test(g))) return null;
+  // stored addresses keep the client's own spelling, so the prefix is matched
+  // as the client wrote it when it wrote all four groups, else by equality
+  return head.length >= 4 ? `like.${head.slice(0, 4).join(':')}:*` : `eq.${ip}`;
+}
+
+// rows: the client's rows mailed in the last 24 hours ({ id, confirm_sent_at }).
+// `exceptId` is the row this request is about: asking again for an address
+// the client already asked for is the per-address limit's business.
+export function ipAllowed(rows, { exceptId = null, now = Date.now() } = {}) {
+  let hour = 0;
+  let day = 0;
+  for (const r of rows || []) {
+    if (exceptId != null && r.id === exceptId) continue;
+    const at = Date.parse(r.confirm_sent_at);
+    if (!Number.isFinite(at) || now - at >= 24 * 3600 * 1000 || at > now + 60 * 1000) continue;
+    day++;
+    if (now - at < 3600 * 1000) hour++;
+  }
+  if (hour >= IP_MAX_PER_HOUR) return { ok: false, reason: 'ip-hourly-cap' };
+  if (day >= IP_MAX_PER_DAY) return { ok: false, reason: 'ip-daily-cap' };
+  return { ok: true };
+}
+
 // --------------------------------------------------------------- merge ---
 // What a new request adds to an existing row: magnets and gurus accumulate,
 // the newsletter is only ever switched on here (off is the unsubscribe link).

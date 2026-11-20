@@ -9,6 +9,20 @@
     "api/ssr.js": { "includeFiles": "{client/dist/**,api/_data/insiders-served.json}", "maxDuration": 30 },
     "api/index.js": { "includeFiles": "{api/_data/reports/**,api/_data/prices/**,api/_data/insiders-raw.json,api/_data/insiders-raw-backfill.json,api/_data/insiders-served.json,api/_data/splits.json,api/_data/fpi.json,config/adr-overrides.json,reports/**,api/_assets/**}", "maxDuration": 30 }
   },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'; base-uri 'self'; object-src 'none'" },
+        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://*.clarity.ms https://connect.facebook.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.clarity.ms https://c.bing.com https://www.facebook.com https://connect.facebook.net; form-action 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'" }
+      ]
+    }
+  ],
   "redirects": [
     {
       "source": "/:path*",

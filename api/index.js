@@ -40,6 +40,7 @@ import emerging from './_handlers/emerging.js';
 import report from './_handlers/report.js';
 import related from './_handlers/related.js';
 import guruStocks from './_handlers/guru-stocks.js';
+import { applySecurityHeaders } from './_lib/securityHeaders.js';
 import { congressCommittee, congressFeed, congressMember, congressMembers, congressOverview, congressTicker } from './_handlers/congress.js';
 
 // [handler, ...param names bound to path segments after the endpoint name]
@@ -98,6 +99,7 @@ const ROUTES = {
 };
 
 export default async function handler(req, res) {
+  applySecurityHeaders(res);
   // Path arrives one of three ways:
   //  1. __path query param, injected by the vercel.json rewrite (production)
   //  2. req.query.route, injected by the dev server

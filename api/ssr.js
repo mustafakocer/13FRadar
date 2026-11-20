@@ -3,6 +3,7 @@ import path from 'node:path';
 import { render, preload } from '../client/dist/server/entry-server.js';
 import { matchRoute, CACHE, readStatic } from './_lib/ssr/routes.js';
 import { siteUrl } from './_lib/site.js';
+import { applySecurityHeaders } from './_lib/securityHeaders.js';
 import { splitLang, withLang, preferredLang } from '../client/src/lib/locale.js';
 
 // Server-side rendering for every public page. vercel.json rewrites all
@@ -28,6 +29,7 @@ const safeJson = (obj) =>
   JSON.stringify(obj).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 export default async function handler(req, res) {
+  applySecurityHeaders(res);
   const rawUrl = String(req.url || '/');
   const qIndex = rawUrl.indexOf('?');
   const search = qIndex >= 0 ? rawUrl.slice(qIndex) : '';

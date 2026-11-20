@@ -1,5 +1,6 @@
 import { getUser, getProfile, noStore } from '../_lib/auth.js';
 import { hasStripe, stripePost } from '../_lib/stripe.js';
+import { siteUrl } from '../_lib/site.js';
 
 // POST /api/portal  (bearer token required)
 // Opens the Stripe customer portal (change card, cancel, invoices).
@@ -11,8 +12,8 @@ export default async function handler(req, res) {
   const user = await getUser(req);
   if (!user) return res.status(401).json({ error: 'sign-in-required' });
 
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  const origin = process.env.SITE_URL || `${proto}://${req.headers.host}`;
+  // never the Host header: Stripe sends the buyer back to this origin
+  const origin = siteUrl(req);
 
   try {
     // The portal is for Stripe customers. The profile row is the record

@@ -1,5 +1,6 @@
 import { cached, TTL, remember, recall } from '../_lib/cache.js';
 import { dailyCloses } from '../_lib/providers.js';
+import { servableSymbol } from '../_lib/symbolGuard.js';
 
 const RANGES = new Set(['1mo', '3mo', '6mo', '1y', '2y', '5y', 'max']);
 const RANGE_DAYS = { '1mo': 32, '3mo': 95, '6mo': 187, '1y': 367, '2y': 732, '5y': 1830, max: 36500 };
@@ -12,6 +13,11 @@ export default async function handler(req, res) {
   const ticker = String(req.query.ticker || '').trim().toUpperCase();
   const range = RANGES.has(req.query.range) ? req.query.range : '1y';
   if (!ticker) return res.status(400).json({ error: 'Missing ticker' });
+  // only symbols a committed dataset has carried reach a provider (symbolGuard.js)
+  if (!servableSymbol(ticker)) {
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    return res.status(404).json({ error: 'unknown-symbol' });
+  }
 
   try {
     const data = await cached(`chart:${ticker}:${range}`, TTL.HOUR_1, async () => {

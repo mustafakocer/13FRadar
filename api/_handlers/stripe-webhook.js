@@ -4,6 +4,7 @@ import {
   readRawBody,
   planForSubscription,
   periodEndOf,
+  subscriptionOwner,
   unixToIso,
   stripePost,
   stripeGet,
@@ -31,6 +32,21 @@ import { sendMetaEvent } from '../_lib/metaCapi.js';
 //   invoice.payment_failed         nothing (logged). Stripe retries the charge;
 //                                  the grace period is Stripe's Smart Retries,
 //                                  not code here.
+//
+// Only our own product's subscriptions count. The Stripe account also sells
+// other products and Stripe sends their events here too, so every path that
+// changes a plan first checks the subscription's price against the configured
+// STRIPE_PRICE_* ids (subscriptionOwner in _lib/stripe.js):
+//   own           acted on as above
+//   foreign       recorded as ignored:foreign-price, profile untouched — no
+//                 grant, and no downgrade either: another product's
+//                 cancellation is not ours to act on
+//   unconfigured  (no price id set at all) nothing is granted — recorded as
+//                 ignored:prices-not-configured — because an unverifiable
+//                 payment must not open Pro; a cancellation still takes Pro
+//                 away from a user it resolves to, the safe direction.
+//                 /api/checkout cannot start a purchase in this state, so no
+//                 buyer of ours is lost to it.
 //
 // The Supabase user is client_reference_id / metadata.user_id, both set by
 // /api/checkout to the auth uid, with a fallback lookup by the Stripe customer
@@ -63,6 +79,15 @@ async function resolveUser(obj) {
   return null;
 }
 
+// Why a subscription may not change a profile, or null when it may. `grants`
+// says whether the change would open Pro.
+function refusal(sub, grants) {
+  const owner = subscriptionOwner(sub);
+  if (owner === 'foreign') return 'ignored:foreign-price';
+  if (owner === 'unconfigured' && grants) return 'ignored:prices-not-configured';
+  return null;
+}
+
 // What one event does: { userId, patch, outcome, customer }. Throws when
 // something it needs (the subscription behind a checkout) cannot be fetched,
 // which turns into a 500 and a retry from Stripe.
@@ -78,6 +103,8 @@ async function decide(type, obj) {
     const subscription = idOf(obj.subscription);
     // the session does not carry the period end; the subscription does
     const sub = subscription ? await stripeGet(`/v1/subscriptions/${subscription}`) : null;
+    const refused = refusal(sub, true);
+    if (refused) return { outcome: refused };
     return {
       userId,
       customer,
@@ -92,6 +119,8 @@ async function decide(type, obj) {
   }
 
   if (type === 'customer.subscription.deleted') {
+    const refused = refusal(obj, false);
+    if (refused) return { outcome: refused };
     const userId = await resolveUser(obj);
     if (!userId) return { outcome: 'skipped:no-user' };
     return { userId, outcome: 'applied', patch: { plan: 'free', plan_expires: null, stripe_subscription_id: null } };
@@ -100,6 +129,8 @@ async function decide(type, obj) {
   if (type === 'customer.subscription.created' || type === 'customer.subscription.updated') {
     const decision = planForSubscription(obj);
     if (!decision) return { outcome: `ignored:${obj.status}` };
+    const refused = refusal(obj, decision.plan === 'pro');
+    if (refused) return { outcome: refused };
     const userId = await resolveUser(obj);
     if (!userId) return { outcome: 'skipped:no-user' };
     const patch = { plan: decision.plan, plan_expires: decision.expires };

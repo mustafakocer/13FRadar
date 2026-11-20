@@ -17,11 +17,17 @@ const USER = '11111111-2222-4333-8444-555555555555';
 const PERIOD1 = 1_800_000_000; // 2027-01-15
 const PERIOD2 = PERIOD1 + 31 * 86400;
 const PERIOD3 = PERIOD2 + 31 * 86400;
+// our price, and the price of another product sold from the same Stripe account
+const PRICE = 'price_fundocap_monthly';
+const FOREIGN_PRICE = 'price_other_product';
+const OWN_ITEMS = { data: [{ price: { id: PRICE } }] };
+const OTHER = '99999999-2222-4333-8444-555555555555';
 
 // ---- Supabase stand-in ------------------------------------------------------
 const db = {
   profiles: new Map([
     [USER, { id: USER, plan: 'free', plan_expires: null, stripe_customer_id: null, stripe_subscription_id: null }],
+    [OTHER, { id: OTHER, plan: 'free', plan_expires: null, stripe_customer_id: null, stripe_subscription_id: null }],
   ]),
   events: new Map(),
 };
@@ -75,7 +81,15 @@ const stripe = http.createServer((req, res) => {
     };
     if (req.headers.authorization !== 'Bearer sk_test_x') return json(401, { error: { message: 'bad key' } });
     if (req.method === 'GET' && req.url === '/v1/subscriptions/sub_1') {
-      return json(200, { id: 'sub_1', status: 'active', customer: 'cus_1', current_period_end: PERIOD1 });
+      return json(200, { id: 'sub_1', status: 'active', customer: 'cus_1', current_period_end: PERIOD1, items: OWN_ITEMS });
+    }
+    if (req.method === 'GET' && req.url === '/v1/subscriptions/sub_other') {
+      return json(200, {
+        id: 'sub_other',
+        status: 'trialing',
+        customer: 'cus_other',
+        items: { data: [{ current_period_end: PERIOD1, price: { id: FOREIGN_PRICE } }] },
+      });
     }
     if (req.method === 'POST' && req.url === '/v1/customers/cus_1') return json(200, { id: 'cus_1' });
     json(404, { error: { message: `no route ${req.method} ${req.url}` } });
@@ -102,6 +116,8 @@ process.env.SUPABASE_ANON_KEY = 'anon-key';
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'svc-key';
 process.env.STRIPE_SECRET_KEY = 'sk_test_x';
 process.env.STRIPE_WEBHOOK_SECRET = SECRET;
+for (const k of Object.keys(process.env)) if (k.startsWith('STRIPE_PRICE_')) delete process.env[k];
+process.env.STRIPE_PRICE_MONTHLY = PRICE;
 process.env.STRIPE_API_BASE = await listen(stripe);
 process.env.META_API_BASE = await listen(meta);
 process.env.META_PIXEL_ID = '123456789012345';
@@ -195,7 +211,7 @@ test('customer.subscription.updated (renewal) → plan_expires moves', async () 
   const r = await deliver({
     id: 'evt_renew',
     type: 'customer.subscription.updated',
-    data: { object: { id: 'sub_1', status: 'active', customer: 'cus_1', metadata: { user_id: USER }, current_period_end: PERIOD2 } },
+    data: { object: { id: 'sub_1', status: 'active', customer: 'cus_1', metadata: { user_id: USER }, current_period_end: PERIOD2, items: OWN_ITEMS } },
   });
   record('customer.subscription.updated (active)', r);
   assert.equal(r.status, 200);
@@ -207,7 +223,7 @@ test('customer.subscription.updated (past_due) → still pro until the period en
   const r = await deliver({
     id: 'evt_pastdue',
     type: 'customer.subscription.updated',
-    data: { object: { id: 'sub_1', status: 'past_due', customer: 'cus_1', items: { data: [{ current_period_end: PERIOD3 }] } } },
+    data: { object: { id: 'sub_1', status: 'past_due', customer: 'cus_1', items: { data: [{ current_period_end: PERIOD3, price: { id: PRICE } }] } } },
   });
   record('customer.subscription.updated (past_due)', r);
   assert.equal(profile().plan, 'pro');
@@ -232,7 +248,7 @@ test('customer.subscription.updated (canceled) → free', async () => {
   const r = await deliver({
     id: 'evt_canceled',
     type: 'customer.subscription.updated',
-    data: { object: { id: 'sub_1', status: 'canceled', customer: 'cus_1', metadata: { user_id: USER }, current_period_end: PERIOD3 } },
+    data: { object: { id: 'sub_1', status: 'canceled', customer: 'cus_1', metadata: { user_id: USER }, current_period_end: PERIOD3, items: OWN_ITEMS } },
   });
   record('customer.subscription.updated (canceled)', r);
   assert.equal(profile().plan, 'free');
@@ -243,7 +259,7 @@ test('customer.subscription.deleted (no metadata: matched by customer id) → fr
   const r = await deliver({
     id: 'evt_deleted',
     type: 'customer.subscription.deleted',
-    data: { object: { id: 'sub_1', status: 'canceled', customer: 'cus_1' } },
+    data: { object: { id: 'sub_1', status: 'canceled', customer: 'cus_1', items: OWN_ITEMS } },
   });
   record('customer.subscription.deleted', r);
   assert.deepEqual(profile(), {
@@ -323,6 +339,123 @@ test('checkout.session.completed with meta_consent=1 → one Purchase to Meta, i
   const again = await deliver(event);
   assert.equal(again.body.duplicate, true);
   assert.equal(metaCalls.length, 1);
+});
+
+// The Stripe account sells another product too, and Stripe sends that
+// product's events to this endpoint. None of them may touch a profile, even
+// when they name one of our users.
+test("another product's checkout naming our user → ignored:foreign-price, no Pro", async () => {
+  const before = { ...db.profiles.get(OTHER) };
+  const metaBefore = metaCalls.length;
+  const r = await deliver({
+    id: 'evt_foreigncheckout',
+    type: 'checkout.session.completed',
+    data: {
+      object: {
+        id: 'cs_other',
+        mode: 'subscription',
+        payment_status: 'paid',
+        client_reference_id: OTHER,
+        customer: 'cus_other',
+        subscription: 'sub_other',
+        metadata: { meta_consent: '1' },
+      },
+    },
+  });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.result, 'ignored:foreign-price');
+  assert.equal(r.body.plan, null);
+  assert.deepEqual(db.profiles.get(OTHER), before);
+  // recorded, so Stripe does not retry it; and no Purchase goes to Meta
+  assert.equal(db.events.get('evt_foreigncheckout').outcome, 'ignored:foreign-price');
+  assert.equal(metaCalls.length, metaBefore);
+});
+
+test("another product's subscription events (created, renewed, cancelled) change nothing", async () => {
+  // give our user a live plan first, so a wrongly applied cancellation shows
+  const live = await deliver({
+    id: 'evt_regrant',
+    type: 'customer.subscription.updated',
+    data: { object: { id: 'sub_1', status: 'active', customer: 'cus_1', metadata: { user_id: USER }, current_period_end: PERIOD3, items: OWN_ITEMS } },
+  });
+  assert.equal(live.body.result, 'applied');
+  const mine = profile();
+  assert.equal(mine.plan, 'pro');
+  const other = { ...db.profiles.get(OTHER) };
+  const sub = (status) => ({
+    id: 'sub_other',
+    status,
+    customer: 'cus_1', // even on a customer id one of our profiles carries
+    metadata: { user_id: USER },
+    items: { data: [{ current_period_end: PERIOD1, price: { id: FOREIGN_PRICE } }] },
+  });
+  for (const [id, type, status] of [
+    ['evt_foreigncreated', 'customer.subscription.created', 'trialing'],
+    ['evt_foreignupdated', 'customer.subscription.updated', 'active'],
+    ['evt_foreigncanceled', 'customer.subscription.updated', 'canceled'],
+    ['evt_foreigndeleted', 'customer.subscription.deleted', 'canceled'],
+  ]) {
+    const r = await deliver({ id, type, data: { object: sub(status) } });
+    assert.equal(r.status, 200, id);
+    assert.equal(r.body.result, 'ignored:foreign-price', id);
+    assert.equal(db.events.get(id).outcome, 'ignored:foreign-price', id);
+  }
+  // a subscription object that names no price at all is not ours either
+  const bare = await deliver({
+    id: 'evt_bare',
+    type: 'customer.subscription.updated',
+    data: { object: { id: 'sub_x', status: 'active', metadata: { user_id: OTHER }, current_period_end: PERIOD3 } },
+  });
+  assert.equal(bare.body.result, 'ignored:foreign-price');
+  assert.deepEqual(profile(), mine);
+  assert.deepEqual(db.profiles.get(OTHER), other);
+});
+
+test('a retired price listed in STRIPE_PRICE_LEGACY still counts as ours', async () => {
+  process.env.STRIPE_PRICE_LEGACY = ' price_old_a , price_old_b ';
+  try {
+    const r = await deliver({
+      id: 'evt_legacy',
+      type: 'customer.subscription.updated',
+      data: { object: { id: 'sub_old', status: 'active', metadata: { user_id: OTHER }, plan: { id: 'price_old_b' }, current_period_end: PERIOD2 } },
+    });
+    assert.equal(r.body.result, 'applied');
+    assert.equal(db.profiles.get(OTHER).plan, 'pro');
+    assert.equal(db.profiles.get(OTHER).plan_expires, iso(PERIOD2));
+  } finally {
+    delete process.env.STRIPE_PRICE_LEGACY;
+  }
+});
+
+test('no price id configured: nothing is granted, a cancellation still downgrades', async () => {
+  delete process.env.STRIPE_PRICE_MONTHLY;
+  try {
+    const before = profile();
+    const grant = await deliver({
+      id: 'evt_unconfgrant',
+      type: 'customer.subscription.updated',
+      data: { object: { id: 'sub_1', status: 'active', metadata: { user_id: USER }, items: OWN_ITEMS, current_period_end: PERIOD1 } },
+    });
+    assert.equal(grant.body.result, 'ignored:prices-not-configured');
+    assert.deepEqual(profile(), before);
+    const checkout = await deliver({
+      id: 'evt_unconfcheckout',
+      type: 'checkout.session.completed',
+      data: { object: { id: 'cs_u', mode: 'subscription', payment_status: 'paid', client_reference_id: USER, customer: 'cus_1', subscription: 'sub_1' } },
+    });
+    assert.equal(checkout.body.result, 'ignored:prices-not-configured');
+    assert.deepEqual(profile(), before);
+    assert.equal(db.profiles.get(OTHER).plan, 'pro');
+    const gone = await deliver({
+      id: 'evt_unconfdeleted',
+      type: 'customer.subscription.deleted',
+      data: { object: { id: 'sub_old', status: 'canceled', metadata: { user_id: OTHER }, plan: { id: 'price_old_b' } } },
+    });
+    assert.equal(gone.body.result, 'applied');
+    assert.equal(db.profiles.get(OTHER).plan, 'free');
+  } finally {
+    process.env.STRIPE_PRICE_MONTHLY = PRICE;
+  }
 });
 
 test('an event Stripe sends that we do not act on is recorded and answered 200', async () => {

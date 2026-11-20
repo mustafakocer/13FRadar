@@ -11,6 +11,8 @@ import axios from 'axios';
 //   STRIPE_PRICE_YEARLY_TR    price_… ($100 / year)
 //   STRIPE_PRICE_MONTHLY_TRY  price_… (₺, Türkiye; wins over the _TR USD price when set)
 //   STRIPE_PRICE_YEARLY_TRY   price_… (₺)
+//   STRIPE_PRICE_LEGACY       price_…,price_… retired prices that still have
+//                             subscribers (optional; see ownPriceIds)
 // Which of these a visitor gets is decided in plans.js (planCatalog).
 // STRIPE_API_BASE points the client at a stand-in during tests.
 const apiBase = () => (process.env.STRIPE_API_BASE || 'https://api.stripe.com').replace(/\/$/, '');
@@ -35,6 +37,45 @@ export function priceFor(cycle, country) {
     process.env[cycle === 'y' ? 'STRIPE_PRICE_YEARLY' : 'STRIPE_PRICE_MONTHLY'] ||
     null
   );
+}
+
+// The Stripe account is shared with other products, and Stripe delivers every
+// subscription event of the account to every webhook endpoint on it. The
+// prices configured above are what makes a subscription ours: a subscription
+// on any other price is another product's and must never touch a profile.
+// A price that was replaced but still has subscribers goes in
+// STRIPE_PRICE_LEGACY (comma-separated), or their renewals stop counting.
+const PRICE_ENVS = [
+  'STRIPE_PRICE_MONTHLY',
+  'STRIPE_PRICE_YEARLY',
+  'STRIPE_PRICE_MONTHLY_TR',
+  'STRIPE_PRICE_YEARLY_TR',
+  'STRIPE_PRICE_MONTHLY_TRY',
+  'STRIPE_PRICE_YEARLY_TRY',
+];
+const PRICE_ID_RE = /^price_[A-Za-z0-9_]+$/;
+export function ownPriceIds(env = process.env) {
+  const ids = PRICE_ENVS.map((k) => env[k]);
+  ids.push(...String(env.STRIPE_PRICE_LEGACY || '').split(','));
+  return new Set(ids.map((v) => String(v || '').trim()).filter((v) => PRICE_ID_RE.test(v)));
+}
+
+// The price ids a subscription object bills: its items, or `plan` on the
+// single-price shape older API versions send.
+export function subscriptionPriceIds(sub) {
+  const ids = (sub?.items?.data || []).map((i) => (typeof i?.price === 'string' ? i.price : i?.price?.id) || i?.plan?.id);
+  if (sub?.plan?.id) ids.push(sub.plan.id);
+  return [...new Set(ids.filter(Boolean).map(String))];
+}
+
+// 'own'          at least one item is on one of our prices
+// 'foreign'      prices are configured and none of the items is ours (or the
+//                object names no price at all): another product's subscription
+// 'unconfigured' no price id is configured, so nothing can be told apart
+export function subscriptionOwner(sub, env = process.env) {
+  const own = ownPriceIds(env);
+  if (!own.size) return 'unconfigured';
+  return subscriptionPriceIds(sub).some((id) => own.has(id)) ? 'own' : 'foreign';
 }
 
 // {a: {b: 1}, c: [x]} -> a[b]=1&c[0]=x (Stripe's nested form encoding)

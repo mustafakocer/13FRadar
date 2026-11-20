@@ -155,6 +155,7 @@ function GuruGrid({ cards }) {
   const shown = rows.slice(0, 11);
   return (
     <section aria-label={t('home.tab.gurus')} data-home-gurus>
+      <h2 className="sr-only">{t('home.tab.gurus')}</h2>
       <div className="home-filters">
         <span className="muted small">{t('home.filters')}:</span>
         {FILTERS.map((f) => (
@@ -193,6 +194,7 @@ function InsiderGrid({ teaser }) {
   const day = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '');
   return (
     <section aria-label={t('home.tab.insiders')} data-home-insiders>
+      <h2 className="sr-only">{t('home.tab.insiders')}</h2>
       <p className="home-lead">{t('home.ins.lead')}</p>
       {/* the same day summary /insiders prints, from the same numbers */}
       {pulse && <div className="card home-pulse"><InsiderDaySummary summary={pulse} /></div>}
@@ -233,6 +235,7 @@ function PicksGrid({ consensus, returns }) {
   if (!rows.length) return <p className="muted">{t('common.na')}</p>;
   return (
     <section aria-label={t('home.tab.picks')} data-home-picks>
+      <h2 className="sr-only">{t('home.tab.picks')}</h2>
       <p className="home-lead">{t('home.picks.lead').replace('{n}', tracked ?? '')}</p>
       <div className="inv-grid">
         {rows.map((r) => {

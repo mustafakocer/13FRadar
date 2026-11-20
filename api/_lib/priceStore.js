@@ -137,9 +137,16 @@ export function lastBreak(prices, after = null) {
 
 const memo = new Map();
 const views = new Map();
+// A symbol with no file is remembered too (the lookup is a failed disk read),
+// but only MAX_MISSES of them: the symbol comes from the URL (/api/perf/X),
+// and an unbounded memo of misses is memory anyone can grow. Past the cap a
+// miss is simply read again. Hits are bounded by the files in the directory.
+export const MAX_MISSES = 2000;
+let misses = 0;
 export const clearSeriesCache = () => {
   memo.clear();
   views.clear();
+  misses = 0;
 };
 
 // Everything on file for a symbol, breaks and all: what the price build
@@ -155,6 +162,10 @@ export function readSeriesRaw(symbol) {
     out = { symbol: file.symbol || key, src: file.src || null, from: file.from, asOf: file.asOf, updatedAt: file.updatedAt || null, hist: file.hist || null, rb: file.rb || 0, prices: decodeSeries(file) };
   } catch {
     out = null;
+  }
+  if (out === null) {
+    if (misses >= MAX_MISSES) return null;
+    misses++;
   }
   memo.set(key, out);
   return out;
@@ -175,7 +186,8 @@ export function readSeries(symbol) {
     const i = lastBreak(raw.prices, verifiedThrough(raw));
     out = i > 0 ? { ...raw, from: raw.prices[i].date, held: i, prices: raw.prices.slice(i) } : { ...raw, held: 0 };
   }
-  views.set(key, out);
+  // a miss is memoised only while readSeriesRaw kept it (see MAX_MISSES)
+  if (out !== null || memo.has(key)) views.set(key, out);
   return out;
 }
 
@@ -189,6 +201,7 @@ export function writeSeries(symbol, prices, { src = null, now = Date.now(), hist
   fs.mkdirSync(dir, { recursive: true });
   const file = { symbol: key, src, from: enc.from, asOf: enc.asOf, updatedAt: new Date(now).toISOString(), ...(hist ? { hist: hist > enc.asOf ? enc.asOf : hist } : {}), ...(rb > 0 ? { rb } : {}), d: enc.d, c: enc.c };
   fs.writeFileSync(path.join(dir, `${key}.json`), JSON.stringify(file));
+  if (memo.get(key) === null) misses--;
   memo.delete(key);
   views.delete(key);
   return file;

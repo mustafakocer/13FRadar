@@ -215,14 +215,14 @@ export default function Consensus() {
         )}
 
         {/* ---- segments ---------------------------------------------------- */}
-        <div className={`home-tabs fund-tabs${tab === 'held' ? '' : ' fund-tabs-top'}`} role="tablist">
+        <nav className={`home-tabs fund-tabs${tab === 'held' ? '' : ' fund-tabs-top'}`} aria-label={t('stock.sections')}>
           {TABS.map((k) => (
             <Link key={k} to={pathOf(k)} className={`home-tab${k === tab ? ' on' : ''}`} aria-current={k === tab ? 'page' : undefined}>
               {t(`consensus.tab.${k}`)}
               {PRO_TABS.has(k) && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
             </Link>
           ))}
-        </div>
+        </nav>
       </div>
       <AnswerBox text={seo.answer} />
 

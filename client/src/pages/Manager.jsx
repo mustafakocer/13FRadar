@@ -409,7 +409,7 @@ export default function Manager({ segment = 'portfolio' }) {
 
         {/* ---- segments ------------------------------------------------ */}
         {ready && (
-          <div className="home-tabs fund-tabs" role="tablist">
+          <nav className="home-tabs fund-tabs" aria-label={t('stock.sections')}>
             {TABS.map((k) => (
               <Link
                 key={k}
@@ -421,7 +421,7 @@ export default function Manager({ segment = 'portfolio' }) {
                 {k === 'backtest' && !isPro && <span className="badge pro sm" style={{ marginLeft: 6 }}>PRO</span>}
               </Link>
             ))}
-          </div>
+          </nav>
         )}
       </div>
 

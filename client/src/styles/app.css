@@ -13,6 +13,12 @@ body {
 
 a { color: var(--primary); text-decoration: none; }
 a:hover { text-decoration: underline; }
+/* A link inside running text is told apart by more than its colour
+   (WCAG 1.4.1). Class-less anchors only: buttons, chips, tabs and card links
+   carry a class and keep their own look. */
+p > a:not([class]) { text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+/* Read by screen readers and the document outline, not drawn. */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 /* every control speaks Inter — form controls do not inherit by default */
 button, input, select, textarea { font-family: inherit; }
 
@@ -408,7 +414,17 @@ a.badge.pro:hover { text-decoration: none; }
 .pos-row .d { font-size: 12px; }
 
 /* ---------- tables ---------- */
-.table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table-wrap {
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+  /* "There is more to the right": a soft shadow pinned to the wrap's right
+     edge (scroll), hidden by a page-coloured cover that travels with the
+     table (local) and so sits over the shadow only when the table's own right
+     edge is in view — no overflow, or scrolled to the end. CSS only; cards
+     and the page share --bg, which is what the cover is painted in. */
+  background:
+    linear-gradient(to left, var(--bg) 40%, transparent) right center / 36px 100% no-repeat local,
+    linear-gradient(to left, color-mix(in srgb, var(--ink) 30%, transparent), transparent) right center / 20px 100% no-repeat scroll;
+}
 /* Narrow screens: a wide table scrolls sideways inside its card, and the
    first column (the symbol) stays put so the row keeps its name while the
    value, weight and change columns scroll under it. Chosen over collapsing

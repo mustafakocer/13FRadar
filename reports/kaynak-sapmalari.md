@@ -10,13 +10,13 @@ Her gece, 13F verisi yenilendikten sonra her fonun bizim hesapladığımız topl
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | Front Street Capital Management, Inc. (0001683182) | 2910 | $802.7 mn | $8.02 mlr | -90% | ×10 fark: kapakta basamak hatası ya da tabloda ×10 yazılmış satır olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1683182/000168318226000005/) |
-|  | Gemsstock Ltd. (0001724140) | 1463 | $2.33 mlr | $804.7 mn | +189.1% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1724140/000172414026000015/) |
-|  | Advisors Preferred, LLC (0001598841) | 2671 | $915.5 mn | $705.6 mn | +29.7% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1598841/000159884126000004/) |
-|  | M3 Wealth Management, LLC (0002109365) | 7141 | $158.4 mn | $15.8 mn | +902.2% | ×10 fark: kapakta basamak hatası ya da tabloda ×10 yazılmış satır olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2109365/000176538026000452/) |
-|  | SPRUCEGROVE INVESTMENT MANAGEMENT LTD (0001234074) | 4254 | $428.5 mn | $372.9 mn | +14.9% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1234074/000119312526459728/) |
-| 🆕 | Gullane Capital, LLC (0002068251) | 8666 | $1.5 mn | $23.2 mn | -93.7% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2068251/000206825126000006/) |
-|  | Crestmont Private Wealth LLC (0001873372) | 4715 | $355.9 mn | $335.9 mn | +6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1873372/000198615226000184/) |
+|  | Front Street Capital Management, Inc. (0001683182) | 2914 | $802.7 mn | $8.02 mlr | -90% | ×10 fark: kapakta basamak hatası ya da tabloda ×10 yazılmış satır olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/1683182/000168318226000005/) |
+|  | Gemsstock Ltd. (0001724140) | 1466 | $2.33 mlr | $804.7 mn | +189.1% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1724140/000172414026000015/) |
+|  | Advisors Preferred, LLC (0001598841) | 2674 | $915.5 mn | $705.6 mn | +29.7% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1598841/000159884126000004/) |
+|  | M3 Wealth Management, LLC (0002109365) | 7159 | $158.4 mn | $15.8 mn | +902.2% | ×10 fark: kapakta basamak hatası ya da tabloda ×10 yazılmış satır olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2109365/000176538026000452/) |
+|  | SPRUCEGROVE INVESTMENT MANAGEMENT LTD (0001234074) | 4265 | $428.5 mn | $372.9 mn | +14.9% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1234074/000119312526459728/) |
+|  | Gullane Capital, LLC (0002068251) | 8688 | $1.5 mn | $23.2 mn | -93.7% | Bizimki düşük: bizde eksik satır ya da işlenmemiş düzeltme bildirimi olabilir | [SEC](https://www.sec.gov/Archives/edgar/data/2068251/000206825126000006/) |
+|  | Crestmont Private Wealth LLC (0001873372) | 4726 | $355.9 mn | $335.9 mn | +6% | Bizimki yüksek: fonun beyanı eksik/hatalı ya da bizde fazla satır | [SEC](https://www.sec.gov/Archives/edgar/data/1873372/000198615226000184/) |
 
 ## İncelendi — fonun kapak hatası
 
@@ -24,18 +24,18 @@ Pozisyon tablosundaki fiyatlar piyasayla örtüşüyor, satır sayısı tutuyor;
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | CX Institutional (0001737089) | 1080 | $3.69 mlr | $0.4 mn | +999,901% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1737089/000173708926000006/) |
-|  | Delta Accumulation, LLC (0001808389) | 1415 | $2.47 mlr | $16.0 mn | +15,300% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1808389/000180838926000011/) |
-|  | M Holdings Securities, Inc. (0001569638) | 1869 | $1.60 mlr | $0.0 mn | +62,008,633% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1569638/000156963826000004/) |
-|  | FIRST HORIZON CORP (0000036966) | 1364 | $2.62 mlr | $1.67 mlr | +56.9% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/36966/000003696626000179/) |
-|  | Financial Enhancement Group LLC (0001641438) | 2766 | $870.7 mn | $88.1 mn | +888.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1641438/000164143826000006/) |
-|  | Legacy Trust (0001772483) | 3468 | $597.3 mn | $3.2 mn | +18,505% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1772483/000177248326000006/) |
-|  | Kings Path Partners LLC (0002030974) | 4527 | $380.2 mn | $1.0 mn | +37,500% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2030974/000203097426000010/) |
-|  | Silverleafe Capital Partners, LLC (0001535611) | 4756 | $351.3 mn | $3.5 mn | +9900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535611/000153561126000008/) |
-|  | Cairn Investment Group, Inc. (0001800358) | 5963 | $234.5 mn | $0.0 mn | +99,789,687% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1800358/000180035826000004/) |
-|  | Bright Futures Wealth Management, LLC. (0001803980) | 7427 | $144.6 mn | $0.0 mn | +100,411,466% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1803980/000180398026000005/) |
-|  | Hippocratic Financial Advisors, LLC (0002055803) | 5699 | $254.1 mn | $159.2 mn | +59.6% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
-|  | Future Financial Wealth Managment LLC (0001801892) | 7060 | $163.0 mn | $179.7 mn | -9.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
+|  | CX Institutional (0001737089) | 1083 | $3.69 mlr | $0.4 mn | +999,901% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1737089/000173708926000006/) |
+|  | Delta Accumulation, LLC (0001808389) | 1418 | $2.47 mlr | $16.0 mn | +15,300% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1808389/000180838926000011/) |
+|  | M Holdings Securities, Inc. (0001569638) | 1872 | $1.60 mlr | $0.0 mn | +62,008,633% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1569638/000156963826000004/) |
+|  | FIRST HORIZON CORP (0000036966) | 1367 | $2.62 mlr | $1.67 mlr | +56.9% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/36966/000003696626000179/) |
+|  | Financial Enhancement Group LLC (0001641438) | 2769 | $870.7 mn | $88.1 mn | +888.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1641438/000164143826000006/) |
+|  | Legacy Trust (0001772483) | 3476 | $597.3 mn | $3.2 mn | +18,505% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1772483/000177248326000006/) |
+|  | Kings Path Partners LLC (0002030974) | 4538 | $380.2 mn | $1.0 mn | +37,500% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2030974/000203097426000010/) |
+|  | Silverleafe Capital Partners, LLC (0001535611) | 4767 | $351.3 mn | $3.5 mn | +9900% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535611/000153561126000008/) |
+|  | Cairn Investment Group, Inc. (0001800358) | 5978 | $234.5 mn | $0.0 mn | +99,789,687% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1800358/000180035826000004/) |
+|  | Bright Futures Wealth Management, LLC. (0001803980) | 7446 | $144.6 mn | $0.0 mn | +100,411,466% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1803980/000180398026000005/) |
+|  | Hippocratic Financial Advisors, LLC (0002055803) | 5713 | $254.1 mn | $159.2 mn | +59.6% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2055803/000205580326000005/) |
+|  | Future Financial Wealth Managment LLC (0001801892) | 7078 | $163.0 mn | $179.7 mn | -9.3% | Fonun kapak hatası (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1801892/000180189226000004/) |
 
 ## İncelendi — fonun tablosu eksik
 
@@ -43,8 +43,8 @@ Fon özet sayfasında, SEC'e yüklediği tablodan çok daha fazla satır beyan e
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | THURSTON, SPRINGER, MILLER, HERD & TITAK, INC. (0000319933) | 8413 | $61.1 mn | $3.40 mlr | -98.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/319933/000031993326000014/) |
-|  | GRIMES & Co WEALTH MANAGEMENT, LLC (0001321993) | 979 | $4.26 mlr | $4.80 mlr | -11.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1321993/000132199326000006/) |
+|  | THURSTON, SPRINGER, MILLER, HERD & TITAK, INC. (0000319933) | 8435 | $61.1 mn | $3.40 mlr | -98.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/319933/000031993326000014/) |
+|  | GRIMES & Co WEALTH MANAGEMENT, LLC (0001321993) | 981 | $4.26 mlr | $4.80 mlr | -11.2% | Fonun tablosu eksik (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1321993/000132199326000006/) |
 
 ## İncelendi — fon önceki çeyreğin tablosunu eklemiş
 
@@ -52,7 +52,7 @@ Fon bu çeyreğin bildirimine bir önceki çeyreğin pozisyon tablosunu eklemiş
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1566 | $2.11 mlr | $2.18 mlr | -3.2% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
+|  | Generali Investments CEE, investicni spolecnost, a.s. (0002047540) | 1568 | $2.11 mlr | $2.18 mlr | -3.2% | Fon eski tabloyu eklemiş (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2047540/000204754026000005/) |
 
 ## İncelendi — küçük fark, tablo doğru
 
@@ -61,18 +61,18 @@ Fark ±%5 içinde; tablo eksiksiz ve fiyatları dönem sonu kapanışlarıyla ö
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
 |  | PNC FINANCIAL SERVICES GROUP, INC. (0000713676) | 63 | $190.77 mlr | $183.32 mlr | +4.1% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/713676/000119312526450808/) |
-|  | Elyxium Wealth, LLC (0002043538) | 2552 | $989.1 mn | $944.9 mn | +4.7% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2043538/000204353826000005/) |
-|  | Brooklyn FI, LLC (0001916123) | 3283 | $654.5 mn | $686.3 mn | -4.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1916123/000191612326000004/) |
-|  | Alliance Wealth Management Group (0001623707) | 3856 | $497.9 mn | $479.9 mn | +3.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1623707/000162370726000006/) |
-|  | MERIDIAN MANAGEMENT CO (0000806097) | 4219 | $435.0 mn | $421.5 mn | +3.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/806097/000080609726000007/) |
-|  | ABLE Financial Group, LLC (0001977500) | 3325 | $639.9 mn | $650.1 mn | -1.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1977500/000197750026000004/) |
-|  | Triune Financial Partners, LLC (0002040393) | 3892 | $489.6 mn | $498.5 mn | -1.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2040393/000204039326000004/) |
-|  | QTR Family Wealth, LLC (0002067954) | 5517 | $269.5 mn | $276.2 mn | -2.4% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2067954/000206795426000004/) |
-|  | Gaddis Premier Wealth Advisors LLC (0002087873) | 6740 | $181.0 mn | $186.7 mn | -3% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2087873/000176538026000426/) |
-|  | Welch Financial Planning, LLC (0002085141) | 6795 | $178.2 mn | $172.9 mn | +3.1% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2085141/000208514126000006/) |
-|  | Comprehensive Wealth Management, LLC (0001535202) | 6128 | $220.9 mn | $217.4 mn | +1.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535202/000153520226000005/) |
-|  | Elm3 Financial Group, LLC (0002011201) | 7298 | $149.9 mn | $152.8 mn | -1.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2011201/000201120126000005/) |
-|  | Comprehensive Financial Planning, Inc./PA (0002044855) | 6668 | $185.4 mn | $187.6 mn | -1.1% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2044855/000204485526000005/) |
+|  | Elyxium Wealth, LLC (0002043538) | 2555 | $989.1 mn | $944.9 mn | +4.7% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2043538/000204353826000005/) |
+|  | Brooklyn FI, LLC (0001916123) | 3290 | $654.5 mn | $686.3 mn | -4.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1916123/000191612326000004/) |
+|  | Alliance Wealth Management Group (0001623707) | 3865 | $497.9 mn | $479.9 mn | +3.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1623707/000162370726000006/) |
+|  | MERIDIAN MANAGEMENT CO (0000806097) | 4229 | $435.0 mn | $421.5 mn | +3.2% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/806097/000080609726000007/) |
+|  | ABLE Financial Group, LLC (0001977500) | 3333 | $639.9 mn | $650.1 mn | -1.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1977500/000197750026000004/) |
+|  | Triune Financial Partners, LLC (0002040393) | 3901 | $489.6 mn | $498.5 mn | -1.8% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2040393/000204039326000004/) |
+|  | QTR Family Wealth, LLC (0002067954) | 5530 | $269.5 mn | $276.2 mn | -2.4% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2067954/000206795426000004/) |
+|  | Gaddis Premier Wealth Advisors LLC (0002087873) | 6757 | $181.0 mn | $186.7 mn | -3% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2087873/000176538026000426/) |
+|  | Welch Financial Planning, LLC (0002085141) | 6812 | $178.2 mn | $172.9 mn | +3.1% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2085141/000208514126000006/) |
+|  | Comprehensive Wealth Management, LLC (0001535202) | 6143 | $220.9 mn | $217.4 mn | +1.6% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/1535202/000153520226000005/) |
+|  | Elm3 Financial Group, LLC (0002011201) | 7316 | $149.9 mn | $152.8 mn | -1.9% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2011201/000201120126000005/) |
+|  | Comprehensive Financial Planning, Inc./PA (0002044855) | 6685 | $185.4 mn | $187.6 mn | -1.1% | Küçük fark (incelendi) | [SEC](https://www.sec.gov/Archives/edgar/data/2044855/000204485526000005/) |
 
 ## Otomatik kapatıldı — küçük fark, tablo doğru
 
@@ -80,8 +80,8 @@ Gece kontrolü kendisi kapattı: fark ±%2 içinde, satır sayısı kapakla ayn�
 
 | | Fon | Sıra | Bizim toplam | SEC beyanı | Fark | Olası neden | Bildirim |
 |---|---|---|---|---|---|---|---|
-|  | HARVEY CAPITAL MANAGEMENT INC (0001119032) | 3777 | $516.5 mn | $511.3 mn | +1% | Küçük fark (otomatik) | [SEC](https://www.sec.gov/Archives/edgar/data/1119032/000111903226000014/) |
-|  | Ruggiero Investments, Inc. (0002110677) | 7667 | $132.5 mn | $131.1 mn | +1.1% | Küçük fark (otomatik) | [SEC](https://www.sec.gov/Archives/edgar/data/2110677/000211067726000005/) |
+|  | HARVEY CAPITAL MANAGEMENT INC (0001119032) | 3786 | $516.5 mn | $511.3 mn | +1% | Küçük fark (otomatik) | [SEC](https://www.sec.gov/Archives/edgar/data/1119032/000111903226000014/) |
+|  | Ruggiero Investments, Inc. (0002110677) | 7686 | $132.5 mn | $131.1 mn | +1.1% | Küçük fark (otomatik) | [SEC](https://www.sec.gov/Archives/edgar/data/2110677/000211067726000005/) |
 
 ## Otomatik düzeltildi — fonun tablosunda ×10 yazılmış satırlar
 

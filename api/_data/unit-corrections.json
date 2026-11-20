@@ -1,6 +1,6 @@
 {
- "updatedAt": "2026-11-19T01:49:39.455Z",
- "count": 406,
+ "updatedAt": "2026-11-20T01:49:27.069Z",
+ "count": 405,
  "corrections": [
   {
    "cik": "0000019475",
@@ -1079,7 +1079,7 @@
    "acc": "0001413303-26-000004",
    "filed": "2026-10-16",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 16 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 17 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2929,7 +2929,7 @@
    "acc": "0001717977-26-000004",
    "filed": "2026-08-06",
    "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 12 priced rows (100% agree): thousands written into a dollars filing",
+   "reason": "median implied price ÷ close = 0.00100 over 13 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {
@@ -2940,16 +2940,6 @@
    "filed": "2026-08-17",
    "factor": 1000,
    "reason": "median implied price ÷ close = 0.00100 over 24 priced rows (100% agree): thousands written into a dollars filing",
-   "source": "latest-holdings"
-  },
-  {
-   "cik": "0001811739",
-   "name": "Annandale Capital, LLC",
-   "period": "2026-06-30",
-   "acc": "0001811739-26-000003",
-   "filed": "2026-08-13",
-   "factor": 1000,
-   "reason": "median implied price ÷ close = 0.00100 over 10 priced rows (100% agree): thousands written into a dollars filing",
    "source": "latest-holdings"
   },
   {

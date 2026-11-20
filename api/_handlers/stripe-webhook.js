@@ -1,9 +1,17 @@
-import { authConfigured, hasServiceKey, stripeEventSeen, applyStripeEvent, findUserByCustomer } from '../_lib/auth.js';
+import {
+  authConfigured,
+  hasServiceKey,
+  stripeEventSeen,
+  applyStripeEvent,
+  findUserByCustomer,
+  findProfileByCustomer,
+} from '../_lib/auth.js';
 import {
   verifyStripeSignature,
   readRawBody,
   planForSubscription,
   periodEndOf,
+  periodStartOf,
   subscriptionOwner,
   unixToIso,
   stripePost,
@@ -15,7 +23,8 @@ import { sendMetaEvent } from '../_lib/metaCapi.js';
 //   URL:    https://<site>/api/stripe-webhook
 //   Events: checkout.session.completed, customer.subscription.created,
 //           customer.subscription.updated, customer.subscription.deleted,
-//           invoice.payment_failed
+//           invoice.payment_failed, charge.refunded,
+//           charge.dispute.created, charge.dispute.closed
 // Put the endpoint's signing secret (whsec_…) in STRIPE_WEBHOOK_SECRET.
 //
 // Idempotent: every delivery is keyed by its Stripe event id in
@@ -25,13 +34,34 @@ import { sendMetaEvent } from '../_lib/metaCapi.js';
 // the two cannot leave one without the other; any failure answers 500 and
 // Stripe retries the delivery.
 //
+// Ordered: Stripe does not deliver events in the order they happened. Each
+// profile remembers the `created` time of the last Stripe event that changed
+// it (profiles.stripe_event_at, migration 0008), and an event older than that
+// is recorded as ignored:stale and changes nothing — a late
+// subscription.updated(active) cannot re-open Pro after the deleted that
+// followed it.
+//
 // What each event does to profiles:
 //   checkout.session.completed     plan=pro, stripe ids, plan_expires=current_period_end
-//   customer.subscription.updated  plan_expires=current_period_end; canceled/unpaid → plan=free
+//   customer.subscription.updated  active/trialing: plan_expires=current_period_end;
+//                                  past_due: plan_expires=period start + grace
+//                                  (PAST_DUE_GRACE_DAYS), never the unpaid
+//                                  period's end; canceled/unpaid → plan=free
 //   customer.subscription.deleted  plan=free, plan_expires=null
-//   invoice.payment_failed         nothing (logged). Stripe retries the charge;
-//                                  the grace period is Stripe's Smart Retries,
-//                                  not code here.
+//   invoice.payment_failed         nothing (logged). Stripe retries the charge.
+//   charge.refunded                the charge that paid the current period,
+//                                  refunded in full → plan=free. A partial
+//                                  refund, or one of an earlier period's
+//                                  charge, is logged and changes nothing.
+//   charge.dispute.created         plan=free at once (the money is withdrawn)
+//   charge.dispute.closed          lost → plan=free; won → logged, nothing is
+//                                  restored: the next subscription event of a
+//                                  still-paying customer does that.
+// The handler only reads from Stripe for these (the subscription, and the
+// charge behind a dispute). It never cancels or refunds anything: when you
+// refund a customer, cancel the subscription in Stripe too ("cancel
+// immediately"), or the next renewal — or a "cancel at period end", which
+// arrives as an active subscription — opens Pro again.
 //
 // Only our own product's subscriptions count. The Stripe account also sells
 // other products and Stripe sends their events here too, so every path that
@@ -88,6 +118,33 @@ function refusal(sub, grants) {
   return null;
 }
 
+// A renewal's charge is created at the period start, a retried one after it;
+// the slack only absorbs clock differences between the two objects.
+const CHARGE_BEFORE_PERIOD_SEC = 3600;
+
+// Whose account a charge belongs to, for a refund or a dispute:
+// { userId, sub } when it is one of ours, { outcome[, userId] } when the event
+// ends here. A charge carries no price, so "ours" is established through the
+// profile: the customer id must be stored on a profile (only our own checkout
+// puts it there — another product's customers are on none, and stop at
+// skipped:no-user without a call to Stripe), and that profile's subscription,
+// read from Stripe, must belong to the same customer and be on one of our
+// prices. `verify` false resolves the user for the log only.
+async function chargeAccount(charge, verify) {
+  const customer = idOf(charge?.customer);
+  if (!customer) return { outcome: 'skipped:no-user' };
+  const profile = await findProfileByCustomer(customer);
+  if (!profile?.id) return { outcome: 'skipped:no-user' };
+  if (!verify) return { userId: profile.id };
+  // no live subscription on the profile: there is no access of ours to end
+  if (!profile.stripe_subscription_id) return { userId: profile.id, outcome: 'ignored:no-subscription' };
+  const sub = await stripeGet(`/v1/subscriptions/${profile.stripe_subscription_id}`);
+  if (idOf(sub?.customer) !== customer) return { userId: profile.id, outcome: 'ignored:customer-mismatch' };
+  const refused = refusal(sub, false);
+  if (refused) return { userId: profile.id, outcome: refused };
+  return { userId: profile.id, sub };
+}
+
 // What one event does: { userId, patch, outcome, customer }. Throws when
 // something it needs (the subscription behind a checkout) cannot be fetched,
 // which turns into a 500 and a retry from Stripe.
@@ -138,6 +195,33 @@ async function decide(type, obj) {
     if (idOf(obj.customer)) patch.stripe_customer_id = idOf(obj.customer);
     if (obj.id) patch.stripe_subscription_id = obj.id;
     return { userId, customer: idOf(obj.customer), outcome: 'applied', patch };
+  }
+
+  if (type === 'charge.refunded') {
+    if (!obj.refunded) return { ...(await chargeAccount(obj, false)), patch: undefined, outcome: 'logged:partial-refund' };
+    const acc = await chargeAccount(obj, true);
+    if (acc.outcome) return acc;
+    // only the charge that paid for the period the account is in ends it; a
+    // goodwill refund of an earlier month leaves the current, paid one alone
+    const start = Number(periodStartOf(acc.sub));
+    if (Number.isFinite(start) && start > 0 && Number(obj.created) < start - CHARGE_BEFORE_PERIOD_SEC) {
+      return { userId: acc.userId, outcome: 'logged:refund-earlier-period' };
+    }
+    return { userId: acc.userId, outcome: 'applied', patch: { plan: 'free', plan_expires: null } };
+  }
+
+  if (type === 'charge.dispute.created' || type === 'charge.dispute.closed') {
+    const closed = type === 'charge.dispute.closed';
+    const status = String(obj.status || '?');
+    const cuts = !closed || status === 'lost';
+    // the dispute names its charge; the customer is on the charge
+    const chargeId = idOf(obj.charge);
+    if (!chargeId) return { outcome: 'skipped:no-charge' };
+    const charge = typeof obj.charge === 'object' ? obj.charge : await stripeGet(`/v1/charges/${chargeId}`);
+    if (!cuts) return { ...(await chargeAccount(charge, false)), patch: undefined, outcome: `logged:dispute-${status}` };
+    const acc = await chargeAccount(charge, true);
+    if (acc.outcome) return acc;
+    return { userId: acc.userId, outcome: 'applied', patch: { plan: 'free', plan_expires: null } };
   }
 
   if (type === 'invoice.payment_failed') {
@@ -210,8 +294,10 @@ export default async function handler(req, res) {
       userId: d.userId || null,
       patch: d.patch || {},
       outcome: d.outcome,
+      eventAt: Number(event.created) > 0 ? unixToIso(event.created) : null,
     });
     const duplicate = result === 'duplicate';
+    const stale = result === 'ignored:stale';
     if (!duplicate && d.customer && d.userId) {
       // best effort: the customer carries our user id for the billing portal
       stripePost(`/v1/customers/${d.customer}`, { metadata: { user_id: d.userId } }).catch(() => {});
@@ -224,7 +310,7 @@ export default async function handler(req, res) {
       duplicate,
       event: type,
       result,
-      plan: duplicate ? null : (d.patch?.plan ?? null),
+      plan: duplicate || stale ? null : (d.patch?.plan ?? null),
     });
   } catch (err) {
     // 500 makes Stripe retry the delivery

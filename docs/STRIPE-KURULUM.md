@@ -31,6 +31,9 @@ Her fiyatın `price_…` kimliğini kopyala. Hangi fiyatın gösterileceğine ve
   - `customer.subscription.updated`
   - `customer.subscription.deleted`
   - `invoice.payment_failed`
+  - `charge.refunded`
+  - `charge.dispute.created`
+  - `charge.dispute.closed`
 - Endpoint oluşunca görünen **Signing secret** (`whsec_…`) değerini kopyala.
 
 Her event ne yapar (`api/_handlers/stripe-webhook.js`):
@@ -38,9 +41,30 @@ Her event ne yapar (`api/_handlers/stripe-webhook.js`):
 | Event | `profiles` |
 |---|---|
 | `checkout.session.completed` | `plan='pro'`, `stripe_customer_id`, `stripe_subscription_id`, `plan_expires = current_period_end` (abonelik Stripe'tan okunur) |
-| `customer.subscription.created` / `updated` | `plan_expires = current_period_end`; status `canceled`/`unpaid`/`incomplete_expired`/`paused` → `plan='free'`; `incomplete` yok sayılır |
+| `customer.subscription.created` / `updated` | `active`/`trialing`: `plan_expires = current_period_end`. `past_due`: `plan_expires = ödenmeyen dönemin başı + 7 gün` (aşağıda 3b). `canceled`/`unpaid`/`incomplete_expired`/`paused` → `plan='free'`; `incomplete` yok sayılır |
 | `customer.subscription.deleted` | `plan='free'`, `plan_expires=null`, `stripe_subscription_id=null` (müşteri kimliği portal için kalır) |
-| `invoice.payment_failed` | hiçbir şey; loglanır. Tahsilat denemesi ve ödemesiz süre Stripe'ta (aşağıda 3b) |
+| `invoice.payment_failed` | hiçbir şey; loglanır |
+| `charge.refunded` | İçinde bulunulan dönemin tahsilatı **tam** iade edildiyse `plan='free'`, `plan_expires=null`. Kısmi iade (`logged:partial-refund`) ve eski bir dönemin iadesi (`logged:refund-earlier-period`) hiçbir şeyi değiştirmez |
+| `charge.dispute.created` | İtiraz açılır açılmaz `plan='free'` |
+| `charge.dispute.closed` | `lost` → `plan='free'`; `won` → yalnızca loglanır, Pro kendiliğinden geri açılmaz (müşteri ödemeye devam ediyorsa sonraki abonelik olayı açar) |
+
+**İade ederken aboneliği de iptal et.** Webhook Stripe'a hiçbir şey yazmaz:
+aboneliği iptal etmez, iade yapmaz. Tam iade Pro'yu hemen kapatır, ama abonelik
+Stripe'ta açık kalırsa bir sonraki yenileme (ya da "dönem sonunda iptal":
+Stripe bunu hâlâ `active` bir abonelik olarak bildirir) Pro'yu yeniden açar.
+İade yaptığında Stripe'ta aboneliği **Cancel immediately** ile kapat.
+
+İade ve itiraz olayları fiyat taşımaz. "Bizim" olduğu şöyle doğrulanır:
+tahsilatın müşteri kimliği bir profilde kayıtlı olmalı (oraya yalnızca kendi
+ödeme sayfamız yazar; hesaptaki diğer ürünün müşterileri hiçbir profilde yoktur,
+olay `skipped:no-user` olarak kapanır) ve o profildeki abonelik aynı müşteriye
+ait ve `STRIPE_PRICE_*` fiyatlarından birinde olmalı.
+
+**Sıra.** Stripe olayları oluş sırasıyla teslim etmez. Her profil kendisini
+değiştiren son olayın `created` zamanını tutar (`profiles.stripe_event_at`,
+migration `0008_stripe_event_order`); daha eski bir olay sonradan gelirse
+`ignored:stale` olarak kaydedilir ve plana dokunmaz. Migration uygulanmadan da
+webhook çalışır (sıra kontrolü olmadan, eskisi gibi).
 
 **Yalnızca kendi ürünümüzün abonelikleri sayılır.** Stripe hesabında başka
 ürünler de satılıyor ve Stripe hesaptaki tüm abonelik olaylarını bu adrese de
@@ -68,11 +92,18 @@ değişmez. Kullanıcı eşlemesi yalnız `client_reference_id` / `metadata.user
 
 ## 3b. Başarısız yenileme: Smart Retries (Settings → Subscriptions and emails)
 
-Ödemesiz süre kodda değil Stripe'ta: **Manage failed payments → Smart Retries**
-açık, yeniden deneme süresi 3 gün; süre sonunda **cancel the subscription**
-seçili olsun. Deneme boyunca abonelik `past_due` kalır ve kullanıcı dönem
-sonuna kadar Pro'dur; Stripe iptal edince `customer.subscription.updated`
+**Manage failed payments → Smart Retries** açık, yeniden deneme süresi 3 gün;
+süre sonunda **cancel the subscription** seçili olsun. Deneme boyunca abonelik
+`past_due` kalır; Stripe iptal edince `customer.subscription.updated`
 (`canceled`/`unpaid`) ve `…deleted` gelir, plan Free olur.
+
+Kod ayrıca kendi sınırını koyar: yenileme ödenmediğinde Stripe dönemi zaten
+ileri almıştır, bu yüzden `past_due` bir abonelikte Pro **ödenmeyen dönemin
+başından itibaren 7 gün** sürer (`PAST_DUE_GRACE_DAYS`, `api/_lib/stripe.js`),
+dönem sonuna kadar değil. Stripe'ta "aboneliği past_due bırak" seçili olsa bile
+ödemeyen hesap 7 gün sonra Pro'dan çıkar; ödeme sonradan alınırsa `active`
+olayı tam dönemi geri açar. Yeniden deneme süresini 7 günden uzun yaparsan bu
+sabiti de büyüt.
 
 ## 4. Vercel ortam değişkenleri (Project → Settings → Environment Variables)
 
@@ -96,6 +127,10 @@ sonuna kadar Pro'dur; Stripe iptal edince `customer.subscription.updated`
 Gizli anahtarları yalnızca Vercel'e gir; sohbete veya repoya yapıştırma. Değişkenleri kaydettikten sonra **Redeploy** yap. Kodda gömülü URL/anon key yoktur: dört Supabase değişkeni eksikse production build `scripts/check-env.mjs`'te durur; preview'da auth kapalı, Pro kilitli çalışır.
 
 ## 5. Supabase şeması
+
+Olay sırası kontrolü için `0008_stripe_event_order` da uygulanmalı (GitHub →
+Actions → *Database migrate* → `0008_stripe_event_order` → Run; kendiliğinden
+uygulanmaz). `migrations/verify.sql` eksik olanı gösterir.
 
 `migrations/` dizinindeki migration'lar uygulanmış olmalı (`0003_stripe_events`
 webhook'un kullandığı tabloyu ve `apply_stripe_event` fonksiyonunu kurar):

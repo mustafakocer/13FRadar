@@ -150,13 +150,18 @@ export async function stripeEventSeen(eventId) {
 
 // Record the event and apply the profile patch in one database transaction
 // (public.apply_stripe_event). Resolves to 'duplicate' when another delivery
-// of the same id got there first, otherwise to the outcome passed in.
-export async function applyStripeEvent({ id, type, userId = null, patch = {}, outcome = 'applied' }) {
-  const r = await svcRequest('apply_stripe_event', {
-    method: 'post',
-    url: rest('rpc/apply_stripe_event'),
-    data: { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome },
-  });
+// of the same id got there first, to 'ignored:stale' when the profile has
+// already taken a newer Stripe event (deliveries are not ordered), otherwise
+// to the outcome passed in.
+// `eventAt` is the event's own `created` time (ISO). The ordering check is
+// migration 0008; on a database that does not have it yet the function has no
+// p_event_at argument and PostgREST answers 404 PGRST202, so the call is
+// repeated the old way: same idempotency, no ordering check.
+export async function applyStripeEvent({ id, type, userId = null, patch = {}, outcome = 'applied', eventAt = null }) {
+  const data = { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome };
+  const send = (body) => svcRequest('apply_stripe_event', { method: 'post', url: rest('rpc/apply_stripe_event'), data: body });
+  let r = await send(eventAt ? { ...data, p_event_at: eventAt } : data);
+  if (eventAt && r.status === 404 && r.data?.code === 'PGRST202') r = await send(data);
   if (r.status !== 200) throw new Error(`apply_stripe_event HTTP ${r.status}: ${JSON.stringify(r.data)}`);
   return String(r.data);
 }
@@ -228,4 +233,18 @@ export async function findUserByCustomer(customerId) {
   });
   if (r.status !== 200) return null;
   return r.data?.[0]?.id || null;
+}
+
+// The profile a Stripe customer id is stored on, for the events that carry
+// nothing else to go by (a refund, a dispute). Unlike findUserByCustomer this
+// throws when the lookup itself fails: "no such profile" ends the event for
+// good, so it must not be concluded from an outage.
+export async function findProfileByCustomer(customerId) {
+  const r = await svcRequest('profiles read', {
+    method: 'get',
+    url: rest('profiles'),
+    params: { stripe_customer_id: `eq.${customerId}`, select: 'id,plan,stripe_subscription_id' },
+  });
+  if (r.status !== 200) throw new Error(`profiles read HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+  return r.data?.[0] || null;
 }

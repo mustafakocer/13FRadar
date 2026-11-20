@@ -1,7 +1,9 @@
 // The guru page's FAQ and its Changes tab read one computation
 // (client/src/lib/portfolioChanges.js through /api/changes). Checked on every
 // curated guru's latest quarter from the stored history, and on Berkshire's
-// 2026-Q2 filing against what the filing says.
+// 2026-Q2 filing against what the filing says. That filing is read by its
+// report date, not as "the latest quarter": the history gains a quarter every
+// three months and the latest one stops being 2026-Q2.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -11,8 +13,10 @@ import { changesFromHistory, historyBooks } from '../api/_lib/holdingsChanges.js
 
 const H = JSON.parse(fs.readFileSync(new URL('../api/_data/guru-history.json', import.meta.url), 'utf8'));
 const label = (p) => p.ticker || p.issuer;
-const faqFor = (g, lang = 'tr') => {
-  const last = g.quarters.at(-1);
+const BRK_Q2 = '2026-06-30';
+const faqFor = (g, lang = 'tr', reportDate = null) => {
+  const last = reportDate ? g.quarters.find((q) => q.reportDate === reportDate) : g.quarters.at(-1);
+  assert.ok(last, `${g.name}: no ${reportDate} quarter in the stored history`);
   const b = historyBooks(g, last.reportDate);
   const ch = trimChanges(changesFromHistory(g, last.reportDate), 5);
   const positions = [...b.current].sort((x, y) => y.value - x.value);
@@ -51,8 +55,8 @@ test('portfolioChanges: by shares, complete books, keyed with put/call', () => {
 
 test('Berkshire 2026-Q2: sold out of STZ only; COF and BAC among the reductions; nothing still held is called an exit', () => {
   const g = H.gurus['0001067983'];
-  const { ch, faq, current } = faqFor(g);
-  assert.equal(g.quarters.at(-1).reportDate, '2026-06-30');
+  const { ch, faq, current } = faqFor(g, 'tr', BRK_Q2);
+  assert.equal(ch.reportDate, BRK_Q2);
   assert.deepEqual(ch.exited.map(label), ['STZ']);
   const reduced = ch.reduced.map(label);
   assert.ok(reduced.includes('COF') && reduced.includes('BAC'), reduced.join(','));
@@ -89,7 +93,7 @@ test('every guru page: the FAQ lists are the Changes lists, and no exit is still
 });
 
 test('English FAQ carries the same lists', () => {
-  const { ch, faq } = faqFor(H.gurus['0001067983'], 'en');
+  const { ch, faq } = faqFor(H.gurus['0001067983'], 'en', BRK_Q2);
   assert.match(faq[2][1], /Sold out entirely: STZ\./);
   assert.match(faq[2][1], new RegExp(`Reduced: ${ch.reduced.map(label).slice(0, 4).join(', ')}`));
 });

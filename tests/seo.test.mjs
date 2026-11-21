@@ -144,7 +144,7 @@ test('SSR: home page renders content and site JSON-LD', async () => {
   const types = jsonLd(html).map((b) => b['@type']);
   assert.ok(types.includes('Organization') && types.includes('WebSite'));
   const site = jsonLd(html).find((b) => b['@type'] === 'WebSite');
-  assert.match(site.potentialAction.target.urlTemplate, /^https:\/\/example\.test\/tr\/\?q=\{search_term_string\}$/);
+  assert.match(site.potentialAction.target.urlTemplate, /^https:\/\/example\.test\/tr\?q=\{search_term_string\}$/);
 });
 
 test('metadata: TR and EN render distinct titles for the same entity', async () => {

@@ -1,4 +1,4 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { useI18n } from './i18n.jsx';
@@ -33,9 +33,14 @@ const Lazy = ({ children }) => (
   </Suspense>
 );
 
-export default function App() {
+export default function App({ notFound = false }) {
   const { t } = useI18n();
   const { pathname } = useLocation();
+  // The address the server answered with a 404 (an unknown symbol, fund,
+  // member…). It shows the not-found page for as long as the reader stays on
+  // it; any other address routes as usual.
+  const missingAt = useRef(notFound ? pathname : null);
+  const missing = missingAt.current !== null && missingAt.current === pathname;
   // 'light' (the default theme) on the server and for the first client render
   // (hydration must match); the persisted choice is applied right after mount.
   const [theme, setTheme] = useState('light');
@@ -57,6 +62,7 @@ export default function App() {
         {/* One page's render error stays inside the page area; the shell and
             the other routes keep working, and moving to another route resets it. */}
         <ErrorBoundary resetKey={pathname} title={t('common.error')} message={t('common.renderFailed')} retry={t('common.retry')}>
+        {missing ? <NotFound /> : (
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/manager/:cik" element={<Manager />} />
@@ -108,6 +114,7 @@ export default function App() {
           <Route path="/unsubscribe" element={<Lazy><Unsubscribe /></Lazy>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        )}
         </ErrorBoundary>
         <Footer />
       </main>

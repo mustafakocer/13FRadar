@@ -50,7 +50,9 @@ if (state) hydrate(queryClient, state);
 
 const tree = (
   <React.StrictMode>
-    <Root queryClient={queryClient} lang={lang} router={BrowserRouter} />
+    {/* the server answered this URL 404 and rendered the not-found page:
+        the first client render must be the same page */}
+    <Root queryClient={queryClient} lang={lang} notFound={window.__NOT_FOUND__ === true} router={BrowserRouter} />
   </React.StrictMode>
 );
 const rootEl = document.getElementById('root');

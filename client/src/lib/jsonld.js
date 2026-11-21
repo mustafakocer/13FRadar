@@ -43,7 +43,9 @@ export function website(lang) {
     inLanguage: lang,
     potentialAction: {
       '@type': 'SearchAction',
-      target: { '@type': 'EntryPoint', urlTemplate: `__SITE__/${lang}/?q={search_term_string}` },
+      // no slash before the query: /{lang}?q=… is the home page with the search
+      // box filled in and its results open (SearchBox initialText)
+      target: { '@type': 'EntryPoint', urlTemplate: `__SITE__/${lang}?q={search_term_string}` },
       'query-input': 'required name=search_term_string',
     },
   };

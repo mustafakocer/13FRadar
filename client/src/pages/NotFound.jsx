@@ -10,7 +10,7 @@ export default function NotFound() {
   const { t } = useI18n();
   const { pathname } = useLocation();
   const seo = useMemo(
-    () => ({ title: `${t('nf.title')} — Fundocap`, description: '', path: pathname, noindex: true }),
+    () => ({ title: `${t('nf.title')} — Fundocap`, description: '', path: pathname, noindex: true, notFound: true }),
     [t, pathname]
   );
   useSeo(seo);

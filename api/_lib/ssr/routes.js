@@ -19,6 +19,7 @@ import { congressCommittee as congressCommitteeHandler, congressMember as congre
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
+import { URL_SYMBOL_SRC } from '../urlSymbol.js';
 import { knownSymbol, priceUnavailable } from '../priceSnapshot.js';
 import { guruStock } from '../guruStocks.js';
 import { withCompanyName } from '../companyNames.js';
@@ -121,7 +122,10 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
     if (!canonical.startsWith('/manager/')) return { redirect: `${canonical}${tail}`, status: 301 };
   }
   const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 8000));
-  if (!mgr) return { seeds, status: 404 };
+  // EDGAR did not answer in time (or does not know the CIK): not proof that
+  // the fund is gone, so the fund page is still rendered for the browser to
+  // fill in — `transient` keeps ssr.js from swapping in the not-found page.
+  if (!mgr) return { seeds, status: 404, transient: true };
   seeds.push([['manager', cik], mgr]);
   // the newest valid filing (a misfiled newest one is skipped: pageFiling)
   const acc = mgr.defaultAcc || mgr.filings?.[0]?.acc;
@@ -350,7 +354,7 @@ export const ROUTES = [
   // before the guru × ticker route, whose last segment is a symbol.
   { kind: 'manager', re: /^\/manager\/(\d{1,10})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ cik: m[1].padStart(10, '0'), segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
   { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'guru', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
-  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/(?!(?:changes|mix|history|backtest)$)([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
+  { kind: 'guru-ticker', re: new RegExp(`^/guru/([a-z0-9-]{1,120})/(?!(?:changes|mix|history|backtest)$)(${URL_SYMBOL_SRC})$`), params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
   { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'filer', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
   { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
   { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },
@@ -364,7 +368,7 @@ export const ROUTES = [
   { kind: 'congress-committee', re: /^\/congress\/committee\/([a-z0-9-]{1,160})$/, params: (m) => ({ slug: m[1] }), load: loadCongressCommittee, cache: 'hour' },
   { kind: 'congress-member', re: /^\/congress\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1] }), load: loadCongressMember, cache: 'hour' },
   { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
-  { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
+  { kind: 'stock', re: new RegExp(`^/stock/(${URL_SYMBOL_SRC})$`), params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, params: (m, qs) => ({ tab: qs.get('tab') }), load: loadInsiders, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: loadPricing, cache: 'none' },

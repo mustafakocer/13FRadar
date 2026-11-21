@@ -21,7 +21,7 @@ if (!fs.existsSync(path.join(root, 'api', '_data', 'reports', `${id}.json`))) {
   console.error(`api/_data/reports/${id}.json missing — run scripts/build-report.mjs first`);
   process.exit(1);
 }
-if (!fs.existsSync(path.join(root, 'client', 'dist', 'index.html'))) {
+if (!fs.existsSync(path.join(root, 'client', 'dist', 'server', 'entry-server.js'))) {
   console.error('client/dist missing — run npm run build first');
   process.exit(1);
 }

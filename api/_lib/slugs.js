@@ -26,9 +26,26 @@ export const cikForSlug = (slug) => slugTable().bySlug[slug] || null;
 //
 // A real slug is never an alias: resolveSlug answers with the live page first
 // and only then looks for a rename.
+//
+// config/slug-aliases.json (the reviewed, pinned list) is read here as well as
+// by the build: an address added to it redirects from the next deploy, without
+// waiting for the nightly job to copy it into the table.
+let pinnedAliases = null;
+function pinned() {
+  if (!pinnedAliases) {
+    try {
+      pinnedAliases = require('../../config/slug-aliases.json').aliases || {};
+    } catch {
+      pinnedAliases = {};
+    }
+  }
+  return pinnedAliases;
+}
 export function aliasForSlug(slug) {
-  if (!slug || slugTable().bySlug[slug]) return null;
-  return slugTable().aliases?.[slug] || null;
+  const t = slugTable();
+  if (!slug || t.bySlug[slug]) return null;
+  const target = t.aliases?.[slug] || pinned()[slug] || null;
+  return target && t.bySlug[target] ? target : null;
 }
 
 // The entry for a slug, and the slug it should be read under. `canonical`
@@ -53,7 +70,7 @@ export function filerPath(cik) {
 
 // The redirects to serve: the reviewed list of published addresses
 // (config/slug-aliases.json), the table's earlier aliases, and a slug derived
-// from each curated name — each kept only while its target exists and no
+// from each curated name and from its EDGAR registrant name — each kept only while its target exists and no
 // real page has taken its slug (a live page always outranks a redirect).
 // scripts/build-slugs.mjs writes the result; the pinned list is why a run
 // that shrank the table (2026-09-23: 113 → 79) is repaired by the next one.

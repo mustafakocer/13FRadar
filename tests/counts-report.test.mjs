@@ -62,9 +62,9 @@ test('no page source carries a typed fund or superinvestor count', () => {
   assert.deepEqual(hits, []);
 });
 
-test('home and universe descriptions state the rounded count, or no number at all', () => {
-  assert.match(homeSeo({ lang: 'tr', fundCount: 9046 }).description, /^9\.000\+ fonun 13F portföyleri/);
-  assert.match(homeSeo({ lang: 'en', fundCount: 9046 }).description, /^13F portfolios of 9,000\+ funds,/);
+test('the home description states the exact count, the universe one the rounded count, or no number at all', () => {
+  assert.match(homeSeo({ lang: 'tr', fundCount: 9046 }).description, /^9\.046 fonun 13F portföyleri/);
+  assert.match(homeSeo({ lang: 'en', fundCount: 9046 }).description, /^13F portfolios of 9,046 funds,/);
   assert.match(homeSeo({ lang: 'tr' }).description, /^Binlerce fonun 13F/);
   assert.match(homeSeo({ lang: 'en' }).description, /^13F portfolios of thousands of funds,/);
   const data = { coverage: { tracked: 98, filed: 91, included: 70 }, managers: new Array(72).fill({ reportDate: '2026-09-30' }) };
@@ -112,7 +112,9 @@ test('SSR: /screen and /match carry the counts from the data in title and descri
   const mEn = await ssr('/en/match');
   assert.ok(meta(mEn.html).includes(`the ${fundCountRounded(tracked, 'en')} superinvestors we track`), meta(mEn.html));
   const home = await ssr('/tr');
-  assert.ok(meta(home.html).startsWith(`${fundCountRounded(count, 'tr')} fonun`), meta(home.html));
+  assert.ok(meta(home.html).startsWith(`${fundCountLabel(count, { locale: 'tr-TR' })} fonun`), meta(home.html));
+  // the post-deploy site check refuses a rounded count anywhere on the home page
+  assert.ok(!/\d\.000\+/.test(home.html), 'a rounded fund count on the home page');
   const uni = await ssr('/en/consensus/universe');
   assert.ok(meta(uni.html).includes(`(${fundCountRounded(count, 'en')} funds)`), meta(uni.html));
 });

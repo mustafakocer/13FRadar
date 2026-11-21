@@ -1,5 +1,5 @@
 import { fmtMoney, fmtNum, fmtPct, fmtRatio, quarterLabel, withFormatLang } from './format.js';
-import { fundCountRounded } from './fundCount.js';
+import { fundCountLabel, fundCountRounded } from './fundCount.js';
 import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155, RANK_NAME, portfolioValue } from './answerBox.js';
 import { organization, website, guruEntity, guruDataset, corporation, stockDataset, article, itemList } from './jsonld.js';
 
@@ -178,11 +178,13 @@ function stockSeoText({ lang, ticker, cusip, stock, consensusRow, reportDate }) 
   };
 }
 
-// fundCount: universe-summary.json's count (lib/fundCount.js). The number in
-// the description is that count rounded down; without it the sentence carries
-// no number at all.
+// fundCount: universe-summary.json's count (lib/fundCount.js). The home page
+// states the exact count, the same figure as its lead sentence and the pricing
+// page — the post-deploy site check (scripts/check-site.mjs) refuses a rounded
+// "9.000+" anywhere in the home page's HTML, description included. Without a
+// count the sentence carries no number at all.
 export function homeSeo({ lang, fundCount = null }) {
-  const funds = fundCountRounded(fundCount, lang);
+  const funds = fundCountLabel(fundCount, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
   return {
     jsonLd: siteJsonLd(lang),
     title: lang === 'tr' ? 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' : 'Fundocap — Track the Smart Money & Insiders',

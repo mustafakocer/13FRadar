@@ -185,17 +185,17 @@ export default function TopBar({ theme, onToggleTheme }) {
             <span className="ph">{t('topnav.searchPh')}</span>
             <kbd>⌘K</kbd>
           </button>
-          <button className="toggle-btn" onClick={onToggleTheme} title="Theme" aria-label="Theme">
+          <button className="toggle-btn" onClick={onToggleTheme} title={t('a11y.theme')} aria-label={t('a11y.theme')}>
             <Ico icon={theme === 'dark' ? Sun : Moon} />
           </button>
-          <button className="toggle-btn" onClick={toggle} title="Language">
+          <button className="toggle-btn" onClick={toggle} title={t('a11y.language')} aria-label={t('a11y.language')}>
             {lang === 'tr' ? 'EN' : 'TR'}
           </button>
           {accountLink}
           <button
             className={`burger${mobileOpen ? ' on' : ''}`}
             onClick={() => setMobileOpen((o) => !o)}
-            aria-label="Menu"
+            aria-label={t('a11y.menu')}
             aria-expanded={mobileOpen}
           >
             <i /><i /><i />

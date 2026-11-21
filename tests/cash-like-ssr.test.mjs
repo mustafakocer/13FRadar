@@ -21,6 +21,6 @@ test('SSR: the fund page shows the cash-like weight beside the previous period',
   assert.equal(status, 200);
   const plain = html.replace(/<!-- -->/g, '');
   assert.match(plain, /data-cashlike="10"/);
-  assert.match(plain, /Nakit benzeri 10\.0%/);
-  assert.match(plain, /2026 Q1: 2\.5%/);
+  assert.match(plain, /Nakit benzeri %10,0/);
+  assert.match(plain, /2026 Q1: %2,5/);
 });

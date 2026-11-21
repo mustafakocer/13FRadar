@@ -6,7 +6,7 @@ import CompanyName from '../components/CompanyName.jsx';
 import { useAuth } from '../auth.jsx';
 import ProGate from '../components/ProGate.jsx';
 import { useSeo } from '../seo.jsx';
-import { fmtMoney, fmtPct, fmtFormPrice } from '../lib/format.js';
+import { fmtMoney, fmtPct, fmtFormPrice, fmtRatio } from '../lib/format.js';
 import { breadcrumbs } from '../lib/seoTemplates.js';
 import Ico from '../components/Ico.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
@@ -116,7 +116,7 @@ export default function InsiderSignal() {
                       </>
                     )}
                   </td>
-                  <td className="l">{kind === 'cluster' ? `${r.from} → ${r.to}` : `${r.d} @ $${Number(r.p).toFixed(2)}`}</td>
+                  <td className="l">{kind === 'cluster' ? `${r.from} → ${r.to}` : `${r.d} @ $${fmtRatio(Number(r.p), 2)}`}</td>
                   <td className="sig-val">{fmtMoney(r.v)}</td>
                 </tr>
                 {kind === 'cluster' && open.has(r.t) && (

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
-import { fmtPct, deltaClass, fmtDayRange } from '../lib/format.js';
+import { fmtPct, fmtNum, locNum, deltaClass, fmtDayRange } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
@@ -44,7 +44,7 @@ function useStaticJson(key, file) {
 // $356B · $24.5B · $980M — a portfolio's size in two or three figures
 export function money(n) {
   if (!Number.isFinite(n) || n <= 0) return '—';
-  const f = (v, s) => `$${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, '') : v.toFixed(2).replace(/\.?0+$/, '')}${s}`;
+  const f = (v, s) => `$${locNum(v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, '') : v.toFixed(2).replace(/\.?0+$/, ''))}${s}`;
   if (n >= 1e12) return f(n / 1e12, 'T');
   if (n >= 1e9) return f(n / 1e9, 'B');
   if (n >= 1e6) return f(n / 1e6, 'M');
@@ -118,7 +118,7 @@ function GuruCard({ g }) {
             <li>
               <Link to={to} className="inv-holding inv-more">
                 <span className="inv-plus"><Ico icon={Plus} size={16} /></span>
-                <span className="inv-holding-name">{t('home.moreStocks').replace('{n}', more.toLocaleString())}</span>
+                <span className="inv-holding-name">{t('home.moreStocks').replace('{n}', fmtNum(more))}</span>
               </Link>
             </li>
           )}

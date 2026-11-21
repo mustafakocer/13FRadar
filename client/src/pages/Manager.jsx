@@ -467,8 +467,8 @@ export default function Manager({ segment = 'portfolio' }) {
               <Ico icon={TriangleAlert} size={14} />{' '}
               {n.kind === 'incomplete-table' || n.kind === 'previous-table'
                 ? t(n.kind === 'incomplete-table' ? 'manager.incompleteTable' : 'manager.previousTable')
-                    .replace('{declaredLines}', Number(n.declaredLines).toLocaleString())
-                    .replace('{tableLines}', Number(n.tableLines).toLocaleString())
+                    .replace('{declaredLines}', fmtNum(Number(n.declaredLines)))
+                    .replace('{tableLines}', fmtNum(Number(n.tableLines)))
                     .replace('{declared}', fmtMoney(n.declared))
                     .replace('{table}', fmtMoney(n.table))
                 : t('manager.coverTotal').replace('{declared}', fmtMoney(n.declared)).replace('{table}', fmtMoney(n.table))}

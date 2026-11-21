@@ -50,8 +50,8 @@ export default function GuruTicker() {
         title: `${fill(t('pair.title'), { name, ticker: tk })} | Fundocap`,
         description:
           lang === 'tr'
-            ? `${name} ${tk} (${d.issuer}) pozisyonunu ${d.rows.length} çeyrek boyunca nasıl değiştirdi: ${held ? `${qt} itibarıyla ${fmtNum(latest.shares)} adet, portföyün %${latest.weight.toFixed(2)}'i, ${timeHeldLabel(d.heldQuarters, lang, { dataFrom: d.dataFrom })} elde tutuluyor.` : `pozisyon ${qt} itibarıyla kapalı.`}`
-            : `How ${name} traded ${tk} (${d.issuer}) over ${d.rows.length} quarters: ${held ? `${fmtNum(latest.shares)} shares as of ${qt}, ${latest.weight.toFixed(2)}% of the portfolio, held for ${timeHeldLabel(d.heldQuarters, lang, { dataFrom: d.dataFrom })}.` : `position closed as of ${qt}.`}`,
+            ? `${name} ${tk} (${d.issuer}) pozisyonunu ${d.rows.length} çeyrek boyunca nasıl değiştirdi: ${held ? `${qt} itibarıyla ${fmtNum(latest.shares)} adet, portföyün ${fmtPct(latest.weight, { sign: false, digits: 2 })}'i, ${timeHeldLabel(d.heldQuarters, lang, { dataFrom: d.dataFrom })} elde tutuluyor.` : `pozisyon ${qt} itibarıyla kapalı.`}`
+            : `How ${name} traded ${tk} (${d.issuer}) over ${d.rows.length} quarters: ${held ? `${fmtNum(latest.shares)} shares as of ${qt}, ${fmtPct(latest.weight, { sign: false, digits: 2 })} of the portfolio, held for ${timeHeldLabel(d.heldQuarters, lang, { dataFrom: d.dataFrom })}.` : `position closed as of ${qt}.`}`,
         path: `/guru/${slug}/${tk}`,
         type: 'article',
         jsonLd: [breadcrumbs(lang, [[lang === 'tr' ? 'Usta Yatırımcılar' : 'Superinvestors', '/gurus'], [name, `/guru/${slug}`], [tk, `/guru/${slug}/${tk}`]])],
@@ -82,7 +82,7 @@ export default function GuruTicker() {
               <span className="badge neg">{t('pair.act.exit')}</span>
             )}
             <span className="badge plain">{t('pair.firstSeen')}: {quarterLabel(d.firstSeen)}</span>
-            {d.splitAdjusted && <span className="badge type">split-adjusted</span>}
+            {d.splitAdjusted && <span className="badge type">{t('pair.splitAdjusted')}</span>}
           </div>
         </div>
         <div className="row">

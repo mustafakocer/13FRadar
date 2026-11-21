@@ -4,6 +4,7 @@ import { QueryClient, dehydrate } from '@tanstack/react-query';
 import Root, { queryDefaults } from './Root.jsx';
 import { buildHead } from './seo.jsx';
 import { withLang } from './lib/locale.js';
+import { setFormatLang } from './lib/format.js';
 import { preloadAllPages } from './pages/lazyPages.js';
 import { preloadCharts } from './components/Charts/index.js';
 import { recordAccess } from './lib/accessedSeed.js';
@@ -37,10 +38,19 @@ export function render({ lang, url, seeds = [], siteUrl, notFound = false }) {
     } else queryClient.setQueryData(key, data);
   }
   const seo = { spec: null };
-  const html = renderToString(
-    <Root queryClient={queryClient} lang={lang} seo={seo} notFound={notFound} router={StaticRouter} routerProps={{ location: withLang(lang, url) }} />
-  );
-  const head = buildHead({ ...(seo.spec || {}), lang }, { siteUrl });
+  // Number formatting follows the page language (lib/format.js). The render is
+  // synchronous, so no other request can run between set and reset.
+  let html;
+  let head;
+  setFormatLang(lang);
+  try {
+    html = renderToString(
+      <Root queryClient={queryClient} lang={lang} seo={seo} notFound={notFound} router={StaticRouter} routerProps={{ location: withLang(lang, url) }} />
+    );
+    head = buildHead({ ...(seo.spec || {}), lang }, { siteUrl });
+  } finally {
+    setFormatLang('en');
+  }
   // the page has been rendered: what it read is what the browser needs to
   // render the same markup, and nothing else is sent
   for (const [key, rec] of recorded) {

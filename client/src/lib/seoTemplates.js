@@ -1,4 +1,4 @@
-import { fmtMoney, quarterLabel } from './format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtRatio, quarterLabel, withFormatLang } from './format.js';
 import { fundCountRounded } from './fundCount.js';
 import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155, RANK_NAME, portfolioValue } from './answerBox.js';
 import { organization, website, guruEntity, guruDataset, corporation, stockDataset, article, itemList } from './jsonld.js';
@@ -16,19 +16,23 @@ export const quarterText = (reportDate, lang) => {
   return lang === 'tr' ? `${y} Q${qq}` : `Q${qq} ${y}`;
 };
 
-const num = (n, lang) => (n == null ? '—' : n.toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US'));
+const num = (n) => (n == null ? '—' : fmtNum(n));
+const pct1 = (v) => fmtPct(v, { sign: false });
 
 // segment: 'portfolio' is the fund's front page; 'changes' | 'mix' | 'history'
 // | 'backtest' are its sub-pages, each with its own title and canonical. The
 // Person/Dataset entities and the FAQ describe the fund, not a sub-page, so
 // they are emitted on the front only — a segment carries breadcrumbs and no
 // duplicate of the entity that lives one level up.
-export function managerSeo({ lang, cik, manager, filing, holdings, changes = null, history = null, segment = 'portfolio' }) {
+export function managerSeo(input) {
+  return withFormatLang(input?.lang, () => managerSeoText(input));
+}
+function managerSeoText({ lang, cik, manager, filing, holdings, changes = null, history = null, segment = 'portfolio' }) {
   if (!cik) return { title: lang === 'tr' ? 'Yükleniyor… | Fundocap' : 'Loading… | Fundocap', path: '/gurus' };
   const name = manager?.displayName || manager?.name || `CIK ${cik}`;
   const qt = quarterText(filing?.reportDate, lang);
   const top = holdings?.positions?.[0];
-  const topTxt = top ? `${top.ticker || top.issuer} (${top.weight.toFixed(1)}%)` : null;
+  const topTxt = top ? `${top.ticker || top.issuer} (${pct1(top.weight)})` : null;
   const count = holdings?.count;
   const aum = portfolioValue(holdings);
   const title =
@@ -123,7 +127,10 @@ export function managerSeo({ lang, cik, manager, filing, holdings, changes = nul
   };
 }
 
-export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate }) {
+export function stockSeo(input) {
+  return withFormatLang(input?.lang, () => stockSeoText(input));
+}
+function stockSeoText({ lang, ticker, cusip, stock, consensusRow, reportDate }) {
   const sym = (stock?.price?.symbol || ticker || '').toUpperCase();
   const company = stock?.price?.name || sym;
   const n = consensusRow?.holderCount;
@@ -135,11 +142,11 @@ export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate 
   let description;
   if (lang === 'tr') {
     description = n ? `${num(n, lang)} usta yatırımcı ${company} (${sym}) hissesini 13F bildiriminde raporluyor.` : `${company} (${sym}) hissesinin kurumsal sahipliği.`;
-    if (price != null) description += ` Fiyat ${price.toFixed(2)} ${stock?.price?.currency || 'USD'}.`;
+    if (price != null) description += ` Fiyat ${fmtRatio(price, 2)} ${stock?.price?.currency || 'USD'}.`;
     description += ' Usta yatırımcı hareketleri, çeyreklik adet değişimleri, içeriden işlemler ve rasyolar.';
   } else {
     description = n ? `${num(n, lang)} tracked superinvestors report ${company} (${sym}) on Form 13F.` : `Institutional ownership of ${company} (${sym}).`;
-    if (price != null) description += ` Price ${price.toFixed(2)} ${stock?.price?.currency || 'USD'}.`;
+    if (price != null) description += ` Price ${fmtRatio(price, 2)} ${stock?.price?.currency || 'USD'}.`;
     description += ' Superinvestor activity, quarterly share changes, insider trades and valuation ratios.';
   }
   const path = `/stock/${sym}`;
@@ -187,7 +194,10 @@ export function homeSeo({ lang, fundCount = null }) {
   };
 }
 
-export function consensusSeo({ lang, data, segment = 'held', t = null, fundCount = null }) {
+export function consensusSeo(input) {
+  return withFormatLang(input?.lang, () => consensusSeoText(input));
+}
+function consensusSeoText({ lang, data, segment = 'held', t = null, fundCount = null }) {
   const tr = lang === 'tr';
   const n = data?.coverage?.included ?? data?.managers?.length;
   const latest = (data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
@@ -309,7 +319,10 @@ export function siteJsonLd(lang) {
 }
 
 // Ranking pages: Article + ItemList (entity URLs) + FAQPage + BreadcrumbList
-export function rankingJsonLd({ lang, kind, title, path, answer, rows, reportDate, updatedAt, managers }) {
+export function rankingJsonLd(input) {
+  return withFormatLang(input?.lang, () => rankingJsonLdText(input));
+}
+function rankingJsonLdText({ lang, kind, title, path, answer, rows, reportDate, updatedAt, managers }) {
   const items = rows.slice(0, 30).map((r) => ({ name: `${r.ticker || r.issuer} — ${r.issuer}`, path: r.ticker ? `/stock/${r.ticker}` : '/consensus' }));
   const qt = quarterText(reportDate, lang);
   const first = rows[0];
@@ -358,11 +371,14 @@ const sym = (p) => p.ticker || p.issuer;
 // Programmatic FAQ for a guru page. The buy/sell answers read the same
 // `changes` the Changes tab shows (GET /api/changes, portfolioChanges.js):
 // by share count, against the complete previous book.
-export function managerFaq({ lang, name, filing, holdings, changes }) {
+export function managerFaq(input) {
+  return withFormatLang(input?.lang, () => managerFaqText(input));
+}
+function managerFaqText({ lang, name, filing, holdings, changes }) {
   if (!holdings?.positions?.length || !filing) return [];
   const qt = quarterText(filing.reportDate, lang);
   const pos = holdings.positions.slice(0, 10);
-  const top = pos.slice(0, 5).map((p) => `${sym(p)} (${p.weight.toFixed(1)}%)`);
+  const top = pos.slice(0, 5).map((p) => `${sym(p)} (${pct1(p.weight)})`);
   const count = holdings.count ?? holdings.positions.length;
   const has = Boolean(changes?.counts);
   const names = (arr) => list((arr || []).slice(0, 5).map(sym), lang);
@@ -418,7 +434,10 @@ export function managerFaq({ lang, name, filing, holdings, changes }) {
 
 // Programmatic FAQ for a stock page. Both answers come from the superinvestor
 // consensus file: who holds the stock, and how the group moved last quarter.
-export function stockFaq({ lang, ticker, company, consensusRow }) {
+export function stockFaq(input) {
+  return withFormatLang(input?.lang, () => stockFaqText(input));
+}
+function stockFaqText({ lang, ticker, company, consensusRow }) {
   const names = (consensusRow?.holders || []).slice(0, 5).map((h) => h.name);
   const total = consensusRow?.holderCount ?? names.length;
   const buyers = consensusRow?.buyers ?? 0;

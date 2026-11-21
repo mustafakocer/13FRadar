@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n.jsx';
-import { fmtMoney, fmtNum } from '../lib/format.js';
+import { fmtMoney, fmtNum, pctText } from '../lib/format.js';
 import { pulsePercents, pulseDate } from '../lib/insiderPulse.js';
 
 // The newest filing day's open-market buys and sells — the same block on the
@@ -23,10 +23,10 @@ export default function InsiderDaySummary({ summary, big = false }) {
       </div>
       <div className="row ins-bar-legend">
         <span className="delta-pos" data-buy-pct={pct.buy ?? ''}>
-          {t('ins.purchases')} {pct.buy != null ? `${pct.buy}%` : '—'} · {fmtMoney(summary.buyValue)}
+          {t('ins.purchases')} {pct.buy != null ? pctText(pct.buy) : '—'} · {fmtMoney(summary.buyValue)}
         </span>
         <span className="delta-neg" style={{ marginLeft: 'auto' }} data-sell-pct={pct.sell ?? ''}>
-          {t('ins.sells')} {pct.sell != null ? `${pct.sell}%` : '—'} · {fmtMoney(summary.sellValue)}
+          {t('ins.sells')} {pct.sell != null ? pctText(pct.sell) : '—'} · {fmtMoney(summary.sellValue)}
         </span>
       </div>
       <div className="ins-counts">

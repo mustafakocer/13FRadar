@@ -89,21 +89,32 @@ test('buildNewListings: series starting at the ten-year floor and new ETFs are n
   assert.ok(!heldBeforeListing({ cusip: 'AAPLCUSIP', ticker: 'AAPL' }, Q, on));
 });
 
-test('the published data: SPCX and CBRS are not among the most bought, and the file lists them', () => {
+// Read off whatever quarter is published: the rule covers a security only in
+// the quarter it listed (SPCX and CBRS in 2026-Q2), and a quarter later new
+// stakes in it are buys again — so nothing here names a ticker or a quarter.
+test('the published data: nothing that listed in the published quarter ranks as a buy', () => {
   const read = (...p) => JSON.parse(fs.readFileSync(path.join(root, ...p), 'utf8'));
   const pro = read('api', '_data', 'consensus-pro.json');
   const pub = read('client', 'public', 'consensus.json');
   const gs = read('api', '_data', 'guru-stocks.json');
   const listings = read('client', 'public', 'new-listings.json');
   const on = listingLookup(listings);
-  for (const t of ['SPCX', 'CBRS']) {
-    assert.ok(!pro.topBought.some((r) => r.ticker === t), `${t} in topBought`);
-    assert.ok(!pub.activity.buys.some((r) => r.ticker === t), `${t} on the home page`);
-    assert.ok(on(t), `${t} in new-listings.json`);
-    const row = gs.stocks.find((s) => s.ticker === t);
-    if (row) {
-      assert.equal(row.netValue, 0, `${t} net`);
-      assert.ok(row.preListing > 0 && row.listedOn, `${t} marked held-before-listing`);
+  assert.ok(listings.rows.length > 0, 'new-listings.json has rows');
+  for (const row of gs.stocks) {
+    if (row.preListing > 0) {
+      // marked held-before-listing: the file knows the listing and none of
+      // those stakes counted as buying. The listing is judged against each
+      // holder's own period (a fund still on last quarter's filing keeps its
+      // mark), so here it only has to be no later than the published quarter.
+      assert.ok(row.listedOn && row.listedOn <= pro.quarter, `${row.ticker} listedOn ${row.listedOn}`);
+      assert.equal(on(row.cusip) || on(row.ticker), row.listedOn, `${row.ticker} in new-listings.json`);
+      assert.equal(row.netValue, 0, `${row.ticker} net`);
+      assert.equal(row.buyValue, 0, `${row.ticker} buy $`);
+      assert.ok(!pro.topBought.some((r) => r.ticker === row.ticker), `${row.ticker} in topBought`);
+      assert.ok(!pub.activity.buys.some((r) => r.ticker === row.ticker), `${row.ticker} on the home page`);
+    } else {
+      // …and the mark is only ever on a row that has pre-listing holders
+      assert.ok(!row.listedOn, `${row.ticker} carries listedOn without pre-listing holders`);
     }
   }
   // no row the rule covers ranks as a buy

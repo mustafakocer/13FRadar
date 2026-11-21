@@ -41,3 +41,18 @@ test('vercel.json: the api function still ships the split tables and the insider
   }
   assert.ok(!matches('api/_data/insiders.json'), 'the raw insiders.json must not ship with the function');
 });
+
+// Seen on a preview: with no index.html left in the web root, Vercel answers
+// "/" with its own NOT_FOUND — the "/:path*" rewrite does not match the bare
+// root there. The root needs its own rule, ahead of the catch-all.
+test('vercel.json: the root has its own rewrite to the SSR function, before the catch-all', () => {
+  const sources = cfg.rewrites.map((r) => r.source);
+  const root = cfg.rewrites.find((r) => r.source === '/');
+  assert.ok(root, 'no rewrite for "/"');
+  assert.match(root.destination, /^\/api\/ssr\?__path=$/);
+  assert.ok(sources.indexOf('/') < sources.indexOf('/:path*'), 'the root rule must come before the catch-all');
+  assert.ok(
+    cfg.redirects.some((r) => r.source === '/index.html' && r.destination === '/' && r.permanent),
+    '/index.html is not redirected to the root'
+  );
+});

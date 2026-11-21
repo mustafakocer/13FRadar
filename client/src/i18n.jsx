@@ -297,6 +297,7 @@ const dict = {
     'related.overlap': 'Örtüşme',
     'related.shared': 'Ortak hisseler',
     'related.report': '{q} çeyrek raporunu oku',
+    'related.reportLive': 'Güncel çeyrek raporunu oku',
     'cal.title': '13F Bildirim Takvimi',
     'rep.indexSub': 'Usta yatırımcıların çeyreklik 13F raporları',
     'rep.open': 'Raporu aç →',
@@ -957,7 +958,7 @@ const dict = {
     'consensus.moreHolders': 'Tutan {n} fonun tamamı Pro planda',
     'consensus.universeTop': "Tüm Wall Street'in Favorileri",
     'consensus.universeNote':
-      'ABD borsasındaki ~8.000 fonun tamamının birleşik verisi; haftalık güncellenir.',
+      '13F bildiren fonların tamamının ({n} fon) birleşik verisi; haftalık güncellenir.',
 
     'manager.turnover': 'Al-Sat Sıklığı (Son Çeyrek)',
     'manager.turnoverAvg': '8Ç ortalama',
@@ -1068,7 +1069,7 @@ const dict = {
     'nav.emerging': 'Yükselen Yöneticiler',
     'report.title': 'Çeyrek Raporu',
     'report.subtitle': 'sezonu özeti',
-    'report.funds': 'fon',
+    'report.funds': 'usta hesaba dahil',
     'report.bought': 'Bu Çeyrek En Çok Alınanlar',
     'report.sold': 'Bu Çeyrek En Çok Satılanlar',
     'report.fundsBought': 'usta aldı',
@@ -1827,6 +1828,7 @@ const dict = {
     'related.overlap': 'Overlap',
     'related.shared': 'Shared holdings',
     'related.report': 'Read the {q} quarterly report',
+    'related.reportLive': 'Read the current quarter’s report',
     'cal.title': '13F Filing Calendar',
     'rep.indexSub': 'Quarterly 13F reports on the tracked superinvestors',
     'rep.open': 'Open report →',
@@ -2445,7 +2447,7 @@ const dict = {
     'consensus.moreHolders': 'All {n} holding funds are on Pro',
     'consensus.universeTop': "All of Wall Street's Favorites",
     'consensus.universeNote':
-      'Aggregated across ALL 13F filers (~8,000 funds); refreshed weekly.',
+      'Aggregated across ALL 13F filers ({n} funds); refreshed weekly.',
 
     'manager.turnover': 'Turnover (Last Q)',
     'manager.turnoverAvg': '8Q average',
@@ -2554,7 +2556,7 @@ const dict = {
     'nav.emerging': 'Emerging Managers',
     'report.title': 'Quarterly Report',
     'report.subtitle': 'season recap',
-    'report.funds': 'funds',
+    'report.funds': 'superinvestors counted',
     'report.bought': 'Top Buys This Quarter',
     'report.sold': 'Top Sells This Quarter',
     'report.fundsBought': 'gurus bought',

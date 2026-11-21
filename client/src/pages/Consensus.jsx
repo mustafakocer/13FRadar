@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useGuruStocks } from '../hooks/useGuruStocks.js';
+import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
+import { fundCountLabel } from '../lib/fundCount.js';
 import { fmtMoney, fmtNum, fmtPct, quarterLabel } from '../lib/format.js';
 import { useI18n } from '../i18n.jsx';
 import { track, EVENTS } from '../lib/analytics.js';
@@ -87,7 +89,8 @@ export default function Consensus() {
   // identically either way.
   const { data, isLoading, error, proLoading, proError } = useConsensusStatic();
   const table = useGuruStocks({ limit: 500 });
-  const seo = useMemo(() => consensusSeo({ lang, data, segment: tab, t }), [lang, data, tab, t]);
+  const summary = useUniverseSummary();
+  const seo = useMemo(() => consensusSeo({ lang, data, segment: tab, t, fundCount: summary?.count }), [lang, data, tab, t, summary?.count]);
   useSeo(seo);
 
   const uniStocks = useQuery({
@@ -256,7 +259,7 @@ export default function Consensus() {
 
           {tab === 'universe' && (
             <p className="muted small" style={{ marginBottom: 10 }}>
-              {t('consensus.universeNote')}
+              {t('consensus.universeNote').replace('{n}', fundCountLabel(summary?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' }) || '—')}
               {uniStocks.data?.updatedAt ? ` · ${uniStocks.data.updatedAt.slice(0, 10)}` : ''}
             </p>
           )}

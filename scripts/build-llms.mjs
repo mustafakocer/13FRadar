@@ -125,7 +125,8 @@ function sections(lang, full) {
 }
 
 function document(full) {
-  const funds = summary?.count ? summary.count.toLocaleString('en-US') : '8,000+';
+  // no count on file → say it without a number rather than a typed one that goes stale
+  const funds = summary?.count ? summary.count.toLocaleString('en-US') : 'thousands of';
   const L = [];
   L.push('# Fundocap');
   L.push('');

@@ -1,4 +1,5 @@
 import { fmtMoney, quarterLabel } from './format.js';
+import { fundCountRounded } from './fundCount.js';
 import { guruAnswerFromPage, stockAnswerFromPage, rankingAnswer, truncate155, RANK_NAME, portfolioValue } from './answerBox.js';
 import { organization, website, guruEntity, guruDataset, corporation, stockDataset, article, itemList } from './jsonld.js';
 
@@ -170,19 +171,23 @@ export function stockSeo({ lang, ticker, cusip, stock, consensusRow, reportDate 
   };
 }
 
-export function homeSeo({ lang }) {
+// fundCount: universe-summary.json's count (lib/fundCount.js). The number in
+// the description is that count rounded down; without it the sentence carries
+// no number at all.
+export function homeSeo({ lang, fundCount = null }) {
+  const funds = fundCountRounded(fundCount, lang);
   return {
     jsonLd: siteJsonLd(lang),
     title: lang === 'tr' ? 'Fundocap — Akıllı Parayı ve İçeriden Alımları Takip Edin' : 'Fundocap — Track the Smart Money & Insiders',
     description:
       lang === 'tr'
-        ? "8.000'den fazla fonun 13F portföyleri, usta yatırımcı konsensüsü ve SEC Form 4 insider işlemleri. Warren Buffett'tan Michael Burry'ye kim ne alıyor, ne satıyor."
-        : '13F portfolios of 8,000+ funds, superinvestor consensus and SEC Form 4 insider trades. From Warren Buffett to Michael Burry: who is buying and selling.',
+        ? `${funds ? `${funds} fonun` : 'Binlerce fonun'} 13F portföyleri, usta yatırımcı konsensüsü ve SEC Form 4 insider işlemleri. Warren Buffett'tan Michael Burry'ye kim ne alıyor, ne satıyor.`
+        : `13F portfolios of ${funds ? `${funds} funds` : 'thousands of funds'}, superinvestor consensus and SEC Form 4 insider trades. From Warren Buffett to Michael Burry: who is buying and selling.`,
     path: '/',
   };
 }
 
-export function consensusSeo({ lang, data, segment = 'held', t = null }) {
+export function consensusSeo({ lang, data, segment = 'held', t = null, fundCount = null }) {
   const tr = lang === 'tr';
   const n = data?.coverage?.included ?? data?.managers?.length;
   const latest = (data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');
@@ -192,7 +197,13 @@ export function consensusSeo({ lang, data, segment = 'held', t = null }) {
   const sell = data?.topSold?.[0];
   const fresh = data?.newPositions?.length;
   const path = segment === 'held' ? '/consensus' : `/consensus/${segment}`;
-  const funds = n ? (tr ? `${n} efsane fon` : `${n} legendary funds`) : tr ? 'efsane fonlar' : 'legendary funds';
+  // n is the number of funds the consensus is computed over this quarter
+  // (coverage.included), not the number tracked (coverage.tracked): the two
+  // are named apart so "70" here and "98" on the home page do not read as a
+  // contradiction.
+  const funds = n ? (tr ? `konsensüse dahil ${n} fon` : `${n} funds counted in the consensus`) : tr ? 'takip edilen fonlar' : 'tracked funds';
+  const fundsGen = n ? `${funds}un` : 'takip edilen fonların'; // Turkish genitive
+  const allFilers = fundCountRounded(fundCount, lang);
 
   // Each segment is its own page, so each gets a title that says what is on
   // it and a first sentence a reader — or an assistant — can quote alone.
@@ -200,51 +211,51 @@ export function consensusSeo({ lang, data, segment = 'held', t = null }) {
     held: {
       title: tr ? `Usta Yatırımcı Konsensüsü ${qt}: En Çok Tutulan Hisseler` : `Superinvestor Consensus ${qt}: Most Held Stocks`,
       description: tr
-        ? `${funds}un birleşik 13F görünümü.${top ? ` En çok tutulan: ${top.ticker || top.issuer} (${top.holderCount} fon).` : ''} Her satırda hisseyi tutan fonlar açılır.`
-        : `Combined 13F view of ${funds}.${top ? ` Most held: ${top.ticker || top.issuer} (${top.holderCount} funds).` : ''} Every row opens to the funds holding it.`,
+        ? `${fundsGen} birleşik 13F görünümü.${top ? ` En çok tutulan: ${top.ticker || top.issuer} (${top.holderCount} fon).` : ''} Her satırda hisseyi tutan fonlar açılır.`
+        : `Combined 13F view of the ${funds}.${top ? ` Most held: ${top.ticker || top.issuer} (${top.holderCount} funds).` : ''} Every row opens to the funds holding it.`,
       answer: top
         ? tr
-          ? `${qt} 13F bildirimlerine göre takip edilen ${funds}un en çok tuttuğu hisse ${top.ticker || top.issuer} (${top.holderCount} fon). Liste, hisseyi tutan fon sayısına göre sıralanır; bir satıra tıklayınca tutan fonların tamamı ve ağırlıkları açılır.`
-          : `By ${qt} 13F filings, the stock most widely held among the ${funds} tracked is ${top.ticker || top.issuer} (${top.holderCount} funds). The list ranks by how many funds hold each name; a row opens to every fund holding it and the weight each carries.`
+          ? `${qt} 13F bildirimlerine göre ${fundsGen} en çok tuttuğu hisse ${top.ticker || top.issuer} (${top.holderCount} fon). Liste, hisseyi tutan fon sayısına göre sıralanır; bir satıra tıklayınca tutan fonların tamamı ve ağırlıkları açılır.`
+          : `By ${qt} 13F filings, the stock most widely held among the ${funds} is ${top.ticker || top.issuer} (${top.holderCount} funds). The list ranks by how many funds hold each name; a row opens to every fund holding it and the weight each carries.`
         : null,
     },
     bought: {
       title: tr ? `Ustaların Bu Çeyrek Aldığı Hisseler ${qt}` : `What Superinvestors Bought ${qt}`,
       description: tr
-        ? `${funds}un ${qt} çeyreğinde net alım yaptığı hisseler, dolar bazında.${buy ? ` En çok alınan: ${buy.ticker || buy.issuer}.` : ''}`
-        : `Stocks ${funds} were net buyers of in ${qt}, in dollars.${buy ? ` Most bought: ${buy.ticker || buy.issuer}.` : ''}`,
+        ? `${fundsGen} ${qt} çeyreğinde net alım yaptığı hisseler, dolar bazında.${buy ? ` En çok alınan: ${buy.ticker || buy.issuer}.` : ''}`
+        : `Stocks the ${funds} were net buyers of in ${qt}, in dollars.${buy ? ` Most bought: ${buy.ticker || buy.issuer}.` : ''}`,
       answer: buy
         ? tr
-          ? `${qt} çeyreğinde takip edilen ${funds} arasında net alımın en yüksek olduğu hisse ${buy.ticker || buy.issuer} (${buy.buyers} fon aldı). Net alım = artırma ve yeni pozisyonların değeri eksi azaltmalar, önceki çeyreğe göre.`
-          : `In ${qt}, the stock with the largest net buying across the ${funds} tracked was ${buy.ticker || buy.issuer} (${buy.buyers} funds bought). Net buying is adds and new positions minus reductions, quarter over quarter.`
+          ? `${qt} çeyreğinde ${funds} arasında net alımın en yüksek olduğu hisse ${buy.ticker || buy.issuer} (${buy.buyers} fon aldı). Net alım = artırma ve yeni pozisyonların değeri eksi azaltmalar, önceki çeyreğe göre.`
+          : `In ${qt}, the stock with the largest net buying across the ${funds} was ${buy.ticker || buy.issuer} (${buy.buyers} funds bought). Net buying is adds and new positions minus reductions, quarter over quarter.`
         : null,
     },
     sold: {
       title: tr ? `Ustaların Bu Çeyrek Sattığı Hisseler ${qt}` : `What Superinvestors Sold ${qt}`,
       description: tr
-        ? `${funds}un ${qt} çeyreğinde net satış yaptığı hisseler, dolar bazında.${sell ? ` En çok satılan: ${sell.ticker || sell.issuer}.` : ''}`
-        : `Stocks ${funds} were net sellers of in ${qt}, in dollars.${sell ? ` Most sold: ${sell.ticker || sell.issuer}.` : ''}`,
+        ? `${fundsGen} ${qt} çeyreğinde net satış yaptığı hisseler, dolar bazında.${sell ? ` En çok satılan: ${sell.ticker || sell.issuer}.` : ''}`
+        : `Stocks the ${funds} were net sellers of in ${qt}, in dollars.${sell ? ` Most sold: ${sell.ticker || sell.issuer}.` : ''}`,
       answer: sell
         ? tr
-          ? `${qt} çeyreğinde takip edilen ${funds} arasında net satışın en yüksek olduğu hisse ${sell.ticker || sell.issuer} (${sell.sellers} fon sattı). Net satış = azaltma ve tam çıkışların değeri eksi alımlar.`
-          : `In ${qt}, the stock with the largest net selling across the ${funds} tracked was ${sell.ticker || sell.issuer} (${sell.sellers} funds sold). Net selling is reductions and full exits minus buying.`
+          ? `${qt} çeyreğinde ${funds} arasında net satışın en yüksek olduğu hisse ${sell.ticker || sell.issuer} (${sell.sellers} fon sattı). Net satış = azaltma ve tam çıkışların değeri eksi alımlar.`
+          : `In ${qt}, the stock with the largest net selling across the ${funds} was ${sell.ticker || sell.issuer} (${sell.sellers} funds sold). Net selling is reductions and full exits minus buying.`
         : null,
     },
     new: {
       title: tr ? `Ustaların Portföyüne Yeni Giren Hisseler ${qt}` : `New Positions Superinvestors Opened ${qt}`,
       description: tr
-        ? `${qt} çeyreğinde ${funds}un ilk kez aldığı hisseler, fon ve portföy ağırlığıyla.`
-        : `Stocks ${funds} bought for the first time in ${qt}, with the fund and its portfolio weight.`,
+        ? `${qt} çeyreğinde ${fundsGen} ilk kez aldığı hisseler, fon ve portföy ağırlığıyla.`
+        : `Stocks the ${funds} bought for the first time in ${qt}, with the fund and its portfolio weight.`,
       answer: fresh
         ? tr
-          ? `${qt} çeyreğinde takip edilen ${funds}, ${fresh} yeni pozisyon açtı: bir önceki 13F'te yer almayıp bu çeyrek ilk kez görünen hisseler. Liste portföy ağırlığına göre sıralanır.`
-          : `In ${qt} the ${funds} tracked opened ${fresh} new positions: stocks absent from the previous 13F and appearing for the first time this quarter. The list ranks by portfolio weight.`
+          ? `${qt} çeyreğinde ${funds}, ${fresh} yeni pozisyon açtı: bir önceki 13F'te yer almayıp bu çeyrek ilk kez görünen hisseler. Liste portföy ağırlığına göre sıralanır.`
+          : `In ${qt} the ${funds} opened ${fresh} new positions: stocks absent from the previous 13F and appearing for the first time this quarter. The list ranks by portfolio weight.`
         : null,
     },
     funds: {
       title: tr ? `Takip Edilen Usta Yatırımcılar ve Son Çeyrek Hamleleri` : `Tracked Superinvestors and Their Latest Moves`,
       description: tr
-        ? `${funds}un her biri için ${qt} çeyreğinde yeni aldığı, artırdığı, azalttığı ve çıktığı hisseler.`
+        ? `${fundsGen} her biri için ${qt} çeyreğinde yeni aldığı, artırdığı, azalttığı ve çıktığı hisseler.`
         : `For each of the ${funds}: what it bought new, added to, reduced and exited in ${qt}.`,
       answer: n
         ? tr
@@ -255,8 +266,8 @@ export function consensusSeo({ lang, data, segment = 'held', t = null }) {
     universe: {
       title: tr ? `Tüm Wall Street'in En Çok Tuttuğu Hisseler` : `Most Held Stocks Across All of Wall Street`,
       description: tr
-        ? `13F bildiren tüm kurumların (8.000+ fon) en çok tuttuğu hisseler, fon sayısı ve toplam değerle.`
-        : `The stocks held by the most institutions across every 13F filer (8,000+ funds), with fund count and total value.`,
+        ? `13F bildiren tüm kurumların${allFilers ? ` (${allFilers} fon)` : ''} en çok tuttuğu hisseler, fon sayısı ve toplam değerle.`
+        : `The stocks held by the most institutions across every 13F filer${allFilers ? ` (${allFilers} funds)` : ''}, with fund count and total value.`,
       answer: tr
         ? `Bu liste yalnızca takip edilen ustaları değil, SEC'e 13F bildiren tüm kurumları sayar: bir hisseyi kaç fonun tuttuğu ve bu pozisyonların toplam değeri. Usta konsensüsüyle karşılaştırmak için kullanılır.`
         : `This list counts every institution filing a 13F with the SEC, not only the tracked superinvestors: how many funds hold a stock and what those positions are worth in total. It is the baseline the guru consensus is read against.`,

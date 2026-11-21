@@ -54,6 +54,23 @@ export function fmtTurnover(v) {
   return fmtPct(v, { sign: false });
 }
 
+// "30.09.2025 – 19.11.2026" / "Sep 30, 2025 – Nov 19, 2026": the window a
+// chained return covers. Null unless both ends are ISO days.
+const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/;
+export function fmtDay(iso, lang = 'tr') {
+  if (!ISO_DAY.test(String(iso || ''))) return null;
+  const d = new Date(`${iso}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  return lang === 'tr'
+    ? d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
+    : d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+export function fmtDayRange(from, to, lang = 'tr') {
+  const a = fmtDay(from, lang);
+  const b = fmtDay(to, lang);
+  return a && b ? `${a} – ${b}` : null;
+}
+
 export function quarterLabel(dateStr) {
   if (!dateStr) return '—';
   const [y, m] = dateStr.split('-').map(Number);

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
-import { fmtPct, deltaClass } from '../lib/format.js';
+import { fmtPct, deltaClass, fmtDayRange } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
@@ -71,7 +71,11 @@ function Tabs({ tab, setTab }) {
 // Superinvestor cards
 
 function GuruCard({ g }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  // the dates the figure covers (whole quarters + the stub to today, so it
+  // is not exactly twelve months); a card file from before the dates were
+  // stored falls back to the plain label
+  const y1Range = g.y1 != null ? fmtDayRange(g.y1From, g.y1To, lang) : null;
   const to = managerPath(g.cik, g.slug ? `/guru/${g.slug}` : null);
   const more = Math.max(0, (g.count || 0) - g.top.length);
   return (
@@ -92,7 +96,11 @@ function GuruCard({ g }) {
           ) : (
             <b className="muted">—</b>
           )}{' '}
-          <span className="muted">{t('home.perf.lastYear')}</span>
+          {y1Range ? (
+            <span className="muted" data-y1-range title={t('home.perf.window').replace('{range}', y1Range)}>{y1Range}</span>
+          ) : (
+            <span className="muted">{t('home.perf.lastYear')}</span>
+          )}
         </span>
       </div>
       <div className="inv-body">

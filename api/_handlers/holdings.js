@@ -8,6 +8,7 @@ import { closeOn } from '../_lib/valueUnits.js';
 import { readSeries } from '../_lib/priceStore.js';
 import { lacksCorrection } from '../_lib/misfiledBooks.js';
 import { FREE_ROWS, parseCusipFilter, topCusips, freeRows, followingFiling } from '../_lib/freeHoldings.js';
+import { sinceQuarterEnd } from '../_lib/sinceQuarterEnd.js';
 
 // GET /api/holdings/:cik/:acc?light=1&full=1&cusips=A,B,C
 //   light=1   skip CUSIP->ticker resolution (comparisons / previous quarter)
@@ -130,15 +131,14 @@ export default async function handler(req, res) {
       positions: out.map((p) => {
         const ticker = tickers[p.cusip] ?? null;
         const co = ticker ? companyName(ticker) : null;
-        // Dataroma-style "since reported": the archive close at the filing's
-        // quarter end against the archive's latest close — one split-adjusted
-        // series on both sides. Share rows only; an option row's value is a
-        // notional, not a price position.
+        // "Since quarter end" (the field keeps its first name, sinceReport):
+        // the archive close at the filing's quarter end against the archive's
+        // latest close — one split-adjusted series on both sides. Share rows
+        // only; an option row's value is a notional, not a price position.
         let sinceReport = null;
         if (ticker && !p.putCall && meta.reportDate) {
           const qe = closeOn(ticker, meta.reportDate);
-          const last = qe ? readSeries(ticker)?.prices?.at(-1)?.close : null;
-          if (qe > 0 && last > 0) sinceReport = Number((((last - qe) / qe) * 100).toFixed(1));
+          sinceReport = sinceQuarterEnd(qe, qe ? readSeries(ticker)?.prices?.at(-1)?.close : null);
         }
         return { ...p, ticker, sinceReport, ...(co ? { coName: co.name } : {}) };
       }),

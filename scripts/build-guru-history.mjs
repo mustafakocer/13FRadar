@@ -49,7 +49,7 @@ import { persist as persistMaster, stats as masterStats, tickerFor } from '../ap
 import { historyPanel, GURUS } from '../api/_lib/gurus.js';
 import { applySuccessors } from '../api/_lib/successorHistory.js';
 import { topRankedCusips, reconcileSplits, splitKey, isShareSplit } from '../api/_lib/history.js';
-import { splitAdjustPrev } from '../api/_lib/splitAdjust.js';
+import { splitAdjustPrev, loadSplits } from '../api/_lib/splitAdjust.js';
 import { turnover, turnoverOutliers, TURNOVER_OUTLIER } from '../api/_lib/turnover.js';
 
 const QUARTERS = Number(process.env.GURU_HISTORY_QUARTERS || 40);
@@ -60,19 +60,16 @@ const TOP = Number(process.env.GURU_HISTORY_TOP || 100);
 const RPS = Math.max(1, Number(process.env.SEC_RPS) || 6);
 const root = process.cwd();
 const OUT = process.env.GURU_HISTORY_OUT || path.join(root, 'api', '_data', 'guru-history.json');
-let splits = {};
-try {
-  splits = JSON.parse(fs.readFileSync(path.join(root, 'api', '_data', 'splits.json'), 'utf8')).byTicker || {};
-} catch {
-  /* no splits table yet */
-}
+// the table plus the splits it lacks and the filings show (splitAdjust.js):
+// one accessor, so the history and the quarter-over-quarter readers agree
+const splits = loadSplits();
 
 // The splits a stored position's rows carry. Files written before
 // `splitsApplied` existed only say `splitAdjusted: true`, meaning "every split
 // in the table when the rows were adjusted" — the closest reading is the
 // table's current share splits.
 const storedApplied = (e) =>
-  e.splitsApplied || (e.splitAdjusted && e.ticker ? (splits[e.ticker] || []).filter((s) => isShareSplit(s.ratio)).map(splitKey) : null);
+  e.splitsApplied || (e.splitAdjusted && e.ticker ? (loadSplits({ inferred: false })[e.ticker] || []).filter((s) => isShareSplit(s.ratio)).map(splitKey) : null);
 
 // Bring one position's rows to today's shares: fresh rows get every split
 // after their date, stored rows only the splits they do not carry yet.

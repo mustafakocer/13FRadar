@@ -1,0 +1,1244 @@
+{
+ "fetchedAt": "2026-11-20",
+ "source": "https://www.sec.gov/Archives/edgar/data/<cik>/<accession>/",
+ "funds": [
+  {
+   "cik": "0001067983",
+   "name": "Berkshire Hathaway (Warren Buffett)",
+   "why": "Berkshire: the same CUSIP on many lines (one per co-manager), summed into one position",
+   "acc": "0001193125-26-463399",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 304196581325,
+    "count": 30,
+    "putCallValue": 0,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "037833100",
+      "issuer": "APPLE INC",
+      "class": "COM",
+      "value": 75901188420,
+      "shares": 227917808,
+      "weight": 24.951
+     },
+     {
+      "cusip": "025816109",
+      "issuer": "AMERICAN EXPRESS CO",
+      "class": "COM",
+      "value": 46104813870,
+      "shares": 151610700,
+      "weight": 15.156
+     },
+     {
+      "cusip": "191216100",
+      "issuer": "COCA COLA CO",
+      "class": "COM",
+      "value": 34432000000,
+      "shares": 400000000,
+      "weight": 11.319
+     },
+     {
+      "cusip": "02079K305",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL A",
+      "value": 27110464741,
+      "shares": 78791167,
+      "weight": 8.912
+     },
+     {
+      "cusip": "060505104",
+      "issuer": "BANK OF AMER CORP",
+      "class": "COM",
+      "value": 24812509222,
+      "shares": 455860908,
+      "weight": 8.157
+     },
+     {
+      "cusip": "166764100",
+      "issuer": "CHEVRON CORPORATION",
+      "class": "COM",
+      "value": 17230393553,
+      "shares": 84375856,
+      "weight": 5.664
+     },
+     {
+      "cusip": "674599105",
+      "issuer": "OCCIDENTAL PETE CORP",
+      "class": "COM",
+      "value": 14656559963,
+      "shares": 264941431,
+      "weight": 4.818
+     },
+     {
+      "cusip": "615369105",
+      "issuer": "MOODYS CORP",
+      "class": "COM",
+      "value": 11203286284,
+      "shares": 24669778,
+      "weight": 3.683
+     },
+     {
+      "cusip": "H1467J104",
+      "issuer": "CHUBB LIMITED",
+      "class": "COM",
+      "value": 11139546771,
+      "shares": 34249183,
+      "weight": 3.662
+     },
+     {
+      "cusip": "02079K107",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL C",
+      "value": 9264186660,
+      "shares": 27188433,
+      "weight": 3.045
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001061768",
+   "name": "Baupost Group (Seth Klarman)",
+   "why": "Baupost: thousands written into a dollars filing, rescaled ×1000",
+   "acc": "0001061768-26-000015",
+   "filed": "2026-11-13",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 5045853000,
+    "count": 21,
+    "putCallValue": 0,
+    "unitFactor": 1000,
+    "top": [
+     {
+      "cusip": "023135106",
+      "issuer": "AMAZON COM INC",
+      "class": "COM",
+      "value": 932781000,
+      "shares": 3743854,
+      "weight": 18.486
+     },
+     {
+      "cusip": "036752103",
+      "issuer": "ELEVANCE HEALTH INC FORMERLY",
+      "class": "COM",
+      "value": 495805000,
+      "shares": 1275154,
+      "weight": 9.826
+     },
+     {
+      "cusip": "76131D103",
+      "issuer": "RESTAURANT BRANDS INTL INC",
+      "class": "COM",
+      "value": 480104000,
+      "shares": 6753112,
+      "weight": 9.515
+     },
+     {
+      "cusip": "372460105",
+      "issuer": "GENUINE PARTS CO",
+      "class": "COM",
+      "value": 389540000,
+      "shares": 3097978,
+      "weight": 7.72
+     },
+     {
+      "cusip": "31488V107",
+      "issuer": "FERGUSON ENTERPRISES INC",
+      "class": "COMMON STOCK NEW",
+      "value": 349868000,
+      "shares": 1571594,
+      "weight": 6.934
+     },
+     {
+      "cusip": "02079K107",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL C",
+      "value": 323679000,
+      "shares": 949931,
+      "weight": 6.415
+     },
+     {
+      "cusip": "95082P105",
+      "issuer": "WESCO INTL INC",
+      "class": "COM",
+      "value": 258374000,
+      "shares": 718523,
+      "weight": 5.121
+     },
+     {
+      "cusip": "92826C839",
+      "issuer": "VISA INC",
+      "class": "COM CL A",
+      "value": 252018000,
+      "shares": 701355,
+      "weight": 4.995
+     },
+     {
+      "cusip": "907818108",
+      "issuer": "UNION PAC CORP",
+      "class": "COM",
+      "value": 216451000,
+      "shares": 795395,
+      "weight": 4.29
+     },
+     {
+      "cusip": "G0403H108",
+      "issuer": "AON PLC",
+      "class": "SHS CL A",
+      "value": 186759000,
+      "shares": 674779,
+      "weight": 3.701
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001536411",
+   "name": "Duquesne Family Office (Druckenmiller)",
+   "why": "Duquesne: thousands written into a dollars filing, rescaled ×1000",
+   "acc": "0001536411-26-000011",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 4470867000,
+    "count": 65,
+    "putCallValue": 321994000,
+    "unitFactor": 1000,
+    "top": [
+     {
+      "cusip": "632307104",
+      "issuer": "Natera Inc",
+      "class": "COM",
+      "value": 1306335000,
+      "shares": 3160666,
+      "weight": 29.219
+     },
+     {
+      "cusip": "G7997R103",
+      "issuer": "Seagate Technology Hldngs Pl",
+      "class": "ORD SHS",
+      "value": 315247000,
+      "shares": 341790,
+      "weight": 7.051
+     },
+     {
+      "cusip": "023135106",
+      "issuer": "Amazon Com Inc",
+      "class": "COM",
+      "value": 192493000,
+      "shares": 772600,
+      "weight": 4.305
+     },
+     {
+      "cusip": "35137L105",
+      "issuer": "Fox Corp",
+      "class": "CL A COM",
+      "value": 190835000,
+      "shares": 3046050,
+      "weight": 4.268
+     },
+     {
+      "cusip": "984245100",
+      "issuer": "Ypf Sociedad Anonima",
+      "class": "SPONSORED ADS",
+      "value": 177555000,
+      "shares": 3541897,
+      "weight": 3.971
+     },
+     {
+      "cusip": "91332U101",
+      "issuer": "Unity Software Inc",
+      "class": "COM",
+      "value": 161935000,
+      "shares": 3956385,
+      "weight": 3.622
+     },
+     {
+      "cusip": "81141R100",
+      "issuer": "Sea Ltd",
+      "class": "SPONSORD ADS",
+      "value": 155072000,
+      "shares": 1592765,
+      "weight": 3.468
+     },
+     {
+      "cusip": "464286400",
+      "issuer": "Ishares Inc",
+      "class": "MSCI BRAZIL ETF",
+      "value": 125814000,
+      "shares": 3377570,
+      "weight": 2.814
+     },
+     {
+      "cusip": "457669307",
+      "issuer": "Insmed Inc",
+      "class": "COM PAR $.01",
+      "value": 124715000,
+      "shares": 1092650,
+      "weight": 2.79
+     },
+     {
+      "cusip": "023135106",
+      "putCall": "Call",
+      "issuer": "Amazon Com Inc",
+      "class": "COM",
+      "value": 114435000,
+      "shares": 459300,
+      "weight": 2.56
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001709323",
+   "name": "Himalaya Capital (Li Lu)",
+   "why": "Himalaya: a small book, foreign issuers and ADRs",
+   "acc": "0002043585-26-000030",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 3781431260,
+    "count": 8,
+    "putCallValue": 0,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "722304102",
+      "issuer": "PDD HOLDINGS INC",
+      "class": "SPON ADS",
+      "value": 916661615,
+      "shares": 11761119,
+      "weight": 24.241
+     },
+     {
+      "cusip": "02079K305",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL A",
+      "value": 875098664,
+      "shares": 2543300,
+      "weight": 23.142
+     },
+     {
+      "cusip": "02079K107",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL C",
+      "value": 835255962,
+      "shares": 2451300,
+      "weight": 22.088
+     },
+     {
+      "cusip": "084670702",
+      "issuer": "BERKSHIRE HATHAWAY INC DEL",
+      "class": "CL B NEW",
+      "value": 551886948,
+      "shares": 1108318,
+      "weight": 14.595
+     },
+     {
+      "cusip": "27579R104",
+      "issuer": "EAST WEST BANCORP INC",
+      "class": "COM",
+      "value": 344073179,
+      "shares": 2776351,
+      "weight": 9.099
+     },
+     {
+      "cusip": "88034P109",
+      "issuer": "TENCENT MUSIC ENTERTAINM",
+      "class": "SPON ADS",
+      "value": 117558000,
+      "shares": 14824464,
+      "weight": 3.109
+     },
+     {
+      "cusip": "227046109",
+      "issuer": "CROCS INC",
+      "class": "COM",
+      "value": 104064880,
+      "shares": 887093,
+      "weight": 2.752
+     },
+     {
+      "cusip": "037833100",
+      "issuer": "APPLE INC",
+      "class": "COM",
+      "value": 36832012,
+      "shares": 110600,
+      "weight": 0.974
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001112520",
+   "name": "Akre Capital Management",
+   "why": "Akre: a small ordinary book",
+   "acc": "0001112520-26-000022",
+   "filed": "2026-11-13",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 4424875808,
+    "count": 21,
+    "putCallValue": 22957000,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "57636Q104",
+      "issuer": "MASTERCARD INCORPORATED",
+      "class": "CL A",
+      "value": 970165325,
+      "shares": 1759235,
+      "weight": 21.925
+     },
+     {
+      "cusip": "615369105",
+      "issuer": "MOODYS CORP",
+      "class": "COM",
+      "value": 462720323,
+      "shares": 1018916,
+      "weight": 10.457
+     },
+     {
+      "cusip": "48251W104",
+      "issuer": "KKR & CO L P DEL",
+      "class": "COM UNITS",
+      "value": 393502138,
+      "shares": 4309991,
+      "weight": 8.893
+     },
+     {
+      "cusip": "11271J107",
+      "issuer": "BROOKFIELD CORP",
+      "class": "CL A LTD VT SH",
+      "value": 382924957,
+      "shares": 10502604,
+      "weight": 8.654
+     },
+     {
+      "cusip": "776696106",
+      "issuer": "ROPER TECHNOLOGIES INC",
+      "class": "COM",
+      "value": 350242644,
+      "shares": 1002383,
+      "weight": 7.915
+     },
+     {
+      "cusip": "92826C839",
+      "issuer": "VISA INC",
+      "class": "COM CL A",
+      "value": 334207084,
+      "shares": 930084,
+      "weight": 7.553
+     },
+     {
+      "cusip": "22160N109",
+      "issuer": "COSTAR GROUP INC",
+      "class": "COM",
+      "value": 296188465,
+      "shares": 10809798,
+      "weight": 6.694
+     },
+     {
+      "cusip": "303250104",
+      "issuer": "FAIR ISAAC CORP",
+      "class": "COM",
+      "value": 222811378,
+      "shares": 376072,
+      "weight": 5.035
+     },
+     {
+      "cusip": "217204106",
+      "issuer": "COPART INC",
+      "class": "COM",
+      "value": 202342334,
+      "shares": 7417241,
+      "weight": 4.573
+     },
+     {
+      "cusip": "12510Q100",
+      "issuer": "CCC INTELLIGENT SOLUTIONS HL",
+      "class": "COM",
+      "value": 194420911,
+      "shares": 29192329,
+      "weight": 4.394
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001656456",
+   "name": "Appaloosa (David Tepper)",
+   "why": "Appaloosa: a small book",
+   "acc": "0001656456-26-000004",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 7559628593,
+    "count": 24,
+    "putCallValue": 0,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "595112103",
+      "issuer": "MICRON TECHNOLOGY INC",
+      "class": "COM",
+      "value": 1331387500,
+      "shares": 1250000,
+      "weight": 17.612
+     },
+     {
+      "cusip": "023135106",
+      "issuer": "AMAZON COM INC",
+      "class": "COM",
+      "value": 1114946250,
+      "shares": 4475000,
+      "weight": 14.749
+     },
+     {
+      "cusip": "874039100",
+      "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
+      "class": "SPONSORED ADS",
+      "value": 718499250,
+      "shares": 1575000,
+      "weight": 9.504
+     },
+     {
+      "cusip": "84615Q103",
+      "issuer": "SPACE EXPLORATION TECHN CORP",
+      "class": "CLASS A COM STK",
+      "value": 556547062,
+      "shares": 3883329,
+      "weight": 7.362
+     },
+     {
+      "cusip": "90353T100",
+      "issuer": "UBER TECHNOLOGIES INC",
+      "class": "COM",
+      "value": 501150650,
+      "shares": 7315000,
+      "weight": 6.629
+     },
+     {
+      "cusip": "67066G104",
+      "issuer": "NVIDIA CORPORATION",
+      "class": "COM",
+      "value": 456760000,
+      "shares": 2000000,
+      "weight": 6.042
+     },
+     {
+      "cusip": "464286772",
+      "issuer": "ISHARES INC",
+      "class": "MSCI STH KOR ETF",
+      "value": 384961914,
+      "shares": 2106149,
+      "weight": 5.092
+     },
+     {
+      "cusip": "30303M102",
+      "issuer": "META PLATFORMS INC",
+      "class": "CL A",
+      "value": 380719500,
+      "shares": 525000,
+      "weight": 5.036
+     },
+     {
+      "cusip": "02079K107",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL C",
+      "value": 340740000,
+      "shares": 1000000,
+      "weight": 4.507
+     },
+     {
+      "cusip": "92840M102",
+      "issuer": "VISTRA CORP",
+      "class": "COM",
+      "value": 292647881,
+      "shares": 2115272,
+      "weight": 3.871
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001040273",
+   "name": "Third Point (Dan Loeb)",
+   "why": "Third Point: put/call option rows next to the shares",
+   "acc": "0001040273-26-000004",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 4589115363,
+    "count": 39,
+    "putCallValue": 46520430,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "30303M102",
+      "issuer": "META PLATFORMS INC",
+      "class": "CL A",
+      "value": 474992900,
+      "shares": 655000,
+      "weight": 10.35
+     },
+     {
+      "cusip": "91529Y106",
+      "issuer": "UNUM GROUP",
+      "class": "COM",
+      "value": 438650000,
+      "shares": 5000000,
+      "weight": 9.558
+     },
+     {
+      "cusip": "67066G104",
+      "issuer": "NVIDIA CORPORATION",
+      "class": "COM",
+      "value": 342570000,
+      "shares": 1500000,
+      "weight": 7.465
+     },
+     {
+      "cusip": "G25508105",
+      "issuer": "CRH PLC",
+      "class": "ORD",
+      "value": 235152000,
+      "shares": 2840000,
+      "weight": 5.124
+     },
+     {
+      "cusip": "852234103",
+      "issuer": "BLOCK INC",
+      "class": "CL A",
+      "value": 233825400,
+      "shares": 3180000,
+      "weight": 5.095
+     },
+     {
+      "cusip": "594918104",
+      "issuer": "MICROSOFT CORP",
+      "class": "COM",
+      "value": 230805000,
+      "shares": 450000,
+      "weight": 5.029
+     },
+     {
+      "cusip": "Y2573F102",
+      "issuer": "FLEX LTD",
+      "class": "ORD",
+      "value": 219980000,
+      "shares": 2000000,
+      "weight": 4.794
+     },
+     {
+      "cusip": "14040H105",
+      "issuer": "CAPITAL ONE FINL CORP",
+      "class": "COM",
+      "value": 214307700,
+      "shares": 1110000,
+      "weight": 4.67
+     },
+     {
+      "cusip": "49338L103",
+      "issuer": "KEYSIGHT TECHNOLOGIES INC",
+      "class": "COM",
+      "value": 207502800,
+      "shares": 570000,
+      "weight": 4.522
+     },
+     {
+      "cusip": "538034109",
+      "issuer": "LIVE NATION ENTERTAINMENT IN",
+      "class": "COM",
+      "value": 202313500,
+      "shares": 1195000,
+      "weight": 4.409
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001167483",
+   "name": "Tiger Global Management",
+   "why": "Tiger Global: foreign issuers, filed by an agent",
+   "acc": "0000919574-26-008062",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 20173101170,
+    "count": 45,
+    "putCallValue": 0,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "67066G104",
+      "issuer": "NVIDIA CORPORATION",
+      "class": "COM",
+      "value": 2740560000,
+      "shares": 12000000,
+      "weight": 13.585
+     },
+     {
+      "cusip": "023135106",
+      "issuer": "AMAZON COM INC",
+      "class": "COM",
+      "value": 2311877799,
+      "shares": 9279060,
+      "weight": 11.46
+     },
+     {
+      "cusip": "30303M102",
+      "issuer": "META PLATFORMS INC",
+      "class": "CL A",
+      "value": 1630449026,
+      "shares": 2248337,
+      "weight": 8.082
+     },
+     {
+      "cusip": "874039100",
+      "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
+      "class": "SPONSORED ADS",
+      "value": 1429664790,
+      "shares": 3133924,
+      "weight": 7.087
+     },
+     {
+      "cusip": "594918104",
+      "issuer": "MICROSOFT CORP",
+      "class": "COM",
+      "value": 1162699678,
+      "shares": 2266913,
+      "weight": 5.764
+     },
+     {
+      "cusip": "02079K305",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL A",
+      "value": 1152398929,
+      "shares": 3349218,
+      "weight": 5.713
+     },
+     {
+      "cusip": "219948106",
+      "issuer": "CORPAY INC",
+      "class": "COM SHS",
+      "value": 835442202,
+      "shares": 2149877,
+      "weight": 4.141
+     },
+     {
+      "cusip": "15675D103",
+      "issuer": "CEREBRAS SYSTEMS INC",
+      "class": "COM CL A",
+      "value": 789893545,
+      "shares": 4446347,
+      "weight": 3.916
+     },
+     {
+      "cusip": "512807306",
+      "issuer": "LAM RESEARCH CORP",
+      "class": "COM NEW",
+      "value": 720533795,
+      "shares": 2193339,
+      "weight": 3.572
+     },
+     {
+      "cusip": "81141R100",
+      "issuer": "SEA LTD",
+      "class": "SPONSORD ADS",
+      "value": 691997494,
+      "shares": 7107616,
+      "weight": 3.43
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001029160",
+   "name": "Soros Fund Management",
+   "why": "Soros: a few hundred rows, options and convertible notes (principal amounts)",
+   "acc": "0000902664-26-004530",
+   "filed": "2026-11-13",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 8508315961,
+    "count": 263,
+    "putCallValue": 2027621425,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "81369Y506",
+      "putCall": "Put",
+      "issuer": "SELECT SECTOR SPDR TR",
+      "class": "ST STR ENERG ETF",
+      "value": 670245450,
+      "shares": 10898300,
+      "weight": 7.878
+     },
+     {
+      "cusip": "458140100",
+      "issuer": "INTEL CORP",
+      "class": "COM",
+      "value": 340250900,
+      "shares": 2830000,
+      "weight": 3.999
+     },
+     {
+      "cusip": "78468R556",
+      "putCall": "Put",
+      "issuer": "SPDR SERIES TRUST",
+      "class": "SP O&G EXPL PRO",
+      "value": 327546245,
+      "shares": 1826500,
+      "weight": 3.85
+     },
+     {
+      "cusip": "023135106",
+      "issuer": "AMAZON COM INC",
+      "class": "COM",
+      "value": 262939456,
+      "shares": 1055346,
+      "weight": 3.09
+     },
+     {
+      "cusip": "874039100",
+      "issuer": "TAIWAN SEMICONDUCTOR MANUFAC",
+      "class": "SPONSORED ADS",
+      "value": 250409534,
+      "shares": 548915,
+      "weight": 2.943
+     },
+     {
+      "cusip": "464287432",
+      "putCall": "Call",
+      "issuer": "ISHARES TR",
+      "class": "20 YR TR BD ETF",
+      "value": 237229000,
+      "shares": 3050000,
+      "weight": 2.788
+     },
+     {
+      "cusip": "69331CAL2",
+      "issuer": "PG&E CORP",
+      "class": "NOTE 4.250%12/0",
+      "value": 218712746,
+      "shares": 222500000,
+      "prn": true,
+      "weight": 2.571
+     },
+     {
+      "cusip": "81369Y886",
+      "putCall": "Call",
+      "issuer": "SELECT SECTOR SPDR TR",
+      "class": "ST STR UTIL ETF",
+      "value": 214790240,
+      "shares": 5446000,
+      "weight": 2.524
+     },
+     {
+      "cusip": "02079K305",
+      "issuer": "ALPHABET INC",
+      "class": "CAP STK CL A",
+      "value": 206778317,
+      "shares": 600960,
+      "weight": 2.43
+     },
+     {
+      "cusip": "67066G104",
+      "issuer": "NVIDIA CORPORATION",
+      "class": "COM",
+      "value": 196137768,
+      "shares": 858822,
+      "weight": 2.305
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001764403",
+   "name": "Vision Capital Corp",
+   "why": "Vision Capital: a 13F-HR/A that restates the whole table",
+   "acc": "0001764403-26-000005",
+   "filed": "2026-11-13",
+   "reportDate": "2026-09-30",
+   "amendments": [
+    {
+     "acc": "0001764403-26-000006",
+     "filingDate": "2026-11-13",
+     "type": "RESTATEMENT"
+    }
+   ],
+   "site": {
+    "aum": 350317906,
+    "count": 16,
+    "putCallValue": 150182804,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "464287432",
+      "putCall": "Put",
+      "issuer": "ISHARES TR",
+      "class": "PUT",
+      "value": 77780000,
+      "shares": 1000000,
+      "weight": 22.203
+     },
+     {
+      "cusip": "112463104",
+      "issuer": "BROOKDALE SR LIVING INC",
+      "class": "COM",
+      "value": 29684998,
+      "shares": 2740997,
+      "weight": 8.474
+     },
+     {
+      "cusip": "32054K103",
+      "issuer": "FIRST INDL RLTY TR INC",
+      "class": "COM",
+      "value": 28809203,
+      "shares": 483863,
+      "weight": 8.224
+     },
+     {
+      "cusip": "22946R101",
+      "issuer": "CSQUARE INC",
+      "class": "COMMON STOCK",
+      "value": 24793590,
+      "shares": 1568222,
+      "weight": 7.077
+     },
+     {
+      "cusip": "866674104",
+      "issuer": "SUN CMNTYS INC",
+      "class": "COM",
+      "value": 24497668,
+      "shares": 221138,
+      "weight": 6.993
+     },
+     {
+      "cusip": "46124J201",
+      "issuer": "INVENTRUST PPTYS CORP",
+      "class": "COM NEW",
+      "value": 24328668,
+      "shares": 806921,
+      "weight": 6.945
+     },
+     {
+      "cusip": "101121101",
+      "putCall": "Call",
+      "issuer": "BXP INC",
+      "class": "CALL",
+      "value": 23588460,
+      "shares": 386000,
+      "weight": 6.733
+     },
+     {
+      "cusip": "76169C100",
+      "putCall": "Call",
+      "issuer": "REXFORD INDL RLTY INC",
+      "class": "CALL",
+      "value": 19034496,
+      "shares": 524800,
+      "weight": 5.433
+     },
+     {
+      "cusip": "758849103",
+      "issuer": "REGENCY CTRS CORP",
+      "class": "COM",
+      "value": 18427301,
+      "shares": 256362,
+      "weight": 5.26
+     },
+     {
+      "cusip": "29444U700",
+      "issuer": "EQUINIX INC",
+      "class": "COM",
+      "value": 18208440,
+      "shares": 18000,
+      "weight": 5.198
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0000858877",
+   "name": "CISCO SYSTEMS, INC.",
+   "why": "Cisco: a 13F-HR/A that adds new holdings to the original",
+   "acc": "0001193125-26-422871",
+   "filed": "2026-10-15",
+   "reportDate": "2026-09-30",
+   "amendments": [
+    {
+     "acc": "0001193125-26-463822",
+     "filingDate": "2026-11-16",
+     "type": "NEW HOLDINGS"
+    }
+   ],
+   "site": {
+    "aum": 294866524,
+    "count": 6,
+    "putCallValue": 0,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "464287150",
+      "issuer": "ISHARES TR",
+      "class": "CORE S&P TTL STK",
+      "value": 119721600,
+      "shares": 720000,
+      "weight": 40.602
+     },
+     {
+      "cusip": "21873S108",
+      "issuer": "COREWEAVE INC.",
+      "class": "COM CL A",
+      "value": 92693938,
+      "shares": 1063980,
+      "weight": 31.436
+     },
+     {
+      "cusip": "464287200",
+      "issuer": "ISHARES TR",
+      "class": "S&P 500 ETF",
+      "value": 45951000,
+      "shares": 60000,
+      "weight": 15.584
+     },
+     {
+      "cusip": "84615Q103",
+      "issuer": "SPACE EXPLORATION TECHN CORP",
+      "class": "CLASS A COM STK",
+      "value": 35810393,
+      "shares": 237375,
+      "weight": 12.145
+     },
+     {
+      "cusip": "023193105",
+      "issuer": "AMBIQ MICRO INC",
+      "class": "COMMON STOCK",
+      "value": 608622,
+      "shares": 8928,
+      "weight": 0.206
+     },
+     {
+      "cusip": "29765A101",
+      "issuer": "ETHOS TECHNOLOGIES INC",
+      "class": "CL A",
+      "value": 80971,
+      "shares": 2412,
+      "weight": 0.027
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001316580",
+   "name": "Luxor Capital Group, LP",
+   "why": "Luxor: an ordinary filer with option rows",
+   "acc": "0001316580-26-000005",
+   "filed": "2026-11-16",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 3305676808,
+    "count": 49,
+    "putCallValue": 2368832640,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "464287655",
+      "putCall": "Put",
+      "issuer": "ISHARES TR",
+      "class": "RUSSELL 2000 ETF",
+      "value": 1277460330,
+      "shares": 4597000,
+      "weight": 38.644
+     },
+     {
+      "cusip": "46090E103",
+      "putCall": "Put",
+      "issuer": "INVESCO QQQ TR",
+      "class": "UNIT SER 1",
+      "value": 791553900,
+      "shares": 1070000,
+      "weight": 23.945
+     },
+     {
+      "cusip": "023135106",
+      "putCall": "Call",
+      "issuer": "AMAZON COM INC",
+      "class": "COM",
+      "value": 160701750,
+      "shares": 645000,
+      "weight": 4.861
+     },
+     {
+      "cusip": "G9456A100",
+      "issuer": "GOLAR LNG LTD",
+      "class": "SHS",
+      "value": 141434964,
+      "shares": 2976325,
+      "weight": 4.279
+     },
+     {
+      "cusip": "88023U101",
+      "issuer": "SOMNIGROUP INTERNATIONAL INC",
+      "class": "COM",
+      "value": 124189753,
+      "shares": 1999513,
+      "weight": 3.757
+     },
+     {
+      "cusip": "G3730V105",
+      "issuer": "FTAI AVIATION LTD",
+      "class": "SHS",
+      "value": 122074210,
+      "shares": 730852,
+      "weight": 3.693
+     },
+     {
+      "cusip": "21871N101",
+      "issuer": "CORECIVIC INC",
+      "class": "COM",
+      "value": 101831665,
+      "shares": 3157571,
+      "weight": 3.081
+     },
+     {
+      "cusip": "71377A103",
+      "issuer": "PERFORMANCE FOOD GROUP CO",
+      "class": "COM",
+      "value": 73930380,
+      "shares": 807894,
+      "weight": 2.236
+     },
+     {
+      "cusip": "112463104",
+      "issuer": "BROOKDALE SR LIVING INC",
+      "class": "COM",
+      "value": 70227406,
+      "shares": 6484525,
+      "weight": 2.124
+     },
+     {
+      "cusip": "30303M102",
+      "putCall": "Call",
+      "issuer": "META PLATFORMS INC",
+      "class": "CL A",
+      "value": 52212960,
+      "shares": 72000,
+      "weight": 1.579
+     }
+    ]
+   }
+  },
+  {
+   "cik": "0001034541",
+   "name": "TIMUCUAN ASSET MANAGEMENT INC/FL",
+   "why": "Timucuan: an ordinary filer",
+   "acc": "0001034541-26-000008",
+   "filed": "2026-11-13",
+   "reportDate": "2026-09-30",
+   "amendments": [],
+   "site": {
+    "aum": 2703605931,
+    "count": 29,
+    "putCallValue": 0,
+    "unitFactor": 1,
+    "top": [
+     {
+      "cusip": "808513105",
+      "issuer": "CHARLES SCHWAB CORPORATION",
+      "class": "COM",
+      "value": 283851539,
+      "shares": 2904149,
+      "weight": 10.499
+     },
+     {
+      "cusip": "88023U101",
+      "issuer": "SOMNIGROUP INTERNATIONAL",
+      "class": "COM",
+      "value": 242366527,
+      "shares": 3902214,
+      "weight": 8.965
+     },
+     {
+      "cusip": "09857L108",
+      "issuer": "BOOKING HLDGS INC",
+      "class": "COM",
+      "value": 191455766,
+      "shares": 1175224,
+      "weight": 7.081
+     },
+     {
+      "cusip": "743315103",
+      "issuer": "PROGRESSIVE CORPORATION",
+      "class": "COM",
+      "value": 186961281,
+      "shares": 901844,
+      "weight": 6.915
+     },
+     {
+      "cusip": "040413205",
+      "issuer": "ARISTA NETWORKS INC",
+      "class": "COM",
+      "value": 183918353,
+      "shares": 903376,
+      "weight": 6.803
+     },
+     {
+      "cusip": "885160101",
+      "issuer": "THOR INDS INC COM",
+      "class": "COM",
+      "value": 176187798,
+      "shares": 2549751,
+      "weight": 6.517
+     },
+     {
+      "cusip": "025816109",
+      "issuer": "AMERICAN EXPRESS CO COM",
+      "class": "COM",
+      "value": 171393510,
+      "shares": 563609,
+      "weight": 6.339
+     },
+     {
+      "cusip": "084670702",
+      "issuer": "BERKSHIRE HATHAWAY INC DEL CL ",
+      "class": "COM",
+      "value": 148749902,
+      "shares": 298725,
+      "weight": 5.502
+     },
+     {
+      "cusip": "04247X102",
+      "issuer": "ARMSTRONG WORLD INDUSTRIES INC",
+      "class": "COM",
+      "value": 126723660,
+      "shares": 782583,
+      "weight": 4.687
+     },
+     {
+      "cusip": "45780R101",
+      "issuer": "INSTALLED BUILDING PRODUCTS IN",
+      "class": "COM",
+      "value": 124732170,
+      "shares": 650053,
+      "weight": 4.614
+     }
+    ]
+   }
+  }
+ ]
+}

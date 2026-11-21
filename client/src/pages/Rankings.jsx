@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useGuruStocks, useGuruOptions } from '../hooks/useGuruStocks.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
+import { RANKING_ROWS } from '../lib/rankingKinds.js';
+import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
 import CompanyName from '../components/CompanyName.jsx';
 import TickerLogo from '../components/TickerLogo.jsx';
@@ -25,10 +27,10 @@ import { Trophy } from 'lucide-react';
 // public consensus file — thirty rows — is the fallback for a checkout where
 // the daily Action has not written that table yet.
 const KINDS = {
-  'most-bought': { key: 'rank.mostBought', sort: (a, b) => b.netValue - a.netValue, filter: (r) => r.netValue > 0, value: (r) => fmtMoney(r.netValue), pct: (r) => (r.totalValue ? (r.netValue / r.totalValue) * 100 : null), count: (r) => r.buyers, cls: 'delta-pos' },
-  'most-sold': { key: 'rank.mostSold', sort: (a, b) => a.netValue - b.netValue, filter: (r) => r.netValue < 0, value: (r) => fmtMoney(Math.abs(r.netValue)), pct: (r) => (r.totalValue ? (r.netValue / r.totalValue) * 100 : null), count: (r) => r.sellers, cls: 'delta-neg' },
+  'most-bought': { key: 'rank.mostBought', sort: (a, b) => b.netValue - a.netValue, filter: RANKING_ROWS['most-bought'], value: (r) => fmtMoney(r.netValue), pct: (r) => (r.totalValue ? (r.netValue / r.totalValue) * 100 : null), count: (r) => r.buyers, cls: 'delta-pos' },
+  'most-sold': { key: 'rank.mostSold', sort: (a, b) => a.netValue - b.netValue, filter: RANKING_ROWS['most-sold'], value: (r) => fmtMoney(Math.abs(r.netValue)), pct: (r) => (r.totalValue ? (r.netValue / r.totalValue) * 100 : null), count: (r) => r.sellers, cls: 'delta-neg' },
   consensus: { key: 'rank.consensus', sort: (a, b) => b.holderCount - a.holderCount || b.totalValue - a.totalValue, filter: () => true, value: (r) => fmtMoney(r.totalValue), pct: (r) => r.avgWeight, count: (r) => r.holderCount, cls: '' },
-  conviction: { key: 'rank.conviction', sort: (a, b) => b.maxWeight - a.maxWeight || b.avgWeight - a.avgWeight, filter: (r) => r.holderCount >= 2, value: (r) => fmtMoney(r.totalValue), pct: (r) => r.maxWeight ?? r.avgWeight, count: (r) => r.holderCount, cls: '' },
+  conviction: { key: 'rank.conviction', sort: (a, b) => b.maxWeight - a.maxWeight || b.avgWeight - a.avgWeight, filter: RANKING_ROWS.conviction, value: (r) => fmtMoney(r.totalValue), pct: (r) => r.maxWeight ?? r.avgWeight, count: (r) => r.holderCount, cls: '' },
   options: { key: 'rank.options', sort: (a, b) => b.totalValue - a.totalValue, filter: () => true, value: (r) => fmtMoney(r.totalValue), pct: () => null, count: (r) => r.holderCount, cls: '' },
 };
 
@@ -53,15 +55,20 @@ export default function Rankings() {
   const [mode, setMode] = useState('value'); // value | percent
 
   const isOptions = kind === 'options';
+  // The server's seed for this ranking: the table's answer with only the rows
+  // this ranking lists (lib/rankingKinds.js). It stands in for the whole
+  // table until a filter asks a question it cannot answer.
+  const seeded = useQuery({ queryKey: ['guru-stocks-ranking', kind], queryFn: () => null, enabled: false, staleTime: Infinity });
+  const unfiltered = !sector && !cap && !(strongBuy && kind === 'most-bought');
   const table = useGuruStocks({
     limit: 300,
     sector,
     cap,
     strongBuy: strongBuy && kind === 'most-bought',
+    standIn: unfiltered ? seeded.data : null,
   });
   const optionTable = useGuruOptions();
   const { data, isLoading } = useConsensusStatic();
-  const returns = useStaticReturns();
 
   // The full table when the build has produced one, the public thirty when not.
   const source = isOptions
@@ -75,6 +82,8 @@ export default function Rankings() {
     const cmp = mode === 'percent' && byPercent[kind] ? byPercent[kind] : def.sort;
     return sorted.sort(cmp);
   }, [source, def, kind, mode]);
+  // the rows on screen: the server HTML carries their returns and no others
+  const returns = useStaticReturns(useMemo(() => rows.map((r) => r.ticker), [rows]));
 
   const latest =
     table.reportDate || (data?.managers || []).reduce((m, x) => (x.reportDate > m ? x.reportDate : m), '');

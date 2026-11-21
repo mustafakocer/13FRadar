@@ -3,6 +3,7 @@ import path from 'node:path';
 import { render, preload } from '../client/dist/server/entry-server.js';
 import { matchRoute, CACHE, readStatic } from './_lib/ssr/routes.js';
 import { siteUrl } from './_lib/site.js';
+import { applySecurityHeaders } from './_lib/securityHeaders.js';
 import { splitLang, withLang, preferredLang } from '../client/src/lib/locale.js';
 
 // Server-side rendering for every public page. vercel.json rewrites all
@@ -11,10 +12,14 @@ import { splitLang, withLang, preferredLang } from '../client/src/lib/locale.js'
 //   /manager/123        → 302 /en/manager/123  (cookie → country → Accept-Language)
 //   /en/manager/123     → full HTML: <head> metadata + rendered app + dehydrated
 //                         query state, cached at the CDN per page kind
+//
+// The template is client/dist/server/template.html: the build moves Vite's
+// index.html there (scripts/ssr-template.mjs) so the web root holds no
+// index.html for the platform to serve in place of this function.
 let templateCache = null;
 function template() {
   if (!templateCache) {
-    templateCache = fs.readFileSync(path.join(process.cwd(), 'client', 'dist', 'index.html'), 'utf8');
+    templateCache = fs.readFileSync(path.join(process.cwd(), 'client', 'dist', 'server', 'template.html'), 'utf8');
   }
   return templateCache;
 }
@@ -28,6 +33,7 @@ const safeJson = (obj) =>
   JSON.stringify(obj).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 
 export default async function handler(req, res) {
+  applySecurityHeaders(res);
   const rawUrl = String(req.url || '/');
   const qIndex = rawUrl.indexOf('?');
   const search = qIndex >= 0 ? rawUrl.slice(qIndex) : '';
@@ -71,6 +77,12 @@ export default async function handler(req, res) {
   const matched = matchRoute(bare, cleanSearch, lang);
   let seeds = [];
   let status = 200;
+  // The loader said the entity does not exist (an unknown symbol, fund,
+  // member, report): the page that answers is the generic "not found" one —
+  // noindex, no structured data — not the entity template around a name
+  // nobody has. A loader that merely ran out of time says `transient` and
+  // keeps the normal page, which the browser then fills in.
+  let notFound = false;
   let cache = CACHE.none;
   if (matched) {
     try {
@@ -86,6 +98,7 @@ export default async function handler(req, res) {
         }
         seeds = out.seeds || [];
         if (out.status) status = out.status;
+        if (out.status === 404 && !out.transient) notFound = true;
       }
     } catch (e) {
       console.error('ssr loader failed', bare, e?.message || e);
@@ -109,7 +122,7 @@ export default async function handler(req, res) {
   let rendered;
   try {
     await preload();
-    rendered = render({ lang, url: bare + cleanSearch, seeds, siteUrl: origin });
+    rendered = render({ lang, url: bare + cleanSearch, seeds, siteUrl: origin, notFound });
   } catch (e) {
     // never leave a crawler with a 500: fall back to the client-rendered shell
     console.error('ssr render failed', bare, e?.stack || e);
@@ -123,7 +136,7 @@ export default async function handler(req, res) {
     .replace('<!--app-html-->', rendered.html)
     .replace(
       '<script type="module"',
-      `<script>window.__STATE__=${safeJson(rendered.state)}</script>\n    <script type="module"`
+      `<script>window.__STATE__=${safeJson(rendered.state)}${notFound ? ';window.__NOT_FOUND__=true' : ''}</script>\n    <script type="module"`
     );
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');

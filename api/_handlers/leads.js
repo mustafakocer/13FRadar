@@ -3,6 +3,7 @@ import path from 'node:path';
 import { authConfigured, hasServiceKey, svcSelect, svcInsert, svcUpdate, noStore } from '../_lib/auth.js';
 import {
   parseMagnet, normalizeEmail, newToken, confirmAllowed, mergeRequest, signGrant, verifyGrant,
+  clientIp, ipFilter, ipAllowed, IP_MAX_PER_DAY,
   mailConfigured, sendMail, confirmMail, deliveryMail, unsubscribeUrl, unsubscribeHeaders,
 } from '../_lib/leads.js';
 import { metaConfigured, sendMetaEvent, browserContext, cleanEventId } from '../_lib/metaCapi.js';
@@ -76,7 +77,22 @@ async function mailOrRollback(rowId, prev, send) {
 // form says so instead of pointing at an inbox that stays empty.
 function limited(res, gate, otherwise, magnet) {
   console.warn(`subscribe: ${magnet.id} not mailed, rate limit (${gate.reason})`);
-  return res.status(200).json({ ok: true, status: gate.reason === 'daily-cap' ? 'limited' : otherwise });
+  return res.status(200).json({ ok: true, status: gate.reason === 'too-soon' ? otherwise : 'limited' });
+}
+
+// The addresses this client started a confirmation for in the last day
+// (api/_lib/leads.js, ipAllowed). One read, bounded by the daily cap.
+async function recentByIp(ip) {
+  const filter = ipFilter(ip);
+  if (!filter) return [];
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  return svcSelect('subscribers', {
+    select: 'id,confirm_sent_at',
+    consent_ip: filter,
+    confirm_sent_at: `gte.${since}`,
+    order: 'confirm_sent_at.desc',
+    limit: IP_MAX_PER_DAY + 5,
+  });
 }
 
 export async function subscribe(req, res) {
@@ -92,7 +108,7 @@ export async function subscribe(req, res) {
   if (!ready()) return res.status(503).json({ error: 'not-configured' });
   const lang = langOf(b.lang);
   const site = siteUrl(req);
-  const ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || null;
+  const ip = clientIp(req);
 
   try {
     let row = await findBy('email', email);
@@ -119,6 +135,10 @@ export async function subscribe(req, res) {
 
     const gate = confirmAllowed(row);
     if (!gate.ok) return limited(res, gate, 'pending', magnet);
+    // one client, many addresses: the same "limited" answer whoever the
+    // address belongs to, so it says nothing about the list
+    const ipGate = ipAllowed(await recentByIp(ip), { exceptId: row?.id ?? null });
+    if (!ipGate.ok) return limited(res, ipGate, 'pending', magnet);
     const token = newToken();
     const fields = {
       ...merged,

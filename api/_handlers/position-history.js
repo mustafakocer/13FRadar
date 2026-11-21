@@ -4,18 +4,11 @@ import { mapLimit } from '../_lib/mapLimit.js';
 import { requirePro } from '../_lib/auth.js';
 import { mapCusipsToTickers } from '../_lib/figi.js';
 import { splitAdjust } from '../_lib/history.js';
-import { createRequire } from 'node:module';
+import { loadSplits } from '../_lib/splitAdjust.js';
 
-const require = createRequire(import.meta.url);
-// Split table built nightly alongside the guru history.
-function splitsFor(ticker) {
-  if (!ticker) return [];
-  try {
-    return require('../_data/splits.json')?.byTicker?.[ticker] || [];
-  } catch {
-    return [];
-  }
-}
+// The split table built nightly alongside the guru history, with the splits
+// read off the filings where the table lacks them (splitAdjust.js).
+const splitsFor = (ticker) => (ticker ? loadSplits()[ticker] || [] : []);
 
 // GET /api/position-history/:cik/:cusip
 // Weight/value/shares of one security across the manager's recent quarters.

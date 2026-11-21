@@ -1,5 +1,5 @@
 import { useI18n } from '../i18n.jsx';
-import { fmtPct, deltaClass, quarterLabel } from '../lib/format.js';
+import { fmtPct, pctText, deltaClass, quarterLabel } from '../lib/format.js';
 
 // 1 / 3 / 5 / 10-year chained 13F portfolio return against SPY
 // (api/_lib/performance.js) — the guru page's "Geçmiş" tab and, in
@@ -44,7 +44,7 @@ export default function PerformanceCard({ data, compact = false }) {
                   <td className={`num ${deltaClass(r.port)}`}>{fmtPct(r.port)}</td>
                   <td className={`num ${deltaClass(r.spy)}`}>{fmtPct(r.spy)}</td>
                   <td className={`num ${deltaClass(r.diff)}`}>{r.diff != null ? fmtPct(r.diff) : '—'}</td>
-                  {!compact && <td className="num muted">{r.coverage != null ? `${Math.round(r.coverage * 100)}%` : '—'}</td>}
+                  {!compact && <td className="num muted">{r.coverage != null ? pctText(Math.round(r.coverage * 100)) : '—'}</td>}
                 </tr>
               );
             })}

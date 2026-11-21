@@ -35,11 +35,14 @@ on:
       - 'api/_lib/freshnessChecks.js'
       - 'scripts/check-triggers.mjs'
       - 'api/_lib/jobTriggers.js'
+      - 'scripts/check-workflow-ages.mjs'
+      - 'api/_lib/workflowAges.js'
+      - 'api/_lib/splitsRun.js'
       - '.github/workflows/freshness.yml'
 
 permissions:
   contents: read
-  actions: read # the trigger check lists the data workflows' runs
+  actions: read # the trigger and age checks list the workflows' runs
   issues: write # the alarm issue (scripts/notify.mjs)
 
 jobs:
@@ -85,6 +88,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+      # Has every scheduled workflow succeeded within its limit? The e-mail
+      # alerts, newsletter, backup, metrics, logo and domain jobs publish
+      # nothing the dataset check below can date, and raise no alarm of their
+      # own: metrics.yml failed every Monday and nobody was told. One issue
+      # per overdue workflow, opened once and closed by its next success
+      # (api/_lib/workflowAges.js holds the limits). The step fails only when
+      # GitHub could not be asked or would not take the alarm; the last step
+      # of this job turns that into a red run after the dataset check ran.
+      #
+      # This workflow cannot watch itself. If it stops, the next thing to
+      # notice is the start-time check of whichever run comes back — or
+      # nobody. Closing that gap needs a watcher outside GitHub Actions.
+      - name: Check the last successful run of every scheduled workflow
+        id: ages
+        continue-on-error: true
+        run: node scripts/check-workflow-ages.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
       - name: Check every dataset
         shell: bash
         run: |
@@ -107,3 +129,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+      - name: Fail when the workflow age check could not report
+        if: always() && steps.ages.outcome == 'failure'
+        run: |
+          echo "::error::the workflow age check could not read GitHub or deliver an alarm — see its step"
+          exit 1

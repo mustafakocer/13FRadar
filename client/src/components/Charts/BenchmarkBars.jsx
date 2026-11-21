@@ -12,14 +12,13 @@ import {
 import { fmtPct } from '../../lib/format.js';
 import { getVar, tooltipStyle } from './chartUtils.js';
 
-// Current-portfolio weighted return vs index ETFs, for 1Y and YTD.
-// series: [{key, label, ret1y, retYtd}] — first entry is the portfolio.
-export default function BenchmarkBars({ series }) {
+// The chained 13F portfolio return against the index, one group of bars
+// per horizon. Both bars of a group cover the same window (the caller
+// passes what api/_lib/performance.js measured), so they can be compared.
+// periods: [{ period, [label]: pct, … }] · series: [label, …], portfolio first.
+export default function BenchmarkBars({ periods, series }) {
   const slots = ['--chart-1', '--chart-2', '--chart-3', '--chart-4'];
-  const data = [
-    { period: '1Y', ...Object.fromEntries(series.map((s) => [s.label, s.ret1y])) },
-    { period: 'YTD', ...Object.fromEntries(series.map((s) => [s.label, s.retYtd])) },
-  ];
+  const data = periods;
   return (
     <ResponsiveContainer width="100%" height={240}>
       <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
@@ -50,8 +49,8 @@ export default function BenchmarkBars({ series }) {
         />
         {series.map((s, i) => (
           <Bar
-            key={s.label}
-            dataKey={s.label}
+            key={s}
+            dataKey={s}
             fill={getVar(slots[i] || '--chart-6')}
             radius={[4, 4, 0, 0]}
             maxBarSize={44}

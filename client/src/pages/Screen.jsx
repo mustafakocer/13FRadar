@@ -10,6 +10,8 @@ import { useAuth } from '../auth.jsx';
 import Paywall from '../components/Paywall.jsx';
 import FilterSelect from '../components/FilterSelect.jsx';
 import { useSeo } from '../seo.jsx';
+import { useUniverseSummary } from '../hooks/useUniverseSummary.js';
+import { fundCountRounded } from '../lib/fundCount.js';
 import { managerPath } from '../lib/paths.js';
 import { useFundFlags } from '../hooks/useFundFlags.js';
 import FundFlagBadge from '../components/FundFlagBadge.jsx';
@@ -54,14 +56,19 @@ const ADV_EMPTY = { minAum: '', maxAum: '', minPos: '', maxPos: '', minTop10: ''
 export default function Screen() {
   const { t, lang } = useI18n();
   const { isPro } = useAuth();
+  // the universe's size, rounded down (lib/fundCount.js); seeded by the server
+  const funds = fundCountRounded(useUniverseSummary()?.count, lang);
   useSeo(
     useMemo(
       () => ({
-        title: lang === 'tr' ? 'Fon Tarayıcı: 8.000+ 13F Dosyalayan Kurumu Filtreleyin | Fundocap' : 'Fund Screener: Filter 8,000+ 13F Filers | Fundocap',
+        title:
+          lang === 'tr'
+            ? `Fon Tarayıcı: ${funds ? `${funds} ` : ''}13F Dosyalayan Kurumu Filtreleyin | Fundocap`
+            : `Fund Screener: Filter ${funds ? `${funds} ` : ''}13F Filers | Fundocap`,
         description: lang === 'tr' ? 'Tüm 13F evrenini AUM, pozisyon sayısı ve yoğunlaşmaya göre filtreleyin; odaklı fonları keşfedin.' : 'Filter the entire 13F universe by AUM, position count and concentration; discover focused funds.',
         path: '/screen',
       }),
-      [lang, t]
+      [lang, t, funds]
     )
   );
 

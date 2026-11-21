@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import axios from 'axios';
 import { snapshot } from '../_lib/providerHealth.js';
 import { hasTd, hasFinnhub } from '../_lib/providers.js';
@@ -12,7 +13,27 @@ import { priceCacheStatus } from '../_lib/priceStore.js';
 const UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36';
 
+// The answer names which keys the instance has, how much provider quota is
+// left and the region it runs in, and every call makes two outbound requests:
+// not something to hand to anyone who finds the URL. It is served only to a
+// caller that presents DIAG_TOKEN (`x-diag-token: <token>` or
+// `Authorization: Bearer <token>`). Without the variable the endpoint does
+// not exist (404, fail closed); a wrong token gets the same 404, so the
+// response does not say whether a token is configured.
+export function diagAuthorized(req, token = process.env.DIAG_TOKEN) {
+  const want = String(token || '');
+  if (want.length < 16) return false; // unset, or too short to be a secret
+  const bearer = /^Bearer\s+(.+)$/i.exec(String(req.headers?.authorization || ''));
+  const given = String(req.headers?.['x-diag-token'] || bearer?.[1] || '').trim();
+  if (!given) return false;
+  // compare digests: equal length whatever was sent, constant time
+  const h = (v) => crypto.createHash('sha256').update(v).digest();
+  return crypto.timingSafeEqual(h(given), h(want));
+}
+
 export default async function handler(req, res) {
+  res.setHeader('Cache-Control', 'no-store');
+  if (!diagAuthorized(req)) return res.status(404).json({ error: 'Not found' });
   const out = {};
   const probe = async (name, url) => {
     try {

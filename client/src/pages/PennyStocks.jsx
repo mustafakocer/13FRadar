@@ -6,7 +6,7 @@ import CompanyName from '../components/CompanyName.jsx';
 import { useSeo } from '../seo.jsx';
 import { useAuth } from '../auth.jsx';
 import ProGate from '../components/ProGate.jsx';
-import { fmtMoney, fmtNum, fmtPct, deltaClass } from '../lib/format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtRatio, deltaClass } from '../lib/format.js';
 import { breadcrumbs, faqJsonLd } from '../lib/seoTemplates.js';
 import { article, itemList } from '../lib/jsonld.js';
 import AnswerBox from '../components/AnswerBox.jsx';
@@ -35,7 +35,7 @@ const SORT_KEY = {
   p: (r) => r.p ?? 0,
 };
 
-const money2 = (v) => (v == null ? '—' : `$${Number(v).toFixed(v < 1 ? 4 : 2)}`);
+const money2 = (v) => (v == null ? '—' : `$${fmtRatio(Number(v), v < 1 ? 4 : 2)}`);
 
 function Stat({ label, tip, children }) {
   return (

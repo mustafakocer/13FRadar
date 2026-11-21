@@ -35,7 +35,7 @@ test('fund page: the portfolio is the shares value, in the headline, the descrip
   assert.equal(portfolioValue(null), null);
   const seo = managerSeo({ lang: 'tr', cik: '0001423053', manager: { name: 'Citadel' }, filing: { reportDate: '2026-06-30', filingDate: '2026-08-14' }, holdings });
   const all = JSON.stringify(seo);
-  assert.match(all, /\$174\.14B/);
-  assert.doesNotMatch(all, /\$875\.01B/);
+  assert.match(all, /\$174,14B/);
+  assert.doesNotMatch(all, /\$875[.,]01B/);
   assert.ok(guruAnswer);
 });

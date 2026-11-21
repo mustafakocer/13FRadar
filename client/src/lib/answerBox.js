@@ -1,4 +1,4 @@
-import { fmtMoney } from './format.js';
+import { fmtMoney, fmtNum, fmtPct, fmtRatio, withFormatLang } from './format.js';
 
 // "Answer box" — the one plain-data paragraph rendered under every entity H1
 // (and reused as JSON-LD description, meta description and llms-full.txt).
@@ -16,8 +16,8 @@ const quarterOf = (iso, lang) => {
   const q = Math.ceil(m / 3);
   return lang === 'tr' ? `${y} Q${q}` : `Q${q} ${y}`;
 };
-const pct = (v) => (v == null ? '' : `${Number(v).toFixed(1)}%`);
-const num = (n, lang) => (n == null ? '' : Number(n).toLocaleString(lang === 'tr' ? 'tr-TR' : 'en-US'));
+const pct = (v) => (v == null ? '' : fmtPct(Number(v), { sign: false }));
+const num = (n) => (n == null ? '' : fmtNum(Number(n)));
 
 // Sentence-level helpers ---------------------------------------------------
 const MOVE = {
@@ -61,6 +61,9 @@ export const portfolioValue = (holdings) => (holdings?.aum == null ? null : Math
 // Guru ----------------------------------------------------------------------
 // input: { name, firm, count, aum, reportDate, filingDate, top: {ticker, issuer, weight}, move: {kind, ticker, issuer, value} }
 export function guruAnswer(input, lang = 'en') {
+  return withFormatLang(lang, () => guruAnswerText(input, lang));
+}
+function guruAnswerText(input, lang) {
   const { name, firm, count, aum, reportDate, filingDate, top, move } = input;
   if (!name || count == null || aum == null || !reportDate) return null;
   const firmPart = firm && firm !== name ? ` (${firm})` : '';
@@ -127,6 +130,9 @@ export function guruAnswerFromHistory({ name, firm, history, update, tickerOf = 
 // Stock ---------------------------------------------------------------------
 // input: { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder: {name, weight}, filers }
 export function stockAnswer(input, lang = 'en') {
+  return withFormatLang(lang, () => stockAnswerText(input, lang));
+}
+function stockAnswerText(input, lang) {
   const { company, ticker, holderCount, totalValue, reportDate, buyers, sellers, netValue, topHolder, price, currency, marketCap } = input;
   if (!company || !ticker) return null;
   // Outside the tracked set there is no ownership number worth stating, so the
@@ -134,7 +140,7 @@ export function stockAnswer(input, lang = 'en') {
   // EDGAR search hits, which said more about who files often than who owns it.
   if (holderCount == null) {
     const quote = [
-      price != null ? `${lang === 'tr' ? 'Fiyat' : 'Price'} ${price.toFixed(2)} ${currency || 'USD'}` : null,
+      price != null ? `${lang === 'tr' ? 'Fiyat' : 'Price'} ${fmtRatio(price, 2)} ${currency || 'USD'}` : null,
       marketCap ? `${lang === 'tr' ? 'piyasa değeri' : 'market cap'} ${fmtMoney(marketCap)}` : null,
     ].filter(Boolean).join('; ');
     return lang === 'tr'
@@ -201,6 +207,9 @@ export const RANK_NAME = {
 };
 
 export function rankingAnswer({ kind, reportDate, first, managers }, lang = 'en') {
+  return withFormatLang(lang, () => rankingAnswerText({ kind, reportDate, first, managers }, lang));
+}
+function rankingAnswerText({ kind, reportDate, first, managers }, lang) {
   if (!first || !reportDate) return null;
   const q = quarterOf(reportDate, lang);
   const sym = first.ticker || first.issuer;

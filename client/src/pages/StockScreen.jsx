@@ -32,7 +32,6 @@ export default function StockScreen() {
   const [sort, setSort] = useState({ key: 'rank', dir: 1 });
 
   const table = useGuruStocks({ limit: 500, sector, cap, minHolders, strongBuy });
-  const returns = useStaticReturns();
 
   const rows = useMemo(() => {
     const needle = q.trim().toUpperCase();
@@ -50,14 +49,20 @@ export default function StockScreen() {
       return (av - bv) * dir;
     });
   }, [table.stocks, q, sort]);
+  // the rows on screen: the server HTML carries their returns and no others
+  const returns = useStaticReturns(useMemo(() => rows.map((r) => r.ticker), [rows]));
 
+  // The funds the table is computed over this quarter (coverage.included).
+  // `managers` also lists funds still on the previous quarter's filing, so its
+  // length (72) disagreed with the 70 every other page states.
+  const counted = table.coverage?.included ?? table.managers;
   const answer = useMemo(() => {
     if (!table.ready || !rows.length) return null;
     const top = rows[0];
     return lang === 'tr'
-      ? `Takip edilen ${fmtNum(table.managers)} usta yatırımcının elindeki ${fmtNum(table.universe)} menkul, tutan fon sayısına göre sıralanır; sektör, piyasa değeri ve çeyrek aktivitesine göre filtrelenebilir. Şu anki ilk sıra: ${top.ticker || top.issuer} (${fmtNum(top.holderCount)} fon).`
-      : `The ${fmtNum(table.universe)} securities held by the ${fmtNum(table.managers)} tracked superinvestors, ranked by how many of them own each one and filterable by sector, market cap and what the quarter did. Currently first: ${top.ticker || top.issuer} (${fmtNum(top.holderCount)} funds).`;
-  }, [table.ready, table.universe, table.managers, rows, lang]);
+      ? `Konsensüse dahil ${fmtNum(counted)} usta yatırımcının elindeki ${fmtNum(table.universe)} menkul, tutan fon sayısına göre sıralanır; sektör, piyasa değeri ve çeyrek aktivitesine göre filtrelenebilir. Şu anki ilk sıra: ${top.ticker || top.issuer} (${fmtNum(top.holderCount)} fon).`
+      : `The ${fmtNum(table.universe)} securities held by the ${fmtNum(counted)} superinvestors counted in the consensus, ranked by how many of them own each one and filterable by sector, market cap and what the quarter did. Currently first: ${top.ticker || top.issuer} (${fmtNum(top.holderCount)} funds).`;
+  }, [table.ready, table.universe, counted, rows, lang]);
 
   useSeo(
     useMemo(

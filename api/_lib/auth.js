@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
 
@@ -47,6 +48,10 @@ async function planForToken(token) {
   return { pro: p.status === 200 && p.data === true, userId: u.data.id, email: u.data.email || null, createdAt: u.data.created_at || null };
 }
 
+// The cache key of a token's plan: a digest of the whole token. A slice of
+// its tail would let two tokens that end alike share one answer.
+const planKey = (token) => `plan:${crypto.createHash('sha256').update(token).digest('hex')}`;
+
 // Signed-in user { id, email, pro, createdAt } or null. Cached per token for 5 minutes.
 export async function getUser(req) {
   if (!authConfigured()) {
@@ -56,7 +61,7 @@ export async function getUser(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
   try {
-    const r = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    const r = await cached(planKey(token), TTL.MIN_5, () => planForToken(token));
     return r.userId ? { id: r.userId, email: r.email, pro: r.pro, createdAt: r.createdAt || null } : null;
   } catch {
     return null;
@@ -71,7 +76,7 @@ export async function isPro(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return false;
   try {
-    const { pro } = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    const { pro } = await cached(planKey(token), TTL.MIN_5, () => planForToken(token));
     return pro;
   } catch {
     return false;
@@ -145,13 +150,18 @@ export async function stripeEventSeen(eventId) {
 
 // Record the event and apply the profile patch in one database transaction
 // (public.apply_stripe_event). Resolves to 'duplicate' when another delivery
-// of the same id got there first, otherwise to the outcome passed in.
-export async function applyStripeEvent({ id, type, userId = null, patch = {}, outcome = 'applied' }) {
-  const r = await svcRequest('apply_stripe_event', {
-    method: 'post',
-    url: rest('rpc/apply_stripe_event'),
-    data: { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome },
-  });
+// of the same id got there first, to 'ignored:stale' when the profile has
+// already taken a newer Stripe event (deliveries are not ordered), otherwise
+// to the outcome passed in.
+// `eventAt` is the event's own `created` time (ISO). The ordering check is
+// migration 0008; on a database that does not have it yet the function has no
+// p_event_at argument and PostgREST answers 404 PGRST202, so the call is
+// repeated the old way: same idempotency, no ordering check.
+export async function applyStripeEvent({ id, type, userId = null, patch = {}, outcome = 'applied', eventAt = null }) {
+  const data = { p_event_id: id, p_event_type: type, p_user_id: userId, p_patch: patch, p_outcome: outcome };
+  const send = (body) => svcRequest('apply_stripe_event', { method: 'post', url: rest('rpc/apply_stripe_event'), data: body });
+  let r = await send(eventAt ? { ...data, p_event_at: eventAt } : data);
+  if (eventAt && r.status === 404 && r.data?.code === 'PGRST202') r = await send(data);
   if (r.status !== 200) throw new Error(`apply_stripe_event HTTP ${r.status}: ${JSON.stringify(r.data)}`);
   return String(r.data);
 }
@@ -223,4 +233,18 @@ export async function findUserByCustomer(customerId) {
   });
   if (r.status !== 200) return null;
   return r.data?.[0]?.id || null;
+}
+
+// The profile a Stripe customer id is stored on, for the events that carry
+// nothing else to go by (a refund, a dispute). Unlike findUserByCustomer this
+// throws when the lookup itself fails: "no such profile" ends the event for
+// good, so it must not be concluded from an outage.
+export async function findProfileByCustomer(customerId) {
+  const r = await svcRequest('profiles read', {
+    method: 'get',
+    url: rest('profiles'),
+    params: { stripe_customer_id: `eq.${customerId}`, select: 'id,plan,stripe_subscription_id' },
+  });
+  if (r.status !== 200) throw new Error(`profiles read HTTP ${r.status}: ${JSON.stringify(r.data)}`);
+  return r.data?.[0] || null;
 }

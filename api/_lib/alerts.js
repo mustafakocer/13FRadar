@@ -82,6 +82,8 @@ export function nextMark(matches, field, current = null) {
 // line carries the name only.
 export function renderDigest({ filings = [], insiders = [], form4 = [], siteUrl = '', pathOf = null }, lang = 'en') {
   const tr = lang === 'tr';
+  // "1,326,590.5" → "1.326.590,5" in a Turkish digest, as on the Turkish site
+  const n = (s) => (tr ? s.replace(/[.,]/g, (c) => (c === '.' ? ',' : '.')) : s);
   const base = siteUrl ? `${siteUrl.replace(/\/$/, '')}/${tr ? 'tr' : 'en'}` : '';
   const link = (cik) => (base && pathOf ? ` ${base}${pathOf(cik) || ''}` : '');
   const lines = [];
@@ -98,8 +100,8 @@ export function renderDigest({ filings = [], insiders = [], form4 = [], siteUrl 
     lines.push(tr ? 'Takip ettiğiniz ustaların Form 4 ile bildirdiği işlemler (çeyrek içi, tarihli):' : 'Trades your followed gurus reported on Form 4 (inside the quarter, dated):');
     for (const r of form4.slice(0, 25)) {
       const side = r.k === 'P' ? (tr ? 'alım' : 'buy') : r.k === 'S' ? (tr ? 'satış' : 'sale') : r.k;
-      const shares = r.s ? ` ${Math.round(r.s).toLocaleString('en-US')} ${tr ? 'adet' : 'sh'}` : '';
-      const price = r.p ? ` @ $${Number(r.p).toLocaleString('en-US', { maximumFractionDigits: 2 })}` : '';
+      const shares = r.s ? ` ${n(Math.round(r.s).toLocaleString('en-US'))} ${tr ? 'adet' : 'sh'}` : '';
+      const price = r.p ? ` @ $${n(Number(r.p).toLocaleString('en-US', { maximumFractionDigits: 2 }))}` : '';
       lines.push(`  · ${r.guru || r.n || ''}: ${r.t || '—'} ${side}${shares}${price} — ${r.d}${r.guruCik ? link(r.guruCik) : ''}`);
     }
     lines.push('');
@@ -107,7 +109,7 @@ export function renderDigest({ filings = [], insiders = [], form4 = [], siteUrl 
   if (insiders.length) {
     lines.push(tr ? 'Kayıtlı insider filtrenize uyan işlemler:' : 'Insider trades matching your saved filter:');
     for (const r of insiders.slice(0, 25)) {
-      const value = r.v ? ` $${Math.round(r.v).toLocaleString('en-US')}` : '';
+      const value = r.v ? ` $${n(Math.round(r.v).toLocaleString('en-US'))}` : '';
       lines.push(`  · ${r.t || '—'} ${r.n || ''} ${r.k}${value} — ${r.d}`);
     }
     lines.push('');

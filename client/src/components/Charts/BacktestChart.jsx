@@ -9,6 +9,7 @@ import {
   Legend,
 } from 'recharts';
 import { getVar, tooltipStyle } from './chartUtils.js';
+import { fmtRatio } from '../../lib/format.js';
 
 // Copy-the-13F NAV vs SPY, both indexed to 1.0 at the first rebalance.
 export default function BacktestChart({ points, labels, benchmark = 'SPY' }) {
@@ -35,7 +36,7 @@ export default function BacktestChart({ points, labels, benchmark = 'SPY' }) {
         />
         <Tooltip
           contentStyle={tooltipStyle()}
-          formatter={(v) => `${Number(v).toFixed(3)}x`}
+          formatter={(v) => `${fmtRatio(Number(v), 3)}x`}
           cursor={{ stroke: getVar('--text-500'), strokeDasharray: '3 3' }}
         />
         <Legend formatter={(v) => <span style={{ color: getVar('--ink'), fontSize: 13 }}>{v}</span>} />

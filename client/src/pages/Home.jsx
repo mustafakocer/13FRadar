@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
 import { homeSeo } from '../lib/seoTemplates.js';
-import { fmtPct, deltaClass } from '../lib/format.js';
+import { fmtPct, fmtNum, locNum, deltaClass, fmtDayRange } from '../lib/format.js';
 import { managerPath } from '../lib/paths.js';
 import { useConsensusStatic } from '../hooks/useConsensusStatic.js';
 import { useStaticReturns } from '../hooks/useStaticReturns.js';
@@ -44,7 +44,7 @@ function useStaticJson(key, file) {
 // $356B · $24.5B · $980M — a portfolio's size in two or three figures
 export function money(n) {
   if (!Number.isFinite(n) || n <= 0) return '—';
-  const f = (v, s) => `$${v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, '') : v.toFixed(2).replace(/\.?0+$/, '')}${s}`;
+  const f = (v, s) => `$${locNum(v >= 100 ? Math.round(v) : v >= 10 ? v.toFixed(1).replace(/\.0$/, '') : v.toFixed(2).replace(/\.?0+$/, ''))}${s}`;
   if (n >= 1e12) return f(n / 1e12, 'T');
   if (n >= 1e9) return f(n / 1e9, 'B');
   if (n >= 1e6) return f(n / 1e6, 'M');
@@ -71,7 +71,11 @@ function Tabs({ tab, setTab }) {
 // Superinvestor cards
 
 function GuruCard({ g }) {
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
+  // the dates the figure covers (whole quarters + the stub to today, so it
+  // is not exactly twelve months); a card file from before the dates were
+  // stored falls back to the plain label
+  const y1Range = g.y1 != null ? fmtDayRange(g.y1From, g.y1To, lang) : null;
   const to = managerPath(g.cik, g.slug ? `/guru/${g.slug}` : null);
   const more = Math.max(0, (g.count || 0) - g.top.length);
   return (
@@ -92,7 +96,11 @@ function GuruCard({ g }) {
           ) : (
             <b className="muted">—</b>
           )}{' '}
-          <span className="muted">{t('home.perf.lastYear')}</span>
+          {y1Range ? (
+            <span className="muted" data-y1-range title={t('home.perf.window').replace('{range}', y1Range)}>{y1Range}</span>
+          ) : (
+            <span className="muted">{t('home.perf.lastYear')}</span>
+          )}
         </span>
       </div>
       <div className="inv-body">
@@ -110,7 +118,7 @@ function GuruCard({ g }) {
             <li>
               <Link to={to} className="inv-holding inv-more">
                 <span className="inv-plus"><Ico icon={Plus} size={16} /></span>
-                <span className="inv-holding-name">{t('home.moreStocks').replace('{n}', more.toLocaleString())}</span>
+                <span className="inv-holding-name">{t('home.moreStocks').replace('{n}', fmtNum(more))}</span>
               </Link>
             </li>
           )}
@@ -155,6 +163,7 @@ function GuruGrid({ cards }) {
   const shown = rows.slice(0, 11);
   return (
     <section aria-label={t('home.tab.gurus')} data-home-gurus>
+      <h2 className="sr-only">{t('home.tab.gurus')}</h2>
       <div className="home-filters">
         <span className="muted small">{t('home.filters')}:</span>
         {FILTERS.map((f) => (
@@ -193,6 +202,7 @@ function InsiderGrid({ teaser }) {
   const day = (iso) => (iso ? new Date(`${iso}T00:00:00Z`).toLocaleDateString(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : '');
   return (
     <section aria-label={t('home.tab.insiders')} data-home-insiders>
+      <h2 className="sr-only">{t('home.tab.insiders')}</h2>
       <p className="home-lead">{t('home.ins.lead')}</p>
       {/* the same day summary /insiders prints, from the same numbers */}
       {pulse && <div className="card home-pulse"><InsiderDaySummary summary={pulse} /></div>}
@@ -226,13 +236,16 @@ function InsiderGrid({ teaser }) {
 // ---------------------------------------------------------------------------
 // Stock picks — what the superinvestors hold most, and who leads each
 
+const picksOf = (consensus) => (consensus?.mostHeld || []).filter((r) => r.ticker).slice(0, 11);
+
 function PicksGrid({ consensus, returns }) {
   const { t } = useI18n();
-  const rows = (consensus?.mostHeld || []).filter((r) => r.ticker).slice(0, 11);
+  const rows = picksOf(consensus);
   const tracked = consensus?.coverage?.tracked;
   if (!rows.length) return <p className="muted">{t('common.na')}</p>;
   return (
     <section aria-label={t('home.tab.picks')} data-home-picks>
+      <h2 className="sr-only">{t('home.tab.picks')}</h2>
       <p className="home-lead">{t('home.picks.lead').replace('{n}', tracked ?? '')}</p>
       <div className="inv-grid">
         {rows.map((r) => {
@@ -272,13 +285,17 @@ export default function Home() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [tab, setTab] = useState(TABS.includes(params.get('tab')) ? params.get('tab') : 'gurus');
-  useSeo(useMemo(() => homeSeo({ lang }), [lang]));
+  const summary = useUniverseSummary();
+  useSeo(useMemo(() => homeSeo({ lang, fundCount: summary?.count }), [lang, summary?.count]));
 
   const cards = useStaticJson('guru-cards', '/guru-cards.json');
   const teaser = useStaticJson('insiders-teaser', '/insiders-teaser.json');
   const consensus = useConsensusStatic();
-  const returns = useStaticReturns();
-  const funds = fundCountLabel(useUniverseSummary()?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
+  // the picks tab's symbols, whichever tab is open: their returns ride in
+  // the HTML, so opening the tab fetches nothing
+  const pickTickers = useMemo(() => picksOf(consensus.data).map((r) => r.ticker), [consensus.data]);
+  const returns = useStaticReturns(pickTickers);
+  const funds = fundCountLabel(summary?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
 
   return (
     <div className="home">

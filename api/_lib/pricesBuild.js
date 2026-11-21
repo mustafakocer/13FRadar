@@ -22,7 +22,7 @@ import axios from 'axios';
 import fs from 'node:fs';
 import path from 'node:path';
 import { tdGet, hasTd, hasFinnhub } from './providers.js';
-import { readSeries, readSeriesRaw, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir, lastBreak, verifiedThrough } from './priceStore.js';
+import { readSeries, readSeriesRaw, writeSeries, seriesIndex, seriesKey, seriesAgeDays, mergeSeries, returnsFromSeries, pricesDir, lastBreak, verifiedThrough, withdrawAcrossListing } from './priceStore.js';
 import { returnsCutoff } from './stockMetaBuild.js';
 import { noteProvider } from './providerAlarm.js';
 
@@ -521,9 +521,21 @@ export async function buildPrices({
         }
         continue;
       }
+      // a row computed before the series was cut at its current listing
+      // (priceStore.js listingStart): the figures that reach back before it go
+      if (have && s.skipped) {
+        const kept = withdrawAcrossListing(have, s.from);
+        if (kept !== have) {
+          returnsFile.returns[key] = kept;
+          refreshed++;
+        }
+      }
       if (have?.asOf && have.asOf >= e.asOf && !restatedKeys.has(key)) continue;
       const r = returnsFromSeries(key, s.prices, now);
-      if (r.ret1y == null && r.retYtd == null) continue;
+      // nothing to state and nothing on file: no row. A row on file is
+      // rewritten even then — it may have been computed across an earlier
+      // listing (priceStore.js listingStart), and would stand for good
+      if (r.ret1y == null && r.retYtd == null && !have) continue;
       const round = (x) => (x == null ? null : Number(x.toFixed(2)));
       returnsFile.returns[key] = { ret1y: round(r.ret1y), retYtd: round(r.retYtd), ret1d: round(r.ret1d), asOf: r.asOf || today };
       refreshed++;

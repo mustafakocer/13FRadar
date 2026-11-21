@@ -170,7 +170,8 @@ test('/api/chart reads the cache (thinned for the long ranges) and answers 404 f
   const r = await invoke(returnsHandler, { symbols: 'BRK-B,ZZZZ' });
   assert.equal(r.status, 200);
   assert.ok(Number.isFinite(r.body['BRK-B'].ret1y) && Number.isFinite(r.body['BRK-B'].retYtd));
-  assert.equal(r.body.ZZZZ.ret1y, null);
+  // a symbol no dataset carries is left out, never sent to a provider (symbolGuard.js)
+  assert.equal(r.body.ZZZZ, undefined);
 });
 
 test('returnsFromSeries: 1Y from the first close a year back, YTD from the last close of the previous year, 1D from the previous row', () => {

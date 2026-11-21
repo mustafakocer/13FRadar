@@ -1,5 +1,5 @@
 // D paketi, 2. PR: dönemsel getiri şeridi (/api/perf), fon tablosundaki
-// "Bildirimden bu yana" sütunu ve kartlardaki izleme yıldızları.
+// "Çeyrek sonundan beri" sütunu ve kartlardaki izleme yıldızları.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ssr } from './helpers.mjs';
@@ -32,7 +32,7 @@ test('Berkshire table: the "since reported" column is there', async () => {
   const { status, html } = await ssr('/tr/guru/berkshire-hathaway-warren-buffett');
   assert.equal(status, 200);
   assert.ok(html.includes('data-col="sinceReport"'), 'column rendered');
-  assert.ok(html.includes('Bildirimden bu yana'), 'TR header');
+  assert.ok(html.includes('Çeyrek sonundan beri'), 'TR header');
 });
 
 test('watch stars on the home fund cards', async () => {

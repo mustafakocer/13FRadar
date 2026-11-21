@@ -16,7 +16,7 @@ test('guru answer box renders in EN and TR with real numbers and no placeholders
   const en = guruAnswer(input, 'en');
   const tr = guruAnswer(input, 'tr');
   assert.match(en, /^Berkshire Hathaway \(Warren Buffett\) \(BERKSHIRE HATHAWAY INC\) reported 11 positions worth \$198\.16B as of June 30, 2026 \(13F filed August 14, 2026\)\. Largest holding: AAPL \(35\.3%\)\. Biggest move: (new buy|add|reduce|exit) [A-Z.]+ \(\$[\d.]+[KMB]\)\.$/);
-  assert.match(tr, /30 Haziran 2026 itibarıyla 11 pozisyon ve \$198\.16B portföy değeri bildirdi \(13F bildirimi 14 Ağustos 2026\)\. En büyük pozisyon: AAPL \(35\.3%\)\. En büyük hamle: (yeni alım|artırma|azaltma|çıkış) /);
+  assert.match(tr, /30 Haziran 2026 itibarıyla 11 pozisyon ve \$198,16B portföy değeri bildirdi \(13F bildirimi 14 Ağustos 2026\)\. En büyük pozisyon: AAPL \(%35,3\)\. En büyük hamle: (yeni alım|artırma|azaltma|çıkış) /);
   for (const s of [en, tr]) {
     assert.doesNotMatch(s, NO_PLACEHOLDER);
     assert.ok(s.split('. ').length >= 2 && s.split('. ').length <= 4, 'two to three sentences');
@@ -45,7 +45,7 @@ test('stock answer box: consensus row and fallback both carry real numbers', () 
   const en = stockAnswerFromPage({ ticker: row.ticker, company: 'Amazon.com, Inc.', consensusRow: row, reportDate: '2026-06-30' }, 'en');
   const tr = stockAnswerFromPage({ ticker: row.ticker, company: 'Amazon.com, Inc.', consensusRow: row, reportDate: '2026-06-30' }, 'tr');
   assert.match(en, new RegExp(`^Amazon\\.com, Inc\\. \\(${row.ticker}\\) is held by ${row.holderCount} tracked superinvestors worth \\$[\\d.]+[MB] as of Q2 2026\\. ${row.buyers} increased, ${row.sellers} reduced; net flow -?\\$[\\d.]+[KMB]\\. Largest holder: .+ \\([\\d.]+% of their portfolio\\)\\.$`));
-  assert.match(tr, /takip edilen \d+ usta yatırımcı tarafından toplam \$[\d.]+[MB] değerinde tutuluyor\. \d+ fon artırdı, \d+ fon azalttı; net akış/);
+  assert.match(tr, /takip edilen \d+ usta yatırımcı tarafından toplam \$[\d,]+[MB] değerinde tutuluyor\. \d+ fon artırdı, \d+ fon azalttı; net akış/);
   const fb = stockAnswerFromPage(
     { ticker: 'ZZZ', company: 'Zeta Corp', consensusRow: null, quote: { price: 12.5, currency: 'USD', marketCap: 4.2e9 } },
     'en'

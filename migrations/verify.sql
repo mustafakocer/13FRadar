@@ -79,7 +79,12 @@ with expected(migration, kind, schema_name, tbl, name) as (values
   ('0007_subscribers', 'column',     'public', 'subscribers', 'newsletter_sent_at'),
   ('0007_subscribers', 'constraint', 'public', 'subscribers', 'subscribers_status_check'),
   ('0007_subscribers', 'index',      'public', null, 'subscribers_email_key'),
-  ('0007_subscribers', 'trigger',    'public', 'subscribers', 'subscribers_touch')
+  ('0007_subscribers', 'trigger',    'public', 'subscribers', 'subscribers_touch'),
+  -- 0008 stripe event order: the column, and the two function bodies that use
+  -- it (an older apply_stripe_event / guard exists under the same name)
+  ('0008_stripe_event_order', 'column',        'public', 'profiles', 'stripe_event_at'),
+  ('0008_stripe_event_order', 'function_body', 'public', 'ignored:stale', 'apply_stripe_event'),
+  ('0008_stripe_event_order', 'function_body', 'public', 'stripe_event_at', 'profiles_guard_columns')
 ),
 checked as (
   select e.*,

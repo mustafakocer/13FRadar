@@ -9,6 +9,7 @@ import stockHandler from '../../_handlers/stock.js';
 import guruStocksHandler from '../../_handlers/guru-stocks.js';
 import slugHandler from '../../_handlers/slug.js';
 import guruHistoryHandler from '../../_handlers/guru-history.js';
+import guruPerformanceHandler from '../../_handlers/guru-performance.js';
 import calendarHandler from '../../_handlers/calendar.js';
 import emergingHandler from '../../_handlers/emerging.js';
 import reportHandler from '../../_handlers/report.js';
@@ -19,9 +20,13 @@ import { congressCommittee as congressCommitteeHandler, congressMember as congre
 import { inFilingSeason } from '../calendar.js';
 import { contentByPath } from '../../../client/src/content/registry.js';
 import { cikForSlug, resolveSlug, filerPath } from '../slugs.js';
+import { URL_SYMBOL_SRC } from '../urlSymbol.js';
 import { knownSymbol, priceUnavailable } from '../priceSnapshot.js';
 import { guruStock } from '../guruStocks.js';
 import { withCompanyName } from '../companyNames.js';
+import { filingsHead } from '../../../client/src/lib/filingsHead.js';
+import { RANKING_ROWS } from '../../../client/src/lib/rankingKinds.js';
+import { consensusLite } from '../../../client/src/lib/consensusLite.js';
 
 const require = createRequire(import.meta.url);
 // A static data file, read from the deployment's built site first
@@ -85,14 +90,28 @@ export const CACHE = {
 
 const ok = (r) => (r && r.status === 200 && r.body && !r.body.error ? r.body : null);
 
+// Page weight. The dehydrated state is most of a page's HTML, so a seed
+// carries what the page renders and not the file it came from:
+//   returns.json   the render reads the whole table, the HTML keeps the
+//                  symbols it looked up (entry-server.jsx `accessed`); the
+//                  browser fetches the file when it needs another one
+//   consensus.json without `updates` everywhere but the consensus page
+//   filings.json   the first rows and the totals (loadFilings)
+// tests/page-weight.test.mjs holds the pages to a byte budget.
+const returnsSeed = () => {
+  const r = staticReturns();
+  return r ? [['static-returns-seed'], r.returns || {}, { accessed: true }] : null;
+};
+const liteSeed = (c) => [['consensus-lite'], consensusLite(c)];
+
 async function loadHome() {
   const seeds = [];
   const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  if (c) seeds.push(liteSeed(c));
   const t = staticTeaser();
   if (t) seeds.push([['insiders-teaser'], t]);
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const r = returnsSeed();
+  if (r) seeds.push(r);
   const s = staticSummary();
   if (s) seeds.push([['universe-summary'], s]);
   const g = staticGuruCards();
@@ -121,7 +140,10 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
     if (!canonical.startsWith('/manager/')) return { redirect: `${canonical}${tail}`, status: 301 };
   }
   const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 8000));
-  if (!mgr) return { seeds, status: 404 };
+  // EDGAR did not answer in time (or does not know the CIK): not proof that
+  // the fund is gone, so the fund page is still rendered for the browser to
+  // fill in — `transient` keeps ssr.js from swapping in the not-found page.
+  if (!mgr) return { seeds, status: 404, transient: true };
   seeds.push([['manager', cik], mgr]);
   // the newest valid filing (a misfiled newest one is skipped: pageFiling)
   const acc = mgr.defaultAcc || mgr.filings?.[0]?.acc;
@@ -144,6 +166,16 @@ async function loadManager({ cik, slug, kind, segment = 'portfolio' }) {
   // the client — keeping them out trims ~40 KB from every guru page
   const h = await invoke(guruHistoryHandler, { cik });
   if (h.status === 200) seeds.push([['guru-history', cik], h.body]);
+  // the header's one-year figure is the chained 13F return and nothing
+  // else, so it has to be in the HTML (a curated guru only; a file read).
+  // The quarter-by-quarter rows stay out: no part of the page reads them.
+  if (mgr.kind === 'guru') {
+    const pf = await invoke(guruPerformanceHandler, { cik });
+    if (pf.status === 200 && pf.body?.horizons) {
+      const { periods: _periods, ...lean } = pf.body;
+      seeds.push([['guru-performance', cik], lean]);
+    }
+  }
   const rel = await invoke(relatedHandler, { cik });
   if (rel.status === 200) seeds.push([['related', cik], rel.body]);
   return { seeds };
@@ -174,7 +206,7 @@ async function loadStock({ ticker, cusip }) {
   if (!priced && !knownSymbol(ticker) && !guruStock({ ticker, cusip })) return { seeds, status: 404 };
   seeds.push([['stock', ticker], stock || withCompanyName(priceUnavailable(ticker), ticker)]);
   const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  if (c) seeds.push(liteSeed(c));
   // The guru standing is the free hook and the answer an assistant quotes, so
   // it has to be in the HTML rather than arrive after hydration. Anonymous
   // render = the free payload, which is what the CDN may keep.
@@ -183,10 +215,10 @@ async function loadStock({ ticker, cusip }) {
   return { seeds };
 }
 
-async function loadConsensus() {
+async function loadConsensus({ full = false } = {}) {
   const seeds = [];
   const c = staticConsensus();
-  if (c) seeds.push([['consensus'], c]);
+  if (c) seeds.push(full ? [['consensus'], c] : liteSeed(c));
   const s = staticStocks();
   if (s) seeds.push([['stocksUniverse'], { ...s, rows: (s.rows || []).slice(0, 60) }]);
   return seeds;
@@ -196,9 +228,11 @@ async function loadConsensus() {
 // table its default segment renders, under the exact key the unfiltered page
 // asks for — a seed only counts when the key matches.
 async function loadConsensusPage() {
-  const seeds = await loadConsensus();
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  // the one page that reads the per-fund cards, so the one that gets them
+  const seeds = await loadConsensus({ full: true });
+  // the universe tab and its meta description state the number of 13F filers
+  const s = staticSummary();
+  if (s) seeds.push([['universe-summary'], s]);
   const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
   if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
   const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
@@ -229,14 +263,17 @@ async function loadFilers({ letter }) {
   const r = ok(await invoke(slugHandler, { letter }));
   return r ? [[['filers', letter], r]] : [];
 }
-async function loadRankings() {
+async function loadRankings({ kind } = {}) {
   const seeds = await loadConsensus();
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
-  // The full ranked table, under the key the unfiltered page asks for, so a
-  // crawler sees the whole list rather than the thirty public rows.
+  const r = returnsSeed();
+  if (r) seeds.push(r);
+  // The ranked table, so a crawler sees the whole list rather than the
+  // thirty public rows — cut to the rows this ranking lists, under a key of
+  // its own (the page falls back to the table's key for any other question).
   const g = ok(await invoke(guruStocksHandler, { limit: '300' }));
-  if (g?.available) seeds.push([['guru-stocks', 300, '', '', 0, 0], g]);
+  const rowsOf = RANKING_ROWS[kind];
+  if (g?.available && rowsOf) seeds.push([['guru-stocks-ranking', kind], { ...g, stocks: (g.stocks || []).filter(rowsOf) }]);
+  else if (g?.available) seeds.push([['guru-stocks', 300, '', '', 0, 0], g]);
   const o = ok(await invoke(guruStocksHandler, { view: 'options' }));
   if (o?.available) seeds.push([['guru-options'], o]);
   return seeds;
@@ -246,16 +283,17 @@ async function loadRankings() {
 // seed only counts when its key matches exactly.
 async function loadStockScreen() {
   const seeds = [];
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
+  const r = returnsSeed();
+  if (r) seeds.push(r);
   const g = ok(await invoke(guruStocksHandler, { limit: '500' }));
   if (g?.available) seeds.push([['guru-stocks', 500, '', '', 0, 0], g]);
   return seeds;
 }
 
 async function loadFilings() {
+  // the rows the page opens on and the feed's totals, not the whole feed
   const f = staticFilings();
-  return f ? [[['filings'], f]] : [];
+  return f ? [[['filings-head'], filingsHead(f)]] : [];
 }
 
 async function loadCalendar() {
@@ -317,9 +355,8 @@ async function loadInsiders({ tab }) {
 // HTML. The stock tab is not the default and is fetched after hydration.
 const COMPARE_SAMPLE = ['0001067983', '0001709323'];
 async function loadCompare() {
+  // (no returns: only the stock tab reads them, and it is not the default)
   const seeds = [];
-  const r = staticReturns();
-  if (r) seeds.push([['static-returns'], r.returns || {}]);
   await Promise.all(
     COMPARE_SAMPLE.map(async (cik) => {
       const mgr = ok(await withBudget(invoke(managerHandler, { cik }), 6000));
@@ -342,6 +379,18 @@ async function loadPricing({ _country } = {}) {
   return [...(p ? [[['plans'], p]] : []), ...(s ? [[['universe-summary'], s]] : [])];
 }
 
+// The counts a page states in its title or description, so they are in the
+// HTML rather than a number typed into the source: the 13F universe's size
+// (/screen) and the tracked superinvestors (/match).
+async function loadSummaryOnly() {
+  const s = staticSummary();
+  return s ? [[['universe-summary'], s]] : [];
+}
+async function loadGuruCoverage() {
+  const c = staticConsensus()?.coverage;
+  return c ? [[['guru-coverage'], c]] : [];
+}
+
 // Public routes rendered on the server. Anything else renders the shell
 // (client-only pages) with a no-store header.
 export const ROUTES = [
@@ -350,7 +399,7 @@ export const ROUTES = [
   // before the guru × ticker route, whose last segment is a symbol.
   { kind: 'manager', re: /^\/manager\/(\d{1,10})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ cik: m[1].padStart(10, '0'), segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
   { kind: 'guru', re: /^\/guru\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'guru', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
-  { kind: 'guru-ticker', re: /^\/guru\/([a-z0-9-]{1,120})\/(?!(?:changes|mix|history|backtest)$)([A-Za-z0-9.\-]{1,12})$/, params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
+  { kind: 'guru-ticker', re: new RegExp(`^/guru/([a-z0-9-]{1,120})/(?!(?:changes|mix|history|backtest)$)(${URL_SYMBOL_SRC})$`), params: (m) => ({ slug: m[1], ticker: m[2].toUpperCase() }), load: loadGuruTicker, cache: 'day' },
   { kind: 'filer', re: /^\/filer\/([a-z0-9-]{1,120})(?:\/(changes|mix|history|backtest))?$/, params: (m) => ({ slug: m[1], kind: 'filer', segment: m[2] || 'portfolio' }), load: loadManager, cache: 'day' },
   { kind: 'gurus', re: /^\/gurus$/, load: loadGurus, cache: 'day' },
   { kind: 'filers', re: /^\/filers(?:\/([a-z0-9]))?$/, params: (m) => ({ letter: m[1] || 'a' }), load: loadFilers, cache: 'day' },
@@ -363,19 +412,21 @@ export const ROUTES = [
   { kind: 'congress', re: /^\/congress$/, load: loadCongress, cache: 'hour' },
   { kind: 'congress-committee', re: /^\/congress\/committee\/([a-z0-9-]{1,160})$/, params: (m) => ({ slug: m[1] }), load: loadCongressCommittee, cache: 'hour' },
   { kind: 'congress-member', re: /^\/congress\/([a-z0-9-]{1,120})$/, params: (m) => ({ slug: m[1] }), load: loadCongressMember, cache: 'hour' },
-  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, load: loadRankings, cache: 'hour' },
-  { kind: 'stock', re: /^\/stock\/([A-Za-z0-9.\-]{1,12})$/, params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
+  { kind: 'rankings', re: /^\/rankings\/(most-bought|most-sold|consensus|conviction|options)$/, params: (m) => ({ kind: m[1] }), load: loadRankings, cache: 'hour' },
+  { kind: 'stock', re: new RegExp(`^/stock/(${URL_SYMBOL_SRC})$`), params: (m, qs) => ({ ticker: m[1].toUpperCase(), cusip: qs.get('cusip') }), load: loadStock, cache: 'day' },
   { kind: 'consensus', re: /^\/consensus(?:\/(bought|sold|new|funds|universe))?$/, params: (m) => ({ segment: m[1] || 'held' }), load: loadConsensusPage, cache: 'hour' },
   { kind: 'insiders', re: /^\/insiders$/, params: (m, qs) => ({ tab: qs.get('tab') }), load: loadInsiders, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: loadPricing, cache: 'none' },
   { kind: 'checkout', re: /^\/checkout\/(success|cancel)$/, load: async () => [], cache: 'none' },
+  // where the confirmation and unsubscribe links in a mail land: the page reads its token client-side
+  { kind: 'lead', re: /^\/(thanks|unsubscribe)$/, load: async () => [], cache: 'none' },
   { kind: 'report', re: /^\/report$/, params: (m, qs) => ({ quarter: qs.get('q') }), load: loadReport, cache: 'hour' },
-  { kind: 'screen', re: /^\/screen$/, load: async () => [], cache: 'hour' },
+  { kind: 'screen', re: /^\/screen$/, load: loadSummaryOnly, cache: 'hour' },
   { kind: 'compare', re: /^\/compare$/, load: loadCompare, cache: 'hour' },
   { kind: 'watchlist', re: /^\/watchlist$/, load: async () => [], cache: 'none' },
   { kind: 'account', re: /^\/account$/, load: async () => [], cache: 'none' },
   // the portfolio matcher's empty form is a public, indexable page; results load client-side
-  { kind: 'match', re: /^\/match$/, load: async () => [], cache: 'day' },
+  { kind: 'match', re: /^\/match$/, load: loadGuruCoverage, cache: 'day' },
 ];
 
 // static content: language-specific slugs; a slug from the other language

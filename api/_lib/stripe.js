@@ -11,6 +11,8 @@ import axios from 'axios';
 //   STRIPE_PRICE_YEARLY_TR    price_… ($100 / year)
 //   STRIPE_PRICE_MONTHLY_TRY  price_… (₺, Türkiye; wins over the _TR USD price when set)
 //   STRIPE_PRICE_YEARLY_TRY   price_… (₺)
+//   STRIPE_PRICE_LEGACY       price_…,price_… retired prices that still have
+//                             subscribers (optional; see ownPriceIds)
 // Which of these a visitor gets is decided in plans.js (planCatalog).
 // STRIPE_API_BASE points the client at a stand-in during tests.
 const apiBase = () => (process.env.STRIPE_API_BASE || 'https://api.stripe.com').replace(/\/$/, '');
@@ -35,6 +37,45 @@ export function priceFor(cycle, country) {
     process.env[cycle === 'y' ? 'STRIPE_PRICE_YEARLY' : 'STRIPE_PRICE_MONTHLY'] ||
     null
   );
+}
+
+// The Stripe account is shared with other products, and Stripe delivers every
+// subscription event of the account to every webhook endpoint on it. The
+// prices configured above are what makes a subscription ours: a subscription
+// on any other price is another product's and must never touch a profile.
+// A price that was replaced but still has subscribers goes in
+// STRIPE_PRICE_LEGACY (comma-separated), or their renewals stop counting.
+const PRICE_ENVS = [
+  'STRIPE_PRICE_MONTHLY',
+  'STRIPE_PRICE_YEARLY',
+  'STRIPE_PRICE_MONTHLY_TR',
+  'STRIPE_PRICE_YEARLY_TR',
+  'STRIPE_PRICE_MONTHLY_TRY',
+  'STRIPE_PRICE_YEARLY_TRY',
+];
+const PRICE_ID_RE = /^price_[A-Za-z0-9_]+$/;
+export function ownPriceIds(env = process.env) {
+  const ids = PRICE_ENVS.map((k) => env[k]);
+  ids.push(...String(env.STRIPE_PRICE_LEGACY || '').split(','));
+  return new Set(ids.map((v) => String(v || '').trim()).filter((v) => PRICE_ID_RE.test(v)));
+}
+
+// The price ids a subscription object bills: its items, or `plan` on the
+// single-price shape older API versions send.
+export function subscriptionPriceIds(sub) {
+  const ids = (sub?.items?.data || []).map((i) => (typeof i?.price === 'string' ? i.price : i?.price?.id) || i?.plan?.id);
+  if (sub?.plan?.id) ids.push(sub.plan.id);
+  return [...new Set(ids.filter(Boolean).map(String))];
+}
+
+// 'own'          at least one item is on one of our prices
+// 'foreign'      prices are configured and none of the items is ours (or the
+//                object names no price at all): another product's subscription
+// 'unconfigured' no price id is configured, so nothing can be told apart
+export function subscriptionOwner(sub, env = process.env) {
+  const own = ownPriceIds(env);
+  if (!own.size) return 'unconfigured';
+  return subscriptionPriceIds(sub).some((id) => own.has(id)) ? 'own' : 'foreign';
 }
 
 // {a: {b: 1}, c: [x]} -> a[b]=1&c[0]=x (Stripe's nested form encoding)
@@ -125,16 +166,41 @@ export function periodEndOf(sub) {
 }
 export const unixToIso = (s) => (s ? new Date(Number(s) * 1000).toISOString() : null);
 
-// Access decision for one Stripe subscription object: { plan, expires }.
-// Pro always expires at the end of the paid period; the next renewal event
+// Start of the period the subscription is in; same two homes as the end.
+export function periodStartOf(sub) {
+  return sub?.current_period_start ?? sub?.items?.data?.[0]?.current_period_start ?? null;
+}
+
+// How long an account stays Pro into a period whose renewal has not been
+// paid. Stripe moves the period forward at renewal and only then tries the
+// charge, so a past_due subscription's current_period_end is the end of a
+// period nobody paid for. The grace covers Stripe's retry schedule (Smart
+// Retries is set to 3 days in docs/STRIPE-KURULUM.md §3b; 7 leaves room for a
+// longer setting) and does not depend on what Stripe is told to do when the
+// retries run out: left past_due for good, the access still ends here.
+export const PAST_DUE_GRACE_DAYS = 7;
+
+// Access decision for one Stripe subscription object: { plan, expires }, or
+// null when the object decides nothing.
+// active / trialing: Pro until the end of the period; the next renewal event
 // moves it. A subscription cancelled at period end therefore needs no special
-// case, and a renewal whose payment failed keeps access while Stripe's Smart
-// Retries run (status past_due), until Stripe itself moves it to
-// canceled/unpaid.
+// case.
+// past_due: Pro until the unpaid period's start + PAST_DUE_GRACE_DAYS, never
+// past the period end. A payment that then succeeds arrives as `active` and
+// restores the full period; Stripe giving up arrives as canceled/unpaid.
+// Without a period start there is nothing to count the grace from, and the
+// event decides nothing rather than extend access.
 export function planForSubscription(sub) {
   const status = String(sub?.status || '');
-  if (['active', 'trialing', 'past_due'].includes(status)) {
+  if (status === 'active' || status === 'trialing') {
     return { plan: 'pro', expires: unixToIso(periodEndOf(sub)) };
+  }
+  if (status === 'past_due') {
+    const start = Number(periodStartOf(sub));
+    if (!Number.isFinite(start) || start <= 0) return null;
+    const grace = start + PAST_DUE_GRACE_DAYS * 86400;
+    const end = Number(periodEndOf(sub));
+    return { plan: 'pro', expires: unixToIso(Number.isFinite(end) && end > 0 ? Math.min(end, grace) : grace) };
   }
   if (status === 'incomplete') return null; // first payment still pending
   return { plan: 'free', expires: null }; // canceled, unpaid, incomplete_expired, paused

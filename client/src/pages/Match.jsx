@@ -3,10 +3,13 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useI18n } from '../i18n.jsx';
 import { useSeo } from '../seo.jsx';
+import { useGuruCoverage } from '../hooks/useGuruCoverage.js';
+import { fundCountRounded } from '../lib/fundCount.js';
 import { api } from '../lib/api.js';
 import { readGrant, saveGrant } from '../lib/leadGrant.js';
 import LeadForm from '../components/LeadForm.jsx';
 import { Disclaimer } from '../components/Faq.jsx';
+import { fmtPct, locNum } from '../lib/format.js';
 
 // "Compare your portfolio with the superinvestors" — a lead magnet. The
 // reader types tickers; /api/portfolio-match scores every tracked guru
@@ -21,15 +24,20 @@ export default function Match() {
   const [input, setInput] = useState(params.get('t') || '');
   const [grant, setGrant] = useState(null);
   const tickers = useMemo(() => parse(params.get('t')), [params]);
+  // every superinvestor the site follows, rounded down ("90+"); seeded by the server
+  const gurus = fundCountRounded(useGuruCoverage()?.tracked, lang);
 
   useSeo(
     useMemo(
       () => ({
         title: lang === 'tr' ? 'Portföyünü Usta Yatırımcılarla Karşılaştır | Fundocap' : 'Compare Your Portfolio with Superinvestors | Fundocap',
-        description: lang === 'tr' ? 'Hisselerini yaz; portföyünün Warren Buffett, Bill Ackman ve 60+ usta yatırımcının 13F portföylerine ne kadar benzediğini gör.' : 'Type your tickers and see how closely your portfolio matches Warren Buffett, Bill Ackman and 60+ superinvestors’ 13F books.',
+        description:
+          lang === 'tr'
+            ? `Hisselerini yaz; portföyünün Warren Buffett, Bill Ackman ve ${gurus ? `takip edilen ${gurus} usta yatırımcının` : 'diğer usta yatırımcıların'} 13F portföylerine ne kadar benzediğini gör.`
+            : `Type your tickers and see how closely your portfolio matches Warren Buffett, Bill Ackman and ${gurus ? `the ${gurus} superinvestors we track` : 'other superinvestors'} in their 13F books.`,
         path: '/match',
       }),
-      [lang]
+      [lang, gurus]
     )
   );
 
@@ -114,11 +122,11 @@ export default function Match() {
                 </div>
                 <div className="match-bar"><span style={{ width: `${Math.max(4, m.score)}%` }} /></div>
                 <p className="small muted">
-                  {t('match.coverage').replace('{n}', m.shared.length).replace('{m}', d.tickers.length)} · {t('match.weight').replace('{p}', m.guruWeight)}
+                  {t('match.coverage').replace('{n}', m.shared.length).replace('{m}', d.tickers.length)} · {t('match.weight').replace('{p}', locNum(m.guruWeight))}
                 </p>
                 <div className="match-chips">
                   {m.shared.map((s) => (
-                    <Link key={s.ticker} to={`/stock/${s.ticker}`} className="chip">{s.ticker} <small>%{s.weight.toFixed(1)}</small></Link>
+                    <Link key={s.ticker} to={`/stock/${s.ticker}`} className="chip">{s.ticker} <small>{fmtPct(s.weight, { sign: false })}</small></Link>
                   ))}
                 </div>
               </article>

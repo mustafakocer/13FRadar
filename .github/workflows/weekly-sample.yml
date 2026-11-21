@@ -3,7 +3,10 @@ name: Weekly sample check
 # issue with a box per fund for a human to tick, then the same check on every
 # fund, the ones that differ listed in the same issue (scripts/weekly-sample.mjs);
 # and ten Form 4s and ten Congress reports the same way, in an issue of
-# their own (scripts/weekly-sample-trades.mjs).
+# their own (scripts/weekly-sample-trades.mjs); and for the funds of
+# config/reconcile-funds.json every line of the book — shares, value, weight —
+# against the filing (scripts/reconcile-edgar.mjs), an alarm issue when one
+# differs.
 # Mondays 09:07 UTC: after the night's data, outside the 01:00–03:30 window.
 # Commits nothing.
 on:
@@ -16,6 +19,8 @@ on:
       - 'api/_lib/sampleCheck.js'
       - 'scripts/weekly-sample-trades.mjs'
       - 'api/_lib/tradeSample.js'
+      - 'scripts/reconcile-edgar.mjs'
+      - 'config/reconcile-funds.json'
       - '.github/workflows/weekly-sample.yml'
 permissions:
   contents: read
@@ -41,6 +46,31 @@ jobs:
         run: node scripts/weekly-sample.mjs ${{ github.event_name == 'pull_request' && '--dry-run --scan-limit=300' || '' }}
         env:
           SEC_USER_AGENT: 'Fundocap sample bot (https://www.fundocap.co)'
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+      # The sample above compares the ten stored lines' share counts. This
+      # reads the whole book of the funds picked for the ways a table goes
+      # wrong (amendments, options, thousands-for-dollars, one CUSIP on many
+      # lines, a few thousand rows) and compares every line's shares, value
+      # and weight. A difference is a red step and the alarm issue; on a pull
+      # request only the red step.
+      - name: Reconcile every line of the reference funds with EDGAR
+        id: reconcile
+        if: ${{ !cancelled() }}
+        run: node scripts/reconcile-edgar.mjs --markdown 2>&1 | tee "$RUNNER_TEMP/reconcile.log"
+        shell: bash
+        env:
+          SEC_USER_AGENT: 'Fundocap sample bot (https://www.fundocap.co)'
+      - name: Alert
+        if: ${{ !cancelled() && steps.reconcile.outcome == 'failure' && github.event_name != 'pull_request' }}
+        run: node scripts/notify.mjs --title "13F mutabakatı: site SEC bildirimiyle tutmuyor" --log "$RUNNER_TEMP/reconcile.log"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+      - name: Close the alarm on recovery
+        if: ${{ steps.reconcile.outcome == 'success' && github.event_name != 'pull_request' }}
+        run: node scripts/notify.mjs --title "13F mutabakatı: site SEC bildirimiyle tutmuyor" --resolve
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           ALERT_MENTION: ${{ vars.ALERT_MENTION }}
   trades:

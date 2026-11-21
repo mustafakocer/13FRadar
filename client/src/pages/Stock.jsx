@@ -33,7 +33,17 @@ import TickerLogo from '../components/TickerLogo.jsx';
 import PerfStrip from '../components/PerfStrip.jsx';
 import CongressTable from '../components/CongressTable.jsx';
 
-function KV({ k, v, cls = '', tip, src = null, title = null }) {
+// "19.11.2026": the day a figure filled in from the nightly price file describes.
+const asOfDay = (iso, lang) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? null : d.toLocaleDateString(lang === 'tr' ? 'tr-TR' : 'en-US', { timeZone: 'UTC' });
+};
+
+// `optional`: a row whose value is missing is left out instead of printing
+// "—" — for the figures a quote source may simply not carry (52-week range,
+// volume). The SEC fundamentals keep their "—": there the gap is the fact.
+function KV({ k, v, cls = '', tip, src = null, title = null, optional = false }) {
+  if (optional && (v == null || v === '—')) return null;
   return (
     <div className="kv">
       <span className="k">
@@ -280,18 +290,21 @@ export default function Stock() {
         <h3>{t('stock.sec.quote')}</h3>
         <ChartBox height={300}><PriceChart ticker={ticker} lang={lang} /></ChartBox>
         <div className="kv-grid quote-grid mt16">
-          <KV k={t('stock.prevClose')} v={fmtNum(p.prevClose, 2)} />
-          <KV k={t('stock.open')} v={fmtNum(p.open, 2)} />
+          <KV optional k={t('stock.prevClose')} v={fmtNum(p.prevClose, 2)} />
+          <KV optional k={t('stock.open')} v={fmtNum(p.open, 2)} />
           <KV
+            optional
             k={t('stock.dayRange')}
-            v={p.low != null && p.high != null ? `${fmtNum(p.low, 2)} – ${fmtNum(p.high, 2)}` : '—'}
+            v={p.low != null && p.high != null ? `${fmtNum(p.low, 2)} – ${fmtNum(p.high, 2)}` : null}
           />
           <KV
+            optional
             k={t('stock.range52')}
-            v={p.low52 != null && p.high52 != null ? `${fmtNum(p.low52, 2)} – ${fmtNum(p.high52, 2)}` : '—'}
+            v={p.low52 != null && p.high52 != null ? `${fmtNum(p.low52, 2)} – ${fmtNum(p.high52, 2)}` : null}
+            title={p.range52AsOf ? asOfDay(p.range52AsOf, lang) : null}
           />
-          <KV k={t('stock.volume')} v={fmtNum(p.volume)} />
-          <KV k={t('stock.avgVolume')} v={fmtNum(tr.avgVolume)} />
+          <KV optional k={t('stock.volume')} v={fmtNum(p.volume)} title={p.volumeAsOf ? asOfDay(p.volumeAsOf, lang) : null} />
+          <KV optional k={t('stock.avgVolume')} v={fmtNum(tr.avgVolume)} />
           {/* fundamentals: SEC filings (api/_lib/secFundamentals.js), priced
               at this page's price; a figure that is not there stays "—" */}
           <KV k={t('stock.mktCap')} v={fmtMoney(sec.marketCap ?? p.marketCap)} src={<SecSource s={sec.src?.shares} t={t} lang={lang} />} />

@@ -82,6 +82,12 @@ export function headTags(spec, { siteUrl }) {
     { tag: 'meta', name: 'twitter:description', content: description },
     { tag: 'meta', name: 'twitter:image', content: image },
   ];
+  // an address that does not exist has no canonical form and no translations
+  if (spec.notFound) {
+    for (let i = tags.length - 1; i >= 0; i--) {
+      if (tags[i].tag === 'link' || tags[i].property === 'og:url') tags.splice(i, 1);
+    }
+  }
   if (spec.noindex) tags.push({ tag: 'meta', name: 'robots', content: 'noindex' });
   if (spec.dateModified) tags.push({ tag: 'meta', property: 'article:modified_time', content: spec.dateModified });
   for (const block of spec.jsonLd || [])

@@ -166,7 +166,10 @@ test('pinned aliases restore a table that an old run shrank', async () => {
   const shrunk = Object.fromEntries(Object.entries(aliases).slice(0, 79));
   delete shrunk['berkshire-hathaway'];
   const merged = mergeAliases({ bySlug, pinned, previous: shrunk, derived: {} });
-  assert.equal(Object.keys(merged).length, Object.keys(aliases).length);
+  // everything the table served comes back; the pinned list may hold more
+  // (an address added to it redirects before the nightly run copies it in)
+  for (const [from, to] of Object.entries(aliases)) assert.equal(merged[from], to, from);
+  assert.equal(Object.keys(merged).length, Object.keys(mergeAliases({ bySlug, pinned })).length);
   assert.equal(merged['berkshire-hathaway'], 'berkshire-hathaway-warren-buffett');
 });
 

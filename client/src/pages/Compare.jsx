@@ -64,7 +64,7 @@ const GURU_ROWS = [
 function StockCompare({ t, isPro }) {
   const [input, setInput] = useState('');
   const [tickers, setTickers] = useState(isPro ? [] : SAMPLE_TICKERS);
-  const returns = useStaticReturns();
+  const returns = useStaticReturns(tickers);
 
   const add = () => {
     const sym = input.trim().toUpperCase();

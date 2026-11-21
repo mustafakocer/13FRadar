@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xmlns="http://www.sec.gov/edgar/thirteenffiler" xmlns:com="http://www.sec.gov/edgar/common">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-HR</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags>
+        <confirmingCopyFlag>false</confirmingCopyFlag>
+        <returnCopyFlag>true</returnCopyFlag>
+        <overrideInternetFlag>false</overrideInternetFlag>
+      </flags>
+      <filer>
+        <credentials>
+          <cik>0001764403</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>09-30-2026</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>09-30-2026</reportCalendarOrQuarter>
+      <filingManager>
+        <name>Vision Capital Corp</name>
+        <address>
+          <com:street1>20 EGLINTON AVENUE WEST</com:street1>
+          <com:street2>SUITE 1701</com:street2>
+          <com:city>TORONTO</com:city>
+          <com:stateOrCountry>A6</com:stateOrCountry>
+          <com:zipCode>M4R 1K8</com:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F HOLDINGS REPORT</reportType>
+      <form13FFileNumber>028-19011</form13FFileNumber>
+      <crdNumber>000295069</crdNumber>
+      <secFileNumber>028-19011</secFileNumber>
+      <provideInfoForInstruction>N</provideInfoForInstruction>
+    </coverPage>
+    <signatureBlock>
+      <name>Vinh Truong</name>
+      <title>CFO &amp; CCO</title>
+      <phone>4163699627</phone>
+      <signature>Vinh Truong</signature>
+      <city>Toronto</city>
+      <stateOrCountry>A6</stateOrCountry>
+      <signatureDate>11-13-2026</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>0</otherIncludedManagersCount>
+      <tableEntryTotal>16</tableEntryTotal>
+      <tableValueTotal>3503170906</tableValueTotal>
+      <isConfidentialOmitted>false</isConfidentialOmitted>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

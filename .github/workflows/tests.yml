@@ -1,0 +1,85 @@
+name: Tests
+
+# The whole suite (npm test, ~850 tests) on the built site.
+#
+# Until this existed no workflow ran it: db-tests.yml runs two files when a
+# migration changes, mobile.yml checks layout. Three tests pinned to "the
+# latest quarter" went red when the 2026-Q3 filings arrived and stayed red
+# for weeks unnoticed (audit of 2026-11-20).
+#
+# Two triggers:
+#   - every pull request, so a change is checked before it is merged;
+#   - once a day on main. The nightly data jobs commit straight to main with
+#     no pull request, and part of the suite reads that data (api/_data,
+#     client/public), so a quarter rollover that breaks a test is only seen
+#     by a run on main. A failure there opens the alarm issue
+#     (scripts/notify.mjs); the next green run closes it.
+#
+# Not on push to main: the data jobs push ~20 times a day.
+#
+# Needs no secret. The Supabase tests skip themselves without keys, and a
+# pull request from a fork gets none anyway (pull_request, never
+# pull_request_target).
+on:
+  pull_request: {}
+  schedule:
+    # 09:07 UTC — after the night chain (universe 01:23 → consensus,
+    # insiders 03:31) and the 07:23 freshness check have pushed.
+    - cron: '7 9 * * *'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write # the alarm issue, scheduled run only (scripts/notify.mjs)
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # nothing here pushes; the token stays out of the checkout the
+          # pull request's own code runs in
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+      - run: npm ci
+      - run: npm ci --prefix client
+      - run: npm run build
+      - name: Run the suite
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! npm test 2>&1 | tee tests.log; then
+            # one ::error:: per failed test: the run's annotations, and the
+            # lines notify.mjs puts at the top of the alarm
+            grep -E '^not ok [0-9]+ - ' tests.log | sed -E 's/^not ok [0-9]+ - /::error::/' | tee -a tests.log
+            exit 1
+          fi
+      - name: Alert
+        if: failure() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: node scripts/notify.mjs --title "Test suite failed on main" --log tests.log
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_FROM: ${{ secrets.ALERT_FROM }}
+          OPS_ALERT_EMAIL: ${{ secrets.OPS_ALERT_EMAIL }}
+      - name: Close the alarm on recovery
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: node scripts/notify.mjs --title "Test suite failed on main" --resolve
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ALERT_MENTION: ${{ vars.ALERT_MENTION }}

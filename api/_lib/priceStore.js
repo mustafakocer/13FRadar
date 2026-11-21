@@ -135,6 +135,67 @@ export function lastBreak(prices, after = null) {
   return -1;
 }
 
+// ------------------------------------------------- an earlier listing
+// A ticker is not a security. The history a provider answers for "BSP" is
+// everything that ever traded under those letters: 551 closes of a shell at
+// a cent or less until 2022, nothing for 1,582 days, then Bending Spoons from
+// its listing day at $40.50. Every reader took the two for one series: a
+// year-to-date return of +2,779,900%, a beta of 30,735, a 52-week low of a
+// fraction of a cent. Forty-three files in the archive carry an earlier
+// listing like that (BBBY, BBT, LIME, ITG, WSHP, …).
+//
+// The series a reader gets starts at the current listing: after the newest
+//   · silence of more than LISTING_GAP_DAYS — a year without one close is a
+//     delisting, whatever the price did across it;
+//   · silence of more than HALT_GAP_DAYS with a split-sized move across it —
+//     a company back from bankruptcy in new shares (CRC 2020, CAMP 2024);
+//     a fund priced monthly, or a halt the price survived, is left alone.
+// Nothing else is cut. A split-sized move from one trading day to the next
+// inside a provider's history is kept as it is: most are reverse splits of
+// penny stocks the provider did not restate, or filler quotes of a stock
+// nobody traded, some are real (a biotech at ×5 on a trial), and the two
+// closes alone cannot tell them apart — the unverified tail has its own rule
+// above, and a guess here would delete real history.
+// The rows before the start stay in the file; `skipped` says how many.
+export const LISTING_GAP_DAYS = 365;
+export const HALT_GAP_DAYS = 30;
+
+// Index of the first row of the current listing, from the stored shape's day
+// gaps and closes (no dates needed): 0 for a series with no earlier listing.
+export function listingStart(gaps, closes) {
+  const n = closes?.length || 0;
+  for (let i = n - 1; i > 0; i--) {
+    const gap = gaps[i];
+    if (gap > LISTING_GAP_DAYS) return i;
+    if (gap > HALT_GAP_DAYS && splitSized(closes[i - 1], closes[i])) return i;
+  }
+  return 0;
+}
+
+// The same, for a decoded [{date, close}] series (a provider's answer).
+export function listingStartOf(prices) {
+  if (!prices?.length) return 0;
+  const gaps = new Array(prices.length);
+  gaps[0] = 0;
+  for (let i = 1; i < prices.length; i++) gaps[i] = Math.round((parseDay(prices[i].date) - parseDay(prices[i - 1].date)) / DAY);
+  return listingStart(gaps, prices.map((p) => p.close));
+}
+
+// A stored return row ({ ret1y, retYtd, ret1d, asOf }) against the listing
+// the series starts at (`listed`, the view's first date): a figure whose
+// window reaches back before it was measured across two securities and is
+// withdrawn (null). The windows are returnsFromSeries's own. Returns the same
+// object when nothing changes.
+export function withdrawAcrossListing(row, listed) {
+  if (!row || !listed) return row;
+  const asOf = row.asOf;
+  if (!asOf) return row;
+  const yearAgo = isoDay(parseDay(asOf) - 358 * DAY);
+  const drop1y = row.ret1y != null && listed > yearAgo;
+  const dropYtd = row.retYtd != null && listed >= `${asOf.slice(0, 4)}-01-01`;
+  return drop1y || dropYtd ? { ...row, ...(drop1y ? { ret1y: null } : {}), ...(dropYtd ? { retYtd: null } : {}) } : row;
+}
+
 const memo = new Map();
 const views = new Map();
 // A symbol with no file is remembered too (the lookup is a failed disk read),
@@ -159,7 +220,7 @@ export function readSeriesRaw(symbol) {
   let out = null;
   try {
     const file = JSON.parse(fs.readFileSync(path.join(pricesDir(), `${key}.json`), 'utf8'));
-    out = { symbol: file.symbol || key, src: file.src || null, from: file.from, asOf: file.asOf, updatedAt: file.updatedAt || null, hist: file.hist || null, rb: file.rb || 0, prices: decodeSeries(file) };
+    out = { symbol: file.symbol || key, src: file.src || null, from: file.from, asOf: file.asOf, updatedAt: file.updatedAt || null, hist: file.hist || null, rb: file.rb || 0, listing: listingStart(file.d || [], file.c || []), prices: decodeSeries(file) };
   } catch {
     out = null;
   }
@@ -171,11 +232,13 @@ export function readSeriesRaw(symbol) {
   return out;
 }
 
-// { symbol, src, from, asOf, updatedAt, held, prices: [{date, close}] } or
-// null when no build has priced the symbol. The closes are in one unit: a
-// series with an unverified split-sized break starts at the break (`held`
-// rows before it are withheld). Memoised per process: the files only change
-// with a deploy (or, in the build, through writeSeries below).
+// { symbol, src, from, asOf, updatedAt, held, skipped, prices: [{date, close}] }
+// or null when no build has priced the symbol. The closes are one security
+// in one unit: the series starts at the current listing (`skipped` rows of an
+// earlier one are left out), and one with an unverified split-sized break
+// starts at the break (`held` rows before it are withheld). Memoised per
+// process: the files only change with a deploy (or, in the build, through
+// writeSeries below).
 export function readSeries(symbol) {
   const key = seriesKey(symbol);
   if (!key) return null;
@@ -183,8 +246,11 @@ export function readSeries(symbol) {
   const raw = readSeriesRaw(key);
   let out = raw;
   if (raw) {
+    const skipped = raw.listing || 0;
     const i = lastBreak(raw.prices, verifiedThrough(raw));
-    out = i > 0 ? { ...raw, from: raw.prices[i].date, held: i, prices: raw.prices.slice(i) } : { ...raw, held: 0 };
+    // a break older than the listing is already behind the start
+    const start = Math.max(i, skipped);
+    out = start > 0 ? { ...raw, from: raw.prices[start].date, held: i > skipped ? i - skipped : 0, skipped, prices: raw.prices.slice(start) } : { ...raw, held: 0, skipped: 0 };
   }
   // a miss is memoised only while readSeriesRaw kept it (see MAX_MISSES)
   if (out !== null || memo.has(key)) views.set(key, out);

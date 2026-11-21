@@ -8,24 +8,47 @@
 // every split after the trade and both comparisons are like for like.
 //
 // splits: { TICKER: [{ date: 'YYYY-MM-DD', ratio: 4 }] } — api/_data/splits.json,
-// built nightly by scripts/build-splits.mjs.
+// built nightly by scripts/build-splits.mjs, plus the splits that table lacks
+// and the filings show (api/_data/splits-inferred.json, inferredSplits.js).
+// loadSplits() is the one accessor: every reader of share splits gets the
+// same merged table.
 import { createRequire } from 'node:module';
 import { tickerFor } from './securityMaster.js';
 import { splitAdjust } from './history.js';
+import { mergeSplitTables } from './inferredSplits.js';
 
 const require = createRequire(import.meta.url);
-let loaded = null;
-export function loadSplits() {
-  if (loaded) return loaded;
+let table = null;
+let merged = null;
+const tableOnly = () => {
+  if (table) return table;
   try {
-    loaded = require('../_data/splits.json').byTicker || {};
+    table = require('../_data/splits.json').byTicker || {};
   } catch {
-    loaded = {};
+    table = {};
   }
-  return loaded;
+  return table;
+};
+// { inferred: false } is the provider's table alone, for the one reader that
+// needs a split's real day: per-share fundamentals are restated by fiscal
+// period, and an inferred split only knows the quarter it fell in.
+export function loadSplits({ inferred = true } = {}) {
+  if (!inferred) return tableOnly();
+  if (merged) return merged;
+  let extra = {};
+  try {
+    extra = require('../_data/splits-inferred.json').byTicker || {};
+  } catch {
+    extra = {};
+  }
+  merged = mergeSplitTables(tableOnly(), extra);
+  return merged;
 }
 
-// Product of the ratios of splits strictly after `day` (1 when none).
+// Product of the ratios of splits strictly after `day` (1 when none). An
+// inferred split is dated the day after the last report in old shares, so it
+// reaches a trade up to that report and no later one: between that day and
+// the next report the real split day is unknown.
 export function splitFactor(ticker, day, splits = loadSplits()) {
   let f = 1;
   for (const s of splits?.[ticker] || []) if (s?.date > day && s.ratio > 0) f *= s.ratio;

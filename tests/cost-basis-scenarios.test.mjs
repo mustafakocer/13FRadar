@@ -3,8 +3,8 @@
 // (api/_lib/costBasis.js, history.js reconcileSplits, splitAdjust.js,
 // netActivity.js). tests/cost-basis.test.mjs holds the basic rules; these are
 // the multi-quarter scenarios and the edges, plus the one failure the
-// November 2026 audit found in the wild: a split the split table does not
-// know about.
+// November 2026 audit found in the wild — a split the split table does not
+// know about — and the layer that now reads it off the filings.
 //
 // Prices are flat inside a quarter so every "quarter average" is exact and
 // every expected number below can be redone on paper.
@@ -15,6 +15,7 @@ import { costBasis, gainPct } from '../api/_lib/costBasis.js';
 import { reconcileSplits, splitAdjust } from '../api/_lib/history.js';
 import { splitAdjustPrev } from '../api/_lib/splitAdjust.js';
 import { netActivity } from '../api/_lib/netActivity.js';
+import { inferSplits, mergeSplitTables } from '../api/_lib/inferredSplits.js';
 
 const DAY = 86400 * 1000;
 const iso = (ms) => new Date(ms).toISOString().slice(0, 10);
@@ -154,52 +155,65 @@ test('a reverse split and a split dated after the later report leave the right t
 
 // The split table stopped being refreshed in October 2026 (its provider
 // refuses the endpoint on the plan in use), so a split after that is not in
-// it: SOXX and ITA, both 3-for-1, were found missing. This is what the same
-// case gives then. It is written down as it is — these assertions describe a
-// defect, and are meant to be replaced by the two `todo` tests below when the
-// code learns to recognise the case.
-test('DEFECT (documented): the same 3-for-1 missing from the split table reads as a +200% purchase and a wrong cost', () => {
+// it: SOXX and ITA, both 3-for-1, were found missing. Read with the table
+// alone, the same case is a +200% purchase of $30,000 that never happened and
+// a cost of $133.33 a share where $100 was paid.
+//
+// The evidence is in the data already: the filing's own price for the earlier
+// quarter ($30,000 ÷ 100 = $300) is three times the archive's adjusted close
+// for that day ($100), a ratio that is a share split and that the later
+// quarter does not show ($45,000 ÷ 300 = $150 = the close). No trade produces
+// that pattern; a split after the earlier report does. inferredSplits.js
+// reads it, and every reader of the split table gets it through the one
+// accessor (splitAdjust.js loadSplits → mergeSplitTables).
+const closeOf = (ticker, date) => adjusted.findLast((p) => p.date <= date)?.close ?? null;
+const asFiled = [[Q[2], 100, 30000, 1], [Q[3], 300, 45000, 1]];
+const fund = (series, splitsApplied) => ({ gurus: { 1: { quarters: quarters.slice(0, 4), positions: { X1: { ticker: 'X', series, ...(splitsApplied ? { splitsApplied } : {}) } } } } });
+
+test('the table alone: the 3-for-1 it lacks reads as a +200% purchase (what the inferred layer is for)', () => {
   const { series } = reconcileSplits(filed, null, [], new Set(filed.map((r) => r[0])));
   assert.deepEqual(series.map((r) => r[1]), [100, 300], 'nothing to apply: the counts stay as filed');
   const cb = costBasis({ quarters: quarters.slice(0, 4), series, prices: adjusted });
-  // 100 "bought" at the adjusted $100 (a third of what was paid per share)
-  // and 200 phantom shares "bought" at the next quarter's $150
   assert.equal(cb.avgBuy, 133.33, 'true cost per share is $100');
-  assert.equal(cb.lotCost, 40000, 'true cost is $30,000');
   assert.equal(gainPct(cb.avgBuy, 150), 12.5, 'true gain is +50%');
-
-  const prev = { positions: [{ cusip: 'X1', issuer: 'X', shares: 100, value: 30000, weight: 10 }] };
-  const cur = { positions: [{ cusip: 'X1', issuer: 'X', shares: 300, value: 45000, weight: 10 }] };
-  const adj = splitAdjustPrev(prev, Q[2], Q[3], { tickerOf: () => 'X', splits: {} });
-  const r = [...netActivity([{ cik: '1', name: 'F', reportDate: Q[3], cur, prev: adj }], { idOf: (p) => p.cusip }).values()][0];
-  assert.equal(r.holders[0].change, 200, 'shown as a +200% add');
-  assert.equal(r.buyValue, 30000, 'a $30,000 purchase that never happened');
-  assert.equal(r.adders, 1);
 });
 
-// What should happen instead. The evidence is in the data already: the
-// filing's own price for the earlier quarter ($30,000 ÷ 100 = $300) is three
-// times the archive's adjusted close for that day ($100), a ratio that is a
-// share split (history.js isShareSplit) and that the later quarter does not
-// show ($45,000 ÷ 300 = $150 = the close). No trade produces that pattern; a
-// split after the earlier report does. `closeOf` is the hook the fix would
-// take; today both functions ignore it, so these fail and are marked todo.
-const closeOf = (ticker, date) => adjusted.findLast((p) => p.date <= date)?.close ?? null;
+test('a split the table lacks is recognised from the implied price: no phantom purchase', () => {
+  const { byTicker } = inferSplits(fund(asFiled), { table: {}, closeOf });
+  assert.deepEqual(byTicker.X.map((x) => [x.date, x.ratio, x.source]), [['2026-04-01', 3, 'inferred-13f']]);
+  assert.deepEqual(byTicker.X[0].evidence, { from: Q[2], until: Q[3], holders: 1, residual: 3 });
+  const splits = mergeSplitTables({}, byTicker);
 
-test('a split the table lacks is recognised from the implied price: no phantom purchase', { todo: 'no guard yet: a split missing from splits.json is counted as a purchase (see the DEFECT test above)' }, () => {
   const prev = { positions: [{ cusip: 'X1', issuer: 'X', shares: 100, value: 30000, weight: 10 }] };
   const cur = { positions: [{ cusip: 'X1', issuer: 'X', shares: 300, value: 45000, weight: 10 }] };
-  const adj = splitAdjustPrev(prev, Q[2], Q[3], { tickerOf: () => 'X', splits: {}, closeOf });
+  const adj = splitAdjustPrev(prev, Q[2], Q[3], { tickerOf: () => 'X', splits });
   assert.equal(adj.positions[0].shares, 300);
   const r = [...netActivity([{ cik: '1', name: 'F', reportDate: Q[3], cur, prev: adj }], { idOf: (p) => p.cusip }).values()][0];
+  assert.equal(r.buyShares, 0);
   assert.equal(r.buyValue, 0);
   assert.equal(r.adders, 0);
 });
 
-test('a split the table lacks is recognised from the implied price: the cost stays $100 a share', { todo: 'no guard yet: the estimated purchase price is wrong for a split missing from splits.json' }, () => {
-  // value column as filed: $30,000 then $45,000
-  const withValues = [[Q[2], 100, 30000, 1], [Q[3], 300, 45000, 1]];
-  const cb = costBasis({ quarters: quarters.slice(0, 4), series: withValues, prices: adjusted, closeOf });
+test('a split the table lacks is recognised from the implied price: the cost stays $100 a share', () => {
+  const splits = mergeSplitTables({}, inferSplits(fund(asFiled), { table: {}, closeOf }).byTicker);
+  const { series, applied } = reconcileSplits(asFiled, null, splits.X, new Set(asFiled.map((r) => r[0])));
+  assert.deepEqual(series.map((r) => r[1]), [300, 300]);
+  const cb = costBasis({ quarters: quarters.slice(0, 4), series, prices: adjusted });
   assert.equal(cb.avgBuy, 100);
   assert.equal(cb.lotCost, 30000);
+  assert.equal(gainPct(cb.avgBuy, 150), 50);
+
+  // the next night reads the stored rows, which now carry the split: the
+  // same split is inferred again (not a second one, and not none — the
+  // history build would take the adjustment back)
+  const again = inferSplits(fund(series, applied), { table: {}, closeOf }).byTicker;
+  assert.deepEqual(again.X.map((x) => [x.date, x.ratio]), [['2026-04-01', 3]]);
+  assert.deepEqual(reconcileSplits(series, applied, mergeSplitTables({}, again).X, new Set()).series.map((r) => r[1]), [300, 300]);
+
+  // and when the table learns the real split, the inference steps aside
+  const table = { X: [SPLIT] };
+  assert.deepEqual(inferSplits(fund(series, applied), { table, closeOf }).byTicker, {});
+  const real = reconcileSplits(series, applied, mergeSplitTables(table, {}).X, new Set());
+  assert.deepEqual(real.series.map((r) => r[1]), [300, 300], 'the inferred key is taken back and the real one applied: the counts do not move');
+  assert.deepEqual(real.applied, ['2026-05-15:3']);
 });

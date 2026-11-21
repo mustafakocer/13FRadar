@@ -20,6 +20,7 @@ import { fxBrief, clusterBrief, CLUSTER_ROWS } from '../_lib/insiderTeaser.js';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import { fundamentalsFor } from '../_lib/fundamentals.js';
+import { readPreview } from '../_lib/insiderPreview.js';
 
 // GET /api/insider-feed — SEC Form 4 open-market transactions.
 //
@@ -29,6 +30,9 @@ import { fundamentalsFor } from '../_lib/fundamentals.js';
 // cards, the first FREE_ROWS rows of the tab (FREE_ROWS_TAB on the role and
 // cluster tabs), no filter honoured, `preview: true` and the real `total`
 // so the lock box can say how much is behind it — cacheable on the CDN.
+// The build has that answer ready for each tab (insiderPreview.js): a cold
+// instance serves it from a small file and reads the dataset only for a
+// request the file does not cover.
 //
 // Query
 //   tab      latest | ceo | cfo | cluster | penny | sells
@@ -57,10 +61,14 @@ const load = readServed;
 
 // Per dataset (the rows only change with a deploy): each line's category and
 // flags, the open-market buy totals per filing, and each person's buys.
+// The foreign-issuer window ends on the day of the request, so the result is
+// also per UTC day.
 let derivedFor = null;
+let derivedDay = null;
 let derived = null;
-function derive(db) {
-  if (derivedFor === db) return derived;
+function derive(db, now = Date.now()) {
+  const day = iso(now);
+  if (derivedFor === db && derivedDay === day) return derived;
   const cls = new Map();
   for (const r of db.rows) cls.set(r, classify(r));
   // clusters — the one definition (insiderCluster.js): over the whole
@@ -68,7 +76,7 @@ function derive(db) {
   // before the newest filing day for the cards (the same list the home page
   // and /insiders/cluster show)
   const raw = readRawServed();
-  const ctx = { rawOf: (r) => raw[`${r.a}:${r.li}`] || null, toUsd: toUsdWith(), isForeign: isForeignWith() };
+  const ctx = { rawOf: (r) => raw[`${r.a}:${r.li}`] || null, toUsd: toUsdWith(), isForeign: isForeignWith(undefined, now) };
   const last = db.lastFilingDay || db.rows.reduce((m, r) => (r.f > m ? r.f : m), '');
   const recentFrom = last ? iso(Date.parse(`${last}T00:00:00Z`) - 30 * 86400000) : null;
   derived = {
@@ -81,6 +89,7 @@ function derive(db) {
   derived.recentClusters = recent.byTicker;
   derived.recentList = recent.clusters.slice(0, CLUSTER_ROWS).map((c) => clusterBrief(c, db.companies || {}));
   derivedFor = db;
+  derivedDay = day;
   return derived;
 }
 // Can this line's price be compared with today's? Checked here, at read
@@ -320,9 +329,16 @@ export default async function handler(req, res) {
 
 // The feed itself, once the caller is allowed to see it (`free` = the
 // preview). Exported for the tests, which have no Pro session to sign in with.
-export async function answer(rawQuery, { free = true } = {}) {
+// `now` is the instant the answer is for; `prebuilt: false` computes the
+// preview from the dataset even when the build's copy is at hand — how the
+// build makes that copy, and how the tests compare the two.
+export async function answer(rawQuery, { free = true, now = Date.now(), prebuilt = true } = {}) {
   // the preview knows only the tab: a filter a free reader typed is ignored
   const query = free ? { tab: rawQuery.tab } : rawQuery;
+  if (free && prebuilt) {
+    const ready = readPreview(String(query.tab || 'latest'), now);
+    if (ready) return ready;
+  }
 
   const db = load();
   const meta = loadMeta();
@@ -335,7 +351,7 @@ export async function answer(rawQuery, { free = true } = {}) {
   const tab = String(query.tab || 'latest');
   const period = String(query.period || '1y');
   const days = PERIOD_DAYS[period] ?? 366;
-  const from = /^\d{4}-\d{2}-\d{2}$/.test(query.from || '') ? query.from : iso(Date.now() - days * 86400000);
+  const from = /^\d{4}-\d{2}-\d{2}$/.test(query.from || '') ? query.from : iso(now - days * 86400000);
   const to = /^\d{4}-\d{2}-\d{2}$/.test(query.to || '') ? query.to : null;
   const minValue = numQ(query.minValue);
   const maxValue = numQ(query.maxValue);
@@ -374,7 +390,7 @@ export async function answer(rawQuery, { free = true } = {}) {
 
   // Clusters are computed over the whole window, not the filtered slice, so a
   // cluster is still recognised when the user narrows by role or value.
-  const d = derive(db);
+  const d = derive(db, now);
   const clusterMap = d.clusters;
 
   // The latest tab lists open-market buys, the sells tab open-market sales;

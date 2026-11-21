@@ -125,7 +125,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4183
+        "tickers": 4160
       },
       "findings": []
     },
@@ -133,7 +133,7 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 5107,
+        "series": 5112,
         "coveragePct": 99
       },
       "findings": []
@@ -184,7 +184,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 8243
+        "filers": 8374
       },
       "findings": []
     },

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import axios from 'axios';
 import { cached, TTL } from './cache.js';
 
@@ -47,6 +48,10 @@ async function planForToken(token) {
   return { pro: p.status === 200 && p.data === true, userId: u.data.id, email: u.data.email || null, createdAt: u.data.created_at || null };
 }
 
+// The cache key of a token's plan: a digest of the whole token. A slice of
+// its tail would let two tokens that end alike share one answer.
+const planKey = (token) => `plan:${crypto.createHash('sha256').update(token).digest('hex')}`;
+
 // Signed-in user { id, email, pro, createdAt } or null. Cached per token for 5 minutes.
 export async function getUser(req) {
   if (!authConfigured()) {
@@ -56,7 +61,7 @@ export async function getUser(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return null;
   try {
-    const r = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    const r = await cached(planKey(token), TTL.MIN_5, () => planForToken(token));
     return r.userId ? { id: r.userId, email: r.email, pro: r.pro, createdAt: r.createdAt || null } : null;
   } catch {
     return null;
@@ -71,7 +76,7 @@ export async function isPro(req) {
   const token = String(req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   if (!token) return false;
   try {
-    const { pro } = await cached(`plan:${token.slice(-24)}`, TTL.MIN_5, () => planForToken(token));
+    const { pro } = await cached(planKey(token), TTL.MIN_5, () => planForToken(token));
     return pro;
   } catch {
     return false;

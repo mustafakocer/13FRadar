@@ -42,6 +42,19 @@ Her event ne yapar (`api/_handlers/stripe-webhook.js`):
 | `customer.subscription.deleted` | `plan='free'`, `plan_expires=null`, `stripe_subscription_id=null` (müşteri kimliği portal için kalır) |
 | `invoice.payment_failed` | hiçbir şey; loglanır. Tahsilat denemesi ve ödemesiz süre Stripe'ta (aşağıda 3b) |
 
+**Yalnızca kendi ürünümüzün abonelikleri sayılır.** Stripe hesabında başka
+ürünler de satılıyor ve Stripe hesaptaki tüm abonelik olaylarını bu adrese de
+gönderiyor. Bu yüzden plan değiştiren her olayda aboneliğin fiyat kimliği
+yukarıdaki `STRIPE_PRICE_*` değerleriyle karşılaştırılır; eşleşmeyen olay
+`ignored:foreign-price` olarak kaydedilir ve profile dokunmaz (ne Pro verir ne
+Free'ye düşürür). Hiç fiyat kimliği tanımlı değilse Pro verilmez
+(`ignored:prices-not-configured`).
+
+Bir fiyatı değiştirirseniz (yeni `price_…` oluşturup ortam değişkenini
+güncellerseniz) ve eski fiyatta hâlâ abone varsa, eski kimliği
+`STRIPE_PRICE_LEGACY` değişkenine ekleyin (virgülle ayrılmış liste). Yoksa o
+abonelerin yenilemeleri yabancı ürün sayılır ve Pro süreleri uzamaz.
+
 Her teslimat Stripe event kimliğiyle `public.stripe_events`'e yazılır ve
 profil değişikliğiyle **aynı transaction**da (`apply_stripe_event`) işlenir.
 Aynı event ikinci kez gelirse `200 {"ok":true,"duplicate":true}` döner, DB

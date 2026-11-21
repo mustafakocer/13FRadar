@@ -7,6 +7,7 @@ import { companyName } from '../_lib/companyNames.js';
 import { closeOn } from '../_lib/valueUnits.js';
 import { readSeries } from '../_lib/priceStore.js';
 import { lacksCorrection } from '../_lib/misfiledBooks.js';
+import { FREE_ROWS, parseCusipFilter, topCusips, freeRows, followingFiling } from '../_lib/freeHoldings.js';
 
 // GET /api/holdings/:cik/:acc?light=1&full=1&cusips=A,B,C
 //   light=1   skip CUSIP->ticker resolution (comparisons / previous quarter)
@@ -14,7 +15,11 @@ import { lacksCorrection } from '../_lib/misfiledBooks.js';
 //             private (never CDN-cached) and complete only if the bearer token
 //             belongs to a Pro user
 //   cusips=   free clients may ask for up to 10 specific CUSIPs (used to
-//             compute quarter-over-quarter changes for the visible top 10)
+//             compute quarter-over-quarter changes for the visible top 10).
+//             Only CUSIPs among this filing's own ten largest rows, or the
+//             ten largest of the same filer's following period, are answered
+//             (_lib/freeHoldings.js): the client names rows, it never widens
+//             what the free tier may see.
 //
 // The accession names a period: the response is that period's effective
 // snapshot — the original 13F-HR with its 13F-HR/A amendments applied (see
@@ -24,7 +29,6 @@ import { lacksCorrection } from '../_lib/misfiledBooks.js';
 //
 // Free tier: the top FREE_ROWS positions plus the true totals (aum, count).
 // Everything below that line is Pro data and never leaves the server.
-const FREE_ROWS = 10;
 const ACC_RE = /^\d{10}-\d{2}-\d{6}$/;
 
 export default async function handler(req, res) {
@@ -32,11 +36,7 @@ export default async function handler(req, res) {
   const acc = String(req.query.acc || '');
   const light = req.query.light === '1';
   const wantFull = req.query.full === '1';
-  const cusipFilter = String(req.query.cusips || '')
-    .split(',')
-    .map((s) => s.trim().toUpperCase())
-    .filter((s) => /^[A-Z0-9]{8,9}$/.test(s))
-    .slice(0, FREE_ROWS);
+  const cusipFilter = parseCusipFilter(req.query.cusips);
   if (!cik || cik.length > 10 || !ACC_RE.test(acc)) {
     return res.status(400).json({ error: 'Invalid cik/acc' });
   }
@@ -53,11 +53,13 @@ export default async function handler(req, res) {
     let holdings = snap;
     let meta = { filingDate: snap?.filingDate || null, reportDate: snap?.reportDate || null };
     let filing = null;
+    let filings = [];
     if (!snap || !meta.reportDate) {
       // The filing date decides the ×1000 rule and the amendments decide the
       // snapshot, so both come from EDGAR, never from the client.
       try {
-        filing = filingForAcc(list13F(await getSubmissions(cik)), acc);
+        filings = list13F(await getSubmissions(cik));
+        filing = filingForAcc(filings, acc);
       } catch {
         /* non-fatal: the accession is read on its own below */
       }
@@ -83,9 +85,20 @@ export default async function handler(req, res) {
     let locked = false;
     const total = snapCount ?? positions.length;
     if (!pro) {
-      out = cusipFilter.length
-        ? positions.filter((p) => cusipFilter.includes(p.cusip))
-        : positions.slice(0, FREE_ROWS);
+      // the following period's free view names the only rows outside this
+      // filing's own top ten that a free reader may ask for; unreadable
+      // (EDGAR down, no later filing) means none
+      let nextTop = null;
+      const next = cusipFilter.length ? followingFiling(filings, filing) : null;
+      if (next) {
+        try {
+          const later = latestHoldings(cik, next.acc) || (await getEffectiveHoldings(cik, next));
+          if (!lacksCorrection(cik, next.acc, later.amendments)) nextTop = topCusips(later.positions);
+        } catch {
+          /* fail closed: this filing's own top rows only */
+        }
+      }
+      out = freeRows(positions, cusipFilter, nextTop);
       locked = total > out.length;
     }
 

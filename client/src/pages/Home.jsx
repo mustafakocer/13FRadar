@@ -234,9 +234,11 @@ function InsiderGrid({ teaser }) {
 // ---------------------------------------------------------------------------
 // Stock picks — what the superinvestors hold most, and who leads each
 
+const picksOf = (consensus) => (consensus?.mostHeld || []).filter((r) => r.ticker).slice(0, 11);
+
 function PicksGrid({ consensus, returns }) {
   const { t } = useI18n();
-  const rows = (consensus?.mostHeld || []).filter((r) => r.ticker).slice(0, 11);
+  const rows = picksOf(consensus);
   const tracked = consensus?.coverage?.tracked;
   if (!rows.length) return <p className="muted">{t('common.na')}</p>;
   return (
@@ -286,7 +288,10 @@ export default function Home() {
   const cards = useStaticJson('guru-cards', '/guru-cards.json');
   const teaser = useStaticJson('insiders-teaser', '/insiders-teaser.json');
   const consensus = useConsensusStatic();
-  const returns = useStaticReturns();
+  // the picks tab's symbols, whichever tab is open: their returns ride in
+  // the HTML, so opening the tab fetches nothing
+  const pickTickers = useMemo(() => picksOf(consensus.data).map((r) => r.ticker), [consensus.data]);
+  const returns = useStaticReturns(pickTickers);
   const funds = fundCountLabel(summary?.count, { locale: lang === 'tr' ? 'tr-TR' : 'en-US' });
 
   return (

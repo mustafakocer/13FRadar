@@ -87,7 +87,7 @@ export default function Consensus() {
   // The static file is the source. The per-security table, when the daily
   // build has produced it, is the same rows for more names; the page reads
   // identically either way.
-  const { data, isLoading, error, proLoading, proError } = useConsensusStatic();
+  const { data, isLoading, error, proLoading, proError } = useConsensusStatic({ full: true });
   const table = useGuruStocks({ limit: 500 });
   const summary = useUniverseSummary();
   const seo = useMemo(() => consensusSeo({ lang, data, segment: tab, t, fundCount: summary?.count }), [lang, data, tab, t, summary?.count]);

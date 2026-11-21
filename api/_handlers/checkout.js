@@ -1,5 +1,6 @@
 import { getUser, getProfile, noStore } from '../_lib/auth.js';
 import { hasStripe, stripePost } from '../_lib/stripe.js';
+import { siteUrl } from '../_lib/site.js';
 import { planCatalog } from '../_lib/plans.js';
 import { metaConfigured, sendMetaEvent, browserContext, cleanEventId } from '../_lib/metaCapi.js';
 
@@ -30,8 +31,8 @@ export default async function handler(req, res) {
   const price = catalog.priceIds[cycle];
   if (!price) return res.status(503).json({ error: 'not-configured' });
 
-  const proto = req.headers['x-forwarded-proto'] || 'https';
-  const origin = process.env.SITE_URL || `${proto}://${req.headers.host}`;
+  // never the Host header: Stripe sends the buyer back to this origin
+  const origin = siteUrl(req);
 
   try {
     let customer = null;

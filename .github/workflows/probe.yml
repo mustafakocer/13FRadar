@@ -65,6 +65,9 @@ jobs:
           curl -sS -m 20 "$B/returns.json" | jq '{updatedAt, tickers: (.returns|length), AAPL: .returns.AAPL, SPY: .returns.SPY}' || echo "returns.json yok"
           curl -sS -m 20 "$B/universe.json" | jq '{updatedAt, count}'
       - name: Security & robustness audit
+        env:
+          # the same value as DIAG_TOKEN on Vercel; unset → the diag probe is skipped
+          DIAG_TOKEN: ${{ secrets.DIAG_TOKEN }}
         run: |
           set +e
           B="$SITE"
@@ -73,8 +76,13 @@ jobs:
           echo "=== [1] security headers: / ==="; H "$B/"
           echo "=== [1b] security headers: /api/manager/1067983 ==="; H "$B/api/manager/1067983"
           echo "=== [2] CORS with foreign Origin on API ==="; H -H "Origin: https://evil.example" "$B/api/holdings/1067983/$ACC" | grep -i access-control || echo "(no ACAO header)"
-          echo "=== [3] /api/diag reachable? (info disclosure + 6 outbound fetches per hit) ==="
-          curl -sS -m 40 -w " [HTTP %{http_code}, %{time_total}s]" "$B/api/diag" | head -c 300; echo
+          echo "=== [3] /api/diag: 404 without the token; the diagnostics with it ==="
+          echo -n "no token: "; curl -sS -m 40 -o /dev/null -w "[HTTP %{http_code}] (404 expected)" "$B/api/diag"; echo
+          if [ -n "$DIAG_TOKEN" ]; then
+            echo -n "with token: "; curl -sS -m 40 -w " [HTTP %{http_code}, %{time_total}s]" -H "x-diag-token: $DIAG_TOKEN" "$B/api/diag" | head -c 600; echo
+          else
+            echo "with token: skipped (the DIAG_TOKEN repository secret is not set)"
+          fi
           echo "=== [4] stripe webhook: GET → 405, unsigned POST → 401 or 'not configured' (never raw-body-unavailable) ==="
           curl -sS -m 20 -w " [HTTP %{http_code}]" "$B/api/stripe-webhook"; echo
           curl -sS -m 20 -w " [HTTP %{http_code}]" -X POST -H 'Content-Type: application/json' -d '{"type":"checkout.session.completed"}' "$B/api/stripe-webhook"; echo

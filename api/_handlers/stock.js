@@ -5,6 +5,7 @@ import { priceSnapshot, priceUnavailable } from '../_lib/priceSnapshot.js';
 import { fundamentalsFor } from '../_lib/fundamentals.js';
 import { withCompanyName } from '../_lib/companyNames.js';
 import { readSeries } from '../_lib/priceStore.js';
+import { servableSymbol } from '../_lib/symbolGuard.js';
 import { noteOk, noteFail, noteServed, noteCall, shouldSkip, quotaState, servedHeader } from '../_lib/providerHealth.js';
 
 // GET /api/stock/:ticker — the quote board of a stock page.
@@ -249,6 +250,13 @@ export default async function handler(req, res) {
   if (fx) {
     res.setHeader('Cache-Control', 'no-store');
     return res.status(200).json(withCompanyName(withFundamentals(fx, ticker), ticker));
+  }
+  // A symbol no committed dataset has ever carried never reaches a quote
+  // provider (symbolGuard.js): made-up symbols are not cacheable, so a loop
+  // over them would spend the day's quota. The miss itself is cached briefly.
+  if (!servableSymbol(ticker)) {
+    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+    return res.status(404).json({ error: 'unknown-symbol' });
   }
 
   const log = (msg) => console.log(`stock ${ticker}: ${msg}`);

@@ -31,7 +31,12 @@ const supabase = http.createServer(async (req, res) => {
   if (req.headers.authorization !== 'Bearer svc-key') return json(res, 401, {});
   if (u.pathname !== '/rest/v1/subscribers') return json(res, 404, {});
   const eq = [...u.searchParams].filter(([, v]) => v.startsWith('eq.')).map(([k, v]) => [k, v.slice(3)]);
-  const match = (r) => eq.every(([k, v]) => String(r[k]) === v);
+  const gte = [...u.searchParams].filter(([, v]) => v.startsWith('gte.')).map(([k, v]) => [k, v.slice(4)]);
+  const like = [...u.searchParams].filter(([, v]) => v.startsWith('like.')).map(([k, v]) => [k, v.slice(5)]);
+  const match = (r) =>
+    eq.every(([k, v]) => String(r[k]) === v) &&
+    gte.every(([k, v]) => r[k] != null && String(r[k]) >= v) &&
+    like.every(([k, v]) => v.endsWith('*') && String(r[k] ?? '').startsWith(v.slice(0, -1)));
   if (req.method === 'GET') return json(res, 200, [...rows.values()].filter(match));
   if (req.method === 'POST') {
     const row = { id: `id-${++seq}`, status: 'pending', newsletter: false, gurus: [], magnets: [], confirm_sends: 0, ...JSON.parse(body) };
@@ -82,10 +87,10 @@ test.after(() => {
   resend.close();
 });
 
-function call(handler, { method = 'GET', query = {}, body } = {}) {
+function call(handler, { method = 'GET', query = {}, body, ip = '203.0.113.9' } = {}) {
   const raw = body ? JSON.stringify(body) : '';
   const req = Readable.from(raw ? [Buffer.from(raw)] : []);
-  Object.assign(req, { method, query, body: body || undefined, headers: { host: 'www.fundocap.test', 'x-forwarded-for': '203.0.113.9' } });
+  Object.assign(req, { method, query, body: body || undefined, headers: { host: 'www.fundocap.test', ...(ip ? { 'x-forwarded-for': ip } : {}) } });
   return new Promise((resolve) => {
     const res = {
       statusCode: 200,
@@ -214,6 +219,73 @@ test('a confirmed reader asking again gets the file mailed without a new confirm
   assert.equal((await call(subscribe, { body: { email: 'a@b.co', magnet: 'newsletter' } })).status, 405);
   assert.equal(mails.length, 1);
   assert.ok(![...rows.values()].some((x) => x.email === 'bot@example.com'));
+});
+
+test('one client cannot start confirmations for an unlimited number of addresses', async () => {
+  rows.clear();
+  mails.length = 0;
+  const post = (email, ip) => call(subscribe, { method: 'POST', ip, body: { email, magnet: 'newsletter', lang: 'en' } });
+  // the hourly cap: five addresses go out, the sixth does not
+  for (let i = 0; i < L.IP_MAX_PER_HOUR; i++) {
+    assert.deepEqual((await post(`a${i}@example.com`, '198.51.100.7')).body, { ok: true, status: 'pending' });
+  }
+  assert.equal(mails.length, L.IP_MAX_PER_HOUR);
+  const sixth = await post('a5@example.com', '198.51.100.7');
+  assert.deepEqual(sixth.body, { ok: true, status: 'limited' }, 'the same answer the per-address cap gives');
+  assert.equal(mails.length, L.IP_MAX_PER_HOUR, 'no mail');
+  assert.ok(![...rows.values()].some((r) => r.email === 'a5@example.com'), 'and no row: nothing was stored for the address');
+  // an address already on the list answers the same way from this client
+  rows.set('id-known', { id: 'id-known', email: 'known@example.com', lang: 'en', status: 'unsubscribed', newsletter: false, gurus: [], magnets: [], unsub_token: 'unsub-token-known-0000000000', confirm_sends: 0 });
+  assert.deepEqual((await post('known@example.com', '198.51.100.7')).body, sixth.body);
+  // another client is not affected, and neither is a request without an address to count
+  assert.equal((await post('b0@example.com', '198.51.100.8')).body.status, 'pending');
+  assert.equal((await post('b1@example.com', null)).body.status, 'pending');
+  // asking again for an address this client already asked for is the per-address limit's business
+  rows.get([...rows.values()].find((r) => r.email === 'a0@example.com').id).confirm_sent_at = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const again = mails.length;
+  assert.equal((await post('a0@example.com', '198.51.100.7')).body.status, 'pending', 'its own row does not count against it');
+  assert.equal(mails.length, again + 1);
+  // once the hour has passed the client may go on, up to the daily cap
+  for (const r of rows.values()) if (r.consent_ip === '198.51.100.7') r.confirm_sent_at = new Date(Date.now() - 2 * 3600 * 1000).toISOString();
+  assert.equal((await post('a6@example.com', '198.51.100.7')).body.status, 'pending');
+
+  // IPv6: the whole /64 is one client
+  rows.clear();
+  mails.length = 0;
+  for (let i = 0; i < L.IP_MAX_PER_HOUR; i++) {
+    assert.equal((await post(`v6-${i}@example.com`, `2001:db8:12:34:aaaa:bbbb:cccc:${i}`)).body.status, 'pending');
+  }
+  assert.equal((await post('v6-x@example.com', '2001:db8:12:34:1::99')).body.status, 'limited');
+  assert.equal((await post('v6-y@example.com', '2001:db8:12:35::1')).body.status, 'pending', 'the next /64 is another client');
+});
+
+test('clientIp / ipFilter / ipAllowed: what counts as one client, and when it has had enough', () => {
+  const req = (v) => ({ headers: { 'x-forwarded-for': v } });
+  assert.equal(L.clientIp(req('203.0.113.9, 10.0.0.1')), '203.0.113.9');
+  assert.equal(L.clientIp(req('::ffff:203.0.113.9')), '203.0.113.9');
+  assert.equal(L.clientIp(req('2001:DB8::1')), '2001:db8::1');
+  assert.equal(L.clientIp(req('')), null);
+  assert.equal(L.clientIp(req('not an ip')), null);
+  assert.equal(L.clientIp(req('1.2.3.4*')), null, 'nothing that could widen a filter');
+  assert.equal(L.clientIp({ headers: { 'x-real-ip': '192.0.2.4' } }), '192.0.2.4');
+  assert.equal(L.ipFilter('203.0.113.9'), 'eq.203.0.113.9');
+  assert.equal(L.ipFilter('2001:db8:12:34:aaaa:bbbb:cccc:1'), 'like.2001:db8:12:34:*');
+  assert.equal(L.ipFilter('2001:db8:12:34::1'), 'like.2001:db8:12:34:*');
+  assert.equal(L.ipFilter('2001:db8::1'), 'eq.2001:db8::1', 'a prefix written with :: is matched by equality');
+  assert.equal(L.ipFilter('1:2:3'), null);
+  assert.equal(L.ipFilter(null), null);
+
+  const now = Date.parse('2026-11-20T12:00:00Z');
+  const at = (minAgo) => ({ id: `r${minAgo}`, confirm_sent_at: new Date(now - minAgo * 60000).toISOString() });
+  assert.deepEqual(L.ipAllowed([], { now }), { ok: true });
+  assert.deepEqual(L.ipAllowed([at(1), at(2), at(3), at(4)], { now }), { ok: true });
+  assert.deepEqual(L.ipAllowed([at(1), at(2), at(3), at(4), at(59)], { now }), { ok: false, reason: 'ip-hourly-cap' });
+  assert.deepEqual(L.ipAllowed([at(1), at(2), at(3), at(4), at(59)], { now, exceptId: 'r59' }), { ok: true });
+  assert.deepEqual(L.ipAllowed([at(1), at(2), at(3), at(4), at(61)], { now }), { ok: true });
+  const day = Array.from({ length: L.IP_MAX_PER_DAY }, (_, i) => at(120 + i));
+  assert.deepEqual(L.ipAllowed(day, { now }), { ok: false, reason: 'ip-daily-cap' });
+  assert.deepEqual(L.ipAllowed(day.map((r) => ({ ...r, confirm_sent_at: new Date(now - 25 * 3600000).toISOString() })), { now }), { ok: true });
+  assert.deepEqual(L.ipAllowed([{ id: 'x', confirm_sent_at: null }, { id: 'y', confirm_sent_at: 'garbage' }], { now }), { ok: true });
 });
 
 test('the daily cap says so instead of pointing at an empty inbox; a refused mail does not use up the cap', async () => {

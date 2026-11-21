@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<edgarSubmission xsi:schemaLocation="http://www.sec.gov/edgar/thirteenffiler eis_13F_Filer.xsd" xmlns:ns1="http://www.sec.gov/edgar/common" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.sec.gov/edgar/thirteenffiler">
+  <schemaVersion>X0202</schemaVersion>
+  <headerData>
+    <submissionType>13F-HR/A</submissionType>
+    <filerInfo>
+      <liveTestFlag>LIVE</liveTestFlag>
+      <flags/>
+      <filer>
+        <credentials>
+          <cik>0000858877</cik>
+          <ccc>XXXXXXXX</ccc>
+        </credentials>
+      </filer>
+      <periodOfReport>09-30-2026</periodOfReport>
+    </filerInfo>
+  </headerData>
+  <formData>
+    <coverPage>
+      <reportCalendarOrQuarter>09-30-2026</reportCalendarOrQuarter>
+      <isAmendment>true</isAmendment>
+      <amendmentNo>1</amendmentNo>
+      <amendmentInfo>
+        <amendmentType>NEW HOLDINGS</amendmentType>
+        <confDeniedExpired>false</confDeniedExpired>
+      </amendmentInfo>
+      <filingManager>
+        <name>Cisco Systems, Inc.</name>
+        <address>
+          <ns1:street1>170 West Tasman Dr</ns1:street1>
+          <ns1:city>San Jose</ns1:city>
+          <ns1:stateOrCountry>CA</ns1:stateOrCountry>
+          <ns1:zipCode>95134-1706</ns1:zipCode>
+        </address>
+      </filingManager>
+      <reportType>13F HOLDINGS REPORT</reportType>
+      <form13FFileNumber>028-14494</form13FFileNumber>
+      <secFileNumber>028-14494</secFileNumber>
+      <provideInfoForInstruction>N</provideInfoForInstruction>
+    </coverPage>
+    <signatureBlock>
+      <name>Evan Sloves</name>
+      <title>Secretary</title>
+      <phone>(408) 526-4000</phone>
+      <signature>/s/ Evan Sloves</signature>
+      <city>San Jose</city>
+      <stateOrCountry>CA</stateOrCountry>
+      <signatureDate>11-16-2026</signatureDate>
+    </signatureBlock>
+    <summaryPage>
+      <otherIncludedManagersCount>1</otherIncludedManagersCount>
+      <tableEntryTotal>1</tableEntryTotal>
+      <tableValueTotal>608622</tableValueTotal>
+      <isConfidentialOmitted>false</isConfidentialOmitted>
+      <otherManagers2Info>
+        <otherManager2>
+          <sequenceNumber>1</sequenceNumber>
+          <otherManager>
+            <form13FFileNumber>028-14495</form13FFileNumber>
+            <secFileNumber>028-14495</secFileNumber>
+            <name>Cisco Systems International B.V.</name>
+          </otherManager>
+        </otherManager2>
+      </otherManagers2Info>
+    </summaryPage>
+  </formData>
+</edgarSubmission>

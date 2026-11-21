@@ -1,0 +1,84 @@
+<informationTable xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.sec.gov/edgar/document/thirteenf/informationtable">
+  <infoTable>
+    <nameOfIssuer>ISHARES TR</nameOfIssuer>
+    <titleOfClass>CORE S&amp;P TTL STK</titleOfClass>
+    <cusip>464287150</cusip>
+    <value>119721600</value>
+    <shrsOrPrnAmt>
+      <sshPrnamt>720000</sshPrnamt>
+      <sshPrnamtType>SH</sshPrnamtType>
+    </shrsOrPrnAmt>
+    <investmentDiscretion>DFND</investmentDiscretion>
+    <otherManager>1</otherManager>
+    <votingAuthority>
+      <Sole>720000</Sole>
+      <Shared>0</Shared>
+      <None>0</None>
+    </votingAuthority>
+  </infoTable>
+  <infoTable>
+    <nameOfIssuer>ISHARES TR</nameOfIssuer>
+    <titleOfClass>S&amp;P 500 ETF</titleOfClass>
+    <cusip>464287200</cusip>
+    <value>45951000</value>
+    <shrsOrPrnAmt>
+      <sshPrnamt>60000</sshPrnamt>
+      <sshPrnamtType>SH</sshPrnamtType>
+    </shrsOrPrnAmt>
+    <investmentDiscretion>DFND</investmentDiscretion>
+    <otherManager>1</otherManager>
+    <votingAuthority>
+      <Sole>60000</Sole>
+      <Shared>0</Shared>
+      <None>0</None>
+    </votingAuthority>
+  </infoTable>
+  <infoTable>
+    <nameOfIssuer>COREWEAVE INC.</nameOfIssuer>
+    <titleOfClass>COM CL A</titleOfClass>
+    <cusip>21873S108</cusip>
+    <value>92693938</value>
+    <shrsOrPrnAmt>
+      <sshPrnamt>1063980</sshPrnamt>
+      <sshPrnamtType>SH</sshPrnamtType>
+    </shrsOrPrnAmt>
+    <investmentDiscretion>SOLE</investmentDiscretion>
+    <votingAuthority>
+      <Sole>1063980</Sole>
+      <Shared>0</Shared>
+      <None>0</None>
+    </votingAuthority>
+  </infoTable>
+  <infoTable>
+    <nameOfIssuer>SPACE EXPLORATION TECHN CORP</nameOfIssuer>
+    <titleOfClass>CLASS A COM STK</titleOfClass>
+    <cusip>84615Q103</cusip>
+    <value>35810393</value>
+    <shrsOrPrnAmt>
+      <sshPrnamt>237375</sshPrnamt>
+      <sshPrnamtType>SH</sshPrnamtType>
+    </shrsOrPrnAmt>
+    <investmentDiscretion>SOLE</investmentDiscretion>
+    <votingAuthority>
+      <Sole>237375</Sole>
+      <Shared>0</Shared>
+      <None>0</None>
+    </votingAuthority>
+  </infoTable>
+  <infoTable>
+    <nameOfIssuer>ETHOS TECHNOLOGIES INC</nameOfIssuer>
+    <titleOfClass>CL A</titleOfClass>
+    <cusip>29765A101</cusip>
+    <value>80971</value>
+    <shrsOrPrnAmt>
+      <sshPrnamt>2412</sshPrnamt>
+      <sshPrnamtType>SH</sshPrnamtType>
+    </shrsOrPrnAmt>
+    <investmentDiscretion>SOLE</investmentDiscretion>
+    <votingAuthority>
+      <Sole>2412</Sole>
+      <Shared>0</Shared>
+      <None>0</None>
+    </votingAuthority>
+  </infoTable>
+</informationTable>

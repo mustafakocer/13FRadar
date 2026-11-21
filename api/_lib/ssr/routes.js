@@ -418,6 +418,8 @@ export const ROUTES = [
   { kind: 'insiders', re: /^\/insiders$/, params: (m, qs) => ({ tab: qs.get('tab') }), load: loadInsiders, cache: 'hour' },
   { kind: 'pricing', re: /^\/pricing$/, load: loadPricing, cache: 'none' },
   { kind: 'checkout', re: /^\/checkout\/(success|cancel)$/, load: async () => [], cache: 'none' },
+  // where the confirmation and unsubscribe links in a mail land: the page reads its token client-side
+  { kind: 'lead', re: /^\/(thanks|unsubscribe)$/, load: async () => [], cache: 'none' },
   { kind: 'report', re: /^\/report$/, params: (m, qs) => ({ quarter: qs.get('q') }), load: loadReport, cache: 'hour' },
   { kind: 'screen', re: /^\/screen$/, load: loadSummaryOnly, cache: 'hour' },
   { kind: 'compare', re: /^\/compare$/, load: loadCompare, cache: 'hour' },

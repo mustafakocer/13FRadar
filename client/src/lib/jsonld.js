@@ -20,7 +20,12 @@ export function socialLinks() {
     .filter((s) => /^https?:\/\//.test(s));
 }
 
-export const publisher = () => ({ '@type': 'Organization', name: 'Fundocap', url: '__SITE__/en', logo: { '@type': 'ImageObject', url: '__SITE__/api/og' } });
+// The brand mark as a square bitmap (client/public/logo-512.png, rendered
+// from logo.svg): what Organization.logo is for. The 1200×630 share card
+// (/api/og) stays the organization's `image`.
+const LOGO = { '@type': 'ImageObject', url: '__SITE__/logo-512.png', width: 512, height: 512 };
+
+export const publisher = () => ({ '@type': 'Organization', name: 'Fundocap', url: '__SITE__/en', logo: { ...LOGO } });
 
 export function organization(lang) {
   const sameAs = socialLinks();
@@ -29,7 +34,8 @@ export function organization(lang) {
     '@type': 'Organization',
     name: 'Fundocap',
     url: `__SITE__/${lang}`,
-    logo: '__SITE__/api/og',
+    logo: { ...LOGO },
+    image: '__SITE__/api/og',
     ...(sameAs.length ? { sameAs } : {}),
   };
 }

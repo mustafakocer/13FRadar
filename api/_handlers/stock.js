@@ -199,9 +199,35 @@ function withFundamentals(data, ticker) {
   return out;
 }
 
+// The live quote (Finnhub /quote first) has no 52-week range and no volume;
+// the nightly build stores both per symbol (ticker-meta.json, read through
+// priceSnapshot). A field the live answer lacks is taken from there and
+// carries the day it describes (range52AsOf / volumeAsOf), so the page can
+// say so; a field neither has stays null and the page leaves its row out.
+export function withSnapshotGaps(data, snap) {
+  const p = data?.price;
+  const s = snap?.price;
+  if (!p || typeof p !== 'object' || !s) return data;
+  const price = { ...p };
+  let touched = false;
+  if ((price.high52 == null || price.low52 == null) && s.high52 != null && s.low52 != null) {
+    price.high52 = s.high52;
+    price.low52 = s.low52;
+    price.range52AsOf = snap.priceAsOf || null;
+    touched = true;
+  }
+  if (price.volume == null && s.volume != null) {
+    price.volume = s.volume;
+    price.volumeAsOf = snap.priceAsOf || null;
+    touched = true;
+  }
+  return touched ? { ...data, price } : data;
+}
+
 export async function stockPayload(ticker, opts = {}) {
   const r = await stockPayloadRaw(ticker, opts);
-  return { ...r, data: withCompanyName(withFundamentals(r.data, ticker), ticker) };
+  const data = r.served === 'snapshot' ? r.data : withSnapshotGaps(r.data, priceSnapshot(ticker));
+  return { ...r, data: withCompanyName(withFundamentals(data, ticker), ticker) };
 }
 
 async function stockPayloadRaw(ticker, { budgetMs = null, log = () => {}, providers = PROVIDERS } = {}) {

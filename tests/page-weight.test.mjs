@@ -107,7 +107,8 @@ test('the filings page: twenty rows in the HTML, the head and the true totals in
   assert.deepEqual(head.quarters, feed.quarters);
   assert.deepEqual(head.rows[0], feed.rows[0]);
   // the page states the whole feed's figures, not the head's
-  const n = (x) => x.toLocaleString('en-US');
+  // a Turkish page writes Turkish numbers (lib/format.js): 6.000, not 6,000
+  const n = (x) => x.toLocaleString('en-US').replace(/,/g, '.');
   assert.ok(r.html.includes(`Son ${n(feed.rows.length)} adet 13F bildirimi`), 'answer names the feed size');
   assert.ok(r.html.includes(`${n(head.amendments)} tanesi düzeltme`), 'answer names the amendment count');
   assert.equal(count(r.html, /<tr><td class="l"><a href="\/tr\/(?:guru|filer|manager)\//g), 20);

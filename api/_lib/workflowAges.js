@@ -35,6 +35,7 @@ export const EXPECTED = [
   { workflow: 'alerts.yml', maxAgeHours: 48, every: 'daily 08:23 (filing e-mail alerts)' },
   { workflow: 'newsletter.yml', maxAgeHours: 48, every: 'daily 04:41' },
   { workflow: 'lighthouse.yml', maxAgeHours: 48, every: 'daily 12:17' },
+  { workflow: 'tests.yml', maxAgeHours: 48, every: 'daily 09:07 on main (the full test suite)' },
   { workflow: 'site-check.yml', maxAgeHours: 72, every: 'after every production deployment (several a day)' },
   { workflow: 'db-backup.yml', maxAgeHours: 9 * 24, every: 'Mondays' },
   { workflow: 'metrics.yml', maxAgeHours: 9 * 24, every: 'Mondays' },

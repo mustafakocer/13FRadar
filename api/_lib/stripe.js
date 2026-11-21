@@ -166,16 +166,41 @@ export function periodEndOf(sub) {
 }
 export const unixToIso = (s) => (s ? new Date(Number(s) * 1000).toISOString() : null);
 
-// Access decision for one Stripe subscription object: { plan, expires }.
-// Pro always expires at the end of the paid period; the next renewal event
+// Start of the period the subscription is in; same two homes as the end.
+export function periodStartOf(sub) {
+  return sub?.current_period_start ?? sub?.items?.data?.[0]?.current_period_start ?? null;
+}
+
+// How long an account stays Pro into a period whose renewal has not been
+// paid. Stripe moves the period forward at renewal and only then tries the
+// charge, so a past_due subscription's current_period_end is the end of a
+// period nobody paid for. The grace covers Stripe's retry schedule (Smart
+// Retries is set to 3 days in docs/STRIPE-KURULUM.md §3b; 7 leaves room for a
+// longer setting) and does not depend on what Stripe is told to do when the
+// retries run out: left past_due for good, the access still ends here.
+export const PAST_DUE_GRACE_DAYS = 7;
+
+// Access decision for one Stripe subscription object: { plan, expires }, or
+// null when the object decides nothing.
+// active / trialing: Pro until the end of the period; the next renewal event
 // moves it. A subscription cancelled at period end therefore needs no special
-// case, and a renewal whose payment failed keeps access while Stripe's Smart
-// Retries run (status past_due), until Stripe itself moves it to
-// canceled/unpaid.
+// case.
+// past_due: Pro until the unpaid period's start + PAST_DUE_GRACE_DAYS, never
+// past the period end. A payment that then succeeds arrives as `active` and
+// restores the full period; Stripe giving up arrives as canceled/unpaid.
+// Without a period start there is nothing to count the grace from, and the
+// event decides nothing rather than extend access.
 export function planForSubscription(sub) {
   const status = String(sub?.status || '');
-  if (['active', 'trialing', 'past_due'].includes(status)) {
+  if (status === 'active' || status === 'trialing') {
     return { plan: 'pro', expires: unixToIso(periodEndOf(sub)) };
+  }
+  if (status === 'past_due') {
+    const start = Number(periodStartOf(sub));
+    if (!Number.isFinite(start) || start <= 0) return null;
+    const grace = start + PAST_DUE_GRACE_DAYS * 86400;
+    const end = Number(periodEndOf(sub));
+    return { plan: 'pro', expires: unixToIso(Number.isFinite(end) && end > 0 ? Math.min(end, grace) : grace) };
   }
   if (status === 'incomplete') return null; // first payment still pending
   return { plan: 'free', expires: null }; // canceled, unpaid, incomplete_expired, paused

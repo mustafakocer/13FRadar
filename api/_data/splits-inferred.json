@@ -1,5 +1,5 @@
 {
- "updatedAt": "2026-11-21T01:39:29.459Z",
+ "updatedAt": "2026-11-22T03:43:10.491Z",
  "note": "Splits missing from splits.json, read off 13F implied prices (api/_lib/inferredSplits.js). Generated — do not edit.",
  "byTicker": {
   "ITA": [
@@ -12,6 +12,19 @@
      "until": null,
      "holders": 1,
      "residual": 3
+    }
+   }
+  ],
+  "SNDK": [
+   {
+    "date": "2026-10-01",
+    "ratio": 8,
+    "source": "inferred-13f",
+    "evidence": {
+     "from": "2026-09-30",
+     "until": null,
+     "holders": 9,
+     "residual": 7.9999
     }
    }
   ],

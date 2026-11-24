@@ -125,9 +125,15 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4174
+        "tickers": 4143
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "split",
+          "severity": "warn",
+          "message": "1 ticker(s) with a one-day move over 300% — a share split inside the series? (BSLK 400%)"
+        }
+      ]
     },
     {
       "key": "prices",
@@ -184,7 +190,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 8374
+        "filers": 8378
       },
       "findings": []
     },

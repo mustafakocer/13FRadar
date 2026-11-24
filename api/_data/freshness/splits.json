@@ -1,9 +1,9 @@
 {
  "dataset": "splits",
- "last_run_at": "2026-11-23T03:41:07.910Z",
+ "last_run_at": "2026-11-24T03:42:12.606Z",
  "last_success_at": null,
  "last_error": "Twelve Data refuses /splits: TwelveData: /splits is available exclusively with grow or pro or ultra or venture or enterprise plans. Consider upgrading your API Key now at https://twelvedata.com/pricing",
- "last_error_at": "2026-11-23T03:41:07.910Z",
+ "last_error_at": "2026-11-24T03:42:12.606Z",
  "known_issue": "twelvedata",
  "candidates": 60,
  "rechecked": 0,

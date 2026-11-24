@@ -79,8 +79,8 @@
       "key": "congress",
       "path": "api/_data/congress.json",
       "metrics": {
-        "rows": 14094,
-        "members": 183,
+        "rows": 14296,
+        "members": 184,
         "futureDated": 0,
         "orphanRows": 0,
         "duplicateIds": 0

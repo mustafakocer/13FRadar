@@ -125,7 +125,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4143
+        "tickers": 4135
       },
       "findings": [
         {
@@ -139,10 +139,16 @@
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 5117,
+        "series": 5123,
         "coveragePct": 99
       },
-      "findings": []
+      "findings": [
+        {
+          "rule": "split",
+          "severity": "warn",
+          "message": "4 price series with an unverified split-sized break, the oldest from 2026-11-16 (9 days): CYAB, GETY, PARA, RIME"
+        }
+      ]
     },
     {
       "key": "splits",
@@ -190,7 +196,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 8378
+        "filers": 8383
       },
       "findings": []
     },

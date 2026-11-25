@@ -241,13 +241,6 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001800798": {
-   "acc": "0001800798-26-000004",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0001652594": {
    "acc": "0001062993-26-004335",
    "kind": "stale",
@@ -306,13 +299,6 @@
   },
   "0001664713": {
    "acc": "0001664713-26-000003",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0001625959": {
-   "acc": "0001625959-26-000003",
    "kind": "stale",
    "declared": null,
    "table": null,

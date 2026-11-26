@@ -276,13 +276,6 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001666363": {
-   "acc": "0001666363-26-000004",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0001056559": {
    "acc": "0001056559-26-000003",
    "kind": "stale",
@@ -773,13 +766,6 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001971230": {
-   "acc": "0001971230-26-000003",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0001830942": {
    "acc": "0001830942-26-000004",
    "kind": "stale",
@@ -829,22 +815,8 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001849529": {
-   "acc": "0001849529-26-000012",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0001847772": {
    "acc": "0001847772-26-000008",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0001774207": {
-   "acc": "0001774207-26-000003",
    "kind": "stale",
    "declared": null,
    "table": null,
@@ -1258,13 +1230,6 @@
   },
   "0001667954": {
    "acc": "0001140361-26-033072",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0002137529": {
-   "acc": "0002137529-26-000001",
    "kind": "stale",
    "declared": null,
    "table": null,

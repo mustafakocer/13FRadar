@@ -125,30 +125,18 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4135
+        "tickers": 4153
       },
-      "findings": [
-        {
-          "rule": "split",
-          "severity": "warn",
-          "message": "1 ticker(s) with a one-day move over 300% — a share split inside the series? (BSLK 400%)"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "prices",
       "path": "api/_data/prices/_index.json",
       "metrics": {
-        "series": 5123,
+        "series": 5134,
         "coveragePct": 99
       },
-      "findings": [
-        {
-          "rule": "split",
-          "severity": "warn",
-          "message": "4 price series with an unverified split-sized break, the oldest from 2026-11-16 (9 days): CYAB, GETY, PARA, RIME"
-        }
-      ]
+      "findings": []
     },
     {
       "key": "splits",
@@ -196,7 +184,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 8383
+        "filers": 8391
       },
       "findings": []
     },

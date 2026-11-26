@@ -1,7 +1,7 @@
 {
  "dataset": "congress",
- "last_run_at": "2026-11-26T04:22:23.520Z",
- "last_success_at": "2026-11-26T04:22:31.645Z",
+ "last_run_at": "2026-11-26T22:59:07.714Z",
+ "last_success_at": "2026-11-26T22:59:14.735Z",
  "last_filing_date": "2026-11-25",
  "row_count": 14324,
  "member_count": 186,

@@ -276,13 +276,6 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001056559": {
-   "acc": "0001056559-26-000003",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0000051762": {
    "acc": "0000051762-26-000005",
    "kind": "stale",
@@ -327,13 +320,6 @@
   },
   "0001724517": {
    "acc": "0001724517-26-000005",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0001542629": {
-   "acc": "0001213900-26-080609",
    "kind": "stale",
    "declared": null,
    "table": null,
@@ -528,13 +514,6 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001471265": {
-   "acc": "0001471265-26-000038",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0000225816": {
    "acc": "0000225816-26-000003",
    "kind": "stale",
@@ -668,13 +647,6 @@
    "table": null,
    "reportDate": "2026-06-30"
   },
-  "0001729254": {
-   "acc": "0001729254-26-000003",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
   "0001998892": {
    "acc": "0001140361-26-030171",
    "kind": "stale",
@@ -698,13 +670,6 @@
   },
   "0001806366": {
    "acc": "0001806366-26-000004",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0001641761": {
-   "acc": "0001641761-26-000003",
    "kind": "stale",
    "declared": null,
    "table": null,
@@ -768,13 +733,6 @@
   },
   "0001830942": {
    "acc": "0001830942-26-000004",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0002058915": {
-   "acc": "0002058915-26-000004",
    "kind": "stale",
    "declared": null,
    "table": null,
@@ -1055,13 +1013,6 @@
   },
   "0001056516": {
    "acc": "0001056516-26-000003",
-   "kind": "stale",
-   "declared": null,
-   "table": null,
-   "reportDate": "2026-06-30"
-  },
-  "0002132253": {
-   "acc": "0002132253-26-000001",
    "kind": "stale",
    "declared": null,
    "table": null,

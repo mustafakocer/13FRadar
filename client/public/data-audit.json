@@ -125,7 +125,7 @@
       "key": "returns",
       "path": "client/public/returns.json",
       "metrics": {
-        "tickers": 4141
+        "tickers": 4118
       },
       "findings": []
     },
@@ -184,7 +184,7 @@
       "key": "filer-states",
       "path": "client/public/filer-states.json",
       "metrics": {
-        "filers": 8391
+        "filers": 8392
       },
       "findings": []
     },

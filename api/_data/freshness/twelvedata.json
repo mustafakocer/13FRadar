@@ -1,12 +1,12 @@
 {
  "dataset": "twelvedata",
  "kind": "provider",
- "run_id": "45924745622",
- "last_run_at": "2026-11-27T04:13:40.144Z",
- "last_success_at": "2026-11-27T04:08:56.177Z",
+ "run_id": "46095109664",
+ "last_run_at": "2026-11-28T04:24:00.269Z",
+ "last_success_at": "2026-11-28T04:17:03.698Z",
  "last_error": "1 refusal(s): split table not refreshed — /splits: TwelveData: /splits is available exclusively with grow or pro or ultra or venture or enterprise plans. Consider upgrading your API Key now at https://twelvedata.co",
- "last_error_at": "2026-11-27T04:13:40.144Z",
- "calls_ok": 375,
+ "last_error_at": "2026-11-28T04:24:00.269Z",
+ "calls_ok": 376,
  "refusals": 1,
- "transient_errors": 25
+ "transient_errors": 24
 }
